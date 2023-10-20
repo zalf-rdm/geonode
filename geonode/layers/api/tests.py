@@ -30,6 +30,7 @@ from rest_framework.test import APITestCase
 from guardian.shortcuts import assign_perm, get_anonymous_user
 from geonode.geoserver.createlayer.utils import create_dataset
 
+from geonode.base.models import Link
 from geonode.base.populate_test_data import create_models, create_single_dataset
 from geonode.layers.models import Attribute, Dataset
 from geonode.maps.models import Map, MapLayer
@@ -93,8 +94,8 @@ class DatasetsApiTests(APITestCase):
             self.assertIsNotNone(response.data["dataset"].get("featureinfo_custom_template"))
             self.assertEqual(
                 response.data["dataset"].get("featureinfo_custom_template"),
-                '<div><div class="row"><div class="col-xs-6" style="font-weight: bold; word-wrap: break-word;">Name:</div>\
-                             <div class="col-xs-6" style="word-wrap: break-word;">${properties.name}</div></div></div>',
+                '<div style="overflow-x:hidden"><div class="row"><div class="col-xs-6" style="font-weight: bold; word-wrap: break-word;">Name:</div>\
+                             <div class="col-xs-6" style="word-wrap: break-word;">${properties[\'name\']}</div></div></div>',
             )
 
             _dataset.featureinfo_custom_template = "<div>Foo Bar</div>"
@@ -104,8 +105,8 @@ class DatasetsApiTests(APITestCase):
             self.assertIsNotNone(response.data["dataset"].get("featureinfo_custom_template"))
             self.assertEqual(
                 response.data["dataset"].get("featureinfo_custom_template"),
-                '<div><div class="row"><div class="col-xs-6" style="font-weight: bold; word-wrap: break-word;">Name:</div>\
-                             <div class="col-xs-6" style="word-wrap: break-word;">${properties.name}</div></div></div>',
+                '<div style="overflow-x:hidden"><div class="row"><div class="col-xs-6" style="font-weight: bold; word-wrap: break-word;">Name:</div>\
+                             <div class="col-xs-6" style="word-wrap: break-word;">${properties[\'name\']}</div></div></div>',
             )
 
             _dataset.use_featureinfo_custom_template = True
@@ -415,3 +416,26 @@ class DatasetsApiTests(APITestCase):
         put_data = {"metadata_file": f}
         response = self.client.put(url, data=put_data)
         self.assertEqual(200, response.status_code)
+
+    def test_download_api(self):
+        dataset = create_single_dataset("test_dataset")
+        url = reverse("datasets-detail", kwargs={"pk": dataset.pk})
+        response = self.client.get(url)
+        self.assertTrue(response.status_code == 200)
+        data = response.json()["dataset"]
+        download_url_data = data["download_urls"][0]
+        download_url = reverse("dataset_download", args=[dataset.alternate])
+        self.assertEqual(download_url_data["default"], True)
+        self.assertEqual(download_url_data["ajax_safe"], True)
+        self.assertEqual(download_url_data["url"], download_url)
+
+        link = Link(link_type="original", url="https://myoriginal.org", resource=dataset)
+        link.save()
+
+        response = self.client.get(url)
+        data = response.json()["dataset"]
+        download_url_data = data["download_urls"][0]
+        download_url = reverse("dataset_download", args=[dataset.alternate])
+        self.assertEqual(download_url_data["default"], True)
+        self.assertEqual(download_url_data["ajax_safe"], False)
+        self.assertEqual(download_url_data["url"], "https://myoriginal.org")

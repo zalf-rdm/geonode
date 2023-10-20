@@ -149,7 +149,7 @@ def get_map(
     ogc_server_location: str,
     layers: List,
     bbox: List,
-    wms_version: str = settings.OGC_SERVER["default"].get("WMS_VERSION", "1.1.1"),
+    wms_version: str = settings.OGC_SERVER["default"].get("WMS_VERSION", "1.3.0"),
     mime_type: str = "image/png",
     styles: List = None,
     width: int = 240,
@@ -429,7 +429,10 @@ def getmap(
     if headers.get("content-type", "").split(";")[0] in ["application/vnd.ogc.se_xml", "text/xml"]:
         se_xml = u.read()
         se_tree = etree.fromstring(se_xml)
-        err_message = str(se_tree.find(nspath("ServiceException", n.get_namespace("ogc"))).text).strip()
+        try:
+            err_message = str(se_tree.find(nspath("ServiceException", n.get_namespace("ogc"))).text).strip()
+        except Exception:
+            err_message = se_xml
         raise ServiceException(err_message)
     return u
 

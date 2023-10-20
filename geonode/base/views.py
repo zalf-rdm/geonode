@@ -123,13 +123,14 @@ def user_and_group_permission(request, model):
             permissions_names = form.cleaned_data.get("permission_type")
 
             if permissions_names:
-                if "edit" in permissions_names and "AnonymousUser" in users_usernames:
+                if "edit" in permissions_names and users_usernames and "AnonymousUser" in users_usernames:
                     if not _errors:
                         _message = '"EDIT" permissions not allowed for the "AnonymousUser".'
                         _errors = True
                 else:
                     set_permissions.apply_async(
-                        ([permissions_names], resources_names, users_usernames, groups_names, delete_flag)
+                        args=([permissions_names], resources_names, users_usernames, groups_names, delete_flag),
+                        expiration=30,
                     )
                     if not _errors:
                         _message = f'The asyncronous permissions {form.cleaned_data.get("mode")} request for {", ".join(users_usernames or groups_names)} has been sent'
@@ -141,6 +142,13 @@ def user_and_group_permission(request, model):
             if not _errors:
                 _message = f"Some error has occured {form.errors}"
                 _errors = True
+
+            if "layers" in form.errors and "invalid_choice" in (x.code for x in form.errors["layers"].data):
+                _invalid_dataset_id = []
+                for el in form.errors["layers"]:
+                    _invalid_dataset_id.extend([x for x in el.split(" ") if x.isnumeric()])
+                _message = f"The following dataset ID selected are not part of the available choices: {','.join(_invalid_dataset_id)}. They are probably in a dirty state, Please try again later"
+
         messages.add_message(request, (messages.INFO if not _errors else messages.ERROR), _message)
         return HttpResponseRedirect(get_url_for_app_model(model, model_class))
 
@@ -272,6 +280,28 @@ class ResourceBaseAutocomplete(autocomplete.Select2QuerySetView):
             unpublished_not_visible=settings.RESOURCE_PUBLISHING,
             private_groups_not_visibile=settings.GROUP_PRIVATE_RESOURCES,
         )[:100]
+
+
+class LinkedResourcesAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        qs = ResourceBase.objects.order_by("title")
+
+        if self.q:
+            qs = qs.filter(title__icontains=self.q)
+
+        if self.forwarded and "exclude" in self.forwarded:
+            qs = qs.exclude(pk=self.forwarded["exclude"])
+
+        return get_visible_resources(
+            qs,
+            self.request.user if self.request else None,
+            admin_approval_required=settings.ADMIN_MODERATE_UPLOADS,
+            unpublished_not_visible=settings.RESOURCE_PUBLISHING,
+            private_groups_not_visibile=settings.GROUP_PRIVATE_RESOURCES,
+        )
+
+    def get_result_label(self, result):
+        return f"{result.title} [{_(result.polymorphic_ctype.model)}]"
 
 
 class RegionAutocomplete(SimpleSelect2View):

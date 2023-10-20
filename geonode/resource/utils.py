@@ -16,12 +16,11 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 #########################################################################
+
 import os
-import re
 import uuid
 import logging
 import datetime
-import traceback
 
 from urllib.parse import urlparse, urljoin
 
@@ -30,15 +29,13 @@ from django.conf import settings
 from django.utils import timezone
 from django.core.exceptions import FieldDoesNotExist
 from django.utils.translation import ugettext_lazy as _
-from django.contrib.gis.geos import GEOSGeometry, MultiPolygon
-
 from geonode.utils import OGC_Servers_Handler
+from django.utils.module_loading import import_string
 
 from ..base import enumerations
 from ..base.models import (
     ExtraMetadata,
     Link,
-    Region,
     License,
     ResourceBase,
     TopicCategory,
@@ -157,20 +154,17 @@ def update_resource(
                 instance.regions.clear()
                 instance.regions.add(*regions_resolved)
 
-    instance = KeywordHandler(instance, _keywords).set_keywords()
+    try:
+        instance = KeywordHandler(instance, _keywords).set_keywords()
+    except Exception as e:
+        logger.error(e)
 
     # set model properties
     defaults = {}
     if vals:
         for key, value in vals.items():
             if key == "spatial_representation_type":
-                spatial_repr = SpatialRepresentationType.objects.filter(identifier=value)
-                if value is not None and spatial_repr.exists():
-                    value = SpatialRepresentationType(identifier=value)
-                # if the SpatialRepresentationType is not available in the DB, we just set it as None
-                elif value is not None and not spatial_repr.exists():
-                    value = None
-                defaults[key] = value
+                defaults[key] = SpatialRepresentationType.objects.filter(identifier=value).first() if value else None
             elif key == "topic_category":
                 value, created = TopicCategory.objects.get_or_create(
                     identifier=value, defaults={"description": "", "gn_description": value}
@@ -239,11 +233,6 @@ def update_resource(
 
     to_update.update(defaults)
     try:
-        ResourceBase.objects.filter(id=instance.resourcebase_ptr.id).update(**defaults)
-    except Exception as e:
-        logger.error(f"{e} - {defaults}")
-        raise
-    try:
         instance.get_real_concrete_instance_class().objects.filter(id=instance.id).update(**to_update)
     except Exception as e:
         logger.error(f"{e} - {to_update}")
@@ -259,8 +248,6 @@ def update_resource(
             _s = Service.objects.filter(harvester=_h).get()
             _to_update = {
                 "remote_typename": _s.name,
-                # "ows_url": _s.service_url,
-                "subtype": "remote",
             }
             if hasattr(instance, "remote_service"):
                 _to_update["remote_service"] = _s
@@ -282,12 +269,12 @@ def update_resource(
     return instance
 
 
-def metadata_storers(instance, custom={}):
-    from django.utils.module_loading import import_string
+def call_storers(instance, custom={}):
+    if not globals().get("storer_modules"):
+        storer_module_path = settings.METADATA_STORERS if hasattr(settings, "METADATA_STORERS") else []
+        globals()["storer_modules"] = [import_string(storer_path) for storer_path in storer_module_path]
 
-    available_storers = settings.METADATA_STORERS if hasattr(settings, "METADATA_STORERS") else []
-    for storer_path in available_storers:
-        storer = import_string(storer_path)
+    for storer in globals().get("storer_modules", []):
         storer(instance, custom)
     return instance
 
@@ -326,16 +313,6 @@ def get_alternate_name(instance):
     except Exception as e:
         logger.debug(e)
     return instance.alternate
-
-
-def get_related_resources(document):
-    if document.links:
-        try:
-            return [link.content_type.get_object_for_this_type(id=link.object_id) for link in document.links.all()]
-        except Exception:
-            return []
-    else:
-        return []
 
 
 def document_post_save(instance, *args, **kwargs):
@@ -386,15 +363,6 @@ def document_post_save(instance, *args, **kwargs):
                 link_type="data",
             ),
         )
-
-    resources = get_related_resources(instance)
-
-    # if there are (new) linked resources update the bbox computed by their bboxes
-    if resources:
-        bbox = MultiPolygon([r.bbox_polygon for r in resources])
-        instance.set_bbox_polygon(bbox.extent, instance.srid)
-    elif not instance.bbox_polygon:
-        instance.set_bbox_polygon((-180, -90, 180, 90), "EPSG:4326")
 
 
 def dataset_post_save(instance, *args, **kwargs):
@@ -467,47 +435,9 @@ def metadata_post_save(instance, *args, **kwargs):
 
     ResourceBase.objects.filter(id=instance.id).update(**defaults)
 
-    try:
-        if not instance.regions or instance.regions.count() == 0:
-            srid1, wkt1 = instance.geographic_bounding_box.split(";")
-            srid1 = re.findall(r"\d+", srid1)
+    from ..catalogue.models import catalogue_post_save
 
-            poly1 = GEOSGeometry(wkt1, srid=int(srid1[0]))
-            poly1.transform(4326)
-
-            queryset = Region.objects.all().order_by("name")
-            global_regions = []
-            regions_to_add = []
-            for region in queryset:
-                try:
-                    srid2, wkt2 = region.geographic_bounding_box.split(";")
-                    srid2 = re.findall(r"\d+", srid2)
-
-                    poly2 = GEOSGeometry(wkt2, srid=int(srid2[0]))
-                    poly2.transform(4326)
-
-                    if poly2.intersection(poly1):
-                        regions_to_add.append(region)
-                    if region.level == 0 and region.parent is None:
-                        global_regions.append(region)
-                except Exception:
-                    tb = traceback.format_exc()
-                    if tb:
-                        logger.debug(tb)
-            if regions_to_add or global_regions:
-                if regions_to_add and len(regions_to_add) > 0 and len(regions_to_add) <= 30:
-                    instance.regions.add(*regions_to_add)
-                else:
-                    instance.regions.add(*global_regions)
-    except Exception:
-        tb = traceback.format_exc()
-        if tb:
-            logger.debug(tb)
-    finally:
-        # refresh catalogue metadata records
-        from ..catalogue.models import catalogue_post_save
-
-        catalogue_post_save(instance=instance, sender=instance.__class__)
+    catalogue_post_save(instance=instance, sender=instance.__class__)
 
 
 def resourcebase_post_save(instance, *args, **kwargs):
@@ -516,6 +446,7 @@ def resourcebase_post_save(instance, *args, **kwargs):
     Has to be called by the children
     """
     if instance:
+        instance = call_storers(instance.get_real_instance(), kwargs.get("custom", {}))
         if hasattr(instance, "abstract") and not getattr(instance, "abstract", None):
             instance.abstract = _("No abstract provided")
         if hasattr(instance, "title") and not getattr(instance, "title", None) or getattr(instance, "title", "") == "":

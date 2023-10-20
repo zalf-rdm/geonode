@@ -31,10 +31,11 @@ from geonode import settings
 from geonode.base.api.filters import DynamicSearchFilter, ExtentFilter
 from geonode.base.api.pagination import GeoNodeApiPagination
 from geonode.base.api.permissions import UserHasPerms
+from geonode.base.api.views import base_linked_resources
+from geonode.base import enumerations
 from geonode.documents.api.exceptions import DocumentException
 from geonode.documents.models import Document
 
-from geonode.base.models import ResourceBase
 from geonode.base.api.serializers import ResourceBaseSerializer
 from geonode.resource.utils import resourcebase_post_save
 from geonode.storage.manager import StorageManager
@@ -94,32 +95,38 @@ class DocumentViewSet(DynamicModelViewSet):
         """
         manager = None
         serializer.is_valid(raise_exception=True)
-        _has_file = serializer.validated_data.pop("file_path", None) or serializer.validated_data.pop("doc_file", None)
+        file = serializer.validated_data.pop("file_path", None) or serializer.validated_data.pop("doc_file", None)
+        doc_url = serializer.validated_data.pop("doc_url", None)
         extension = serializer.validated_data.pop("extension", None)
 
-        if not _has_file:
-            raise DocumentException(detail="A file path or a file must be speficied")
+        if not file and not doc_url:
+            raise DocumentException(detail="A file, file path or URL must be speficied")
+
+        if file and doc_url:
+            raise DocumentException(detail="Either a file or a URL must be specified, not both")
 
         if not extension:
-            filename = _has_file if isinstance(_has_file, str) else _has_file.name
+            filename = file if isinstance(file, str) else file.name
             extension = Path(filename).suffix.replace(".", "")
 
         if extension not in settings.ALLOWED_DOCUMENT_TYPES:
-            raise DocumentException("The file provided is not in the supported extension file list")
+            raise DocumentException("The file provided is not in the supported extensions list")
 
         try:
-            manager = StorageManager(remote_files={"base_file": _has_file})
-            manager.clone_remote_files()
-            files = manager.get_retrieved_paths()
+            payload = {
+                "owner": self.request.user,
+                "extension": extension,
+                "resource_type": "document",
+            }
+            if file:
+                manager = StorageManager(remote_files={"base_file": file})
+                manager.clone_remote_files()
+                payload["files"] = [manager.get_retrieved_paths().get("base_file")]
+            if doc_url:
+                payload["doc_url"] = doc_url
+                payload["sourcetype"] = enumerations.SOURCE_TYPE_REMOTE
 
-            resource = serializer.save(
-                **{
-                    "owner": self.request.user,
-                    "extension": extension,
-                    "files": [files.get("base_file")],
-                    "resource_type": "document",
-                }
-            )
+            resource = serializer.save(**payload)
 
             resource.set_missing_info()
             resourcebase_post_save(resource.get_real_instance())
@@ -135,22 +142,8 @@ class DocumentViewSet(DynamicModelViewSet):
     @extend_schema(
         methods=["get"],
         responses={200: ResourceBaseSerializer(many=True)},
-        description="API endpoint allowing to retrieve the DocumentResourceLink(s).",
+        description="API endpoint allowing to retrieve linked resources",
     )
     @action(detail=True, methods=["get"])
-    def linked_resources(self, request, pk=None):
-        document = self.get_object()
-        resources_id = document.links.all().values("object_id")
-        resources = ResourceBase.objects.filter(id__in=resources_id)
-        exclude = []
-        for resource in resources:
-            if not request.user.is_superuser and not request.user.has_perm(
-                "view_resourcebase", resource.get_self_resource()
-            ):
-                exclude.append(resource.id)
-        resources = resources.exclude(id__in=exclude)
-        paginator = GeoNodeApiPagination()
-        paginator.page_size = request.GET.get("page_size", 10)
-        result_page = paginator.paginate_queryset(resources, request)
-        serializer = ResourceBaseSerializer(result_page, embed=True, many=True)
-        return paginator.get_paginated_response({"resources": serializer.data})
+    def linked_resources(self, request, pk=None, *args, **kwargs):
+        return base_linked_resources(self.get_object().get_real_instance(), request.user, request.GET)

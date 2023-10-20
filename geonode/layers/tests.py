@@ -41,6 +41,7 @@ from django.contrib.auth.models import Group
 from django.contrib.gis.geos import Polygon
 from django.db.models import Count
 from django.contrib.auth import get_user_model
+from django.http import HttpResponse
 
 from django.conf import settings
 from django.test.utils import override_settings
@@ -48,6 +49,7 @@ from django.contrib.admin.sites import AdminSite
 from geonode.geoserver.createlayer.utils import create_dataset
 
 from geonode.layers import utils
+from geonode.layers.utils import clear_dataset_download_handlers
 from geonode.base import enumerations
 from geonode.layers import DatasetAppConfig
 from geonode.layers.admin import DatasetAdmin
@@ -81,6 +83,7 @@ from geonode.layers.utils import (
 )
 
 from geonode.base.populate_test_data import all_public, create_models, remove_models, create_single_dataset
+from geonode.layers.download_handler import DatasetDownloadHandler
 
 logger = logging.getLogger(__name__)
 
@@ -323,6 +326,7 @@ class DatasetsTest(GeoNodeBaseTestSupport):
     def test_dataset_links(self):
         lyr = Dataset.objects.filter(subtype="vector").first()
         self.assertEqual(lyr.subtype, "vector")
+
         if check_ogc_backend(geoserver.BACKEND_PACKAGE):
             links = Link.objects.filter(resource=lyr.resourcebase_ptr, link_type="metadata")
             self.assertIsNotNone(links)
@@ -1205,7 +1209,7 @@ class DatasetsTest(GeoNodeBaseTestSupport):
         self.assertEqual(500, response.status_code)
         self.assertDictEqual({"error": "The format provided is not valid for the selected resource"}, response.json())
 
-    @patch("geonode.layers.views.HttpClient.request")
+    @patch("geonode.layers.download_handler.HttpClient.request")
     def test_dataset_download_call_the_catalog_raise_error_for_no_200(self, mocked_catalog):
         _response = MagicMock(status_code=500, content="foo-bar")
         mocked_catalog.return_value = _response, "foo-bar"
@@ -1215,12 +1219,9 @@ class DatasetsTest(GeoNodeBaseTestSupport):
         url = reverse("dataset_download", args=[dataset.alternate])
         response = self.client.get(url)
         self.assertEqual(500, response.status_code)
-        self.assertDictEqual(
-            {"error": "Download dataset exception: error during call with GeoServer: foo-bar"}, response.json()
-        )
+        self.assertDictEqual({"error": "Download dataset exception: error during call with GeoServer"}, response.json())
 
-    @patch("geonode.layers.views.HttpClient.request")
-    def test_dataset_download_call_the_catalog_raise_error_for_error_content(self, mocked_catalog):
+    def test_dataset_download_call_the_catalog_raise_error_for_error_content(self):
         content = """<?xml version="1.0" encoding="UTF-8"?>
                 <ows:ExceptionReport xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.1.0" xsi:schemaLocation="http://www.opengis.net/ows/1.1 http://localhost:8080/geoserver/schemas/ows/1.1.0/owsAll.xsd">
                     <ows:Exception exceptionCode="InvalidParameterValue" locator="ResponseDocument">
@@ -1229,14 +1230,15 @@ class DatasetsTest(GeoNodeBaseTestSupport):
                 </ows:ExceptionReport>
                 """  # noqa
         _response = MagicMock(status_code=200, text=content, headers={"Content-Type": "text/xml"})
-        mocked_catalog.return_value = _response, content
         # if settings.USE_GEOSERVER is false, the URL must be redirected
         self.client.login(username="admin", password="admin")
         dataset = Dataset.objects.first()
-        url = reverse("dataset_download", args=[dataset.alternate])
-        response = self.client.get(url)
-        self.assertEqual(500, response.status_code)
-        self.assertDictEqual({"error": "InvalidParameterValue: Foo Bar Exception"}, response.json())
+        with patch("geonode.layers.download_handler.HttpClient.request") as mocked_catalog:
+            mocked_catalog.return_value = _response, content
+            url = reverse("dataset_download", args=[dataset.alternate])
+            response = self.client.get(url)
+            self.assertEqual(500, response.status_code)
+            self.assertDictEqual({"error": "InvalidParameterValue: Foo Bar Exception"}, response.json())
 
     def test_dataset_download_call_the_catalog_works(self):
         # if settings.USE_GEOSERVER is false, the URL must be redirected
@@ -1244,7 +1246,7 @@ class DatasetsTest(GeoNodeBaseTestSupport):
         self.client.login(username="admin", password="admin")
         dataset = Dataset.objects.first()
         layer = create_dataset(dataset.title, dataset.title, dataset.owner, "Point")
-        with patch("geonode.layers.views.HttpClient.request") as mocked_catalog:
+        with patch("geonode.layers.download_handler.HttpClient.request") as mocked_catalog:
             mocked_catalog.return_value = _response, ""
             url = reverse("dataset_download", args=[layer.alternate])
             response = self.client.get(url)
@@ -1263,21 +1265,21 @@ class DatasetsTest(GeoNodeBaseTestSupport):
         _response = MagicMock(status_code=200, text="", headers={"Content-Type": ""})  # noqa
         dataset = Dataset.objects.first()
         layer = create_dataset(dataset.title, dataset.title, dataset.owner, "Point")
-        with patch("geonode.layers.views.HttpClient.request") as mocked_catalog:
+        with patch("geonode.layers.download_handler.HttpClient.request") as mocked_catalog:
             mocked_catalog.return_value = _response, ""
             url = reverse("dataset_download", args=[layer.alternate])
             response = self.client.get(url)
             self.assertTrue(response.status_code == 200)
 
     @override_settings(USE_GEOSERVER=True)
-    @patch("geonode.layers.views.get_template")
+    @patch("geonode.layers.download_handler.get_template")
     def test_dataset_download_call_the_catalog_work_for_raster(self, pathed_template):
         # if settings.USE_GEOSERVER is false, the URL must be redirected
         _response = MagicMock(status_code=200, text="", headers={"Content-Type": ""})  # noqa
         dataset = Dataset.objects.filter(subtype="raster").first()
         layer = create_dataset(dataset.title, dataset.title, dataset.owner, "Point")
         Dataset.objects.filter(alternate=layer.alternate).update(subtype="raster")
-        with patch("geonode.layers.views.HttpClient.request") as mocked_catalog:
+        with patch("geonode.layers.download_handler.HttpClient.request") as mocked_catalog:
             mocked_catalog.return_value = _response, ""
             url = reverse("dataset_download", args=[layer.alternate])
             response = self.client.get(url)
@@ -1290,13 +1292,13 @@ class DatasetsTest(GeoNodeBaseTestSupport):
         )
 
     @override_settings(USE_GEOSERVER=True)
-    @patch("geonode.layers.views.get_template")
+    @patch("geonode.layers.download_handler.get_template")
     def test_dataset_download_call_the_catalog_work_for_vector(self, pathed_template):
         # if settings.USE_GEOSERVER is false, the URL must be redirected
         _response = MagicMock(status_code=200, text="", headers={"Content-Type": ""})  # noqa
         dataset = Dataset.objects.filter(subtype="vector").first()
         layer = create_dataset(dataset.title, dataset.title, dataset.owner, "Point")
-        with patch("geonode.layers.views.HttpClient.request") as mocked_catalog:
+        with patch("geonode.layers.download_handler.HttpClient.request") as mocked_catalog:
             mocked_catalog.return_value = _response, ""
             url = reverse("dataset_download", args=[layer.alternate])
             response = self.client.get(url)
@@ -1626,16 +1628,20 @@ class TestSetMetadata(TestCase):
             "date": datetime.datetime(2021, 4, 9, 9, 0, 46),
             "language": "eng",
             "purpose": None,
-            "spatial_representation_type": "dataset",
+            "spatial_representation_type": "vector",
             "supplemental_information": "No information provided",
             "temporal_extent_end": None,
             "temporal_extent_start": None,
             "title": "test_dataset",
         }
+        expected_keywords = []
+        for kw in [kw.get("keywords") for kw in self.custom if kw["type"] != "place"]:
+            for _kw in [_kw for _kw in kw]:
+                expected_keywords.append(_kw)
         self.assertEqual("7cfbc42c-efa7-431c-8daa-1399dff4cd19", identifier)
         self.assertListEqual(["Global"], regions)
         self.assertDictEqual(expected_vals, vals)
-        self.assertListEqual(self.custom, keywords)
+        self.assertListEqual(expected_keywords, keywords)
 
     def test_convert_keyword_should_empty_list_for_empty_keyword(self):
         actual = convert_keyword([])
@@ -1682,7 +1688,7 @@ class TestCustomMetadataParser(TestCase):
             "date": datetime.datetime(2021, 4, 9, 9, 0, 46),
             "language": "eng",
             "purpose": None,
-            "spatial_representation_type": "dataset",
+            "spatial_representation_type": "vector",
             "supplemental_information": "No information provided",
             "temporal_extent_end": None,
             "temporal_extent_start": None,
@@ -1718,9 +1724,13 @@ class TestCustomMetadataParser(TestCase):
 
     def test_will_use_only_the_default_metadata_parser(self):
         identifier, vals, regions, keywords, _ = parse_metadata(open(self.exml_path).read())
+        expected_keywords = []
+        for kw in [kw.get("keywords") for kw in self.keywords if kw["type"] != "place"]:
+            for _kw in [_kw for _kw in kw]:
+                expected_keywords.append(_kw)
         self.assertEqual("7cfbc42c-efa7-431c-8daa-1399dff4cd19", identifier)
         self.assertListEqual(["Global"], regions)
-        self.assertListEqual(self.keywords, keywords)
+        self.assertListEqual(expected_keywords, keywords)
         self.assertDictEqual(self.expected_vals, vals)
 
     @override_settings(METADATA_PARSERS=["__DEFAULT__", "geonode.layers.tests.dummy_metadata_parser"])
@@ -1960,6 +1970,53 @@ class TestDatasetForm(GeoNodeBaseTestSupport):
         self.assertTrue(form.is_valid())
         self.assertDictEqual({}, form.errors)
 
+    def test_dataset_time_form_should_work_with_date_attribute(self):
+        attr, _ = Attribute.objects.get_or_create(
+            dataset=self.dataset, attribute="field_date", attribute_type="xsd:date"
+        )
+        self.dataset.attribute_set.add(attr)
+        self.dataset.save()
+        form = self.time_form(
+            instance=self.dataset,
+            data={
+                "attribute": self.dataset.attributes.first().id,
+                "end_attribute": "",
+                "presentation": "DISCRETE_INTERVAL",
+                "precision_value": 12345,
+                "precision_step": "seconds",
+            },
+        )
+        self.assertTrue(form.is_valid())
+        self.assertDictEqual({}, form.errors)
+        expected_choises = [(None, "-----"), (self.dataset.attributes.first().id, "field_date")]
+        actual_choices = form.fields.get("attribute").choices
+        self.assertListEqual(expected_choises, actual_choices)
+
+    def test_timeserie_raise_error_if_not_valid_attribute(self):
+        attr, _ = Attribute.objects.get_or_create(
+            dataset=self.dataset, attribute="field_date", attribute_type="xsd:string"
+        )
+        self.dataset.attribute_set.add(attr)
+        self.dataset.save()
+        form = self.time_form(
+            instance=self.dataset,
+            data={
+                "attribute": self.dataset.attributes.first().id,
+                "end_attribute": "",
+                "presentation": "DISCRETE_INTERVAL",
+                "precision_value": 12345,
+                "precision_step": "seconds",
+            },
+        )
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            f"Select a valid choice. {self.dataset.attributes.first().id} is not one of the available choices.",
+            form.errors.get("attribute")[0],
+        )
+        expected_choises = [(None, "-----")]
+        actual_choices = form.fields.get("attribute").choices
+        self.assertListEqual(expected_choises, actual_choices)
+
     def test_dataset_time_form_should_raise_error_if_invalid_payload(self):
         attr, _ = Attribute.objects.get_or_create(
             dataset=self.dataset, attribute="field_date", attribute_type="xsd:dateTime"
@@ -1982,6 +2039,30 @@ class TestDatasetForm(GeoNodeBaseTestSupport):
             "Select a valid choice. INVALID_PRESENTATION_VALUE is not one of the available choices.",
             form.errors["presentation"][0],
         )
+
+    def test_resource_form_is_invalid_with_incompleted_timeserie_data(self):
+        self.client.login(username="admin", password="admin")
+        url = reverse("dataset_metadata", args=(self.dataset.alternate,))
+        response = self.client.post(
+            url,
+            data={
+                "resource-owner": self.dataset.owner.id,
+                "resource-title": "layer_title",
+                "resource-date": "2022-01-24 16:38 pm",
+                "resource-date_type": "creation",
+                "resource-language": "eng",
+                "resource-has_time": True,
+                "dataset_attribute_set-TOTAL_FORMS": 0,
+                "dataset_attribute_set-INITIAL_FORMS": 0,
+            },
+        )
+        expected = {
+            "success": False,
+            "errors": [
+                "The Timeseries configuration is invalid. Please select at least one option between the `attribute` and `end_attribute`, otherwise remove the 'has_time' flag"
+            ],
+        }
+        self.assertDictEqual(expected, response.json())
 
 
 class SetLayersPermissionsCommand(GeoNodeBaseTestSupport):
@@ -2137,3 +2218,54 @@ class SetLayersPermissionsCommand(GeoNodeBaseTestSupport):
             self.assertSetEqual(expected_perms, actual)
         else:
             self.assertFalse(username in [user.username for user in perms["users"]])
+
+
+class TestDatasetDownloadHandler(GeoNodeBaseTestSupport):
+    def setUp(self):
+        user = get_user_model().objects.first()
+        request = RequestFactory().get("http://test_url.com")
+        request.user = user
+        self.dataset = create_single_dataset("test_dataset_for_download")
+        self.sut = DatasetDownloadHandler(request, self.dataset.alternate)
+
+    def test_download_url_without_original_link(self):
+        expected_url = reverse("dataset_download", args=[self.dataset.alternate])
+        self.assertEqual(expected_url, self.sut.download_url)
+
+    def test_download_url_with_original_link(self):
+        Link.objects.update_or_create(
+            resource=self.dataset.resourcebase_ptr,
+            url="https://custom_dowonload_url.com",
+            defaults=dict(
+                extension="zip",
+                name="Original Dataset",
+                mime="application/octet-stream",
+                link_type="original",
+            ),
+        )
+        expected_url = "https://custom_dowonload_url.com"
+        self.assertEqual(expected_url, self.sut.download_url)
+
+    def test_get_resource_exists(self):
+        self.assertIsNotNone(self.sut.get_resource())
+
+    def test_process_dowload(self):
+        response = self.sut.get_download_response()
+        self.assertIsNotNone(response)
+
+
+class DummyDownloadHandler(DatasetDownloadHandler):
+    def get_download_response(self):
+        return HttpResponse(content=b"abcsfd2")
+
+
+class TestCustomDownloadHandler(GeoNodeBaseTestSupport):
+    @override_settings(DEFAULT_DATASET_DOWNLOAD_HANDLER="geonode.layers.tests.DummyDownloadHandler")
+    def test_download_custom_handler(self):
+        clear_dataset_download_handlers()
+        dataset = create_single_dataset("test_custom_download_dataset")
+        url = reverse("dataset_download", args=[dataset.alternate])
+        self.client.login(username="admin", password="admin")
+        response = self.client.get(url)
+        self.assertTrue(response.status_code == 200)
+        self.assertEqual(response.content, b"abcsfd2")

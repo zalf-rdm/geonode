@@ -17,7 +17,6 @@
 #
 #########################################################################
 
-import itertools
 import os
 import gc
 import re
@@ -34,6 +33,8 @@ import tarfile
 import datetime
 import requests
 import tempfile
+import ipaddress
+import itertools
 import traceback
 import subprocess
 
@@ -87,6 +88,7 @@ from urllib.parse import (
     urlparse,
     urlsplit,
     urlencode,
+    urlunparse,
     parse_qsl,
     ParseResult,
 )
@@ -492,13 +494,54 @@ def _split_query(query):
     return [kw.strip() for kw in keywords if kw.strip()]
 
 
+# Swaps coords order from xmin,ymin,xmax,ymax to xmin,xmax,ymin,ymax and viceversa
+def bbox_swap(bbox):
+    _bbox = [float(o) for o in bbox]
+    return [_bbox[0], _bbox[2], _bbox[1], _bbox[3]]
+
+
 def bbox_to_wkt(x0, x1, y0, y1, srid="4326", include_srid=True):
     if srid and str(srid).startswith("EPSG:"):
         srid = srid[5:]
     if None not in {x0, x1, y0, y1}:
-        wkt = "POLYGON(({:f} {:f},{:f} {:f},{:f} {:f},{:f} {:f},{:f} {:f}))".format(
-            float(x0), float(y0), float(x0), float(y1), float(x1), float(y1), float(x1), float(y0), float(x0), float(y0)
+        polys = []
+
+        # We assume that if x1 is smaller then x0 we're crossing the date line
+        crossing_idl = x1 < x0
+        if crossing_idl:
+            polys.append(
+                [
+                    (float(x0), float(y0)),
+                    (float(x0), float(y1)),
+                    (180.0, float(y1)),
+                    (180.0, float(y0)),
+                    (float(x0), float(y0)),
+                ]
+            )
+            polys.append(
+                [
+                    (-180.0, float(y0)),
+                    (-180.0, float(y1)),
+                    (float(x1), float(y1)),
+                    (float(x1), float(y0)),
+                    (-180.0, float(y0)),
+                ]
+            )
+        else:
+            polys.append(
+                [
+                    (float(x0), float(y0)),
+                    (float(x0), float(y1)),
+                    (float(x1), float(y1)),
+                    (float(x1), float(y0)),
+                    (float(x0), float(y0)),
+                ]
+            )
+
+        poly_wkts = ",".join(
+            ["(({}))".format(",".join(["{:f} {:f}".format(coords[0], coords[1]) for coords in poly])) for poly in polys]
         )
+        wkt = f"MULTIPOLYGON({poly_wkts})" if len(polys) > 1 else f"POLYGON{poly_wkts}"
         if include_srid:
             wkt = f"SRID={srid};{wkt}"
     else:
@@ -1192,7 +1235,12 @@ class HttpClient:
             _req_tout = timeout or self.timeout
             try:
                 response = action(url=url, data=data, headers=headers, timeout=_req_tout, stream=stream, verify=verify)
-            except (requests.exceptions.RequestException, ValueError, RetryError) as e:
+            except (
+                requests.exceptions.ConnectTimeout,
+                requests.exceptions.RequestException,
+                ValueError,
+                RetryError,
+            ) as e:
                 msg = f"Request exception [{e}] - TOUT [{_req_tout}] to URL: {url} - headers: {headers}"
                 logger.exception(Exception(msg))
                 response = None
@@ -1370,7 +1418,6 @@ def get_legend_url(
 
 def set_resource_default_links(instance, layer, prune=False, **kwargs):
     from geonode.base.models import Link
-    from django.urls import reverse
     from django.utils.translation import ugettext
 
     # Prune old links
@@ -1437,26 +1484,6 @@ def set_resource_default_links(instance, layer, prune=False, **kwargs):
             except Exception as e:
                 logger.exception(e)
                 bbox = instance.bbox_string
-
-        # Create Raw Data download link
-        if settings.DISPLAY_ORIGINAL_DATASET_LINK:
-            logger.debug(" -- Resource Links[Create Raw Data download link]...")
-            download_url = urljoin(settings.SITEURL, reverse("download", args=[instance.id]))
-            while Link.objects.filter(resource=instance.resourcebase_ptr, url=download_url).count() > 1:
-                Link.objects.filter(resource=instance.resourcebase_ptr, url=download_url).first().delete()
-            Link.objects.update_or_create(
-                resource=instance.resourcebase_ptr,
-                url=download_url,
-                defaults=dict(
-                    extension="zip",
-                    name="Original Dataset",
-                    mime="application/octet-stream",
-                    link_type="original",
-                ),
-            )
-            logger.debug(" -- Resource Links[Create Raw Data download link]...done!")
-        else:
-            Link.objects.filter(resource=instance.resourcebase_ptr, name="Original Dataset").delete()
 
         # Set download links for WMS, WCS or WFS and KML
         logger.debug(" -- Resource Links[Set download links for WMS, WCS or WFS and KML]...")
@@ -1881,6 +1908,42 @@ def build_absolute_uri(url):
     return url
 
 
+def remove_credentials_from_url(url):
+    # Parse the URL
+    parsed_url = urlparse(url)
+
+    # Remove the username and password from the parsed URL
+    parsed_url = parsed_url._replace(netloc=parsed_url.netloc.split("@")[-1])
+
+    # Reconstruct the URL without credentials
+    cleaned_url = urlunparse(parsed_url)
+
+    return cleaned_url
+
+
+def extract_ip_or_domain(url):
+    # Decode the URL to handle percent-encoded characters
+    _url = remove_credentials_from_url(unquote(url))
+
+    ip_regex = re.compile("^(?:http://|https://)(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})")
+    domain_regex = re.compile("^(?:http://|https://)([a-zA-Z0-9.-]+)")
+
+    match = ip_regex.findall(_url)
+    if len(match):
+        ip_address = match[0]
+        try:
+            ipaddress.ip_address(ip_address)  # Validate the IP address
+            return ip_address
+        except ValueError:
+            pass
+
+    match = domain_regex.findall(_url)
+    if len(match):
+        return match[0]
+
+    return None
+
+
 def get_xpath_value(
     element: etree.Element, xpath_expression: str, nsmap: typing.Optional[dict] = None
 ) -> typing.Optional[str]:
@@ -1915,7 +1978,24 @@ def get_supported_datasets_file_types():
             supported_types[default_types_id.index(_type.get("id"))] = _type
         else:
             supported_types.extend([_type])
-    return supported_types
+
+    # Order the formats (to support their visualization)
+    formats_order = [("vector", 0), ("raster", 1), ("archive", 2)]
+    ordered_payload = (
+        (weight[1], resource_type)
+        for resource_type in supported_types
+        for weight in formats_order
+        if resource_type.get("format") in weight[0]
+    )
+
+    # Flatten the list
+    ordered_resource_types = [x[1] for x in sorted(ordered_payload, key=lambda x: x[0])]
+    other_resource_types = [
+        resource_type
+        for resource_type in supported_types
+        if resource_type.get("format") is None or resource_type.get("format") not in [f[0] for f in formats_order]
+    ]
+    return ordered_resource_types + other_resource_types
 
 
 def get_allowed_extensions():

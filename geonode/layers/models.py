@@ -16,6 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 #########################################################################
+import itertools
 import re
 import logging
 
@@ -38,7 +39,7 @@ from geonode.security.permissions import (
     DOWNLOAD_PERMISSIONS,
     DATASET_ADMIN_PERMISSIONS,
 )
-from geonode.base.models import ResourceBase, ResourceBaseManager
+from geonode.base.models import ResourceBase, ResourceBaseManager, LinkedResource
 
 logger = logging.getLogger("geonode.layers.models")
 
@@ -256,6 +257,18 @@ class Dataset(ResourceBase):
         return hookset.dataset_detail_url(self)
 
     @property
+    def capabilities_url(self):
+        from geonode.geoserver.helpers import get_dataset_capabilities_url
+
+        return get_dataset_capabilities_url(self)
+
+    @property
+    def dataset_ows_url(self):
+        from geonode.geoserver.helpers import get_layer_ows_url
+
+        return get_layer_ows_url(self)
+
+    @property
     def embed_url(self):
         try:
             if self.service_typename:
@@ -305,10 +318,20 @@ class Dataset(ResourceBase):
         map_ids = list(self.maplayers.values_list("map__id", flat=True))
         return Map.objects.filter(id__in=map_ids)
 
+    def get_linked_resources(self, as_target: bool = False):
+        ret = super().get_linked_resources(as_target)
+
+        if as_target:
+            # create LinkedResources on the fly to report MapLayer relationship
+            res = (LinkedResource(source=map, target=self, internal=True) for map in self.maps)
+            ret = itertools.chain(ret, res)
+
+        return ret
+
     @property
     def download_url(self):
         if self.subtype not in ["vector", "raster", "vector_time"]:
-            logger.error("Download URL is available only for datasets that have been harvested and copied locally")
+            logger.info("Download URL is available only for datasets that have been harvested and copied locally")
             return None
         return build_absolute_uri(reverse("dataset_download", args=(self.alternate,)))
 

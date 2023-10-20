@@ -23,21 +23,18 @@ import decimal
 import logging
 import warnings
 import traceback
-from django.urls import reverse
 
 from owslib.wfs import WebFeatureService
-import xml.etree.ElementTree as ET
 
 from django.conf import settings
 
 from django.db.models import F
-from django.http import Http404, JsonResponse
+from django.http import Http404
 from django.contrib import messages
 from django.shortcuts import render
 from django.utils.html import escape
 from django.forms.utils import ErrorList
 from django.contrib.auth import get_user_model
-from django.template.loader import get_template
 from django.utils.translation import ugettext as _
 from django.core.exceptions import PermissionDenied
 from django.forms.models import inlineformset_factory
@@ -50,9 +47,8 @@ from django.views.decorators.http import require_http_methods
 
 from geonode import geoserver
 from geonode.layers.metadata import parse_metadata
-from geonode.proxy.views import fetch_response_headers
 from geonode.resource.manager import resource_manager
-from geonode.geoserver.helpers import set_dataset_style, wps_format_is_supported
+from geonode.geoserver.helpers import set_dataset_style
 from geonode.resource.utils import update_resource
 
 from geonode.base.auth import get_or_create_token
@@ -63,14 +59,19 @@ from geonode.base.enumerations import CHARSETS
 from geonode.decorators import check_keyword_write_perms
 from geonode.layers.forms import DatasetForm, DatasetTimeSerieForm, LayerAttributeForm, NewLayerUploadForm
 from geonode.layers.models import Dataset, Attribute
-from geonode.layers.utils import is_sld_upload_only, is_xml_upload_only, validate_input_source
+from geonode.layers.utils import (
+    is_sld_upload_only,
+    is_xml_upload_only,
+    get_default_dataset_download_handler,
+    validate_input_source,
+)
 from geonode.services.models import Service
 from geonode.base import register_event
 from geonode.monitoring.models import EventType
 from geonode.groups.models import GroupProfile
 from geonode.security.utils import get_user_visible_groups, AdvancedSecurityWorkflowManager
 from geonode.people.forms import ProfileForm
-from geonode.utils import HttpClient, check_ogc_backend, llbbox_to_mercator, resolve_object, mkdtemp
+from geonode.utils import check_ogc_backend, llbbox_to_mercator, resolve_object, mkdtemp
 from geonode.geoserver.helpers import ogc_server_settings, select_relevant_files, write_uploaded_files_to_disk
 from geonode.geoserver.security import set_geowebcache_invalidate_cache
 
@@ -116,26 +117,28 @@ def _resolve_dataset(request, alternate, permission="base.view_resourcebase", ms
     Resolve the layer by the provided typename (which may include service name) and check the optional permission.
     """
     service_typename = alternate.split(":", 1)
-    if Service.objects.filter(name=service_typename[0]).count() == 1:
+    for _s in Service.objects.filter(name__startswith=service_typename[0]):
         query = {
             "alternate": service_typename[1],
-            "remote_service": Service.objects.filter(name=service_typename[0]).get(),
+            "remote_service": _s,
         }
-        return resolve_object(request, Dataset, query, permission=permission, permission_msg=msg, **kwargs)
-    else:
-        if len(service_typename) > 1 and ":" in service_typename[1]:
-            if service_typename[0]:
-                query = {"store": service_typename[0], "alternate": service_typename[1]}
-            else:
-                query = {"alternate": service_typename[1]}
+        try:
+            return resolve_object(request, Dataset, query, permission=permission, permission_msg=msg, **kwargs)
+        except (Dataset.DoesNotExist, Http404) as e:
+            logger.debug(e)
+    if len(service_typename) > 1 and ":" in service_typename[1]:
+        if service_typename[0]:
+            query = {"store": service_typename[0], "alternate": service_typename[1]}
         else:
-            query = {"alternate": alternate}
-        test_query = Dataset.objects.filter(**query)
-        if test_query.count() > 1 and test_query.exclude(subtype="remote").count() == 1:
-            query = {"id": test_query.exclude(subtype="remote").last().id}
-        elif test_query.count() > 1:
-            query = {"id": test_query.last().id}
-        return resolve_object(request, Dataset, query, permission=permission, permission_msg=msg, **kwargs)
+            query = {"alternate": service_typename[1]}
+    else:
+        query = {"alternate": alternate}
+    test_query = Dataset.objects.filter(**query)
+    if test_query.count() > 1 and test_query.exclude(subtype="remote").count() == 1:
+        query = {"id": test_query.exclude(subtype="remote").last().id}
+    elif test_query.count() > 1:
+        query = {"id": test_query.last().id}
+    return resolve_object(request, Dataset, query, permission=permission, permission_msg=msg, **kwargs)
 
 
 # Basic Dataset Views #
@@ -447,6 +450,20 @@ def dataset_metadata(
             }
             logger.error(f"{out.get('errors')}")
             return HttpResponse(json.dumps(out), content_type="application/json", status=400)
+        elif (
+            layer.has_time
+            and timeseries_form.is_valid()
+            and not timeseries_form.cleaned_data.get("attribute", "")
+            and not timeseries_form.cleaned_data.get("end_attribute", "")
+        ):
+            out = {
+                "success": False,
+                "errors": [
+                    "The Timeseries configuration is invalid. Please select at least one option between the `attribute` and `end_attribute`, otherwise remove the 'has_time' flag"
+                ],
+            }
+            logger.error(f"{out.get('errors')}")
+            return HttpResponse(json.dumps(out), content_type="application/json", status=400)
     else:
         dataset_form = DatasetForm(instance=layer, prefix="resource", user=request.user)
         dataset_form.disable_keywords_widget_for_non_superuser(request.user)
@@ -481,10 +498,6 @@ def dataset_metadata(
                     initial["precision_step"] = "seconds"
 
         timeseries_form = DatasetTimeSerieForm(instance=layer, prefix="timeseries", initial=initial)
-        timeseries_form.fields.get("attribute").queryset = layer.attributes.filter(attribute_type__in=["xsd:dateTime"])
-        timeseries_form.fields.get("end_attribute").queryset = layer.attributes.filter(
-            attribute_type__in=["xsd:dateTime"]
-        )
 
         # Create THESAURUS widgets
         lang = settings.THESAURUS_DEFAULT_LANG if hasattr(settings, "THESAURUS_DEFAULT_LANG") else "en"
@@ -598,6 +611,8 @@ def dataset_metadata(
         up_sessions = Upload.objects.filter(resource_id=layer.resourcebase_ptr_id)
         if up_sessions.exists() and up_sessions[0].user != layer.owner:
             up_sessions.update(user=layer.owner)
+
+        dataset_form.save_linked_resources()
 
         register_event(request, EventType.EVENT_CHANGE_METADATA, layer)
         if not ajax:
@@ -724,69 +739,8 @@ def dataset_metadata_advanced(request, layername):
 
 @csrf_exempt
 def dataset_download(request, layername):
-    try:
-        dataset = _resolve_dataset(request, layername, "base.download_resourcebase", _PERMISSION_MSG_GENERIC)
-    except Exception as e:
-        raise Http404(Exception(_("Not found"), e))
-
-    if not settings.USE_GEOSERVER:
-        # if GeoServer is not used, we redirect to the proxy download
-        return HttpResponseRedirect(reverse("download", args=[dataset.id]))
-
-    download_format = request.GET.get("export_format")
-
-    if download_format and not wps_format_is_supported(download_format, dataset.subtype):
-        logger.error("The format provided is not valid for the selected resource")
-        return JsonResponse({"error": "The format provided is not valid for the selected resource"}, status=500)
-
-    _format = "application/zip" if dataset.is_vector() else "image/tiff"
-    # getting default payload
-    tpl = get_template("geoserver/dataset_download.xml")
-    ctx = {"alternate": dataset.alternate, "download_format": download_format or _format}
-    # applying context for the payload
-    payload = tpl.render(ctx)
-
-    # init of Client
-    client = HttpClient()
-
-    headers = {"Content-type": "application/xml", "Accept": "application/xml"}
-
-    # defining the URL needed fr the download
-    url = f"{settings.OGC_SERVER['default']['LOCATION']}ows?service=WPS&version=1.0.0&REQUEST=Execute"
-    if not request.user.is_anonymous:
-        # define access token for the user
-        access_token = get_or_create_token(request.user)
-        url += f"&access_token={access_token}"
-
-    # request to geoserver
-    response, content = client.request(url=url, data=payload, method="post", headers=headers)
-
-    if response.status_code != 200:
-        logger.error(f"Download dataset exception: error during call with GeoServer: {response.content}")
-        return JsonResponse(
-            {"error": f"Download dataset exception: error during call with GeoServer: {response.content}"}, status=500
-        )
-
-    # error handling
-    namespaces = {"ows": "http://www.opengis.net/ows/1.1", "wps": "http://www.opengis.net/wps/1.0.0"}
-    response_type = response.headers.get("Content-Type")
-    if response_type == "text/xml":
-        # parsing XML for get exception
-        content = ET.fromstring(response.text)
-        exc = content.find("*//ows:Exception", namespaces=namespaces) or content.find(
-            "ows:Exception", namespaces=namespaces
-        )
-        if exc:
-            exc_text = exc.find("ows:ExceptionText", namespaces=namespaces)
-            logger.error(f"{exc.attrib.get('exceptionCode')} {exc_text.text}")
-            return JsonResponse({"error": f"{exc.attrib.get('exceptionCode')}: {exc_text.text}"}, status=500)
-
-    return_response = fetch_response_headers(
-        HttpResponse(content=response.content, status=response.status_code, content_type=download_format),
-        response.headers,
-    )
-    return_response.headers["Content-Type"] = download_format or _format
-    return return_response
+    handler = get_default_dataset_download_handler()
+    return handler(request, layername).get_download_response()
 
 
 @login_required
