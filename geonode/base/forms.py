@@ -56,16 +56,13 @@ from geonode.base.models import (
     ThesaurusKeywordLabel,
     ThesaurusLabel,
     TopicCategory,
-    AlternateType,
-    DescriptionType,
-    FundingReference,
-    RelatedIdentifier,
 )
-from geonode.base.widgets import TaggitSelect2Custom
+from geonode.base.widgets import TaggitSelect2Custom, TaggitProfileSelect2Custom
 from geonode.base.fields import MultiThesauriField
 from geonode.documents.models import Document
 from geonode.layers.models import Dataset
 from geonode.base.utils import validate_extra_metadata, remove_country_from_languagecode
+from geonode.people import Roles
 
 logger = logging.getLogger(__name__)
 
@@ -352,6 +349,16 @@ class ThesaurusAvailableForm(forms.Form):
         return tname.first()
 
 
+class ContactRoleMultipleChoiceField(forms.ModelMultipleChoiceField):
+    def clean(self, value) -> QuerySet:
+        try:
+            users = get_user_model().objects.filter(username__in=value)
+        except TypeError:
+            # value of not supported type ...
+            raise forms.ValidationError(_("Something went wrong in finding the profile(s) in a contact role form ..."))
+        return users
+
+
 class LinkedResourceForm(forms.ModelForm):
     linked_resources = forms.ModelMultipleChoiceField(
         label=_("Related resources"),
@@ -409,6 +416,90 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
     """Base form for metadata, should be inherited by childres classes of ResourceBase"""
 
     abstract = forms.CharField(label=_("Abstract"), required=False, widget=TinyMCE())
+    abstract_translated = forms.CharField(
+        label=_("translated abstract"),
+        help_text=ResourceBase.abstract_translated_help_text,
+        required=True,
+        widget=TinyMCE(),
+    )
+
+    subtitle = forms.CharField(required=False, help_text=ResourceBase.subtitle_help_text, widget=TinyMCE())
+    method_description = forms.CharField(
+        required=False, help_text=ResourceBase.method_description_help_text, widget=TinyMCE()
+    )
+    series_information = forms.CharField(
+        required=False, help_text=ResourceBase.series_information_help_text, widget=TinyMCE()
+    )
+    table_of_content = forms.CharField(
+        required=False, help_text=ResourceBase.table_of_content_help_text, widget=TinyMCE()
+    )
+    technical_info = forms.CharField(required=False, help_text=ResourceBase.technical_info_help_text, widget=TinyMCE())
+    other_description = forms.CharField(
+        required=False, help_text=ResourceBase.other_description_help_text, widget=TinyMCE()
+    )
+
+    date_available = forms.DateTimeField(
+        label=_("Date Available*"),
+        localize=True,
+        input_formats=["%Y-%m-%d"],
+        widget=ResourceBaseDateTimePicker(options={"format": "YYYY-MM-DD"}),
+    )
+    date_created = forms.DateTimeField(
+        label=_("Date Created*"),
+        localize=True,
+        input_formats=["%Y-%m-%d"],
+        widget=ResourceBaseDateTimePicker(options={"format": "YYYY-MM-DD"}),
+    )
+    date_issued = forms.DateTimeField(
+        label=_("Date Issued*"),
+        localize=True,
+        input_formats=["%Y-%m-%d"],
+        widget=ResourceBaseDateTimePicker(options={"format": "YYYY-MM-DD"}),
+    )
+    date_updated = forms.DateTimeField(
+        label=_("Date Updated"),
+        localize=True,
+        input_formats=["%Y-%m-%d"],
+        widget=ResourceBaseDateTimePicker(options={"format": "YYYY-MM-DD"}),
+    )
+    date_accepted = forms.DateTimeField(
+        label=_("Date Accepted"),
+        required=False,
+        localize=True,
+        input_formats=["%Y-%m-%d"],
+        widget=ResourceBaseDateTimePicker(options={"format": "YYYY-MM-DD"}),
+    )
+
+    date_collected = forms.DateTimeField(
+        label=_("Date Collected"),
+        required=False,
+        localize=True,
+        input_formats=["%Y-%m-%d"],
+        widget=ResourceBaseDateTimePicker(options={"format": "YYYY-MM-DD"}),
+    )
+    date_copyrighted = forms.DateTimeField(
+        label=_("Date Copyright"),
+        localize=True,
+        required=False,
+        input_formats=["%Y-%m-%d"],
+        widget=ResourceBaseDateTimePicker(options={"format": "YYYY-MM-DD"}),
+    )
+
+    date_submitted = forms.DateTimeField(
+        label=_("Date Submitted"),
+        localize=True,
+        required=False,
+        input_formats=["%Y-%m-%d"],
+        widget=ResourceBaseDateTimePicker(options={"format": "YYYY-MM-DD"}),
+    )
+
+    date_valid = forms.DateTimeField(
+        label=_("Date Valid"),
+        localize=True,
+        required=False,
+        input_formats=["%Y-%m-%d"],
+        widget=ResourceBaseDateTimePicker(options={"format": "YYYY-MM-DD"}),
+    )
 
     purpose = forms.CharField(label=_("Purpose"), required=False, widget=TinyMCE())
 
@@ -421,28 +512,9 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
 
     data_quality_statement = forms.CharField(label=_("Data quality statement"), required=False, widget=TinyMCE())
 
-    ##################
-    # ZALF ADDITIONS #
-    ##################
-
-    abstract_de = forms.CharField(label=_("Abstract German"), required=False, widget=TinyMCE())
-
-    # Alternate = forms.CharField(
-    #     label=_("Alternate"),
-    #     required=False,
-    #     widget=TinyMCE())
-
-    alternate_type = forms.ModelChoiceField(
-        label=_("Alternate Type"), queryset=AlternateType.objects.all(), required=False
-    )
-
-    description_type = forms.ModelChoiceField(
-        label=_("Description Type"), queryset=DescriptionType.objects.all(), required=False
-    )
-    ##
     owner = forms.ModelChoiceField(
-        empty_label=_("Owner"),
-        label=_("Owner"),
+        empty_label=_(Roles.OWNER.label),
+        label=_(Roles.OWNER.label),
         required=True,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
         widget=autocomplete.ModelSelect2(url="autocomplete_profile"),
@@ -471,20 +543,74 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
         widget=ResourceBaseDateTimePicker(options={"format": "YYYY-MM-DD HH:mm a"}),
     )
 
-    poc = forms.ModelChoiceField(
-        empty_label=_("Person outside GeoNode (fill form)"),
-        label=_("Point of Contact"),
-        required=False,
+    metadata_author = ContactRoleMultipleChoiceField(
+        label=_(Roles.METADATA_AUTHOR.label),
+        required=Roles.METADATA_AUTHOR.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2(url="autocomplete_profile"),
+        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
     )
 
-    metadata_author = forms.ModelChoiceField(
-        empty_label=_("Person outside GeoNode (fill form)"),
-        label=_("Metadata Author"),
-        required=False,
+    processor = ContactRoleMultipleChoiceField(
+        label=_(Roles.PROCESSOR.label),
+        required=Roles.PROCESSOR.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2(url="autocomplete_profile"),
+        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+    )
+
+    publisher = ContactRoleMultipleChoiceField(
+        label=_(Roles.PUBLISHER.label),
+        required=Roles.PUBLISHER.is_required,
+        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
+        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+    )
+
+    custodian = ContactRoleMultipleChoiceField(
+        label=_(Roles.CUSTODIAN.label),
+        required=Roles.CUSTODIAN.is_required,
+        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
+        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+    )
+
+    poc = ContactRoleMultipleChoiceField(
+        label=_(Roles.POC.label),
+        required=Roles.POC.is_required,
+        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
+        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+    )
+
+    distributor = ContactRoleMultipleChoiceField(
+        label=_(Roles.DISTRIBUTOR.label),
+        required=Roles.DISTRIBUTOR.is_required,
+        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
+        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+    )
+
+    resource_user = ContactRoleMultipleChoiceField(
+        label=_(Roles.RESOURCE_USER.label),
+        required=Roles.RESOURCE_USER.is_required,
+        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
+        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+    )
+
+    resource_provider = ContactRoleMultipleChoiceField(
+        label=_(Roles.RESOURCE_PROVIDER.label),
+        required=Roles.RESOURCE_PROVIDER.is_required,
+        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
+        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+    )
+
+    originator = ContactRoleMultipleChoiceField(
+        label=_(Roles.ORIGINATOR.label),
+        required=Roles.ORIGINATOR.is_required,
+        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
+        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+    )
+
+    principal_investigator = ContactRoleMultipleChoiceField(
+        label=_(Roles.PRINCIPAL_INVESTIGATOR.label),
+        required=Roles.PRINCIPAL_INVESTIGATOR.is_required,
+        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
+        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
     )
 
     keywords = TagField(
@@ -535,7 +661,7 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
                     }
                 )
 
-            if field in ["poc", "owner"] and not self.can_change_perms:
+            if field in ["owner"] and not self.can_change_perms:
                 self.fields[field].disabled = True
 
     def disable_keywords_widget_for_non_superuser(self, user):
@@ -638,11 +764,6 @@ class BatchEditForm(forms.Form):
     owner = forms.ModelChoiceField(label=_("Owner"), queryset=get_user_model().objects.all(), required=False)
     category = forms.ModelChoiceField(label=_("Category"), queryset=TopicCategory.objects.all(), required=False)
     license = forms.ModelChoiceField(label=_("License"), queryset=License.objects.all(), required=False)
-    ##################
-    # ZALF ADDITIONS #
-    ##################
-
-    ##
     regions = forms.ModelChoiceField(label=_("Regions"), queryset=Region.objects.all(), required=False)
     date = forms.DateTimeField(label=_("Date"), required=False)
     language = forms.ChoiceField(

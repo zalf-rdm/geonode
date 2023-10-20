@@ -124,23 +124,6 @@ def update(ctx):
     allowed_hosts = [str(c) for c in current_allowed] + ['"geonode"', '"django"']
 
     ctx.run(
-<<<<<<< HEAD
-        "echo export GEONODE_INSPIRE_URL=\
-{inspire_download_url} >> {override_fn}".format(
-            **envs
-        ),
-        pty=True,
-    )
-    ctx.run(
-        "echo export GEONODE_AGROVOC_URL=\
-{agrovoc_download_url} >> {override_fn}".format(
-            **envs
-        ),
-        pty=True,
-    )
-    ctx.run(
-=======
->>>>>>> 0e89afe806f359a1a0b700c233f292999249af5f
         "echo export DJANGO_SETTINGS_MODULE=\
 {local_settings} >> {override_fn}".format(
             **envs
@@ -467,7 +450,6 @@ def collectmetrics(ctx):
 def initialized(ctx):
     print("**************************init file********************************")
     ctx.run("date > /mnt/volumes/statics/geonode_init.lock")
-<<<<<<< HEAD
 
 
 @task
@@ -496,8 +478,6 @@ def initzalf(ctx):
     --settings={_localsettings()}",
         pty=True,
     )
-=======
->>>>>>> 0e89afe806f359a1a0b700c233f292999249af5f
 
 
 def _docker_host_ip():

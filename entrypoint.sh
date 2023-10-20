@@ -61,7 +61,6 @@ else
 
     invoke statics
     echo "Executing UWSGI server $cmd for Production"
-    #invoke initzalf
 fi
 
 echo "-----------------------------------------------------"

@@ -74,15 +74,6 @@ class Profile(AbstractUser):
         null=True,
         help_text=_("role or position of the responsible person"),
     )
-<<<<<<< HEAD
-    # orcid = models.CharField(
-    #     _('orcid'),
-    #     max_length=20,
-    #     blank=True,
-    #     null=True,
-    #     help_text=_('Uniquely identifies an individual or legal entity, according to various schemes. (e.g. 0000-0001-5000-0007)'))
-=======
->>>>>>> 0e89afe806f359a1a0b700c233f292999249af5f
     voice = models.CharField(
         _("Voice"),
         max_length=255,
@@ -135,6 +126,21 @@ class Profile(AbstractUser):
         choices=TIMEZONES,
         blank=True,
     )
+
+    orcid_identifier = models.CharField(
+        _("orcid identifier"),
+        max_length=255,
+        default="",
+        blank=True,
+        help_text=_("ORCID identifier of profile."),
+    )
+
+    @property
+    def identifier_schema(self):
+        return "ORCID"
+
+    def get_orcid_url(self):
+        return "https://orcid.org/" + self.orcid_identifier
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

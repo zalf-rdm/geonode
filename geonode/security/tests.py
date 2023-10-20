@@ -68,12 +68,9 @@ from geonode.geoserver.security import (
     delete_all_geofence_rules,
     sync_resources_with_guardian,
     _get_gwc_filters_and_formats,
-<<<<<<< HEAD
-=======
     has_geolimits,
     create_geofence_rules,
     delete_geofence_rules_for_layer,
->>>>>>> 0e89afe806f359a1a0b700c233f292999249af5f
 )
 
 
@@ -632,7 +629,10 @@ class SecurityTests(ResourceTestCaseMixin, GeoNodeBaseTestSupport):
         rules_count = geofence.get_rules_count()
         self.assertEqual(rules_count, 10)
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> e94caea59fc17f77f85a81e097ed1ce3379efba0
         rules_objs = geofence.get_rules()
         self.assertEqual(len(rules_objs["rules"]), 10)
         # Order is important

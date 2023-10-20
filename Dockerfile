@@ -31,14 +31,9 @@ RUN yes w | pip install --src /usr/src -r requirements.txt &&\
     yes w | pip install -e .
 
 # Cleanup apt update lists
-<<<<<<< HEAD
-RUN rm -rf /var/lib/apt/lists/*
-WORKDIR /usr/src/geonode
-=======
 RUN apt-get autoremove --purge &&\
     apt-get clean &&\
     rm -rf /var/lib/apt/lists/*
->>>>>>> c437a0a69054217976fa519b245e82966543dbe5
 
 # Export ports
 EXPOSE 8000

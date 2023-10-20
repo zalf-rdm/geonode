@@ -28,12 +28,14 @@ from django.contrib.auth.models import Group
 from django.forms.models import model_to_dict
 from django.contrib.auth import get_user_model
 from django.db.models.query import QuerySet
+from geonode.people import Roles
 from django.http import QueryDict
 
 from deprecated import deprecated
 from rest_framework import serializers
 from rest_framework_gis import fields
 from rest_framework.reverse import reverse, NoReverseMatch
+from rest_framework.exceptions import ParseError
 
 from dynamic_rest.serializers import DynamicEphemeralSerializer, DynamicModelSerializer
 from dynamic_rest.fields.fields import DynamicRelationField, DynamicComputedField
@@ -55,18 +57,31 @@ from geonode.base.models import (
     ThesaurusKeyword,
     ThesaurusKeywordLabel,
     ExtraMetadata,
+<<<<<<< HEAD
     # ZALF EXTRAS
     AlternateType,
     DescriptionType,
     FundingReference,
     RelatedIdentifier,
     ##
+=======
+    RelatedIdentifierType,
+    RelationType,
+    RelatedIdentifier,
+    FundingReference,
+    RelatedProject,
+    Funder,
+>>>>>>> e94caea59fc17f77f85a81e097ed1ce3379efba0
     LinkedResource,
 )
 from geonode.documents.models import Document
 from geonode.geoapps.models import GeoApp
 from geonode.groups.models import GroupCategory, GroupProfile
-from geonode.base.api.fields import ComplexDynamicRelationField
+from geonode.base.api.fields import (
+    ComplexDynamicRelationField,
+    RelatedIdentifierDynamicRelationField,
+    FundersDynamicRelationField,
+)
 from geonode.layers.utils import get_dataset_download_handlers, get_default_dataset_download_handler
 from geonode.utils import build_absolute_uri
 from geonode.security.utils import get_resources_with_perms, get_geoapp_subtypes
@@ -199,6 +214,60 @@ class SimpleRegionSerializer(DynamicModelSerializer):
         model = Region
         name = "Region"
         fields = ("code", "name")
+
+
+class SimpleRelatedIdentifierType(DynamicModelSerializer):
+    class Meta:
+        model = RelatedIdentifierType
+        name = "RelatedIdentifierType"
+        fields = ("label", "description")
+
+
+class SimpleRelationType(DynamicModelSerializer):
+    class Meta:
+        model = RelationType
+        name = "RelationType"
+        fields = ("label", "description")
+
+
+class SimpleRelatedIdentifierSerializer(DynamicModelSerializer):
+    class Meta:
+        model = RelatedIdentifier
+        name = "RelatedIdentifier"
+        fields = ("related_identifier", "related_identifier_type", "relation_type")
+
+    related_identifier_type = DynamicRelationField(SimpleRelatedIdentifierType, embed=True, many=False)
+    relation_type = DynamicRelationField(SimpleRelationType, embed=True, many=False)
+
+
+class FundingReferenceSerializer(DynamicModelSerializer):
+    class Meta:
+        model = FundingReference
+        name = "FundingReference"
+        fields = ("funder_name", "funder_identifier", "funder_identifier_type")
+
+
+class SimpleFunderSerializer(DynamicModelSerializer):
+    class Meta:
+        model = Funder
+        name = "Funder"
+        fields = ("award_title", "award_uri", "funding_reference", "award_number")
+
+    funding_reference = DynamicRelationField(FundingReferenceSerializer, embed=True, many=False)
+
+
+class SimpleRelatedProjectSerializer(DynamicModelSerializer):
+    class Meta:
+        model = RelatedProject
+        name = "RelatedProject"
+        fields = ("label", "display_name")
+
+
+class SimpleResourceSerializer(DynamicModelSerializer):
+    class Meta:
+        model = ResourceBase
+        name = "resource"
+        fields = ("pk", "title")  # TODO add UUID
 
 
 class SimpleTopicCategorySerializer(DynamicModelSerializer):
@@ -360,7 +429,7 @@ class UserSerializer(BaseDynamicModelSerializer):
         model = get_user_model()
         name = "user"
         view_name = "users-list"
-        fields = ("pk", "username", "first_name", "last_name", "avatar", "perms", "is_superuser", "is_staff", "email")
+        fields = ("pk", "username", "first_name", "last_name", "avatar", "perms", "is_superuser", "is_staff", "orcid_identifier")
 
     @classmethod
     def setup_eager_loading(cls, queryset):
@@ -385,15 +454,44 @@ class UserSerializer(BaseDynamicModelSerializer):
 
 
 class ContactRoleField(DynamicComputedField):
-    def __init__(self, contat_type, **kwargs):
-        self.contat_type = contat_type
+    default_error_messages = {
+        "required": ("ContactRoleField This field is required."),
+    }
+
+    def __init__(self, contact_type, **kwargs):
+        self.contact_type = contact_type
         super().__init__(**kwargs)
 
     def get_attribute(self, instance):
-        return getattr(instance, self.contat_type)
+        return getattr(instance, self.contact_type)
 
     def to_representation(self, value):
-        return UserSerializer(embed=True, many=False).to_representation(value)
+        return [UserSerializer(embed=True, many=False).to_representation(v) for v in value]
+
+    def get_pks_of_users_to_set(self, value):
+        pks_of_users_to_set = []
+        for val in value:
+            # make it possible to set contact roles via username or pk through API
+            if "username" in val and "pk" in val:
+                pk = val["pk"]
+                username = val["username"]
+                pk_user = get_user_model().objects.get(pk=pk)
+                username_user = get_user_model().objects.get(username=username)
+                if pk_user.pk != username_user.pk:
+                    raise ParseError(
+                        detail=f"user with pk: {pk} and username: {username} is not the same ... ", code=403
+                    )
+                pks_of_users_to_set.append(pk)
+            elif "username" in val:
+                username = val["username"]
+                username_user = get_user_model().objects.get(username=[username])
+                pks_of_users_to_set.append(username_user.pk)
+            elif "pk" in val:
+                pks_of_users_to_set.append(val["pk"])
+        return pks_of_users_to_set
+
+    def to_internal_value(self, value):
+        return get_user_model().objects.filter(pk__in=self.get_pks_of_users_to_set(value))
 
 
 class ExtentBboxField(DynamicComputedField):
@@ -470,6 +568,7 @@ class ResourceExecutionRequestSerializer(DynamicModelSerializer):
         return data
 
 
+<<<<<<< HEAD
 #############################
 # ZALF ADDITIONS SERIALIZER #
 #############################
@@ -509,6 +608,8 @@ class RelatedIdentifierSerializer(DynamicModelSerializer):
 
 
 ##
+=======
+>>>>>>> e94caea59fc17f77f85a81e097ed1ce3379efba0
 api_bbox_settable_resource_models = [Document, GeoApp]
 
 
@@ -524,16 +625,59 @@ class ResourceBaseSerializer(
         self.fields["uuid"] = serializers.CharField(read_only=True)
         self.fields["resource_type"] = serializers.CharField(required=False)
         self.fields["polymorphic_ctype_id"] = serializers.CharField(read_only=True)
-        self.fields["owner"] = DynamicRelationField(
-            UserSerializer, embed=True, many=False, read_only=True, required=False
-        )
-        self.fields["poc"] = ContactRoleField("poc", read_only=True)
-        self.fields["metadata_author"] = ContactRoleField("metadata_author", read_only=True)
-        self.fields["title"] = serializers.CharField()
+
+        self.fields["owner"] = DynamicRelationField(UserSerializer, embed=True, many=False, read_only=True)
+        self.fields["metadata_author"] = ContactRoleField(Roles.METADATA_AUTHOR.name, required=False)
+        self.fields["processor"] = ContactRoleField(Roles.PROCESSOR.name, required=False)
+        self.fields["publisher"] = ContactRoleField(Roles.PUBLISHER.name, required=False)
+        self.fields["custodian"] = ContactRoleField(Roles.CUSTODIAN.name, required=False)
+        self.fields["poc"] = ContactRoleField(Roles.POC.name, required=False)
+        self.fields["distributor"] = ContactRoleField(Roles.DISTRIBUTOR.name, required=False)
+        self.fields["resource_user"] = ContactRoleField(Roles.RESOURCE_USER.name, required=False)
+        self.fields["resource_provider"] = ContactRoleField(Roles.RESOURCE_PROVIDER.name, required=False)
+        self.fields["originator"] = ContactRoleField(Roles.ORIGINATOR.name, required=False)
+        self.fields["principal_investigator"] = ContactRoleField(Roles.PRINCIPAL_INVESTIGATOR.name, required=False)
+        self.fields["title"] = serializers.CharField(required=False)
         self.fields["abstract"] = serializers.CharField(required=False)
+        # BONARES ELEMENTS
+        self.fields["abstract_translated"] = serializers.CharField(required=False)
+
+        self.fields["subtitle"] = serializers.CharField(required=False)
+        self.fields["method_description"] = serializers.CharField(required=False)
+        self.fields["series_information"] = serializers.CharField(required=False)
+        self.fields["table_of_content"] = serializers.CharField(required=False)
+        self.fields["technical_info"] = serializers.CharField(required=False)
+        self.fields["other_description"] = serializers.CharField(required=False)
+
+        self.fields["related_identifier"] = RelatedIdentifierDynamicRelationField(
+            SimpleRelatedIdentifierSerializer, embed=True, many=True
+        )
+        self.fields["funders"] = FundersDynamicRelationField(SimpleFunderSerializer, embed=True, many=True)
+        self.fields["related_projects"] = ComplexDynamicRelationField(
+            SimpleRelatedProjectSerializer, embed=True, many=True
+        )
+        self.fields["conformity_results"] = serializers.CharField(required=False)
+        self.fields["conformity_explanation"] = serializers.CharField(required=False)
+        self.fields["parent_identifier"] = ComplexDynamicRelationField(
+            SimpleResourceSerializer, embed=True, many=False, required=False
+        )
+        self.fields["date_available"] = serializers.DateField(required=True)
+        self.fields["date_updated"] = serializers.DateField(required=True)
+        self.fields["date_created"] = serializers.DateField(required=True)
+        self.fields["date_issued"] = serializers.DateField(required=True)
+
+        self.fields["date_accepted"] = serializers.DateField(required=False)
+        self.fields["date_collected"] = serializers.DateField(required=False)
+        self.fields["date_copyrighted"] = serializers.DateField(required=False)
+        self.fields["date_submitted"] = serializers.DateField(required=False)
+        self.fields["date_valid"] = serializers.DateField(required=False)
+
+        self.fields["metadata_standard_name"] = serializers.CharField(read_only=True)
+        self.fields["metadata_standard_version"] = serializers.CharField(read_only=True)
+
         self.fields["attribution"] = serializers.CharField(required=False)
         self.fields["doi"] = serializers.CharField(required=False)
-        self.fields["alternate"] = serializers.CharField(read_only=True)
+        self.fields["alternate"] = serializers.CharField(read_only=True, required=False)
         self.fields["date"] = serializers.DateTimeField(required=False)
         self.fields["date_type"] = serializers.CharField(required=False)
         self.fields["temporal_extent_start"] = serializers.DateTimeField(required=False)
@@ -577,7 +721,10 @@ class ResourceBaseSerializer(
         self.fields["regions"] = DynamicRelationField(SimpleRegionSerializer, embed=True, many=True, read_only=True)
         self.fields["category"] = ComplexDynamicRelationField(SimpleTopicCategorySerializer, embed=True, many=False)
         self.fields["restriction_code_type"] = ComplexDynamicRelationField(
-            RestrictionCodeTypeSerializer, embed=True, many=False
+            RestrictionCodeTypeSerializer, embed=True, many=True
+        )
+        self.fields["use_constrains"] = ComplexDynamicRelationField(
+            RestrictionCodeTypeSerializer, embed=True, many=True
         )
         self.fields["license"] = ComplexDynamicRelationField(LicenseSerializer, embed=True, many=False)
         self.fields["spatial_representation_type"] = ComplexDynamicRelationField(
@@ -589,6 +736,7 @@ class ResourceBaseSerializer(
         self.fields["favorite"] = FavoriteField(read_only=True)
         self.fields["download_urls"] = DownloadArrayLinkField(read_only=True)
 
+<<<<<<< HEAD
         ##################
         # ZALF ADDITIONS #
         ##################
@@ -605,6 +753,8 @@ class ResourceBaseSerializer(
         )
 
         ##
+=======
+>>>>>>> e94caea59fc17f77f85a81e097ed1ce3379efba0
     metadata = ComplexDynamicRelationField(ExtraMetadataSerializer, embed=False, many=True, deferred=True)
 
     class Meta:
@@ -612,18 +762,6 @@ class ResourceBaseSerializer(
         name = "resource"
         view_name = "base-resources-list"
         fields = (
-            ##################
-            # ZALF ADDITIONS #
-            ##################
-            "title_de",
-            "abstract_de",
-            "alternate_type",
-            "description_type",
-            "funding_reference",
-            "related_identifier",
-            "use_contraints",
-            "parent_ressource",
-            #
             "pk",
             "uuid",
             "resource_type",
@@ -632,14 +770,46 @@ class ResourceBaseSerializer(
             "owner",
             "poc",
             "metadata_author",
+            "processor",
+            "publisher",
+            "custodian",
+            "distributor",
+            "resource_user",
+            "resource_provider",
+            "originator",
+            "principal_investigator",
             "keywords",
             "tkeywords",
             "regions",
             "category",
             "title",
+            "title_translated",
             "abstract",
+            "abstract_translated",
             "attribution",
             "alternate",
+            "subtitle",
+            "method_description",
+            "series_information",
+            "table_of_content",
+            "technical_info",
+            "other_description",
+            "related_identifier",
+            "funders",
+            "conformity_results",
+            "conformity_explanation",
+            "parent_identifier",
+            "date_accepted",
+            "date_available",
+            "date_collected",
+            "date_copyrighted",
+            "date_created",
+            "date_issued",
+            "date_submitted",
+            "date_updated",
+            "date_valid",
+            "metadata_standard_name",
+            "metadata_standard_version",
             "doi",
             "bbox_polygon",
             "ll_bbox_polygon",
@@ -650,6 +820,7 @@ class ResourceBaseSerializer(
             "purpose",
             "maintenance_frequency",
             "restriction_code_type",
+            "use_constrains",
             "constraints_other",
             "license",
             "language",
@@ -847,6 +1018,38 @@ class TopicCategorySerializer(BaseResourceCountSerializer):
         model = TopicCategory
         count_type = "category"
         view_name = "categories-list"
+        fields = "__all__"
+
+
+class RelationTypeSerializer(DynamicModelSerializer):
+    class Meta:
+        name = "relationtypes"
+        model = RelationType
+        count_type = "relationtype"
+        fields = "__all__"
+
+
+class RelatedIdentifierTypeSerializer(DynamicModelSerializer):
+    class Meta:
+        name = "relatedidentifiertypes"
+        model = RelatedIdentifierType
+        count_type = "relatedidentifiertype"
+        fields = "__all__"
+
+
+class FundingReferenceSerializer(DynamicModelSerializer):
+    class Meta:
+        name = "fundingreferences"
+        model = FundingReference
+        count_type = "fundingreferences"
+        fields = "__all__"
+
+
+class RelatedProjectSerializer(DynamicModelSerializer):
+    class Meta:
+        name = "relatedprojects"
+        model = RelatedProject
+        count_type = "relatedprojects"
         fields = "__all__"
 
 
