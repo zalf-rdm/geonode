@@ -935,27 +935,31 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     regions = models.ManyToManyField(
         Region, verbose_name=_("keywords region"), null=True, blank=True, help_text=regions_help_text
     )
-    use_constrains = models.ManyToManyField(
+
+    use_constrains = models.ForeignKey(
         RestrictionCodeType,
+        null=True,
+        blank=True,
         verbose_name=_("use_constrains"),
-        help_text=use_constrains_help_text,
-        null=True,
-        blank=True,
+        help_text=license_help_text,
         related_name="use_constrains",
-        limit_choices_to=Q(is_choice=True),
+        on_delete=models.SET_NULL,
     )
-    restriction_code_type = models.ManyToManyField(
+
+    restriction_code_type = models.ForeignKey(
         RestrictionCodeType,
-        verbose_name=_("restrictions"),
-        help_text=restriction_code_type_help_text,
         null=True,
         blank=True,
+        verbose_name=_("restrictions"),
+        help_text=license_help_text,
         related_name="restriction_code_type",
-        limit_choices_to=Q(is_choice=True),
+        on_delete=models.SET_NULL,
     )
+
     constraints_other = models.TextField(
         _("restrictions other"), blank=True, null=True, help_text=constraints_other_help_text
     )
+
     license = models.ForeignKey(
         License,
         null=True,
@@ -964,9 +968,11 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         help_text=license_help_text,
         on_delete=models.SET_NULL,
     )
+
     language = models.CharField(
         _("language"), max_length=3, choices=enumerations.ALL_LANGUAGES, default="eng", help_text=language_help_text
     )
+
     category = models.ForeignKey(
         TopicCategory,
         null=True,
@@ -975,6 +981,7 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         limit_choices_to=Q(is_choice=True),
         help_text=category_help_text,
     )
+
     spatial_representation_type = models.ForeignKey(
         SpatialRepresentationType,
         null=True,
@@ -1198,10 +1205,10 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     @property
     def metadata_standard_name(self):
         return "BonaRes Metadata Schema (https://doi.org/10.20387/BonaRes-5PGG-8YRP)"
-      
+
     def metadata_standard_version(self):
-        return "Version 1.0"  
-      
+        return "Version 1.0"
+
     @property
     def raw_abstract(self):
         return self._remove_html_tags(self.abstract)
@@ -1941,6 +1948,9 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         for role in self.get_multivalue_role_property_names():
             try:
                 if resource_base_form.cleaned_data[role].exists():
+                    # print("cleaned",role,resource_base_form[role].values(),resource_base_form.cleaned_data[role])
+                    if role == "processor":
+                        breakpoint()
                     self.__setattr__(role, resource_base_form.cleaned_data[role])
             except AttributeError:
                 logger.warning(f"unable to set contact role {role} for {self} ...")

@@ -430,7 +430,7 @@ class Attribute(models.Model):
     #     max_length=50,
     #     blank=True,
     #     null=True,
-    #     unique=True,  
+    #     unique=True,
     # )
     # quality = models.CharField(
     #     _("attribute quality statement"),
@@ -440,10 +440,7 @@ class Attribute(models.Model):
     #     null=True,
     # )
     # keywords
-    
-    
 
-    
     visible = models.BooleanField(
         _("visible?"), help_text=_("specifies if the attribute should be displayed in identify results"), default=True
     )

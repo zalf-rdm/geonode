@@ -420,7 +420,17 @@ class UserSerializer(BaseDynamicModelSerializer):
         model = get_user_model()
         name = "user"
         view_name = "users-list"
-        fields = ("pk", "username", "first_name", "last_name", "avatar", "perms", "is_superuser", "is_staff", "orcid_identifier")
+        fields = (
+            "pk",
+            "username",
+            "first_name",
+            "last_name",
+            "avatar",
+            "perms",
+            "is_superuser",
+            "is_staff",
+            "orcid_identifier",
+        )
 
     @classmethod
     def setup_eager_loading(cls, queryset):
