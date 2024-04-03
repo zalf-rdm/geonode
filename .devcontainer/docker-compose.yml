@@ -49,6 +49,7 @@ services:
     # Overrides default command so things don't shut down after the process ends.
     command: sleep infinity
 
+
   celery:
     restart: "no"
     env_file:
@@ -58,7 +59,8 @@ services:
       - '.:/usr/src/geonode'
 
   geonode:
-    restart: "no"
+    deploy:
+      replicas: 0
 
   # Removes letsencrypt when developing
   letsencrypt:
@@ -67,8 +69,7 @@ services:
 
   geoserver:
     restart: "no"
-    ports:
-      - "8080:8080"
+
 
   data-dir-conf:
     restart: "no"

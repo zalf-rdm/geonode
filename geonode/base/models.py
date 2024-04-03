@@ -389,7 +389,6 @@ class _HierarchicalTagManager(_TaggableManager):
     def add(self, *tags, through_defaults=None, tag_kwargs=None):
         if tag_kwargs is None:
             tag_kwargs = {}
-
         str_tags = set([t for t in tags if not isinstance(t, self.through.tag_model())])
         tag_objs = set(tags) - str_tags
         # If str_tags has 0 elements Django actually optimizes that to not do a
@@ -1198,13 +1197,18 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     @property
     def metadata_standard_name(self):
         return "BonaRes Metadata Schema (https://doi.org/10.20387/BonaRes-5PGG-8YRP)"
-      
+
+    @property
     def metadata_standard_version(self):
         return "Version 1.0"  
       
     @property
     def raw_abstract(self):
         return self._remove_html_tags(self.abstract)
+
+    @property
+    def raw_abstract_translated(self):
+        return self._remove_html_tags(self.abstract_translated)
 
     @property
     def raw_purpose(self):

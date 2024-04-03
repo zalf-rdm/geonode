@@ -85,10 +85,10 @@
      <gco:DateTime>{{layer.csw_insert_date|date:"Y-m-d\TH:i:s\Z"}}</gco:DateTime>
    </gmd:dateStamp>
    <gmd:metadataStandardName>
-     <gco:CharacterString>ISO 19115:2003 - Geographic information - Metadata</gco:CharacterString>
+     <gco:CharacterString> {{ layer.metadata_standard_name }} </gco:CharacterString>
    </gmd:metadataStandardName>
    <gmd:metadataStandardVersion>
-     <gco:CharacterString>ISO 19115:2003</gco:CharacterString>
+     <gco:CharacterString>{{ layer.metadata_standard_version }}</gco:CharacterString>
    </gmd:metadataStandardVersion>
    <gmd:spatialRepresentationInfo />
    <gmd:referenceSystemInfo>
@@ -115,7 +115,14 @@
          <gmd:CI_Citation>
            <gmd:title>
              <gco:CharacterString>{{layer.title}}</gco:CharacterString>
-           </gmd:title>
+             <PT_FreeText>
+							<textGroup>
+								<LocalisedCharacterString locale="ger">
+									{{ layer.title_translated}}
+								</LocalisedCharacterString>
+							</textGroup>
+						</PT_FreeText>
+            </gmd:title>
            {% if layer.alternate %}
            <gmd:alternateTitle>
              <gco:CharacterString>{{layer.alternate}}</gco:CharacterString>
@@ -151,6 +158,18 @@
        <gmd:abstract>
          <gco:CharacterString>{{layer.raw_abstract}}</gco:CharacterString>
        </gmd:abstract>
+       <abstract xsi:type="gmd:PT_FreeText_PropertyType">
+				<TypedCharacterString type="Abstract">
+          {{layer.raw_abstract}}
+				</TypedCharacterString>
+				<PT_FreeText>
+					<textGroup>
+						<TypedLocalisedCharacterString locale="ger" type="Abstract">
+                {{layer.raw_abstract_translated}}
+            </TypedLocalisedCharacterString>
+					</textGroup>
+				</PT_FreeText>
+			</abstract>
        <gmd:purpose {% if not layer.raw_purpose %}gco:nilReason="missing"{% endif %}>
              {% if layer.raw_purpose %}<gco:CharacterString>{{layer.raw_purpose}}</gco:CharacterString>{% endif %}
        </gmd:purpose>
