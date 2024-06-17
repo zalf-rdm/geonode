@@ -3,14 +3,10 @@ version: '3.9'
 # Common Django template for GeoNode and Celery services below
 x-common-django:
   &default-common-django
-<<<<<<< HEAD
-  image: geonode/geonode:4.2.x
-=======
   image: geonode/geonode:4.3.0
   #build:
   #    context: ./
   #    dockerfile: Dockerfile
->>>>>>> f1841f2bba57ab8265455c7a753d7f05d82de3d8
   restart: unless-stopped
   env_file:
     - .env
