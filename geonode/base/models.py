@@ -678,7 +678,8 @@ class RelatedIdentifier(models.Model):
     relation_type = models.ForeignKey(RelationType, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"Related Identifier: {self.related_identifier}({self.relation_type}: {self.related_identifier_type})"
+        # return f"Related Identifier: {self.related_identifier}({self.relation_type}: {self.related_identifier_type})"
+        return f"{self.related_identifier}"
 
 
 class FundingReference(models.Model):

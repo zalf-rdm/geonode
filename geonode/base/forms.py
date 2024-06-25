@@ -57,7 +57,7 @@ from geonode.base.models import (
     ThesaurusLabel,
     TopicCategory,
     FundingReference,
-    RelatedIdentifier,
+    RelatedIdentifierType,
 )
 from geonode.base.widgets import TaggitSelect2Custom, TaggitProfileSelect2Custom
 from geonode.base.fields import MultiThesauriField
@@ -647,8 +647,8 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
     related_identifier = forms.ModelMultipleChoiceField(
         label=_("Related Identifier"),
         required=False,
-        queryset=RelatedIdentifier.objects.all(),
-        to_field_name="related_identifier",
+        queryset=RelatedIdentifierType.objects.all(),
+        to_field_name="label",
     )
 
     def __init__(self, *args, **kwargs):
