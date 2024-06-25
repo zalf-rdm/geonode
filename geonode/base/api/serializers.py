@@ -767,6 +767,7 @@ class ResourceBaseSerializer(
             "other_description",
             "related_identifier",
             "funders",
+            "related_projects",
             "conformity_results",
             "conformity_explanation",
             "parent_identifier",
