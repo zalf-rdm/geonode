@@ -7,13 +7,22 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('base', '0088_auto_20230330_0640'),
+        ("base", "0088_auto_20230330_0640"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='resourcebase',
-            name='use_constrains',
-            field=models.ForeignKey(blank=True, help_text='This metadata element shall provide information on the Use constraints applied to assure the protection of privacy or intellectual property (e.g. Trademark)', limit_choices_to=models.Q(('is_choice', True)), null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='use_constrains', to='base.restrictioncodetype', verbose_name='use_constrains'),
+            model_name="resourcebase",
+            name="use_constraints",
+            field=models.ForeignKey(
+                blank=True,
+                help_text="This metadata element shall provide information on the Use constraints applied to assure the protection of privacy or intellectual property (e.g. Trademark)",
+                limit_choices_to=models.Q(("is_choice", True)),
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="use_constraints",
+                to="base.restrictioncodetype",
+                verbose_name="use_constraints",
+            ),
         ),
     ]
