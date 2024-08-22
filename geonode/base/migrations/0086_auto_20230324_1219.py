@@ -145,12 +145,12 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="resourcebase",
-            name="use_contraints",
+            name="use_constraints",
             field=models.TextField(
                 blank=True,
                 help_text="This metadata element shall provide information on the Use constraints applied to assure the protection of privacy or intellectual property (e.g. Trademark)",
                 max_length=2000,
-                verbose_name="use_constrains",
+                verbose_name="use_constraints",
             ),
         ),
         migrations.AlterField(
