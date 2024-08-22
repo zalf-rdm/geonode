@@ -65,6 +65,10 @@ class Profile(AbstractUser):
         blank=True,
         null=True,
         help_text=_("name of the responsible organization"),
+        choices=(
+            ("01", "organization 01"),
+            ("02", "organization 02"),
+        ),
     )
     profile = models.TextField(_("Profile"), null=True, blank=True, help_text=_("introduce yourself"))
     position = models.CharField(
