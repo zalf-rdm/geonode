@@ -432,25 +432,41 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
 
     abstract = forms.CharField(label=_("Abstract"), required=False, widget=TinyMCE())
     abstract_translated = forms.CharField(
-        label=_("translated abstract"),
+        label=_("Abstract Translated"),
         help_text=ResourceBase.abstract_translated_help_text,
         required=False,
         widget=TinyMCE(),
     )
 
-    subtitle = forms.CharField(required=False, help_text=ResourceBase.subtitle_help_text, widget=TinyMCE())
+    subtitle = forms.CharField(
+        label=_("Subititle"), required=False, help_text=ResourceBase.subtitle_help_text, widget=TinyMCE()
+    )
     method_description = forms.CharField(
-        required=False, help_text=ResourceBase.method_description_help_text, widget=TinyMCE()
+        label=_("Method Description"),
+        required=False,
+        help_text=ResourceBase.method_description_help_text,
+        widget=TinyMCE(),
     )
     series_information = forms.CharField(
-        required=False, help_text=ResourceBase.series_information_help_text, widget=TinyMCE()
+        label=_("Series information"),
+        required=False,
+        help_text=ResourceBase.series_information_help_text,
+        widget=TinyMCE(),
     )
     table_of_content = forms.CharField(
-        required=False, help_text=ResourceBase.table_of_content_help_text, widget=TinyMCE()
+        label=_("Table of Content"),
+        required=False,
+        help_text=ResourceBase.table_of_content_help_text,
+        widget=TinyMCE(),
     )
-    technical_info = forms.CharField(required=False, help_text=ResourceBase.technical_info_help_text, widget=TinyMCE())
+    technical_info = forms.CharField(
+        label=_("Technical Info"), required=False, help_text=ResourceBase.technical_info_help_text, widget=TinyMCE()
+    )
     other_description = forms.CharField(
-        required=False, help_text=ResourceBase.other_description_help_text, widget=TinyMCE()
+        label=_("Other Description"),
+        required=False,
+        help_text=ResourceBase.other_description_help_text,
+        widget=TinyMCE(),
     )
 
     date_available = forms.DateTimeField(
