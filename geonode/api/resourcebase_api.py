@@ -58,7 +58,7 @@ from .api import (
     FILTER_TYPES,
 )
 from .paginator import CrossSiteXHRPaginator
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +103,9 @@ class CommonModelApi(ModelResource):
         "edition",
         "purpose",
         "maintenance_frequency",
-        "restriction_code_type",
+        "use_constraint_restrictions",
+        "use_constrains",
+        "restriction_other",
         "constraints_other",
         "license",
         "language",

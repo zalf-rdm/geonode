@@ -35,7 +35,7 @@ from django.shortcuts import render
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import PermissionDenied
-from django.forms.models import inlineformset_factory
+from django.forms.models import inlineformset_factory, modelformset_factory
 from django.template.response import TemplateResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
@@ -45,9 +45,10 @@ from django.views.decorators.clickjacking import xframe_options_exempt
 from geonode import geoserver
 from geonode.resource.manager import resource_manager
 from geonode.base.auth import get_or_create_token
-from geonode.base.forms import CategoryForm, TKeywordForm, ThesaurusAvailableForm
+from geonode.base.forms import CategoryForm, TKeywordForm, ThesaurusAvailableForm, RelatedProjectForm
 from geonode.base.views import batch_modify
-from geonode.base.models import Thesaurus, TopicCategory
+from geonode.base.models import Thesaurus, TopicCategory, Funder, RelatedIdentifier, RelatedProject
+from geonode.base.enumerations import CHARSETS
 from geonode.decorators import check_keyword_write_perms
 from geonode.layers.forms import DatasetForm, DatasetTimeSerieForm, LayerAttributeForm
 from geonode.layers.models import Dataset, Attribute
@@ -234,6 +235,22 @@ def dataset_metadata(
         extra=0,
         form=LayerAttributeForm,
     )
+
+    FunderFormset = modelformset_factory(
+        Funder,
+        fields=["funding_reference", "award_number", "award_uri", "award_title"],
+        can_delete=True,
+        extra=0,
+        min_num=1,
+    )
+
+    RelatedIdentifierFormset = modelformset_factory(
+        RelatedIdentifier,
+        fields=["related_identifier", "related_identifier_type", "relation_type"],
+        can_delete=True,
+        extra=0,
+        min_num=1,
+    )
     current_keywords = [keyword.name for keyword in layer.keywords.all()]
     topic_category = layer.category
 
@@ -290,6 +307,28 @@ def dataset_metadata(
                 "errors": [re.sub(re.compile("<.*?>"), "", str(err)) for err in attribute_form.errors],
             }
             return HttpResponse(json.dumps(out), content_type="application/json", status=400)
+
+        related_project_form = RelatedProjectForm(
+            request.POST,
+            instance=layer,
+        )
+        if not related_project_form.is_valid():
+            logger.error(f"Dataset Related Project Fields are not valid: {related_project_form.errors}")
+            out = {
+                "success": False,
+                "errors": [re.sub(re.compile("<.*?>"), "", str(err)) for err in related_project_form.errors],
+            }
+            return HttpResponse(json.dumps(out), content_type="application/json", status=400)
+
+        funder_form = FunderFormset(
+            request.POST,
+            prefix="form_funder",
+        )
+
+        related_identifier_form = RelatedIdentifierFormset(
+            request.POST,
+            prefix="form_related_identifier",
+        )
         category_form = CategoryForm(
             request.POST,
             prefix="category_choice_field",
@@ -347,6 +386,24 @@ def dataset_metadata(
         attribute_form = dataset_attribute_set(
             instance=layer, prefix="dataset_attribute_set", queryset=Attribute.objects.order_by("display_order")
         )
+
+        # projects_initial_values = list(layer.related_projects.all())
+        projects_initial_values = list(RelatedProject.objects.filter(related_projects=layer))
+
+        related_project_form = RelatedProjectForm(
+            prefix="related_project_form",
+            instance=layer,
+            initial={"display_name": projects_initial_values},
+        )
+
+        funders_intial_values = Funder.objects.all().filter(resourcebase=layer)
+        funder_form = FunderFormset(prefix="form_funder", queryset=funders_intial_values)
+
+        related_identifier_intial_values = RelatedIdentifier.objects.all().filter(resourcebase=layer)
+        related_identifier_form = RelatedIdentifierFormset(
+            prefix="form_related_identifier", queryset=related_identifier_intial_values
+        )
+
         category_form = CategoryForm(
             prefix="category_choice_field", initial=topic_category.id if topic_category else None
         )
@@ -417,6 +474,9 @@ def dataset_metadata(
         request.method == "POST"
         and dataset_form.is_valid()
         and attribute_form.is_valid()
+        and related_project_form.is_valid()
+        and funder_form.is_valid()
+        and related_identifier_form.is_valid()
         and category_form.is_valid()
         and tkeywords_form.is_valid()
         and timeseries_form.is_valid()
@@ -438,8 +498,22 @@ def dataset_metadata(
             la.featureinfo_type = form["featureinfo_type"]
             la.save()
 
+        project = related_project_form.cleaned_data
+        instance = project["display_name"]
+
+        layer.related_projects.add(*instance)
+
         # update contact roles
         layer.set_contact_roles_from_metadata_edit(dataset_form)
+        funder_form.save()
+        instance = funder_form.save(commit=False)
+
+        layer.funders.add(*instance)
+
+        related_identifier_form.save()
+        instance = related_identifier_form.save(commit=False)
+        layer.related_identifier.add(*instance)
+
         layer.save()
 
         new_keywords = current_keywords if request.keyword_readonly else dataset_form.cleaned_data["keywords"]
@@ -452,6 +526,14 @@ def dataset_metadata(
         if new_regions:
             layer.regions.add(*new_regions)
         layer.category = new_category
+
+        use_constraint_restrictions = [x for x in dataset_form.cleaned_data["use_constraint_restrictions"]]
+        if use_constraint_restrictions:
+            layer.use_constraint_restrictions.add(*use_constraint_restrictions)
+
+        restriction_other = [x for x in dataset_form.cleaned_data["restriction_other"]]
+        if restriction_other:
+            layer.restriction_other.add(*restriction_other)
 
         from geonode.upload.models import Upload
 
@@ -552,6 +634,9 @@ def dataset_metadata(
             "dataset_form": dataset_form,
             "attribute_form": attribute_form,
             "timeseries_form": timeseries_form,
+            "related_project_form": related_project_form,
+            "funder_form": funder_form,
+            "related_identifier_form": related_identifier_form,
             "category_form": category_form,
             "tkeywords_form": tkeywords_form,
             "preview": getattr(settings, "GEONODE_CLIENT_LAYER_PREVIEW_LIBRARY", "mapstore"),

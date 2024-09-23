@@ -36,7 +36,7 @@ from django.contrib.auth.signals import user_logged_in, user_logged_out
 from taggit.managers import TaggableManager
 
 from geonode.base.enumerations import COUNTRIES
-from geonode.base.models import Configuration, ResourceBase
+from geonode.base.models import Configuration, ResourceBase, FundingReference
 from geonode.groups.models import GroupProfile
 from geonode.security.permissions import PERMISSIONS, READ_ONLY_AFFECTED_PERMISSIONS
 
