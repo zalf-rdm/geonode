@@ -3,6 +3,7 @@
 {% load bootstrap_tags %}
 {% load thesaurus %}
 {% load client_lib_tags %}
+{% load sanitize_html %}
 
 {% block title %}
   {{ resource.title }} — {{ block.super }}
@@ -45,10 +46,8 @@
 
       {% block abstract %}
         {% if resource.abstract %}
-          <dt>
-            {% trans 'Abstract' %}
-          </dt>
-          <dd>{{ resource.abstract|safe }}</dd>
+        <dt>{% trans "Abstract" %}</dt>
+        <dd>{{ resource.abstract|sanitize_html|safe }}</dd>
         {% endif %}
       {% endblock %}
     </dl>
@@ -89,36 +88,33 @@
         {% endif %}
       {% endblock %}
 
-      {% block keyword_list %}
-        {% if resource.keywords.count > 0 or resource.tkeywords.count > 0 %}
-          <dt>
-            {% trans 'Keywords' %}
-          </dt>
-          <dd itemprop="keywords">
-            <ul>
-              {% for keyword in resource.keywords.all %}
-                <li>
-                  <span itemscope itemtype="http://schema.org/Text">{{ keyword.name|safe }}</span>
-                </li>
-              {% endfor %}
-              {% for tid in resource.tkeywords.all|get_unique_thesaurus_set %}
-                <li>
-                  {{ tid|get_thesaurus_translation_by_id }}
-                  {% for tkeywords in resource.tkeywords.all %}
-                    <ul>
-                      {% if tid == tkeywords.thesaurus.id %}
-                        <li>
-                          <span itemscope itemtype="http://schema.org/Text">{{ tkeywords|get_thesaurus_localized_label }}</span>
-                        </li>
-                      {% endif %}
-                    </ul>
-                  {% endfor %}
-                </li>
-              {% endfor %}
-            </ul>
-          </dd>
-        {% endif %}
-      {% endblock %}
+        {% block keyword_list %}
+          {% if resource.keywords.count > 0 or resource.tkeywords.count > 0 %}
+            <dt>{% trans "Keywords" %}</dt>
+            <dd itemprop="keywords">
+                <ul>
+                    {% for keyword in resource.keywords.all %}
+                    <li>
+                        <span itemscope itemtype="http://schema.org/Text">
+                        {{ keyword.name|sanitize_html|safe }}
+                        </span>
+                    </li>
+                    {% endfor %}
+                    {% for tid in resource.tkeywords.all|get_unique_thesaurus_set %}
+                    <li>{{ tid|get_thesaurus_translation_by_id }}
+                        {% for tkeywords in resource.tkeywords.all %}
+                        <ul>
+                        {% if tid == tkeywords.thesaurus.id %}
+                            <li><span itemscope itemtype="http://schema.org/Text">{{tkeywords|get_thesaurus_localized_label}}</span></li>
+                        {% endif %}
+                        </ul>
+                        {% endfor %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </dd>
+            {% endif %}
+        {% endblock keyword_list %}
 
       {% block category %}
         {% if resource.category %}
@@ -378,14 +374,11 @@
         {% endif %}
       {% endblock %}
 
-      {% block restriction_other %}
-        {% if resource.restriction_other or resource.constraints_other %}
-          <dt>
-            {% trans 'Restrictions' %}
-          </dt>
-          <dd>
-            {% if resource.constraints_other %}
-              {{ resource.constraints_other|safe }}
+        {% block restriction_code_type %}
+        {% if resource.restriction_code_type or resource.constraints_other %}
+        <dt>{% trans "Restrictions" %}</dt>
+        <dd>{% if resource.constraints_other %}
+            {{ resource.constraints_other|sanitize_html|safe }}
             {% else %}
               {{ resource.restriction_other }}
             {% endif %}
@@ -404,10 +397,8 @@
 
       {% block purpose %}
         {% if resource.purpose %}
-          <dt>
-            {% trans 'Purpose' %}
-          </dt>
-          <dd>{{ resource.purpose|safe }}</dd>
+        <dt>{% trans "Purpose" %}</dt>
+        <dd>{{ resource.purpose|sanitize_html|safe }}</dd>
         {% endif %}
       {% endblock %}
 
@@ -431,19 +422,15 @@
 
       {% block data_quality_statement %}
         {% if resource.data_quality_statement %}
-          <dt>
-            {% trans 'Data Quality' %}
-          </dt>
-          <dd>{{ resource.data_quality_statement|safe }}</dd>
+        <dt>{% trans "Data Quality" %}</dt>
+        <dd>{{ resource.data_quality_statement|sanitize_html|safe }}</dd>
         {% endif %}
       {% endblock %}
 
       {% block supplemental_information %}
         {% if resource.supplemental_information %}
-          <dt>
-            {% trans 'Supplemental Information' %}
-          </dt>
-          <dd>{{ resource.supplemental_information|safe }}</dd>
+        <dt>{% trans "Supplemental Information" %}</dt>
+        <dd>{{ resource.supplemental_information|sanitize_html|safe }}</dd>
         {% endif %}
       {% endblock %}
 

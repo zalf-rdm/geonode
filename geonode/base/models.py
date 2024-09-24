@@ -57,7 +57,6 @@ from PIL import Image, ImageOps
 
 from polymorphic.models import PolymorphicModel
 from polymorphic.managers import PolymorphicManager
-from pinax.ratings.models import OverallRating
 
 from taggit.models import TagBase, ItemBase
 from taggit.managers import TaggableManager, _TaggableManager
@@ -1140,12 +1139,22 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     )
     popular_count = models.IntegerField(default=0)
     share_count = models.IntegerField(default=0)
-    featured = models.BooleanField(_("Featured"), default=False, help_text=featured_help_text)
-    was_published = models.BooleanField(_("Was Published"), default=True, help_text=was_published_help_text)
-    is_published = models.BooleanField(_("Is Published"), default=True, help_text=is_published_help_text)
-    was_approved = models.BooleanField(_("Was Approved"), default=True, help_text=was_approved_help_text)
-    is_approved = models.BooleanField(_("Approved"), default=True, help_text=is_approved_help_text)
-
+    featured = models.BooleanField(
+        _("Featured"), default=False, help_text=_("Should this resource be advertised in home page?")
+    )
+    was_published = models.BooleanField(_("Was Published"), default=True, help_text=_("Previous Published state."))
+    is_published = models.BooleanField(
+        _("Is Published"), default=True, help_text=_("Should this resource be published and searchable?")
+    )
+    was_approved = models.BooleanField(_("Was Approved"), default=True, help_text=_("Previous Approved state."))
+    is_approved = models.BooleanField(
+        _("Approved"), default=True, help_text=_("Is this resource validated from a publisher or editor?")
+    )
+    advertised = models.BooleanField(
+        _("Advertised"),
+        default=True,
+        help_text=_("If False, will hide the resource from search results and catalog listings"),
+    )
     # fields necessary for the apis
     thumbnail_url = models.TextField(_("Thumbnail url"), null=True, blank=True)
     thumbnail_path = models.TextField(_("Thumbnail path"), null=True, blank=True)
@@ -2450,16 +2459,6 @@ class GroupGeoLimit(models.Model):
     group = models.ForeignKey(GroupProfile, null=False, blank=False, on_delete=models.CASCADE)
     resource = models.ForeignKey(ResourceBase, null=False, blank=False, on_delete=models.CASCADE)
     wkt = models.TextField(db_column="wkt", blank=True)
-
-
-def rating_post_save(instance, *args, **kwargs):
-    """
-    Used to fill the average rating field on OverallRating change.
-    """
-    ResourceBase.objects.filter(id=instance.object_id).update(rating=instance.rating)
-
-
-signals.post_save.connect(rating_post_save, sender=OverallRating)
 
 
 class ExtraMetadata(models.Model):
