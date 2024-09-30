@@ -2364,3 +2364,12 @@ DATASET_DOWNLOAD_HANDLERS = ast.literal_eval(os.getenv("DATASET_DOWNLOAD_HANDLER
 AUTO_ASSIGN_REGISTERED_MEMBERS_TO_CONTRIBUTORS = ast.literal_eval(
     os.getenv("AUTO_ASSIGN_REGISTERED_MEMBERS_TO_CONTRIBUTORS", "True")
 )
+
+IMPORTER_HANDLERS = (
+    "importer_datapackage.handlers.datapackage.handler.DataPackageFileHandler",
+    *IMPORTER_HANDLERS,
+)
+
+INSTALLED_APPS += (
+    "importer_datapackage",
+)
