@@ -447,6 +447,7 @@ INSTALLED_APPS = (
     # 'django_admin_bootstrapped.bootstrap3',
     # 'django_admin_bootstrapped',
     # Apps bundled with Django
+    "importer_datapackage",
     "modeltranslation",
     "dal",
     "dal_select2",
@@ -2331,6 +2332,7 @@ IMPORTER_HANDLERS = ast.literal_eval(
     os.getenv(
         "IMPORTER_HANDLERS",
         "[\
+    'importer_datapackage.handlers.datapackage.handler.DataPackageFileHandler',\
     'importer.handlers.gpkg.handler.GPKGFileHandler',\
     'importer.handlers.geojson.handler.GeoJsonFileHandler',\
     'importer.handlers.shapefile.handler.ShapeFileHandler',\
@@ -2363,13 +2365,4 @@ DATASET_DOWNLOAD_HANDLERS = ast.literal_eval(os.getenv("DATASET_DOWNLOAD_HANDLER
 
 AUTO_ASSIGN_REGISTERED_MEMBERS_TO_CONTRIBUTORS = ast.literal_eval(
     os.getenv("AUTO_ASSIGN_REGISTERED_MEMBERS_TO_CONTRIBUTORS", "True")
-)
-
-IMPORTER_HANDLERS = (
-    "importer_datapackage.handlers.datapackage.handler.DataPackageFileHandler",
-    *IMPORTER_HANDLERS,
-)
-
-INSTALLED_APPS += (
-    "importer_datapackage",
 )
