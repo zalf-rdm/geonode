@@ -447,7 +447,6 @@ INSTALLED_APPS = (
     # 'django_admin_bootstrapped.bootstrap3',
     # 'django_admin_bootstrapped',
     # Apps bundled with Django
-    "importer_datapackage",
     "modeltranslation",
     "dal",
     "dal_select2",
@@ -2365,4 +2364,10 @@ DATASET_DOWNLOAD_HANDLERS = ast.literal_eval(os.getenv("DATASET_DOWNLOAD_HANDLER
 
 AUTO_ASSIGN_REGISTERED_MEMBERS_TO_CONTRIBUTORS = ast.literal_eval(
     os.getenv("AUTO_ASSIGN_REGISTERED_MEMBERS_TO_CONTRIBUTORS", "True")
+)
+
+INSTALLED_APPS += (
+    "atlas",
+    "importer_datapackage",
+    "thuenen_app",
 )
