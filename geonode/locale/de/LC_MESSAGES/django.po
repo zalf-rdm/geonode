@@ -23,6 +23,7 @@
 # Waldemar Stone <joana.koslowski@stud.hs-owl.de>, 2016
 # Toni Schönbuchner <toni.schoenbuchner@csgsi.de>, 2019
 # Florian Hoedt <florian.hoedt@thuenen.de>, 2019
+# Susanne Lachmuth <susanne.lachmuth@zalf.de>, 2024
 msgid ""
 msgstr ""
 "Project-Id-Version: GeoNode\n"
@@ -50,11 +51,11 @@ msgstr "Eine Anfrage für das Herunterladen einer Ressource wurde gesendet"
 
 #: geonode/base/__init__.py:37
 msgid "Request resource change"
-msgstr "Änderung an Ressource anfragen"
+msgstr "Ressourcenänderung anfordern"
 
 #: geonode/base/__init__.py:38
 msgid "Owner has requested permissions to modify a resource"
-msgstr "Ein Benutzer hat nach Zugang zu der Seite gefragt"
+msgstr "Eigentümer hat Berechtigungen zur Änderung einer Ressource angefordert"
 
 #: geonode/base/enumerations.py:25
 msgid "series"
@@ -74,15 +75,15 @@ msgstr "Kopie oder Nachahmung eines existierenden oder hypothetischen Objekts"
 
 #: geonode/base/enumerations.py:29
 msgid "collection hardware"
-msgstr "Sammlung Hardware"
+msgstr "Sammlungshardware"
 
 #: geonode/base/enumerations.py:30
 msgid "collection session"
-msgstr "Sammlung Sitzung"
+msgstr "Sammlungssitzung"
 
 #: geonode/base/enumerations.py:31
 msgid "non-geographic data"
-msgstr "Nicht räumliche Daten"
+msgstr "nicht-räumliche Daten"
 
 #: geonode/base/enumerations.py:32
 msgid "property type"
@@ -90,7 +91,7 @@ msgstr "Eigenschaftentyp"
 
 #: geonode/base/enumerations.py:33
 msgid "field session"
-msgstr "Feld Sitzung"
+msgstr "Feldsitzung"
 
 #: geonode/base/enumerations.py:34
 msgid "dataset"
@@ -98,7 +99,7 @@ msgstr "Datensatz"
 
 #: geonode/base/enumerations.py:35
 msgid "service interfaces"
-msgstr "Serviceschnittstelle"
+msgstr "Serviceschnittstellen"
 
 #: geonode/base/enumerations.py:36
 msgid "attribute class"
@@ -110,7 +111,7 @@ msgstr "Charakteristik eines Features"
 
 #: geonode/base/enumerations.py:38
 msgid "tile or spatial subset of geographic data"
-msgstr "Kachel oder Ausschnitt geographischer Daten"
+msgstr "Kachel oder räumlicher Teilbereich geographischer Daten"
 
 #: geonode/base/enumerations.py:39
 msgid "feature"
@@ -121,7 +122,7 @@ msgid "dimension group"
 msgstr "Dimensionsgruppe"
 
 #: geonode/base/enumerations.py:44
-msgid "frequency of maintenance for the data is not known"
+msgid "frequency of data maintenance is unknown"
 msgstr "Aktualisierungsintervall unbekannt"
 
 #: geonode/base/enumerations.py:45
@@ -133,11 +134,11 @@ msgid "there are no plans to update the data"
 msgstr "Es ist nicht geplant, die Daten zu aktualisieren"
 
 #: geonode/base/enumerations.py:47
-msgid "data is updated each day"
+msgid "data is updated daily"
 msgstr "Daten werden täglich aktualisiert"
 
 #: geonode/base/enumerations.py:48
-msgid "data is updated every year"
+msgid "data is updated annualy"
 msgstr "Daten werden jährlich aktualisiert"
 
 #: geonode/base/enumerations.py:49
@@ -145,15 +146,15 @@ msgid "data is updated as deemed necessary"
 msgstr "Daten werden nach Bedarf aktualisiert"
 
 #: geonode/base/enumerations.py:50
-msgid "data is updated each month"
+msgid "data is updated monthly"
 msgstr "Daten werden monatlich aktualisiert"
 
 #: geonode/base/enumerations.py:51
-msgid "data is updated every two weeks"
+msgid "data is updated biweekly"
 msgstr "Daten werden zweiwöchentlich aktualisiert"
 
 #: geonode/base/enumerations.py:52
-msgid "data is updated in intervals that are uneven in duration"
+msgid "data updates occur at irregular intervals"
 msgstr "Daten werden in unregelmäßigen Intervallen aktualisiert"
 
 #: geonode/base/enumerations.py:53
@@ -161,16 +162,16 @@ msgid "data is updated on a weekly basis"
 msgstr "Daten werden wöchentlich aktualisiert"
 
 #: geonode/base/enumerations.py:54
-msgid "data is updated twice each year"
+msgid "data is updated twice per year"
 msgstr "Daten werden zweimal jährlich aktualisiert"
 
 #: geonode/base/enumerations.py:55
-msgid "data is updated every three months"
+msgid "data is updated quarterly"
 msgstr "Daten werden quartalsweise aktualisiert"
 
 #: geonode/base/enumerations.py:73
 msgid "No information provided"
-msgstr "Keine Information angegeben"
+msgstr "Keine Information vorhanden"
 
 #: geonode/base/forms.py:235
 msgid "Category is required."
@@ -178,16 +179,16 @@ msgstr "Kategorie erforderlich."
 
 #: geonode/base/forms.py:270
 msgid "Keywords from Thesaurus"
-msgstr "Schlüsselwörter des Thesauri"
+msgstr "Schlüsselwörter des Thesaurus"
 
 #: geonode/base/forms.py:273
 msgid "List of keywords from Thesaurus"
-msgstr "Liste an Schlüsselwörter des Thesauri"
+msgstr "Liste der Schlüsselwörter aus dem Thesaurus"
 
 #: geonode/base/forms.py:374
 msgid ""
-"Something went wrong in finding the profile(s) in a contact role form ..."
-msgstr ""
+"An error occurred while locating the profile(s) in a contact role form …"
+msgstr "Ein Fehler ist aufgetreten beim Auffinden des Profils/der Profile in einem Kontaktfunktionsformular"
 
 #: geonode/base/forms.py:380
 #: geonode/documents/templates/layouts/doc_panels.html:556
@@ -210,7 +211,7 @@ msgid "Abstract"
 msgstr "Zusammenfassung"
 
 #: geonode/base/forms.py:435 geonode/base/models.py:933
-msgid "Abstract Translated"
+msgid "Abstract translated"
 msgstr "Zusammenfassung übersetzt"
 
 #: geonode/base/forms.py:442 geonode/base/models.py:937
@@ -218,30 +219,30 @@ msgid "Subtitle"
 msgstr "Untertitel"
 
 #: geonode/base/forms.py:445 geonode/base/models.py:939
-msgid "Method Description"
+msgid "Method description"
 msgstr "Methodenbeschreibung"
 
 #: geonode/base/forms.py:451 geonode/base/models.py:942
-msgid "Series Information"
-msgstr "Serien-Informationen"
+msgid "Series information"
+msgstr "Serieninformationen"
 
 #: geonode/base/forms.py:457 geonode/base/models.py:945
-msgid "Table of Content"
+msgid "Table of contents"
 msgstr "Inhaltsverzeichnis"
 
 #: geonode/base/forms.py:463 geonode/base/models.py:948
-msgid "Technical Info"
+msgid "Technical information"
 msgstr "Technische Informationen"
 
 #: geonode/base/forms.py:466 geonode/base/models.py:951
-msgid "Other Description"
+msgid "Additional description"
 msgstr "Sonstige Beschreibung"
 
 #: geonode/base/forms.py:473
 #, fuzzy
 #| msgid "Date Available"
 msgid "Date Available*"
-msgstr "Verfügbares Datum"
+msgstr "Verfügbarkeitsdatum"
 
 #: geonode/base/forms.py:479
 #, fuzzy
@@ -288,12 +289,12 @@ msgid "Purpose"
 msgstr "Zweck"
 
 #: geonode/base/forms.py:539 geonode/base/models.py:1027
-msgid "Use Constraint Restrictions"
+msgid "Use constraint restrictions"
 msgstr "Nutzungsbeschränkungen"
 
 #: geonode/base/forms.py:544 geonode/base/models.py:1034
-msgid "Use Constraints"
-msgstr "Nutzung"
+msgid "Use constraints"
+msgstr "Nutzungsbeschränkungen"
 
 #: geonode/base/forms.py:545
 #, fuzzy
@@ -302,7 +303,7 @@ msgid "Other constraints"
 msgstr "Andere Einschränkungen"
 
 #: geonode/base/forms.py:549 geonode/base/models.py:1038
-msgid "Other Restrictions"
+msgid "Other restrictions"
 msgstr "Weitere Einschränkungen"
 
 #: geonode/base/forms.py:555
@@ -325,23 +326,23 @@ msgstr "Datum"
 
 #: geonode/base/forms.py:578
 msgid "temporal extent start"
-msgstr "Zeitliche Ausdehnung Start"
+msgstr "Beginn des zeitlichen Geltungsbereichs"
 
 #: geonode/base/forms.py:586
 msgid "temporal extent end"
-msgstr "Zeitliche Ausdehnung Ende"
+msgstr "Ende des zeitlichen Geltungsbereichs"
 
 #: geonode/base/forms.py:664
-msgid "Free-text Keywords"
-msgstr "Freitext Schlüsselwörter"
+msgid "free-text keywords"
+msgstr "Freitext-Schlüsselwörter"
 
 #: geonode/base/forms.py:666
 msgid ""
 "A space or comma-separated list of keywords. Use the widget to select from "
 "Hierarchical tree."
 msgstr ""
-"Eine durch Kommata getrennte Liste an Schlüsselwörtern. Benutzen Sie das "
-"widget um eine Auswahl aus dem hierarchischen Baum zu wählen."
+"Eine kommagetrennte Liste an Schlüsselwörtern. Nutzen Sie das "
+"Widget um eine Auswahl aus dem hierarchischen Baum zu treffen."
 
 #: geonode/base/forms.py:671 geonode/base/forms.py:817
 #: geonode/base/templates/base/_resourcebase_info_panel.html:121
@@ -412,7 +413,7 @@ msgid "Reason"
 msgstr "Begründung"
 
 #: geonode/base/forms.py:876
-msgid "Short reasoning behind the request"
+msgid "short reasoning for the request"
 msgstr "Kurze Begründung der Anfrage"
 
 #: geonode/base/models.py:106 geonode/services/models.py:128
@@ -421,13 +422,13 @@ msgstr "Funktion ausgeführt von verantwortlicher Person"
 
 #: geonode/base/models.py:652 geonode/base/models.py:669
 msgid "related identifier, available identifier types"
-msgstr ""
+msgstr "Zugehörige Kennung, verfügbare Kennungstypen"
 
 #: geonode/base/models.py:653
 #, fuzzy
 #| msgid "attribute description"
 msgid "label description"
-msgstr "Beschreibung der Eigenschaften"
+msgstr "Bezeichnungsbeschreibung"
 
 #: geonode/base/models.py:656 geonode/base/models.py:675
 #: geonode/base/models.py:784 geonode/layers/models.py:454
@@ -445,9 +446,12 @@ msgstr "Beschreibung"
 #: geonode/base/models.py:671
 msgid ""
 "Description of the relationship of the resource being registered (A) and the "
-"related resource (B). If Related identifier is used Relation type is "
+"related resource (B). If Related identifier is used, Relation type is "
 "mandatory"
 msgstr ""
+"Beschreibung der Beziehung zwischen der zu registrierenden Ressource (A) und der "
+"zugehörigen Ressource (B). Wenn eine Zugehörige Kennung verwendet wird, ist der Beziehungstyp "
+"verpflichtend anzugeben"
 
 #: geonode/base/models.py:681
 #: geonode/catalogue/templates/geonode_metadata_full.html:171
@@ -475,18 +479,20 @@ msgid "Related Identifier"
 msgstr "Zugehörige Kennung"
 
 #: geonode/base/models.py:705
-msgid "Name of the institution provider. (e.g. European Commission)"
-msgstr ""
+msgid "Name of the providing institution (e.g., European Commission)."
+msgstr "Name der bereitstellenden Institution (z.B. Europäische Kommission)."
 
 #: geonode/base/models.py:707
 msgid ""
-"Uniquely identifies a funding entity, according to various types. (e.g. "
-"http://doi.org/10.13039/501100000780)"
+"Uniquely identifies a funding entity based on various classification types (e.g., "
+"http://doi.org/10.13039/501100000780)."
 msgstr ""
+"Identifiziert eindeutig eine Fördereinrichtung basierend auf verschiedenen Klassifizierungstypen "
+"(z.B. http://doi.org/10.13039/501100000780)."
 
 #: geonode/base/models.py:709
-msgid "abbreviation of the Institutions names. (e.g. BMBF)"
-msgstr ""
+msgid "abbreviation of the institution names (e.g., BMBF)."
+msgstr "Abürzung der Institutionsnamen (z.B. BMBF)"
 
 #: geonode/base/models.py:710
 #, fuzzy
@@ -513,38 +519,42 @@ msgid "Abbreviation"
 msgstr "Abkürzung"
 
 #: geonode/base/models.py:735
-msgid "Address Information"
-msgstr "Kontaktinformationen"
+msgid "Address information"
+msgstr "Adresse"
 
 #: geonode/base/models.py:738
 #, fuzzy
 #| msgid "Information"
 msgid "Contact Information"
-msgstr "Information"
+msgstr "Kontaktinformation"
 
 #: geonode/base/models.py:746 geonode/base/models.py:880
 msgid "List of funders, funded dataset creators"
-msgstr ""
+msgstr "Liste der Geldgeber, geförderten Datensatzersteller"
 
 #: geonode/base/models.py:749
 msgid ""
 "The URI leading to a page provided by the funder for more information about "
-"the award (grant). (e.g. http://cordis.europa.eu/project/rcn/100180_en.html)"
+"the award (grant) (e.g., http://cordis.europa.eu/project/rcn/100180_en.html)."
 msgstr ""
+"Die URI, die zu einer vom Geldgeber bereitgestellten Seite führt, die weitere Informationen über " 
+"die Auszeichnung (Förderung) enthält (z.B. http://cordis.europa.eu/project/rcn/100180_en.html)."
 
 #: geonode/base/models.py:752
 msgid ""
-"The human readable title of the award (grant). (e.g. MOTivational strength "
-"of ecosystem services)"
+"The human readable title of the award (grant) (e.g., MOTivational strength "
+"of ecosystem services)."
 msgstr ""
+"Der menschenlesbare Titel der Auszeichnung (Förderung) (z.B.MOTivational strength "
+"of ecosystem services)."
 
 #: geonode/base/models.py:757
 msgid "Award Number"
-msgstr "Auszeichnungsnummer"
+msgstr "Auszeichnungssnummer"
 
 #: geonode/base/models.py:764
 msgid "Award URI"
-msgstr "Auszeichnungs-URI"
+msgstr "URI der Auszeichnung"
 
 #: geonode/base/models.py:771
 msgid "Award Title"
@@ -552,96 +562,102 @@ msgstr "Auszeichnungstitel"
 
 #: geonode/base/models.py:780
 msgid ""
-"label of the hierarchy levels for which the metadata is provided. (e.g. "
-"SIGNAL)"
+"Labels of the hierarchy levels for which the metadata is provided (e.g., "
+"SIGNAL)."
 msgstr ""
+"Bezeichnungen der Hierarchieebenen, für die die Metadaten bereitgestellt werden "
+"(z.B. SIGNAL)."
 
 #: geonode/base/models.py:781
 msgid ""
-"Name of the hierarchy levels for which the metadata is provided. (e.g. "
-"signal)"
+"Names of the hierarchy levels for which the metadata is provided (e.g., "
+"Signal)"
 msgstr ""
+"Namen der Hierarchieebenen, für die die Metadaten bereitgestellt werden "
+"(z.B. SIGNAL)."
 
 #: geonode/base/models.py:790
-msgid "Display Name"
+msgid "Display name"
 msgstr "Anzeigename"
 
 #: geonode/base/models.py:818
-msgid "brief narrative summary of the content of the resource(s)"
+msgid "Brief narrative summary of the content of the resource(s)"
 msgstr "Kurze Beschreibung des Inhalts der Quelle(n)"
 
 #: geonode/base/models.py:819
-msgid "reference date for the cited resource"
+msgid "Reference date for the cited resource"
 msgstr "Referenzdatum der Quelle"
 
 #: geonode/base/models.py:820
-msgid "identification of when a given event occurred"
-msgstr "Erkennung wann ein bestimmtes Ereignis eingetreten ist"
+msgid "Identification of when a given event occurred"
+msgstr "Identifikation des Zeitpunkts, zu dem ein bestimmtes Ereignis eingetreten ist"
 
 #: geonode/base/models.py:821
-msgid "version of the cited resource"
-msgstr "Version der Quelle"
+msgid "Version of the cited resource"
+msgstr "Version der zitierten Quelle"
 
 #: geonode/base/models.py:823
 msgid ""
 "authority or function assigned, as to a ruler, legislative assembly, "
 "delegate, or the like."
-msgstr "Zitationsweise, wie durch Gesetz, oder Urheber bestimmt."
+msgstr "Zitationsweise, wie durch Gesetz oder Urheber bestimmt."
 
 #: geonode/base/models.py:825
-msgid "a DOI will be added by Admin before publication."
+msgid "A DOI will be added by Admin before publication."
 msgstr "Eine DOI wird vor der Veröffentlichung vom Administrator vergeben."
 
 #: geonode/base/models.py:826
-msgid "summary of the intentions with which the resource(s) was developed"
-msgstr "Zusammenfassung der Absicht, mit der die Quelle(n) entwickelt wurde(n)"
+msgid "Summary of the intentions with which the resource(s) was/were developed"
+msgstr "Zusammenfassung der Absicht mit der die Quelle(n) entwickelt wurde(n)"
 
 #: geonode/base/models.py:828
 msgid ""
-"frequency with which modifications and deletions are made to the data after "
+"Frequency with which modifications and deletions are made to the data after "
 "it is first produced"
 msgstr ""
 "Häufigkeit mit der an den Daten Änderungen und Streichungen vorgenommen "
-"werden nachdem sie zum ersten Mal hergestellt wurden"
+"werden nachdem sie zum ersten Mal bereitgestellt wurden"
 
 #: geonode/base/models.py:831
 msgid ""
-"commonly used word(s) or formalised word(s) or phrase(s) used to describe "
+"Commonly used word(s) or formalised word(s) or phrase(s) used to describe "
 "the subject (space or comma-separated)"
 msgstr ""
-"häufig verwendete Wörter oder formalisierte Wörter/Phrasen welche benutzt "
-"werden um das Subjekt zu beschreiben (mit Leerzeichen oder Komma getrennt)"
+"Häufig verwendete Wörter oder formalisierte Wörter/Phrasen welche benutzt "
+"werden, um das Subjekt zu beschreiben (mit Leerzeichen oder Komma getrennt)"
 
 #: geonode/base/models.py:835
 msgid ""
-"formalised word(s) or phrase(s) from a fixed thesaurus used to describe the "
+"Formalised word(s) or phrase(s) from a fixed Thesaurus used to describe the "
 "subject (space or comma-separated)"
 msgstr ""
-"formalisierte Wörter/Phrasen aus einem definierten Thesaurus die benutzt "
-"werden um das Subjekt zu beschreiben (gertrennt durch Leerzeichen oder Komma)"
+"formalisierte Wörter/Phrasen aus einem definierten Thesaurus, die benutzt "
+"werden, um das Subjekt zu beschreiben (gertrennt durch Leerzeichen oder Komma)"
 
 #: geonode/base/models.py:838
-msgid "keyword identifies a location"
-msgstr "Stichwort welches einen Ort kennzeichnet"
+msgid "Keyword identifying a location"
+msgstr "Schlüsselwort zur Kennzeichnung eines Ortes"
 
 #: geonode/base/models.py:840
 msgid ""
-"This metadata element shall provide information on the Use constraints "
-"applied to assure the protection of privacy or intellectual property (e.g. "
-"Trademark)"
+"This metadata element provides information on the Use constraints applied "
+"to protect privacy or intellectual property (e.g., trademarks)."
 msgstr ""
+"Dieses Metadatenelement liefert Informationen über die Nutzungsbeschränkungen, " 
+"die zum Schutz der Privatsphäre oder des geistigen Eigentums (z.B. Marke) "
+"angewendet werden."
 
 #: geonode/base/models.py:842 geonode/base/models.py:843
 #, fuzzy
 #| msgid "limitation(s) placed upon the access or use of the data."
-msgid "limitation(s) placed upon the access or use of the data by Admin."
-msgstr "Beschränkung(en) der Datennutzung oder dem Zugang zu diesen."
+msgid "Limitation(s) placed upon the access or use of the data by Admin."
+msgstr "Beschränkung(en) der Datennutzung oder des Zugangs zu diesen."
 
 #: geonode/base/models.py:844
 #, fuzzy
 #| msgid "limitation(s) placed upon the access or use of the data."
-msgid "limitation(s) placed upon the access or use of the data by User."
-msgstr "Beschränkung(en) der Datennutzung oder dem Zugang zu diesen."
+msgid "Limitation(s) placed upon the access or use of the data by User."
+msgstr "Beschränkung(en) der Datennutzung oder des Zugangs zu diesen."
 
 #: geonode/base/models.py:846
 #, fuzzy
@@ -649,51 +665,51 @@ msgstr "Beschränkung(en) der Datennutzung oder dem Zugang zu diesen."
 #| "other restrictions and legal prerequisites for accessing and using the "
 #| "resource or metadata"
 msgid ""
-"other restrictions and legal prerequisites for accessing and using the "
+"Other restrictions and legal prerequisites for accessing and using the "
 "resource or metadata by User"
 msgstr ""
-"andere Einschränkungen und gesetzliche Voraussetzungen für den Zugriff und "
+"Andere Einschränkungen und gesetzliche Voraussetzungen für den Zugriff und "
 "den Gebrauch der Quelle oder der Metadaten"
 
 #: geonode/base/models.py:849
-msgid "license of the dataset"
+msgid "License of the dataset"
 msgstr "Lizenz des Datensatzes"
 
 #: geonode/base/models.py:850
 #, fuzzy
 #| msgid "license of the dataset"
-msgid "license of the metadata"
+msgid "License of the metadata"
 msgstr "Lizenz des Datensatzes"
 
 #: geonode/base/models.py:851
-msgid "language used within the dataset"
-msgstr "verwendete Sprache innerhalb des Datensatzes"
+msgid "Language used in the dataset"
+msgstr "Verwendete Sprache innerhalb des Datensatzes"
 
 #: geonode/base/models.py:853
 msgid ""
-"high-level geographic data thematic classification to assist in the grouping "
+"Higher order thematic classification of geographic data  to assist in the grouping "
 "and search of available geographic data sets."
 msgstr ""
-"hochrangige Geodaten thematische Klassifizierung um die Gruppierung und "
-"Suche von verfügbaren Datensätzen zu unterstützen."
+"Übergeodnete thematische Klassifizierung von Geodaten, um die Gruppierung und "
+"Suche nach verfügbaren geographischen Datensätzen zu unterstützen."
 
 #: geonode/base/models.py:856
-msgid "method used to represent geographic information in the dataset."
+msgid "Method used to represent geographic information in the dataset."
 msgstr ""
-"verwendete Methode um geographische Informationen in dem Datensatz "
+"Verwendete Methode um geographische Informationen in dem Datensatz "
 "darzustellen."
 
 #: geonode/base/models.py:857
-msgid "time period covered by the content of the dataset (start)"
-msgstr "Zeitabdeckung des Datensatzes (Start)"
+msgid "Time period covered by the content of the dataset (start)"
+msgstr "Zeitliche Abdeckung des Datensatzes (Beginn)"
 
 #: geonode/base/models.py:858
 msgid "time period covered by the content of the dataset (end)"
-msgstr "Zeitabdeckung des Datensatzes (Ende)"
+msgstr "Zeitliche Abdeckung des Datensatzes (Ende)"
 
 #: geonode/base/models.py:860
 msgid ""
-"general explanation of the data producer's knowledge about the lineage of a "
+"General explanation of the data producer's knowledge about the lineage of a "
 "dataset"
 msgstr ""
 "Allgemeine Erklärung über den Wissensstand des Datenproduzenten über die "
@@ -704,25 +720,27 @@ msgid ""
 "Additional metadata, must be in format [ {\"metadata_key\": "
 "\"metadata_value\"}, {\"metadata_key\": \"metadata_value\"} ]"
 msgstr ""
+"Zusätzliche Metadaten, üssen folgendes Format haben [ {\"metadata_key\": "
+"\"metadata_value\"}, {\"metadata_key\": \"metadata_value\"} ]"
 
 #: geonode/base/models.py:870
 #, fuzzy
 #| msgid "brief narrative summary of the content of the resource(s)"
-msgid "brief german narrative summary of the content of the resource(s)"
-msgstr "Kurze Beschreibung des Inhalts der Quelle(n)"
+msgid "Brief german narrative summary of the content of the resource(s)"
+msgstr "Kurze deutschsprachige Beschreibung des Inhalts der Quelle(n)"
 
 #: geonode/base/models.py:872
-msgid "The methodology employed for the study or research"
-msgstr ""
+msgid "The methodology applied in the study or research"
+msgstr "Die für die Studie oder Forschung angewandte Methodik"
 
 #: geonode/base/models.py:873
-msgid "Information about a repeating series, such as volumne, issue, number"
-msgstr ""
+msgid "Information about a recurring series, such as volume, issue, or number"
+msgstr "Informationen über eine wiederkehrende Reihe, wie Band, Ausgabe oder Nummer"
 
 #: geonode/base/models.py:874
 #, fuzzy
 #| msgid "Table of Content"
-msgid "A listing of the Table of Contents"
+msgid "Table of Contents"
 msgstr "Inhaltsverzeichnis"
 
 #: geonode/base/models.py:876
@@ -730,99 +748,126 @@ msgid ""
 "Detailed information that may be associated with design, implementation, "
 "operation, use, and/or maintenance of a process or system"
 msgstr ""
+"Detaillierte Informationen, die mit der Konzeption, Implementierung, "
+"dem Betrieb, der Nutzung und/oder der Wartung eines Prozesses oder "
+"Systems verbunden sein können"
 
 #: geonode/base/models.py:878
 msgid ""
 "Other description information that does not fit into an existing category"
-msgstr ""
+msgstr "Sonstige beschreibende Informationen, die in keine der existierenden "
+"Kategorien passen"
 
 #: geonode/base/models.py:881
 msgid ""
-"Name of the hierarchy levels for which the metadata is provided. (e.g. "
+"Name of the hierarchy levels for which the metadata is provided. (e.g., "
 "SIGNAL)"
-msgstr ""
+msgstr "Namen der Hierarchieebenen für die Metadaten bereitgestellt werden "
+"(z.B. SIGNAL)"
 
 #: geonode/base/models.py:883
 msgid ""
-"This is the degree of conformity of the dataset to the implementing rules "
-"the BonaRes Schema."
+"This describes the degree of conformity between the dataset and the implementing "
+"rules of the BonaRes Schema."
 msgstr ""
+"Dies beschreibt den Grad der Übereinstimmung zwischen dem Datensatz und den "
+"Implementierungsregeln des BonaRes-Schemas."
 
 #: geonode/base/models.py:886
 msgid ""
-"Give an Explanation about the conformity check. (e.g. See the referenced "
-"specification."
+"Provide an explanation for the conformity check (e.g., "
+"'See the referenced specification')."
 msgstr ""
+"Geben Sie eine Erläuterung zur Konformitätsprüfung (z.B. 'Siehe die referenzierte "
+"Spezifikation')."
 
 #: geonode/base/models.py:889
 msgid ""
-"A file identifier of the metadata to which this metadata is a subset "
-"(child). (e.g. 73c0f49f-1502-48ee-b038-052563f36527)"
+"A file identifier for the metadata of which this metadata is a subset "
+"(child) (e.g., 73c0f49f-1502-48ee-b038-052563f36527)."
 msgstr ""
+"Eine Dateikennung für die Metadaten, von denen diese Metadaten eine Teilmenge (child) sind"
+"(z.B. 73c0f49f-1502-48ee-b038-052563f36527)."
 
 #: geonode/base/models.py:892
-msgid "The date that the publisher accepted the resource into their system."
-msgstr ""
+msgid "The date when the publisher accepted the resource into their system."
+msgstr "Das Datum, an dem der Herausgeber die Ressource in sein System aufgenommen hat."
 
 #: geonode/base/models.py:894
 msgid ""
-"The date the resource is made publicly available. To indicate the end of an "
+"The date the resource is made publicly available. Indicates the end of an "
 "embargo period."
 msgstr ""
+"Das Datum, an dem die Ressource öffentlich zugänglich gemacht wird. Markiert "
+"das Ende eines Embargos."
 
 #: geonode/base/models.py:896
-msgid "The date or date range in which the dataset content was collected"
-msgstr ""
+msgid "The date or date range during which the dataset content was collected"
+msgstr "Das Datum oder der Zeitraum, in dem die Inhalte des Datensatzes erhoben wurden"
 
 #: geonode/base/models.py:898
 msgid ""
-"The specific, documented date at which the dataset receives a copyrighted "
-"status, if applicable."
+"The specific, documented date when the dataset receives copyright status, "
+"if applicable. "
 msgstr ""
+"Das spezifische, dokumentierte Datum, an dem der Datensatz urheberrechtlichen "
+"Status erhält, falls zutreffend."
 
 #: geonode/base/models.py:901
 msgid ""
-"The date the resource itself was put together; a single date for a final "
-"component, e.g. the finalised file with all of  the data."
+"The date the resource itself was assembled—a single date for a final component, "
+"e.g., the finalised file containing all the data."
 msgstr ""
+"Das Datum, an dem die Ressource selbst zusammengestellt wurde – ein einzelnes "
+"Datum für eine finale Komponente, z.B. die fertiggestellte Datei, die alle Daten "
+"enthält."
 
 #: geonode/base/models.py:903
 msgid ""
-"The date that the resource is published or distributed e.g. to a data centre."
+"The date when the resource is published or distributed, for example, to a data centre."
 msgstr ""
+"Das Datum, an dem die Ressource veröffentlicht oder verteilt wird, z.B. an ein "
+"Datenzentrum."
 
 #: geonode/base/models.py:905
 msgid ""
-"The date the creator submits the resource to the publisher. This could be "
-"different from Accepted if the publisher the applies a selection process. To "
-"indicate the start of an embargo period. "
+"The date the creator submits the resource to the publisher. This could differ "
+"from the 'Accepted' date if the publisher applies a selection process. "
+"It may also indicate the start of an embargo period."
 msgstr ""
+"Das Datum, an dem der Ersteller die Ressource beim Herausgeber einreicht. "
+"Dieses kann sich vom 'Annahmedatum' unterscheiden, wenn der Herausgeber einen "
+"Auswahlprozess anwendet. Es kann auch den Beginn einer Sperrfrist kennzeichnen."
 
 #: geonode/base/models.py:908
 msgid ""
 "The date of the last update (last revision) to the dataset, when the dataset "
-"is being added to."
+"is being added to (i.e., dynamic dataset)."
 msgstr ""
+"Das Datum der letzten Aktualisierung (letzte Überarbeitung) des Datensatzes, wenn der Datensatz "
+"ergänzt wird (d.h. dynamischer Datensatz)."
 
 #: geonode/base/models.py:910
 msgid ""
-"The date or date range during which the dataset or resource is accurate."
+"The date or date range when the dataset or resource is considered accurate."
 msgstr ""
+"Das Datum oder der Zeitraum, in dem der Datensatz oder die Ressource als genau (accurate) "
+"betrachtet wird."
 
 #: geonode/base/models.py:911
-msgid "Security Rules Are Not Synched with GeoServer!"
-msgstr "Sicherheits-Regeln sind nicht mit GeoServer synchronisier!"
+msgid "Security rules not synced with GeoServer!"
+msgstr "Sicherheitsregeln sind nicht mit GeoServer synchronisiert!"
 
 #: geonode/base/models.py:912
-msgid "Should this resource be advertised in home page?"
-msgstr "Sollte diese Ressource in Startseite beworben werden?"
+msgid "Should this resource be featured on the home page?"
+msgstr "Sollte diese Ressource auf der Startseite beworben werden?"
 
 #: geonode/base/models.py:913
-msgid "Is this resource validated from a publisher or editor?"
-msgstr "Ist diese Ressource durch einen Autor geprüft worden?"
+msgid "Has this resource been validated by a publisher or editor?"
+msgstr "Ist diese Ressource durch einen Herausgeber oder Editor geprüft worden?"
 
 #: geonode/base/models.py:914
-msgid "Should this resource be published and searchable?"
+msgid "Should this resource be made public and searchable?"
 msgstr "Soll diese Ressource veröffentlicht und durchsuchbar sein?"
 
 #: geonode/base/models.py:915
@@ -840,26 +885,28 @@ msgid ""
 "The resource source type, which can be one of \"LOCAL\", \"REMOTE\" or "
 "\"COPYREMOTE\"."
 msgstr ""
+"Der Ressourcenquellentyp, der entweder \"LOCAL\", \"REMOTE\" oder "
+"\"COPYREMOTE\" sein kann."
 
 #: geonode/base/models.py:918
-msgid "Hold the resource processing state."
-msgstr ""
+msgid "Stores the resource processing state."
+msgstr "Enthält den Verarbeitungsstatus der Ressource."
 
 #: geonode/base/models.py:919
-msgid "name by which the cited resource is known"
-msgstr "Name der Quelle"
+msgid "Name under which the cited resource is known"
+msgstr "Name, unter dem die zitierte Ressource bekannt ist"
 
 #: geonode/base/models.py:920
-msgid "any other descriptive information about the dataset"
-msgstr "Sonstige Information über den Datensatz"
+msgid "Any other descriptive information about the dataset"
+msgstr "Sonstige beschreibende Information über den Datensatz"
 
 #: geonode/base/models.py:921
-msgid "Previous Approved state."
-msgstr ""
+msgid "Previous 'Approved' state"
+msgstr "Vorheriger 'Genehmigungsstatus'"
 
 #: geonode/base/models.py:922
-msgid "Previous Published state."
-msgstr ""
+msgid "Previous 'Published' state."
+msgstr "Vorheriger 'Veröffentlichungsstatus'"
 
 #: geonode/base/models.py:926
 #: geonode/base/templates/base/_resourcebase_info_panel.html:8
@@ -875,7 +922,7 @@ msgstr "Titel"
 
 #: geonode/base/models.py:928
 msgid "Title Translated"
-msgstr "Titel Übersetzt"
+msgstr "Titel übersetzt"
 
 #: geonode/base/models.py:955
 msgid "Conformity Result"
@@ -890,17 +937,17 @@ msgid "Parent Identifier"
 msgstr "Übergeordnete Kennung"
 
 #: geonode/base/models.py:973
-msgid "Date Available"
-msgstr "Verfügbares Datum"
+msgid "Date available"
+msgstr "Verfügbarkeitsdatum"
 
 #: geonode/base/models.py:975
-msgid "Date Created"
+msgid "Date created"
 msgstr "Erstellungsdatum"
 
 #: geonode/base/models.py:982
 #, fuzzy
 #| msgid "Date Copyrighted"
-msgid "Date Copyrighted"
+msgid "Date copyrighted"
 msgstr "Datum des Copyrights"
 
 #: geonode/base/models.py:992
@@ -909,7 +956,7 @@ msgstr "Kontakte"
 
 #: geonode/base/models.py:993
 msgid "Alternate"
-msgstr "_Wechseln"
+msgstr "Alternative"
 
 #: geonode/base/models.py:996
 msgid "Date Type"
@@ -941,17 +988,17 @@ msgstr "DOI"
 #: geonode/catalogue/templates/geonode_metadata_full.html:92
 #: geonode/templates/metadata_detail.html:375
 msgid "Maintenance Frequency"
-msgstr ""
+msgstr "Aktualisierungsintervall"
 
 #: geonode/base/models.py:1012 geonode/people/models.py:114
 msgid "keywords"
-msgstr "Schlüsselworter"
+msgstr "Schlüsselwörter"
 
 #: geonode/base/models.py:1019
 #, fuzzy
 #| msgid "Thesaurus"
 msgid "Thesaurus Keywords"
-msgstr "Thesaurus"
+msgstr "Thesaurus Schlüsselwörter"
 
 #: geonode/base/models.py:1022
 #, fuzzy
