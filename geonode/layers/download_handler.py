@@ -23,7 +23,7 @@ import xml.etree.ElementTree as ET
 from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.template.loader import get_template
 from django.urls import reverse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from geonode.base.auth import get_or_create_token
 from geonode.geoserver.helpers import wps_format_is_supported
@@ -75,7 +75,7 @@ class DatasetDownloadHandler:
         resource = self.get_resource()
         if not resource:
             return None
-        if resource.subtype not in ["vector", "raster", "vector_time"]:
+        if resource.subtype not in ["vector", "raster", "vector_time", "tabular"]:
             logger.info("Download URL is available only for datasets that have been harvested and copied locally")
             return None
 
@@ -118,6 +118,8 @@ class DatasetDownloadHandler:
             return JsonResponse({"error": "The format provided is not valid for the selected resource"}, status=500)
 
         _format = "application/zip" if resource.is_vector() else "image/tiff"
+        if resource.subtype == "tabular":
+            _format = "text/csv"
         # getting default payload
         tpl = get_template("geoserver/dataset_download.xml")
         ctx = {"alternate": resource.alternate, "download_format": download_format or _format}

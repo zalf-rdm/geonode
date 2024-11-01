@@ -36,7 +36,6 @@ from itertools import cycle
 from collections import defaultdict
 from os.path import basename, splitext, isfile
 from urllib.parse import urlparse, urlencode, urlsplit, urljoin
-from pinax.ratings.models import OverallRating
 from bs4 import BeautifulSoup
 import xml.etree.ElementTree as ET
 
@@ -45,10 +44,9 @@ from django.utils import timezone
 from django.db import transaction
 from django.contrib.auth import get_user_model
 from django.utils.module_loading import import_string
-from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured
 from django.template.loader import render_to_string
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext_lazy as _
 
 from geoserver.catalog import Catalog, FailedRequestError
 from geoserver.resource import FeatureType, Coverage
@@ -105,6 +103,7 @@ WPS_ACCEPTABLE_FORMATS = [
     ("application/wfs-collection-1.1", "vector"),
     ("application/zip", "vector"),
     ("text/csv", "vector"),
+    ("text/csv", "tabular"),
 ]
 
 DEFAULT_STYLE_NAME = ["generic", "line", "point", "polygon", "raster"]
@@ -869,8 +868,6 @@ def gs_slurp(
             )
             try:
                 # delete ratings, and taggit tags:
-                ct = ContentType.objects.get_for_model(layer)
-                OverallRating.objects.filter(content_type=ct, object_id=layer.id).delete()
                 layer.keywords.clear()
 
                 layer.delete()
@@ -1018,7 +1015,7 @@ def set_attributes_from_geoserver(layer, overwrite=False):
             tb = traceback.format_exc()
             logger.debug(tb)
             attribute_map = []
-    elif layer.subtype in {"vector", "tileStore", "remote", "wmsStore", "vector_time"}:
+    elif layer.subtype in {"vector", "tileStore", "remote", "wmsStore", "vector_time", "tabular"}:
         typename = layer.alternate if layer.alternate else layer.typename
         dft_url_path = re.sub(r"\/wms\/?$", "/", server_url)
         dft_query = urlencode(
@@ -1127,15 +1124,21 @@ def get_dataset(layer, gs_catalog: Catalog):
 def clean_styles(layer, gs_catalog: Catalog):
     try:
         # Cleanup Styles without a Workspace
+        style = None
         gs_catalog.reset()
         gs_dataset = get_dataset(layer, gs_catalog)
-        logger.debug(f'clean_styles: Retrieving style "{gs_dataset.default_style.name}" for cleanup')
-        style = gs_catalog.get_style(name=gs_dataset.default_style.name, workspace=None, recursive=True)
-        if style:
-            gs_catalog.delete(style, purge=True, recurse=False)
-            logger.debug(f"clean_styles: Style removed: {gs_dataset.default_style.name}")
-        else:
-            logger.debug(f"clean_styles: Style does not exist: {gs_dataset.default_style.name}")
+        if gs_dataset is None:
+            if gs_dataset.default_style is None:
+                # ignore dataset without style
+                pass
+            
+            logger.debug(f'clean_styles: Retrieving style "{gs_dataset.default_style.name}" for cleanup')
+            style = gs_catalog.get_style(name=gs_dataset.default_style.name, workspace=None, recursive=True)
+            if style:
+                gs_catalog.delete(style, purge=True, recurse=False)
+                logger.debug(f"clean_styles: Style removed: {gs_dataset.default_style.name}")
+            else:
+                logger.debug(f"clean_styles: Style does not exist: {gs_dataset.default_style.name}")
     except Exception as e:
         logger.warning(f"Could not clean style for layer {layer.name}", exc_info=e)
         logger.debug(f"Could not clean style for layer {layer.name} - STACK INFO", stack_info=True)
@@ -1215,7 +1218,7 @@ def set_styles(layer, gs_catalog: Catalog):
                 layer.default_style,
             ]
         ):
-            if style:
+            if style and layer.subtype != "tabular":
                 style_name = os.path.basename(urlparse(style.sld_url).path).split(".")[0]
                 legend_url = get_legend_url(layer, style_name)
                 if dataset_legends.filter(resource=layer.resourcebase_ptr, name="Legend", url=legend_url).count() < 2:
@@ -1568,7 +1571,7 @@ def fetch_gs_resource(instance, values, tries):
         else:
             values = {}
 
-        _subtype = gs_resource.store.resource_type
+        _subtype = "tabular" if instance.subtype == "tabular" else gs_resource.store.resource_type 
         if (
             getattr(gs_resource, "metadata", None)
             and gs_resource.metadata.get("time", False)
@@ -1776,7 +1779,7 @@ def style_update(request, url, workspace=None):
 
         # Invalidate GeoWebCache so it doesn't retain old style in tiles
         try:
-            if dataset_name:
+            if dataset_name and layer.subtype != "tabular":
                 _stylefilterparams_geowebcache_dataset(dataset_name)
                 _invalidate_geowebcache_dataset(dataset_name)
         except Exception:
@@ -2183,12 +2186,13 @@ def sync_instance_with_geoserver(instance_id, *args, **kwargs):
                     except Exception as e:
                         logger.warning(e)
 
-                    # Invalidate GeoWebCache for the updated resource
-                    try:
-                        _stylefilterparams_geowebcache_dataset(instance.alternate)
-                        _invalidate_geowebcache_dataset(instance.alternate)
-                    except Exception as e:
-                        logger.warning(e)
+                    if instance.subtype != "tabular":
+                        # Invalidate GeoWebCache for the updated resource
+                        try:
+                            _stylefilterparams_geowebcache_dataset(instance.alternate)
+                            _invalidate_geowebcache_dataset(instance.alternate)
+                        except Exception as e:
+                            logger.warning(e)
 
         # Refreshing dataset links
         logger.debug(f"... Creating Default Resource Links for Dataset {instance.title}")
@@ -2207,17 +2211,6 @@ def sync_instance_with_geoserver(instance_id, *args, **kwargs):
 
 def get_dataset_storetype(element):
     return LAYER_SUBTYPES.get(element, element)
-
-
-def write_uploaded_files_to_disk(target_dir, files):
-    result = []
-    for django_file in files:
-        path = os.path.join(target_dir, django_file.name)
-        with open(path, "wb") as fh:
-            for chunk in django_file.chunks():
-                fh.write(chunk)
-        result = path
-    return result
 
 
 def select_relevant_files(allowed_extensions, files):

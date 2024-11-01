@@ -31,8 +31,10 @@ from rest_framework.response import Response
 
 from geonode.base import register_event
 from geonode.base.api.filters import DynamicSearchFilter, ExtentFilter
+from geonode.base.api.mixins import AdvertisedListMixin
 from geonode.base.api.pagination import GeoNodeApiPagination
 from geonode.base.api.permissions import UserHasPerms
+from geonode.base.api.views import ApiPresetsInitializer
 from geonode.layers.api.serializers import DatasetSerializer
 from geonode.maps.api.exception import GeneralMapsException
 from geonode.maps.api.permissions import MapPermissionsFilter
@@ -47,7 +49,7 @@ from geonode.utils import resolve_object
 logger = logging.getLogger(__name__)
 
 
-class MapViewSet(DynamicModelViewSet):
+class MapViewSet(ApiPresetsInitializer, DynamicModelViewSet, AdvertisedListMixin):
     """
     API endpoint that allows maps to be viewed or edited.
     """
@@ -115,10 +117,14 @@ class MapViewSet(DynamicModelViewSet):
     def perform_create(self, serializer):
         # Thumbnail will be handled later
         post_creation_data = {"thumbnail": serializer.validated_data.pop("thumbnail_url", "")}
+        map_layers = serializer.validated_data.get("maplayers", [])
+        tabular_collection = all(layer.dataset and ("tabular" in layer.dataset.subtype) for layer in map_layers)
+        subtype = "tabular-collection" if len(map_layers) > 0 and tabular_collection else None
 
         instance = serializer.save(
             owner=self.request.user,
             resource_type="map",
+            subtype=subtype,
             uuid=str(uuid4()),
         )
 
@@ -147,7 +153,12 @@ class MapViewSet(DynamicModelViewSet):
             "dataset_names_before_changes": [lyr.alternate for lyr in instance.datasets],
         }
 
-        instance = serializer.save()
+        map_layers = serializer.validated_data.get("maplayers", [])
+        tabular_collection = all(("tabular" in layer.dataset.subtype) for layer in map_layers)
+
+        instance = serializer.save(
+            subtype="tabular-collection" if tabular_collection else None,
+        )
 
         # thumbnail, events and resouce routines
         self._post_change_routines(

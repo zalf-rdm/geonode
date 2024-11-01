@@ -25,7 +25,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils.timezone import now
 from django.utils.functional import classproperty
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from tinymce.models import HTMLField
 
@@ -328,7 +328,7 @@ class Dataset(ResourceBase):
 
     @property
     def download_url(self):
-        if self.subtype not in ["vector", "raster", "vector_time"]:
+        if self.subtype not in ["vector", "raster", "vector_time", "tabular"]:
             logger.info("Download URL is available only for datasets that have been harvested and copied locally")
             return None
         return build_absolute_uri(reverse("dataset_download", args=(self.alternate,)))
@@ -400,10 +400,9 @@ class Attribute(models.Model):
         null=True,
         unique=False,
     )
-    description = models.CharField(
+    description = models.TextField(
         _("attribute description"),
         help_text=_("description of attribute to be used in metadata"),
-        max_length=255,
         blank=True,
         null=True,
     )
