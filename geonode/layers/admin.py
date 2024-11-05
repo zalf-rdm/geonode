@@ -106,11 +106,12 @@ class DatasetAdmin(TabbedTranslationAdmin):
 class AttributeAdmin(admin.ModelAdmin):
     model = Attribute
     list_display_links = ("id",)
-    list_display = ("id", "dataset", "attribute", "description", "attribute_label", "attribute_type", "display_order")
-    list_filter = ("dataset", "attribute_type")
+    list_display = ("id", "dataset", "attribute", "description", "attribute_label", "attribute_type", "attribute_unit", "display_order")
+    list_filter = ("dataset", "attribute_type", "attribute_unit")
     search_fields = (
         "attribute",
         "attribute_label",
+        "attribute_unit"
     )
 
 
