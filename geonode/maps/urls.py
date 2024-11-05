@@ -31,7 +31,7 @@ urlpatterns = [
     # 'geonode.maps.views',
     re_path(r"^checkurl/?$", views.ajax_url_lookup),
     re_path(r"^(?P<mapid>[^/]+)/wmc$", views.map_wmc, name="map_wmc"),
-    re_path(r"^(?P<mapid>[^/]+)/metadata$", views.map_metadata, name="map_metadata"),
+    re_path(r"^(?P<mapid>[^/]+)/metadata$", views.map_metadata_advanced, name="map_metadata"),
     re_path(r"^(?P<mapid>[^/]+)/metadata_advanced$", views.map_metadata_advanced, name="map_metadata_advanced"),
     re_path(r"^(?P<mapid>[^/]+)/embed$", map_embed, name="map_embed"),
     re_path(r"^embed/$", views.map_embed, name="map_embed"),

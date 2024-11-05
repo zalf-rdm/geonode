@@ -31,7 +31,7 @@ urlpatterns = [
     # 'geonode.layers.views',
     re_path(r"^upload_metadata$", views.dataset_metadata_upload, name="dataset_metadata_upload"),
     re_path(r"^load_dataset_data$", views.load_dataset_data, name="load_dataset_data"),
-    re_path(r"^(?P<layername>[^/]*)/metadata$", views.dataset_metadata, name="dataset_metadata"),
+    re_path(r"^(?P<layername>[^/]*)/metadata$", views.dataset_metadata_advanced, name="dataset_metadata"),
     re_path(
         r"^(?P<layername>[^/]*)/metadata_advanced$", views.dataset_metadata_advanced, name="dataset_metadata_advanced"
     ),
