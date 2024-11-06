@@ -99,7 +99,6 @@ class LayerAttributeForm(forms.ModelForm):
         model = Attribute
         exclude = (
             "attribute_type",
-            "attribute_unit"
             "count",
             "min",
             "max",
