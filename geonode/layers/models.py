@@ -425,7 +425,7 @@ class Attribute(models.Model):
     )
     attribute_unit = models.CharField(
         _("attribute unit"),
-        help_text=_("the unit of the attribute (kg, °C, mm etc)"),
+        help_text=_("the used unit for the attribute"),
         max_length=50,
         blank=True,
         null=True,
