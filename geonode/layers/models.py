@@ -423,6 +423,15 @@ class Attribute(models.Model):
         default="xsd:string",
         unique=False,
     )
+    attribute_unit = models.CharField(
+        _("attribute unit"),
+        help_text=_("the used unit for the attribute"),
+        max_length=50,
+        blank=True,
+        null=True,
+        unique=False,
+    )
+
     visible = models.BooleanField(
         _("visible?"), help_text=_("specifies if the attribute should be displayed in identify results"), default=True
     )
