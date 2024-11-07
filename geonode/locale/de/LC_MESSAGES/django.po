@@ -3417,9 +3417,18 @@ msgstr "Titel der Attribute wie in GeoNode dargestellt"
 msgid "attribute type"
 msgstr "Attributtyp"
 
+#: geonode/layers/models.py:427
+msgid "attribute type"
+msgstr "Attributeinheit"
+
 #: geonode/layers/models.py:420
 msgid "the data type of the attribute (integer, string, geometry, etc)"
 msgstr "der Datenyp des Attributes (Integer, Zeichenkette, Geometrie , etc)"
+
+#: geonode/layers/models.py:428
+msgid ""the used unit for the attribute""
+msgstr "die verwendete Einheit des Attributes"
+
 
 #: geonode/layers/models.py:428
 msgid "visible?"
