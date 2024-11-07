@@ -89,7 +89,7 @@ geonode-pinax-notifications==6.0.0.2
 
 # GeoNode org maintained apps.
 #django-geonode-mapstore-client==4.3.1
--e git+https://github.com/GeoNodeUserGroup-DE/geonode-mapstore-client/@datapackage_tabular-data#egg=django-geonode-mapstore-client
+-e git+https://github.com/zalf-rdm/geonode-mapstore-client/@v4.3.1-z0.0.2#egg=django-geonode-mapstore-client
 
 geonode-importer==1.0.10
 django-avatar==8.0.0
@@ -103,7 +103,7 @@ gn-gsimporter==2.0.4
 gisdata==0.5.4
 
 # importer package
--e git+https://github.com/GeoNodeUserGroup-DE/contrib_datapackage.git@main#egg=importer_datapackage
+-e git+https://github.com/GeoNodeUserGroup-DE/contrib_datapackage.git@v0.1.0#egg=importer_datapackage
 frictionless>=5.17.0
 
 # datetimepicker widget
