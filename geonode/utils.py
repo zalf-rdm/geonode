@@ -1486,7 +1486,11 @@ def set_resource_default_links(instance, layer, prune=False, **kwargs):
         # Set download links for WMS, WCS or WFS and KML
         logger.debug(" -- Resource Links[Set download links for WMS, WCS or WFS and KML]...")
         instance_ows_url = f"{instance.ows_url}?" if instance.ows_url else f"{ogc_server_settings.public_url}ows?"
-        links = wms_links(instance_ows_url, instance.alternate, bbox, srid, height, width) if instance.subtype != "tabular" else []
+        links = (
+            wms_links(instance_ows_url, instance.alternate, bbox, srid, height, width)
+            if instance.subtype != "tabular"
+            else []
+        )
 
         for ext, name, mime, wms_url in links:
             try:
@@ -1650,8 +1654,10 @@ def set_resource_default_links(instance, layer, prune=False, **kwargs):
                 ogc_wms_url = instance.ows_url or urljoin(ogc_server_settings.public_url, "ows")
                 ogc_wms_name = f"OGC WMS: {instance.workspace} Service"
                 if (
-                    instance.subtype != "tabular" and
-                    Link.objects.filter(resource=instance.resourcebase_ptr, name=ogc_wms_name, url=ogc_wms_url).count()
+                    instance.subtype != "tabular"
+                    and Link.objects.filter(
+                        resource=instance.resourcebase_ptr, name=ogc_wms_name, url=ogc_wms_url
+                    ).count()
                     < 2
                 ):
                     Link.objects.get_or_create(

@@ -278,7 +278,6 @@ class HierarchicalKeywordManager(MP_NodeManager):
     def get_queryset(self):
         return HierarchicalKeywordQuerySet(self.model).order_by("path")
 
-
 class HierarchicalKeyword(TagBase, MP_Node):
     node_order_by = ["name"]
     objects = HierarchicalKeywordManager()

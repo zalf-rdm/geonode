@@ -77,8 +77,6 @@ class KeywordsDynamicRelationField(DynamicRelationField):
 
             django.db.models.QuerySet: return QuerySet object of the request or set data
         """
-
-        related_model = serializer.Meta.model
         try:
             if isinstance(data, str):
                 data = json.loads(data)
@@ -89,6 +87,7 @@ class KeywordsDynamicRelationField(DynamicRelationField):
             return super().to_internal_value_single(data, serializer)
 
         def __set_full_keyword__(d):
+
             if "name" not in d:
                 raise ValidationError('No "name" object found for given keyword ...')
             if "slug" not in d:
