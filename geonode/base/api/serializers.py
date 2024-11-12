@@ -161,7 +161,6 @@ class SimpleHierarchicalKeywordSerializer(DynamicModelSerializer):
     def to_representation(self, value):
         return {"name": value.name, "slug": value.slug}
 
-
 class _ThesaurusKeywordSerializerMixIn:
     def to_representation(self, value):
         _i18n = {}
@@ -415,39 +414,6 @@ class FavoriteField(DynamicComputedField):
             return Favorite.objects.filter(object_id=instance.pk, user=_user.user).exists()
         return False
 
-
-# removed with merge to 4.3.1
-# class UserSerializer(BaseDynamicModelSerializer):
-#     class Meta:
-#         ref_name = "UserProfile"
-#         model = get_user_model()
-#         name = "user"
-#         view_name = "users-list"
-#         fields = (
-#             "pk",
-#             "username",
-#             "first_name",
-#             "last_name",
-#             "avatar",
-#             "perms",
-#             "is_superuser",
-#             "is_staff",
-#             "email",
-#             "organization",
-#             "profile",
-#             "position",
-#             "voice",
-#             "fax",
-#             "delivery",
-#             "city",
-#             "area",
-#             "zipcode",
-#             "keywords",
-#             "country",
-#             "language",
-#             "timezone",
-#             "orcid_identifier",
-#         )
 
 class AutoLinkField(DynamicComputedField):
 
@@ -744,7 +710,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     sourcetype = serializers.CharField(read_only=True)
     embed_url = EmbedUrlField(required=False)
     thumbnail_url = ThumbnailUrlField(read_only=True)
-    keywords = ComplexDynamicRelationField(SimpleHierarchicalKeywordSerializer, many=True)
+    keywords = KeywordsDynamicRelationField(SimpleHierarchicalKeywordSerializer, many=True)
     tkeywords = ComplexDynamicRelationField(SimpleThesaurusKeywordSerializer, many=True)
     regions = DynamicRelationField(SimpleRegionSerializer, embed=True, many=True, read_only=True)
     category = ComplexDynamicRelationField(SimpleTopicCategorySerializer, embed=True)
@@ -884,9 +850,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             # metadata_uploaded, metadata_uploaded_preserve, metadata_xml,
             # users_geolimits, groups_geolimits
         )
-
-
-
+ 
     def to_internal_value(self, data):
         if isinstance(data, str):
             data = json.loads(data)
@@ -963,7 +927,6 @@ class HierarchicalKeywordSerializer(BaseResourceCountSerializer):
         count_type = "keywords"
         view_name = "keywords-list"
         fields = "__all__"
-
 
 class ThesaurusKeywordSerializer(_ThesaurusKeywordSerializerMixIn, BaseResourceCountSerializer):
     class Meta:
