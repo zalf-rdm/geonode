@@ -300,6 +300,11 @@ LOCAL_MEDIA_URL = os.getenv("LOCAL_MEDIA_URL", f"{FORCE_SCRIPT_NAME}/{MEDIAFILES
 # Example: "/home/media/media.lawrence.com/apps/"
 STATIC_ROOT = os.getenv("STATIC_ROOT", os.path.join(PROJECT_ROOT, "static_root"))
 
+# Absolute path to the directory that hold assets files
+# This dir should not be made publicly accessible by nginx, since its content may be private
+# Using a sibling of MEDIA_ROOT as default
+ASSETS_ROOT = os.getenv("ASSETS_ROOT", os.path.join(os.path.dirname(MEDIA_ROOT.rstrip("/")), "assets_data"))
+
 # Cache Bustin Settings: enable WhiteNoise compression and caching support
 # ref: http://whitenoise.evans.io/en/stable/django.html#add-compression-and-caching-support
 CACHE_BUSTING_STATIC_ENABLED = ast.literal_eval(os.environ.get("CACHE_BUSTING_STATIC_ENABLED", "False"))
@@ -701,7 +706,7 @@ LOGGING = {
     },
     "loggers": {
         "django": {
-            "level": "ERROR",
+            "level": "WARN",
         },
         "geonode": {
             "level": "WARN",
@@ -1365,7 +1370,7 @@ except ValueError:
     )
 
 # Number of results per page listed in the GeoNode search pages
-CLIENT_RESULTS_LIMIT = int(os.getenv("CLIENT_RESULTS_LIMIT", "5"))
+CLIENT_RESULTS_LIMIT = int(os.getenv("CLIENT_RESULTS_LIMIT", "16"))
 
 # LOCKDOWN API endpoints to prevent unauthenticated access.
 # If set to True, search won't deliver results and filtering ResourceBase-objects is not possible for anonymous users
@@ -2329,21 +2334,7 @@ DATABASE_ROUTERS = ["importer.db_router.DatastoreRouter"]
 
 SIZE_RESTRICTED_FILE_UPLOAD_ELEGIBLE_URL_NAMES += ("importer_upload",)
 
-IMPORTER_HANDLERS = ast.literal_eval(
-    os.getenv(
-        "IMPORTER_HANDLERS",
-        "[\
-    'importer.handlers.gpkg.handler.GPKGFileHandler',\
-    'importer.handlers.geojson.handler.GeoJsonFileHandler',\
-    'importer.handlers.shapefile.handler.ShapeFileHandler',\
-    'importer.handlers.kml.handler.KMLFileHandler',\
-    'importer.handlers.csv.handler.CSVFileHandler',\
-    'importer.handlers.geotiff.handler.GeoTiffFileHandler',\
-    'importer.handlers.xml.handler.XMLFileHandler',\
-    'importer.handlers.sld.handler.SLDFileHandler',\
-]",
-    )
-)
+IMPORTER_HANDLERS = ast.literal_eval(os.getenv("IMPORTER_HANDLERS", "[]"))
 
 INSTALLED_APPS += ("geonode.facets",)
 GEONODE_APPS += ("geonode.facets",)
@@ -2366,3 +2357,10 @@ DATASET_DOWNLOAD_HANDLERS = ast.literal_eval(os.getenv("DATASET_DOWNLOAD_HANDLER
 AUTO_ASSIGN_REGISTERED_MEMBERS_TO_CONTRIBUTORS = ast.literal_eval(
     os.getenv("AUTO_ASSIGN_REGISTERED_MEMBERS_TO_CONTRIBUTORS", "True")
 )
+
+DEFAULT_ASSET_HANDLER = "geonode.assets.local.LocalAssetHandler"
+ASSET_HANDLERS = [
+    DEFAULT_ASSET_HANDLER,
+]
+INSTALLED_APPS += ("geonode.assets",)
+GEONODE_APPS += ("geonode.assets",)

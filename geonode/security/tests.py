@@ -21,9 +21,11 @@ import json
 import base64
 import logging
 import uuid
+import os
 import requests
 import importlib
 import mock
+import gisdata
 
 from requests.auth import HTTPBasicAuth
 from tastypie.test import ResourceTestCaseMixin
@@ -40,7 +42,9 @@ from django.contrib.auth.models import AnonymousUser
 from guardian.shortcuts import assign_perm, get_anonymous_user
 
 from geonode import geoserver
-from geonode.geoserver.helpers import geofence, gf_utils
+from geonode.geoserver.helpers import geofence, gf_utils, gs_catalog
+from geonode.geoserver.manager import GeoServerResourceManager
+from geonode.layers.utils import get_files
 from geonode.maps.models import Map
 from geonode.layers.models import Dataset
 from geonode.documents.models import Document
@@ -742,8 +746,19 @@ class SecurityTests(ResourceTestCaseMixin, GeoNodeBaseTestSupport):
     @on_ogc_backend(geoserver.BACKEND_PACKAGE)
     def test_dataset_permissions(self):
         # Test permissions on a layer
+        files = os.path.join(gisdata.GOOD_DATA, "vector/san_andres_y_providencia_poi.shp")
+        files_as_dict, self.tmpdir = get_files(files)
+
         bobby = get_user_model().objects.get(username="bobby")
-        layer = create_single_dataset("san_andres_y_providencia_poi")
+        layer = create_single_dataset(
+            "san_andres_y_providencia_poi",
+            {
+                "owner": self.user,
+                "title": "Testing Dataset",
+                "data_title": "relief_san_andres",
+                "data_type": "tif",
+            },
+        )
         layer = resource_manager.update(
             layer.uuid, instance=layer, notify=False, vals=dict(owner=bobby, workspace=settings.DEFAULT_WORKSPACE)
         )
@@ -774,6 +789,15 @@ class SecurityTests(ResourceTestCaseMixin, GeoNodeBaseTestSupport):
         perm_spec = {"users": {"AnonymousUser": []}, "groups": []}
         layer.set_permissions(perm_spec)
 
+        gs_layer = gs_catalog.get_layer("3Asan_andres_y_providencia_poi")
+        if gs_layer is None:
+            GeoServerResourceManager()._execute_resource_import(
+                layer,
+                list(files_as_dict.values()),
+                get_user_model().objects.get(username="admin"),
+                action_type="create",
+            )
+
         url = (
             f"{settings.GEOSERVER_LOCATION}ows?"
             "LAYERS=geonode%3Asan_andres_y_providencia_poi&STYLES="
@@ -786,7 +810,8 @@ class SecurityTests(ResourceTestCaseMixin, GeoNodeBaseTestSupport):
 
         # test view_resourcebase permission on anonymous user
         response = requests.get(url)
-        self.assertTrue(response.status_code, 404)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(b"Could not find layer" in response.content)
         self.assertEqual(response.headers.get("Content-Type"), "application/vnd.ogc.se_xml;charset=UTF-8")
 
         # test WMS with authenticated user that has access to the Dataset
@@ -796,7 +821,7 @@ class SecurityTests(ResourceTestCaseMixin, GeoNodeBaseTestSupport):
                 username=settings.OGC_SERVER["default"]["USER"], password=settings.OGC_SERVER["default"]["PASSWORD"]
             ),
         )
-        self.assertTrue(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Type"), "image/png")
 
         # test WMS with authenticated user that has no view_resourcebase:
@@ -1829,8 +1854,11 @@ class SetPermissionsTestCase(GeoNodeBaseTestSupport):
                         "change_resourcebase_permissions",
                         "delete_resourcebase",
                         "download_resourcebase",
-                        "publish_resourcebase",
                         "view_resourcebase",
+                        "approve_resourcebase",
+                        "publish_resourcebase",
+                        "change_dataset_style",
+                        "change_dataset_data",
                     ],
                     self.group_manager: [],
                     self.group_member: [],
@@ -1853,16 +1881,22 @@ class SetPermissionsTestCase(GeoNodeBaseTestSupport):
                         "change_resourcebase_permissions",
                         "delete_resourcebase",
                         "download_resourcebase",
-                        "publish_resourcebase",
                         "view_resourcebase",
+                        "approve_resourcebase",
+                        "publish_resourcebase",
+                        "change_dataset_style",
+                        "change_dataset_data",
                     ],
-                    self.group_manager: ["view_resourcebase"],
+                    self.group_manager: ["view_resourcebase", "publish_resourcebase", "approve_resourcebase"],
                     self.group_member: ["view_resourcebase"],
                     self.not_group_member: [
                         "change_resourcebase",
                         "view_resourcebase",
                         "download_resourcebase",
                         "change_resourcebase_metadata",
+                        "approve_resourcebase",
+                        "change_dataset_style",
+                        "change_dataset_data",
                     ],
                     self.anonymous_user: ["view_resourcebase"],
                 },
@@ -1897,6 +1931,9 @@ class SetPermissionsTestCase(GeoNodeBaseTestSupport):
                         "change_resourcebase",
                         "change_resourcebase_metadata",
                         "change_resourcebase_permissions",
+                        "approve_resourcebase",
+                        "change_dataset_style",
+                        "change_dataset_data",
                     ],
                     self.group_manager: [
                         "change_resourcebase",
@@ -1905,7 +1942,10 @@ class SetPermissionsTestCase(GeoNodeBaseTestSupport):
                         "download_resourcebase",
                         "change_resourcebase_permissions",
                         "view_resourcebase",
+                        "approve_resourcebase",
                         "publish_resourcebase",
+                        "change_dataset_style",
+                        "change_dataset_data",
                     ],
                     self.group_member: ["download_resourcebase", "view_resourcebase"],
                     self.not_group_member: [],
@@ -1922,6 +1962,9 @@ class SetPermissionsTestCase(GeoNodeBaseTestSupport):
                         "change_resourcebase",
                         "change_resourcebase_metadata",
                         "change_resourcebase_permissions",
+                        "approve_resourcebase",
+                        "change_dataset_style",
+                        "change_dataset_data",
                     ],
                     self.group_manager: [
                         "change_resourcebase",
@@ -1930,7 +1973,10 @@ class SetPermissionsTestCase(GeoNodeBaseTestSupport):
                         "download_resourcebase",
                         "view_resourcebase",
                         "change_resourcebase_permissions",
+                        "approve_resourcebase",
                         "publish_resourcebase",
+                        "change_dataset_style",
+                        "change_dataset_data",
                     ],
                     self.group_member: ["download_resourcebase", "view_resourcebase"],
                     self.not_group_member: ["view_resourcebase"],
@@ -1969,10 +2015,13 @@ class SetPermissionsTestCase(GeoNodeBaseTestSupport):
                         "change_resourcebase",
                         "change_resourcebase_metadata",
                         "change_resourcebase_permissions",
-                        "publish_resourcebase",
                         "delete_resourcebase",
                         "download_resourcebase",
                         "view_resourcebase",
+                        "approve_resourcebase",
+                        "publish_resourcebase",
+                        "change_dataset_style",
+                        "change_dataset_data",
                     ],
                     self.group_member: ["download_resourcebase", "view_resourcebase"],
                     self.not_group_member: [],
@@ -1990,10 +2039,13 @@ class SetPermissionsTestCase(GeoNodeBaseTestSupport):
                         "change_resourcebase",
                         "change_resourcebase_metadata",
                         "change_resourcebase_permissions",
-                        "publish_resourcebase",
                         "delete_resourcebase",
                         "download_resourcebase",
                         "view_resourcebase",
+                        "approve_resourcebase",
+                        "publish_resourcebase",
+                        "change_dataset_style",
+                        "change_dataset_data",
                     ],
                     self.group_member: ["download_resourcebase", "view_resourcebase"],
                     self.not_group_member: ["view_resourcebase"],
@@ -2040,6 +2092,10 @@ class SetPermissionsTestCase(GeoNodeBaseTestSupport):
                         "download_resourcebase",
                         "publish_resourcebase",
                         "view_resourcebase",
+                        "approve_resourcebase",
+                        "publish_resourcebase",
+                        "change_dataset_style",
+                        "change_dataset_data",
                     ],
                     self.group_manager: [],
                     self.group_member: [],
@@ -2061,8 +2117,11 @@ class SetPermissionsTestCase(GeoNodeBaseTestSupport):
                         "download_resourcebase",
                         "publish_resourcebase",
                         "view_resourcebase",
+                        "approve_resourcebase",
+                        "change_dataset_style",
+                        "change_dataset_data",
                     ],
-                    self.group_manager: ["view_resourcebase"],
+                    self.group_manager: ["view_resourcebase", "approve_resourcebase", "publish_resourcebase"],
                     self.group_member: ["view_resourcebase"],
                     self.not_group_member: ["view_resourcebase", "change_resourcebase"],
                     self.anonymous_user: ["view_resourcebase"],
@@ -2102,6 +2161,9 @@ class SetPermissionsTestCase(GeoNodeBaseTestSupport):
                 "view_resourcebase",
                 "publish_resourcebase",
                 "change_resourcebase_permissions",
+                "approve_resourcebase",
+                "change_dataset_style",
+                "change_dataset_data",
             ],
             self.group_member: [
                 "change_resourcebase",
@@ -2111,6 +2173,9 @@ class SetPermissionsTestCase(GeoNodeBaseTestSupport):
                 "view_resourcebase",
                 "publish_resourcebase",
                 "change_resourcebase_permissions",
+                "approve_resourcebase",
+                "change_dataset_style",
+                "change_dataset_data",
             ],
         }
         try:
@@ -2179,6 +2244,9 @@ class SetPermissionsTestCase(GeoNodeBaseTestSupport):
                 "change_resourcebase",
                 "change_resourcebase_metadata",
                 "change_resourcebase_permissions",
+                "approve_resourcebase",
+                "change_dataset_style",
+                "change_dataset_data",
             ],
             self.group_manager: ["download_resourcebase", "view_resourcebase"],
             self.group_member: ["download_resourcebase", "view_resourcebase"],
@@ -2209,6 +2277,9 @@ class SetPermissionsTestCase(GeoNodeBaseTestSupport):
                 "change_resourcebase",
                 "change_resourcebase_metadata",
                 "change_resourcebase_permissions",
+                "approve_resourcebase",
+                "change_dataset_style",
+                "change_dataset_data",
             ],
             self.group_manager: [
                 "change_resourcebase",
@@ -2218,6 +2289,10 @@ class SetPermissionsTestCase(GeoNodeBaseTestSupport):
                 "view_resourcebase",
                 "publish_resourcebase",
                 "change_resourcebase_permissions",
+                "approve_resourcebase",
+                "publish_resourcebase",
+                "change_dataset_style",
+                "change_dataset_data",
             ],
             self.group_member: [
                 "change_resourcebase",
@@ -2227,6 +2302,9 @@ class SetPermissionsTestCase(GeoNodeBaseTestSupport):
                 "view_resourcebase",
                 "publish_resourcebase",
                 "change_resourcebase_permissions",
+                "approve_resourcebase",
+                "change_dataset_style",
+                "change_dataset_data",
             ],
         }
         for authorized_subject, expected_perms in expected.items():
@@ -2554,3 +2632,42 @@ class TestUserHasPerms(GeoNodeBaseTestSupport):
         perm_spec = resource.get_all_level_info()
         anonymous_user_perm = perm_spec["users"].get(get_anonymous_user())
         self.assertEqual(anonymous_user_perm, None, "Anynmous user wasn't removed")
+
+
+class TestUserCanDo(GeoNodeBaseTestSupport):
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.dataset = create_single_dataset(name="test_user_can_do")
+        cls.admin = get_user_model().objects.filter(is_superuser=True).first()
+        cls.non_admin = get_user_model().objects.filter(is_superuser=False).exclude(username="AnonymousUser").first()
+
+    def test_user_can_approve(self):
+        try:
+            self.assertTrue(self.admin.can_approve(self.dataset))
+            self.assertFalse(self.non_admin.can_approve(self.dataset))
+            # if non admin is owner should be able to approve
+            self.dataset.owner = self.non_admin
+            self.dataset.save()
+            self.assertTrue(self.non_admin.can_approve(self.dataset))
+        finally:
+            # setting back the owner to admin
+            self.dataset.owner = self.admin
+            self.dataset.save()
+
+    def test_user_can_feature(self):
+        self.assertTrue(self.admin.can_feature(self.dataset))
+        self.assertFalse(self.non_admin.can_feature(self.dataset))
+
+    def test_user_can_publish(self):
+        try:
+            self.assertTrue(self.admin.can_publish(self.dataset))
+            self.assertFalse(self.non_admin.can_publish(self.dataset))
+            # if non admin is owner should be able to publish
+            self.dataset.owner = self.non_admin
+            self.dataset.save()
+            self.assertTrue(self.non_admin.can_publish(self.dataset))
+        finally:
+            # setting back the owner to admin
+            self.dataset.owner = self.admin
+            self.dataset.save()

@@ -16,6 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 #########################################################################
+import io
 import os
 
 from uuid import uuid4
@@ -36,6 +37,7 @@ from geonode.maps.models import Map, MapLayer
 from geonode.resource import settings as rm_settings
 from geonode.layers.populate_datasets_data import create_dataset_data
 from geonode.base.populate_test_data import create_single_doc, create_single_map, create_single_dataset
+from geonode.thumbs.utils import ThumbnailAlgorithms
 
 from gisdata import GOOD_DATA
 
@@ -148,7 +150,15 @@ class TestResourceManager(GeoNodeBaseTestSupport):
 
         # copy with documents
         res = self.rm.ingest(
-            dt_files, resource_type=Document, defaults={"title": "relief_san_andres", "owner": self.user}
+            dt_files,
+            resource_type=Document,
+            defaults={
+                "title": "relief_san_andres",
+                "owner": self.user,
+                "extension": "tif",
+                "data_title": "relief_san_andres",
+                "data_type": "tif",
+            },
         )
         self.assertTrue(isinstance(res, Document))
         _copy_assert_resource(res, "Testing Document 2")
@@ -157,7 +167,12 @@ class TestResourceManager(GeoNodeBaseTestSupport):
         res = self.rm.ingest(
             dt_files,
             resource_type=Dataset,
-            defaults={"owner": self.user, "title": "Testing Dataset", "files": dt_files},
+            defaults={
+                "owner": self.user,
+                "title": "Testing Dataset",
+                "data_title": "relief_san_andres",
+                "data_type": "tif",
+            },
         )
         self.assertTrue(isinstance(res, Dataset))
         _copy_assert_resource(res, "Testing Dataset 2")
@@ -301,3 +316,20 @@ class TestResourceManager(GeoNodeBaseTestSupport):
         self.assertFalse(self.rm.set_thumbnail("invalid_uuid"))
         self.assertTrue(self.rm.set_thumbnail(dt.uuid, instance=dt))
         self.assertTrue(self.rm.set_thumbnail(doc.uuid, instance=doc))
+
+    def test_set_thumbnail_algo(self):
+        thumb_path = os.path.join(os.path.dirname(__file__), "../tests/data/thumb_sample.png")
+        image = io.open(thumb_path, "rb").read()
+        doc = create_single_doc("test_thumb_doc")
+
+        self.assertTrue(self.rm.set_thumbnail(doc.uuid, instance=doc), "Error in using default image algo")
+        self.assertTrue(
+            self.rm.set_thumbnail(doc.uuid, instance=doc, thumbnail=image, thumbnail_algorithm=ThumbnailAlgorithms.fit),
+            "Error in using FIT image algo",
+        )
+        self.assertTrue(
+            self.rm.set_thumbnail(
+                doc.uuid, instance=doc, thumbnail=image, thumbnail_algorithm=ThumbnailAlgorithms.scale
+            ),
+            "Error in using SCALE image algo",
+        )
