@@ -18,7 +18,7 @@
 #########################################################################
 import json
 import logging
-
+import math
 import itertools
 
 from deprecated import deprecated
@@ -134,30 +134,31 @@ class Map(ResourceBase):
         Compute bbox for maps by looping on all maplayers and getting the max
         bbox of all the datasets
         """
-        bbox = bbox_utils.epsg_3857_area_of_use(target_crs="EPSG:3857")
+        epsg_bbox = bbox_utils.epsg_3857_area_of_use(target_crs="EPSG:3857")
+
+        bbox = [math.inf, -math.inf, math.inf, -math.inf]
         for layer in self.maplayers.filter(visibility=True).order_by("order").iterator():
             dataset = layer.dataset
             if dataset is not None:
                 if dataset.ll_bbox_polygon:
                     dataset_bbox = bbox_utils.clean_bbox(dataset.ll_bbox, target_crs)
-                elif (
-                    dataset.bbox[-1].upper() != "EPSG:3857"
-                    and target_crs.upper() == "EPSG:3857"
-                    and bbox_utils.exceeds_epsg3857_area_of_use(dataset.bbox)
-                ):
+                elif dataset.bbox:
                     # handle exceeding the area of use of the default thumb's CRS
                     dataset_bbox = bbox_utils.transform_bbox(
                         bbox_utils.crop_to_3857_area_of_use(dataset.bbox), target_crs
                     )
-                else:
-                    dataset_bbox = bbox_utils.transform_bbox(dataset.bbox, target_crs)
 
-                bbox = [
-                    max(bbox[0], dataset_bbox[0]),
-                    min(bbox[1], dataset_bbox[1]),
-                    max(bbox[2], dataset_bbox[2]),
-                    min(bbox[3], dataset_bbox[3]),
-                ]
+                if dataset_bbox:
+                    bbox = [
+                        min(bbox[0], dataset_bbox[0]),
+                        max(bbox[1], dataset_bbox[1]),
+                        min(bbox[2], dataset_bbox[2]),
+                        max(bbox[3], dataset_bbox[3]),
+                    ]
+
+        # if the starting bbox is not mutated it means no bbox has been computed from layers
+        if bbox[0] == math.inf:
+            bbox = epsg_bbox
 
         self.set_bbox_polygon([bbox[0], bbox[2], bbox[1], bbox[3]], target_crs)
         return bbox
