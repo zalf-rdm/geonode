@@ -921,32 +921,32 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
 
     # internal fields
     uuid = models.CharField(max_length=36, unique=True, default=uuid.uuid4)
-    title = models.CharField(_("Title"), max_length=255, help_text=title_help_text)
+    title = models.CharField(_("Title"), max_length=512, help_text=title_help_text)
     title_translated = models.CharField(
-        _("Title Translated"), max_length=255, blank=True, help_text=title_translated_help_text
+        _("Title Translated"), max_length=512, blank=True, help_text=title_translated_help_text
     )
 
-    abstract = models.CharField(_("Abstract"), max_length=2000, help_text=abstract_help_text)
+    abstract = models.CharField(_("Abstract"), max_length=6000, help_text=abstract_help_text)
     abstract_translated = models.TextField(
         _("Abstract Translated"), max_length=2000, help_text=abstract_translated_help_text
     )
 
     # description type elements
-    subtitle = models.TextField(_("Subtitle"), max_length=400, blank=True, help_text=subtitle_help_text)
+    subtitle = models.TextField(_("Subtitle"), max_length=1024, blank=True, help_text=subtitle_help_text)
     method_description = models.TextField(
-        _("Method Description"), max_length=2000, blank=True, help_text=method_description_help_text
+        _("Method Description"), max_length=6000, blank=True, help_text=method_description_help_text
     )
     series_information = models.TextField(
-        _("Series Information"), max_length=2000, blank=True, help_text=series_information_help_text
+        _("Series Information"), max_length=6000, blank=True, help_text=series_information_help_text
     )
     table_of_content = models.TextField(
-        _("Table of Content"), max_length=2000, blank=True, help_text=table_of_content_help_text
+        _("Table of Content"), max_length=6000, blank=True, help_text=table_of_content_help_text
     )
     technical_info = models.TextField(
-        _("Technical Info"), max_length=2000, blank=True, help_text=technical_info_help_text
+        _("Technical Info"), max_length=6000, blank=True, help_text=technical_info_help_text
     )
     other_description = models.TextField(
-        _("Other Description"), max_length=2000, blank=True, help_text=other_description_help_text
+        _("Other Description"), max_length=6000, blank=True, help_text=other_description_help_text
     )
 
     conformity_results = models.CharField(
@@ -957,7 +957,7 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         help_text=conformity_results_help_text,
     )
     conformity_explanation = models.CharField(
-        _("Conformity Explanation"), max_length=2000, blank=True, help_text=conformity_explanation_help_text
+        _("Conformity Explanation"), max_length=4000, blank=True, help_text=conformity_explanation_help_text
     )
     parent_identifier = models.ForeignKey(
         "self",
@@ -983,7 +983,7 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     date_valid = models.DateField(_("Date Valid"), blank=True, null=True, help_text=date_valid_help_text)
     date_issued = models.DateField(_("Date Issued"), blank=True, null=True, help_text=date_issued_help_text)
 
-    purpose = models.TextField(_("Purpose"), max_length=500, null=True, blank=True, help_text=purpose_help_text)
+    purpose = models.TextField(_("Purpose"), max_length=1024, null=True, blank=True, help_text=purpose_help_text)
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL, related_name="owned_resource", verbose_name=_("Owner"), on_delete=models.PROTECT
     )
