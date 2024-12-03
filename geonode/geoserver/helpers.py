@@ -1131,7 +1131,7 @@ def clean_styles(layer, gs_catalog: Catalog):
             if gs_dataset.default_style is None:
                 # ignore dataset without style
                 pass
-            
+
             logger.debug(f'clean_styles: Retrieving style "{gs_dataset.default_style.name}" for cleanup')
             style = gs_catalog.get_style(name=gs_dataset.default_style.name, workspace=None, recursive=True)
             if style:
@@ -1571,7 +1571,7 @@ def fetch_gs_resource(instance, values, tries):
         else:
             values = {}
 
-        _subtype = "tabular" if instance.subtype == "tabular" else gs_resource.store.resource_type 
+        _subtype = "tabular" if instance.subtype == "tabular" else gs_resource.store.resource_type
         if (
             getattr(gs_resource, "metadata", None)
             and gs_resource.metadata.get("time", False)

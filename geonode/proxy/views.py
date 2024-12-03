@@ -79,7 +79,6 @@ def proxy(
     access_token=None,
     **kwargs,
 ):
-
     if not timeout:
         timeout = getattr(ogc_server_settings, "TIMEOUT", TIMEOUT)
 
@@ -151,7 +150,6 @@ def proxy(
 
     # Avoid translating local geoserver calls into external ones
     if check_ogc_backend(geoserver.BACKEND_PACKAGE):
-
         _url = _url.replace(f"{settings.SITEURL}geoserver", ogc_server_settings.LOCATION.rstrip("/"))
         _data = _data.replace(f"{settings.SITEURL}geoserver", ogc_server_settings.LOCATION.rstrip("/"))
 

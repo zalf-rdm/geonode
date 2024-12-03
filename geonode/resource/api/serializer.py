@@ -23,7 +23,6 @@ from geonode.resource.models import ExecutionRequest
 
 
 class ExecutionRequestSerializer(DynamicModelSerializer):
-
     link = AutoLinkField(read_only=True)
 
     class Meta:

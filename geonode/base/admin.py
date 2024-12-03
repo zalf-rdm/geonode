@@ -42,9 +42,9 @@ from geonode.base.models import (
     Link,
     RelationType,
     RelatedIdentifierType,
-    FundingReference,
+    Organization,
     RelatedIdentifier,
-    Funder,
+    Funding,
     RelatedProject,
     License,
     HierarchicalKeyword,
@@ -224,22 +224,22 @@ class RelatedIdentifierTypeAdmin(admin.ModelAdmin):
     form = forms.modelform_factory(RelatedIdentifierType, fields="__all__")
 
 
-class FundingReferenceAdmin(admin.ModelAdmin):
-    model = FundingReference
-    list_display = ("name_of_the_institution", "ror", "abbreviation", "address_information", "contact_information")
+class OrganizationAdmin(admin.ModelAdmin):
+    model = Organization
+    list_display = ("id", "organization", "ror", "abbreviation")
     list_display_links = []
-    list_filter = ("name_of_the_institution", "ror", "abbreviation")
+    list_filter = ("organization", "ror", "abbreviation")
 
-    form = forms.modelform_factory(FundingReference, fields="__all__")
+    form = forms.modelform_factory(Organization, fields="__all__")
 
 
-class FunderAdmin(admin.ModelAdmin):
-    model = Funder
-    list_display = ("funding_reference", "award_number", "award_uri", "award_title")
-    list_display_links = ("funding_reference",)
-    list_filter = ("funding_reference", "award_number", "award_uri", "award_title")
+class FundingAdmin(admin.ModelAdmin):
+    model = Funding
+    list_display = ("organization", "award_number", "award_uri", "award_title")
+    list_display_links = ("organization",)
+    list_filter = ("organization", "award_number", "award_uri", "award_title")
 
-    form = forms.modelform_factory(Funder, fields="__all__")
+    form = forms.modelform_factory(Funding, fields="__all__")
 
 
 class RelatedProjectAdmin(admin.ModelAdmin):
@@ -389,8 +389,8 @@ admin.site.register(License, LicenseAdmin)
 admin.site.register(RelationType, RelationTypeAdmin)
 admin.site.register(RelatedIdentifierType, RelatedIdentifierTypeAdmin)
 admin.site.register(RelatedIdentifier, RelatedIdentifierAdmin)
-admin.site.register(FundingReference, FundingReferenceAdmin)
-admin.site.register(Funder, FunderAdmin)
+admin.site.register(Organization, OrganizationAdmin)
+admin.site.register(Funding, FundingAdmin)
 admin.site.register(RelatedProject, RelatedProjectAdmin)
 admin.site.register(HierarchicalKeyword, HierarchicalKeywordAdmin)
 admin.site.register(MenuPlaceholder, MenuPlaceholderAdmin)
