@@ -516,7 +516,6 @@ class PeopleAndProfileTests(GeoNodeBaseTestSupport):
         self.assertEqual(response.status_code, 403)
 
     def test_users_api_patch_self(self):
-
         bobby = get_user_model().objects.get(username="bobby")
         self.assertTrue(self.client.login(username="bobby", password="bob"))
         self.assertTrue(bobby.is_authenticated)
@@ -536,7 +535,6 @@ class PeopleAndProfileTests(GeoNodeBaseTestSupport):
         self.assertEqual(response_json["user"]["first_name"], "Robert")
 
     def test_users_api_patch_self_as_superuser(self):
-
         bobby = get_user_model().objects.get(username="bobby")
         self.assertTrue(self.client.login(username="bobby", password="bob"))
         self.assertTrue(bobby.is_authenticated)
@@ -568,7 +566,6 @@ class PeopleAndProfileTests(GeoNodeBaseTestSupport):
         self.assertFalse(bobby.is_staff)
 
     def test_users_api_patch_others_from_non_admin(self):
-
         bobby = get_user_model().objects.get(username="bobby")
         profile = get_user_model().objects.get(username="user1")
 
@@ -588,7 +585,6 @@ class PeopleAndProfileTests(GeoNodeBaseTestSupport):
         self.assertEqual(response.status_code, 403)
 
     def test_users_api_patch_others_from_admin(self):
-
         bobby = get_user_model().objects.get(username="bobby")
         admin = get_user_model().objects.get(username="admin")
 
@@ -769,7 +765,6 @@ class PeopleAndProfileTests(GeoNodeBaseTestSupport):
         self.assertTrue("A user with that username already exists." in response.json()["errors"])
 
     def test_users_api_patch_username(self):
-
         bobby = get_user_model().objects.get(username="bobby")
         admin = get_user_model().objects.get(username="admin")
 
@@ -822,7 +817,6 @@ class PeopleAndProfileTests(GeoNodeBaseTestSupport):
     @override_settings(USER_DELETION_RULES=[])
     @patch("geonode.people.utils.user_deletion_modules", [])
     def test_delete_without_validators(self):
-
         norman = get_user_model().objects.get(username="norman")
         admin = get_user_model().objects.get(username="admin")
 
