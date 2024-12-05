@@ -278,6 +278,7 @@ class HierarchicalKeywordManager(MP_NodeManager):
     def get_queryset(self):
         return HierarchicalKeywordQuerySet(self.model).order_by("path")
 
+
 class HierarchicalKeyword(TagBase, MP_Node):
     node_order_by = ["name"]
     objects = HierarchicalKeywordManager()
@@ -697,26 +698,22 @@ class RelatedIdentifier(models.Model):
         return f"Related Identifier: {self.related_identifier}({self.relation_type}: {self.related_identifier_type})"
 
 
-class FundingReference(models.Model):
-    """Funding Reference Identifiers"""
+class Organization(models.Model):
+    """Organization model, used to store organization information. References in people.organisations and fundings."""
 
-    name_of_the_institution_help_text = _("Name of the institution provider. (e.g. European Commission)")
-    ror_help_text = _(
-        "Uniquely identifies a funding entity, according to various types. (e.g. http://doi.org/10.13039/501100000780)"
-    )
-    abbreviation_help_text = _("abbreviation of the Institutions names. (e.g. BMBF)")
-    address_information_help_text = _("Address of the Institutions")
-    contact_information_help_text = _("Contact Information of the Institutions")
+    organization_name_help_text = _("Name of the Organization. (e.g. European Commission, Zurich University, ...)")
+    ror_help_text = _("Research Organization Registry (ROR) identifier of this organisation.")
+    abbreviation_help_text = _("abbreviation of the Organisation (e.g. BMBF). Should come from ROR field other names.")
 
-    name_of_the_institution = models.CharField(
+    organization = models.CharField(
         _("Name of the Institution"),
         blank=True,
         null=True,
-        max_length=255,
-        help_text=name_of_the_institution_help_text,
+        max_length=512,
+        help_text=organization_name_help_text,
     )
     ror = models.CharField(
-        _("RoR"),
+        _("Research Organization Registry"),
         blank=True,
         null=True,
         max_length=255,
@@ -729,34 +726,29 @@ class FundingReference(models.Model):
         max_length=255,
         help_text=abbreviation_help_text,
     )
-    address_information = models.CharField(
-        _("Address Information"), blank=True, null=True, max_length=255, help_text=address_information_help_text
-    )
-    contact_information = models.CharField(
-        _("Contact Information"), blank=True, null=True, max_length=255, help_text=contact_information_help_text
-    )
 
     def __str__(self):
-        return f"{self.name_of_the_institution}"
+        return f"{self.organization}"
 
 
-class Funder(models.Model):
-    funders_help_text = _("List of funders, funded dataset creators")
-    award_number_help_text = _(" ")
+class Funding(models.Model):
+    organization_help_text = _(
+        "Organisation funding the project. References Organisation (e.g. European Commission, Zurich University, ...)"
+    )
+    award_number_help_text = _("Award number or identifier for the funding")
     award_uri_help_text = _(
         "The URI leading to a page provided by the funder for more information about the award (grant). (e.g. http://cordis.europa.eu/project/rcn/100180_en.html)"
     )
     award_title_help_text = _(
         "The human readable title of the award (grant). (e.g. MOTivational strength of ecosystem services)"
     )
-
-    funding_reference = models.ForeignKey(FundingReference, null=True, blank=True, on_delete=models.CASCADE)
+    organization = models.ForeignKey(Organization, null=True, blank=True, on_delete=models.PROTECT)
     award_number = models.CharField(
         _("Award Number"),
         blank=True,
         null=True,
         max_length=255,
-        help_text=funders_help_text,
+        help_text=award_number_help_text,
     )
     award_uri = models.CharField(
         _("Award URI"),
@@ -875,7 +867,7 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     )
     other_description_help_text = _("Other description information that does not fit into an existing category")
     related_identifer_help_text = _("Identifiers of related resources. These must be globally unique identifiers.")
-    funders_help_text = _("List of funders, funded dataset creators")
+    fundings_help_text = _("List of funders, funded dataset creators")
     related_projects_help_text = _("Name of the hierarchy levels for which the metadata is provided. (e.g. SIGNAL)")
     conformity_results_help_text = _(
         "This is the degree of conformity of the dataset to the implementing rules the BonaRes Schema."
@@ -1227,8 +1219,8 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         help_text=related_identifer_help_text,
         # related_name="related_identifier",
     )
-    funders = models.ManyToManyField(
-        Funder, verbose_name=_("Funder names"), null=True, blank=True, help_text=funders_help_text
+    fundings = models.ManyToManyField(
+        Funding, verbose_name=_("Fundings"), null=True, blank=True, help_text=fundings_help_text
     )
     related_projects = models.ManyToManyField(
         RelatedProject,

@@ -141,21 +141,21 @@
           </div>
         {% endblock related_project_form %}
 
-        {% block funder_form %}
+        {% block funding_form %}
 
         <div class="row">
           <div class="col-md-12" id="form_funder">
             
               <label class="control-label required-field ">Fundings</label>
             
-            {{funder_form.management_form }}
+            {{funding_form.management_form }}
             <div id="DELETE" class="form-group">
             </div>
             <div class="panel ">
               <!-- Tab panes -->
               <div class="panel-heading panel-heading-nav">
                   <ul class="nav nav-tabs allTabs">
-                      {% for form in funder_form %}
+                      {% for form in funding_form %}
                         {% if forloop.counter == 1 %}
                         <li role="presentation" class="active">
                           <a  href="#{{ form.prefix }}" aria-controls="{{ form.prefix }}" role="tab" data-toggle="tab">
@@ -186,7 +186,7 @@
               </div>
               <!-- Tab panes -->
               <div class="tab-content allContent">
-                    {% for form in funder_form %}
+                    {% for form in funding_form %}
                         {% if forloop.counter == 1 %}
                           <div class="tab-pane active" id="{{ form.prefix }}" role="tabpanel" >
                                 <div>
@@ -233,14 +233,14 @@
                   <div class="tab-pane hidden templateContent" id="templateContent" role="tabpanel" >
                             <div>
                                 
-                                    {% for field in funder_form.empty_form.visible_fields %}
+                                    {% for field in funding_form.empty_form.visible_fields %}
                                         <label for="{{ field.name }}">{{ field.label|capfirst }}</label>
                                         <div id="{{ field.name }}" class="form-group">
                                             {{ field }}
                                             {{ field.errors.as_ul }}
                                         </div>
                                     {% endfor %}
-                                    {% for hidden in funder_form.empty_form.hidden_fields %}
+                                    {% for hidden in funding_form.empty_form.hidden_fields %}
                                         <div>
                                           {{ hidden }}
                                         </div> 
@@ -253,7 +253,7 @@
           
           </div> 
         </div>
-        {% endblock funder_form %}
+        {% endblock funding_form %}
 
         {% block related_identifier_form %}
         <div class="row">
@@ -368,7 +368,6 @@
           </div>
          </div>
         {% endblock related_identifier_form %} 
-
 
 
         {% block category %}
