@@ -59,9 +59,9 @@ from geonode.base.models import (
     RelatedIdentifierType,
     RelationType,
     RelatedIdentifier,
-    FundingReference,
+    Organization,
     RelatedProject,
-    Funder,
+    Funding,
     LinkedResource,
 )
 from geonode.documents.models import Document
@@ -70,7 +70,7 @@ from geonode.groups.models import GroupCategory, GroupProfile
 from geonode.base.api.fields import (
     ComplexDynamicRelationField,
     RelatedIdentifierDynamicRelationField,
-    FundersDynamicRelationField,
+    FundingsDynamicRelationField,
     KeywordsDynamicRelationField,
 )
 from geonode.layers.utils import get_dataset_download_handlers, get_default_dataset_download_handler
@@ -161,6 +161,7 @@ class SimpleHierarchicalKeywordSerializer(DynamicModelSerializer):
     def to_representation(self, value):
         return {"name": value.name, "slug": value.slug}
 
+
 class _ThesaurusKeywordSerializerMixIn:
     def to_representation(self, value):
         _i18n = {}
@@ -225,20 +226,20 @@ class SimpleRelatedIdentifierSerializer(DynamicModelSerializer):
     relation_type = DynamicRelationField(SimpleRelationType, embed=True, many=False)
 
 
-class FundingReferenceSerializer(DynamicModelSerializer):
+class OrganizationSerializer(DynamicModelSerializer):
     class Meta:
-        model = FundingReference
-        name = "FundingReference"
-        fields = ("name_of_the_institution", "ror", "abbreviation")
+        model = Organization
+        name = " Organization"
+        fields = ("id", "organization", "ror", "abbreviation")
 
 
-class SimpleFunderSerializer(DynamicModelSerializer):
+class FundingSerializer(DynamicModelSerializer):
     class Meta:
-        model = Funder
-        name = "Funder"
-        fields = ("award_title", "award_uri", "funding_reference", "award_number")
+        model = Funding
+        name = "Funding"
+        fields = ("organization", "award_title", "award_uri", "award_number")
 
-    funding_reference = DynamicRelationField(FundingReferenceSerializer, embed=True, many=False)
+    organization = DynamicRelationField(OrganizationSerializer, embed=True, many=False)
 
 
 class SimpleRelatedProjectSerializer(DynamicModelSerializer):
@@ -416,7 +417,6 @@ class FavoriteField(DynamicComputedField):
 
 
 class AutoLinkField(DynamicComputedField):
-
     def get_attribute(self, instance):
         parents = []
         parent = self.parent
@@ -442,6 +442,7 @@ class AutoLinkField(DynamicComputedField):
         except Exception as e:
             logger.exception(e)
             return None
+
 
 class ContactRoleField(DynamicComputedField):
     default_error_messages = {
@@ -626,9 +627,30 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     resource_provider = ContactRoleField(Roles.RESOURCE_PROVIDER.name, required=False)
     originator = ContactRoleField(Roles.ORIGINATOR.name, required=False)
     principal_investigator = ContactRoleField(Roles.PRINCIPAL_INVESTIGATOR.name, required=False)
+    
+    data_collector = ContactRoleField(Roles.DATA_COLLECTOR.name, required=False)
+    data_curator = ContactRoleField(Roles.DATA_CURATOR.name, required=False)
+    editor = ContactRoleField(Roles.EDITOR.name, required=False)
+    host_institution = ContactRoleField(Roles.HOSTING_INSTITUTION.name, required=False)
+    other = ContactRoleField(Roles.OTHER.name, required=False)
+    producer = ContactRoleField(Roles.PRODUCER.name, required=False)
+    project_leader = ContactRoleField(Roles.PROJECT_LEADER.name, required=False)
+    project_manager = ContactRoleField(Roles.PROJECT_MANAGER.name, required=False)
+    project_member = ContactRoleField(Roles.PROJECT_MEMBER.name, required=False)
+    registration_agency = ContactRoleField(Roles.REGISTRATION_AGENCY.name, required=False)
+    registration_authority = ContactRoleField(Roles.REGISTRATION_AUTHORITY.name, required=False)
+    related_person = ContactRoleField(Roles.RELATED_PERSON.name, required=False)
+    research_group = ContactRoleField(Roles.RESEARCH_GROUP.name, required=False)
+    researcher = ContactRoleField(Roles.RESEARCHER.name, required=False)
+    rights_holder = ContactRoleField(Roles.RIGHTS_HOLDER.name, required=False)
+    sponsor = ContactRoleField(Roles.SPONSOR.name, required=False)
+    supervisor = ContactRoleField(Roles.SUPERVISOR.name, required=False)
+    work_package_leader = ContactRoleField(Roles.WORK_PACKAGE_LEADER.name, required=False)
+
+    
     title = serializers.CharField(required=False)
     abstract = serializers.CharField(required=False)
-    
+
     # BONARES ELEMENTS
     title_translated = serializers.CharField(required=False)
     abstract_translated = serializers.CharField(required=False)
@@ -639,18 +661,12 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     technical_info = serializers.CharField(required=False)
     other_description = serializers.CharField(required=False)
 
-    related_identifier = RelatedIdentifierDynamicRelationField(
-        SimpleRelatedIdentifierSerializer, embed=True, many=True
-    )
-    funders = FundersDynamicRelationField(SimpleFunderSerializer, embed=True, many=True)
-    related_projects = ComplexDynamicRelationField(
-        SimpleRelatedProjectSerializer, embed=True, many=True
-    )
+    related_identifier = RelatedIdentifierDynamicRelationField(SimpleRelatedIdentifierSerializer, embed=True, many=True)
+    # fundings = FundingsDynamicRelationField(FundingSerializer, embed=True, many=True)
+    related_projects = ComplexDynamicRelationField(SimpleRelatedProjectSerializer, embed=True, many=True)
     conformity_results = serializers.CharField(required=False)
     conformity_explanation = serializers.CharField(required=False)
-    parent_identifier = ComplexDynamicRelationField(
-        SimpleResourceSerializer, embed=True, many=False, required=False
-    )
+    parent_identifier = ComplexDynamicRelationField(SimpleResourceSerializer, embed=True, many=False, required=False)
     date_available = serializers.DateField(required=False)
     date_updated = serializers.DateField(required=False)
     date_created = serializers.DateField(required=False)
@@ -714,7 +730,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     tkeywords = ComplexDynamicRelationField(SimpleThesaurusKeywordSerializer, many=True)
     regions = DynamicRelationField(SimpleRegionSerializer, embed=True, many=True, read_only=True)
     category = ComplexDynamicRelationField(SimpleTopicCategorySerializer, embed=True)
-    #restriction_code_type = ComplexDynamicRelationField(RestrictionCodeTypeSerializer, embed=True)
+    # restriction_code_type = ComplexDynamicRelationField(RestrictionCodeTypeSerializer, embed=True)
     spatial_representation_type = ComplexDynamicRelationField(SpatialRepresentationTypeSerializer, embed=True)
     blob = serializers.JSONField(required=False, write_only=True)
     is_copyable = serializers.BooleanField(read_only=True)
@@ -756,6 +772,26 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "resource_provider",
             "originator",
             "principal_investigator",
+            
+            "data_collector",
+            "data_curator",
+            "editor",
+            "host_institution",
+            "other",
+            "producer",
+            "project_leader",
+            "project_manager",
+            "project_member",
+            "registration_agency",
+            "registration_authority",
+            "related_person",
+            "research_group",
+            "researcher",
+            "rights_holder",
+            "sponsor",
+            "supervisor",
+            "work_package_leader",
+            
             "keywords",
             "tkeywords",
             "regions",
@@ -773,7 +809,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "technical_info",
             "other_description",
             "related_identifier",
-            "funders",
+            "fundings",
             "conformity_results",
             "conformity_explanation",
             "parent_identifier",
@@ -850,7 +886,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             # metadata_uploaded, metadata_uploaded_preserve, metadata_xml,
             # users_geolimits, groups_geolimits
         )
- 
+
     def to_internal_value(self, data):
         if isinstance(data, str):
             data = json.loads(data)
@@ -927,6 +963,7 @@ class HierarchicalKeywordSerializer(BaseResourceCountSerializer):
         count_type = "keywords"
         view_name = "keywords-list"
         fields = "__all__"
+
 
 class ThesaurusKeywordSerializer(_ThesaurusKeywordSerializerMixIn, BaseResourceCountSerializer):
     class Meta:

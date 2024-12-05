@@ -45,6 +45,25 @@ class Roles(enum.Enum):
     ORIGINATOR = Role("Originator", False, True, True)
     PRINCIPAL_INVESTIGATOR = Role("Principal Investigator", False, True, True)
 
+    DATA_COLLECTOR = Role("Data Collector", False, True, True)
+    DATA_CURATOR = Role("Data Curator", False, True, True)
+    EDITOR = Role("Editor", False, True, True)
+    HOSTING_INSTITUTION = Role("Hosting Institution", False, True, True)
+    OTHER = Role("Other", False, True, True)
+    PRODUCER = Role("Producer", False, True, True)
+    PROJECT_LEADER = Role("Project Leader", False, True, True)
+    PROJECT_MANAGER = Role("Project Manager", False, True, True)
+    PROJECT_MEMBER = Role("project Member", False, True, True)
+    REGISTRATION_AGENCY = Role("Registration Agency", False, True, True)
+    REGISTRATION_AUTHORITY = Role("Registration Authority", False, True, True)
+    RELATED_PERSON = Role("Related Person", False, True, True)
+    RESEARCH_GROUP = Role("Research Group", False, True, True)
+    RESEARCHER = Role("Researcher", False, True, True)
+    RIGHTS_HOLDER = Role("Rights Holder", False, True, True)
+    SPONSOR = Role("Sponsor", False, True, True)
+    SUPERVISOR = Role("Supervisor", False, True, True)
+    WORK_PACKAGE_LEADER = Role("Work Package Leader", False, True, True)
+
     @property
     def name(self):
         return super().name.lower()

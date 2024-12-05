@@ -47,7 +47,7 @@ from geonode.resource.manager import resource_manager
 from geonode.base.auth import get_or_create_token
 from geonode.base.forms import CategoryForm, TKeywordForm, ThesaurusAvailableForm, RelatedProjectForm
 from geonode.base.views import batch_modify
-from geonode.base.models import Thesaurus, TopicCategory, Funder, RelatedIdentifier, RelatedProject
+from geonode.base.models import Thesaurus, TopicCategory, Funding, RelatedIdentifier, RelatedProject
 from geonode.decorators import check_keyword_write_perms
 from geonode.layers.forms import DatasetForm, DatasetTimeSerieForm, LayerAttributeForm
 from geonode.layers.models import Dataset, Attribute
@@ -235,9 +235,9 @@ def dataset_metadata(
         form=LayerAttributeForm,
     )
 
-    FunderFormset = modelformset_factory(
-        Funder,
-        fields=["funding_reference", "award_number", "award_uri", "award_title"],
+    FundingFormset = modelformset_factory(
+        Funding,
+        fields=["organization", "award_number", "award_uri", "award_title"],
         can_delete=True,
         extra=0,
         min_num=1,
@@ -319,9 +319,9 @@ def dataset_metadata(
             }
             return HttpResponse(json.dumps(out), content_type="application/json", status=400)
 
-        funder_form = FunderFormset(
+        funding_form = FundingFormset(
             request.POST,
-            prefix="form_funder",
+            prefix="form_funding",
         )
 
         related_identifier_form = RelatedIdentifierFormset(
@@ -395,8 +395,8 @@ def dataset_metadata(
             initial={"display_name": projects_initial_values},
         )
 
-        funders_intial_values = Funder.objects.all().filter(resourcebase=layer)
-        funder_form = FunderFormset(prefix="form_funder", queryset=funders_intial_values)
+        funding_intial_values = Funding.objects.all().filter(resourcebase=layer)
+        funding_form = FundingFormset(prefix="form_funding", queryset=funding_intial_values)
 
         related_identifier_intial_values = RelatedIdentifier.objects.all().filter(resourcebase=layer)
         related_identifier_form = RelatedIdentifierFormset(
@@ -474,7 +474,7 @@ def dataset_metadata(
         and dataset_form.is_valid()
         and attribute_form.is_valid()
         and related_project_form.is_valid()
-        and funder_form.is_valid()
+        and funding_form.is_valid()
         and related_identifier_form.is_valid()
         and category_form.is_valid()
         and tkeywords_form.is_valid()
@@ -505,10 +505,10 @@ def dataset_metadata(
 
         # update contact roles
         layer.set_contact_roles_from_metadata_edit(dataset_form)
-        funder_form.save()
-        instance = funder_form.save(commit=False)
+        funding_form.save()
+        instance = funding_form.save(commit=False)
 
-        layer.funders.add(*instance)
+        layer.fundings.add(*instance)
 
         related_identifier_form.save()
         instance = related_identifier_form.save(commit=False)
@@ -635,7 +635,7 @@ def dataset_metadata(
             "attribute_form": attribute_form,
             "timeseries_form": timeseries_form,
             "related_project_form": related_project_form,
-            "funder_form": funder_form,
+            "funding_form": funding_form,
             "related_identifier_form": related_identifier_form,
             "category_form": category_form,
             "tkeywords_form": tkeywords_form,
