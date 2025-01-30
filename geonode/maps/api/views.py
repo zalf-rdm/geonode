@@ -161,16 +161,6 @@ class MapViewSet(ApiPresetsInitializer, DynamicModelViewSet, AdvertisedListMixin
                 subtype="tabular-collection" if tabular_collection else None,
             )
         instance = serializer.update(instance,serializer.validated_data)
-        # for key, value in serializer.validated_data.items():
-        #     if hasattr(instance, key):
-        #       try:
-        #           instance.__setattr__(key, value)
-        #       except ValueError:
-        #           pass
-        #     else:
-        #         raise KeyError(key)
-        # instance.save()
-        # return instance
 
         # thumbnail, events and resouce routines
         self._post_change_routines(
