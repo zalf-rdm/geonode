@@ -70,7 +70,8 @@ from geonode.base.models import (
     RelationType,
     RelatedIdentifierType,
     RelatedIdentifier,
-    FundingReference,
+    Organization,
+    Funding,
     RelatedProject,
 )
 from geonode.base.api.filters import (
@@ -113,7 +114,8 @@ from .serializers import (
     FullLicenseSerializer,
     RelationTypeSerializer,
     RelatedIdentifierTypeSerializer,
-    FundingReferenceSerializer,
+    OrganizationSerializer,
+    FundingSerializer,
     RelatedIdentifierSerializer,
     RelatedProjectSerializer,
     RegionSerializer,
@@ -339,17 +341,31 @@ class RelatedIdentifierViewSet(WithDynamicViewSetMixin, ListModelMixin, Retrieve
     pagination_class = GeoNodeApiPagination
 
 
-class FundingReferenceViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
+class OrganizationViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
     """
-    API endpoint that lists fundingreference.
+    API endpoint that lists Organizations, which are used as Funders and Organizations people are related to.
     """
 
     permission_classes = [
         AllowAny,
     ]
     filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter]
-    queryset = FundingReference.objects.all()
-    serializer_class = FundingReferenceSerializer
+    queryset = Organization.objects.all()
+    serializer_class = OrganizationSerializer
+    pagination_class = GeoNodeApiPagination
+
+
+class FundingViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
+    """
+    API endpoint that lists Fundings.
+    """
+
+    permission_classes = [
+        AllowAny,
+    ]
+    filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter]
+    queryset = Funding.objects.all()
+    serializer_class = FundingSerializer
     pagination_class = GeoNodeApiPagination
 
 
