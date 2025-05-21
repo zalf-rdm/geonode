@@ -1,6 +1,6 @@
 #########################################################################
 #
-# Copyright (C) 2016 OSGeo
+# Copyright (C) 2019 Open Source Geospatial Foundation - all rights reserved
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,26 +17,25 @@
 #
 #########################################################################
 
-import os
+from django import forms
+from allauth.account.forms import LoginForm
 
-__version__ = (4, 4, 0, "dev", 0)
-
-
-def get_version():
-    import geonode.version
-
-    return geonode.version.get_version(__version__)
+try:
+    from captcha.fields import ReCaptchaField
+except ImportError:
+    from django_recaptcha.fields import ReCaptchaField
 
 
-def main(global_settings, **settings):
-    from django.core.wsgi import get_wsgi_application
+class AllauthReCaptchaSignupForm(forms.Form):
+    captcha = ReCaptchaField(label=False)
 
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", settings.get("django_settings"))
-    app = get_wsgi_application()
-    return app
+    def signup(self, request, user):
+        """Required, or else it thorws deprecation warnings"""
+        pass
 
 
-class GeoNodeException(Exception):
-    """Base class for exceptions in this module."""
+class AllauthRecaptchaLoginForm(LoginForm):
+    captcha = ReCaptchaField(label=False)
 
-    pass
+    def login(self, *args, **kwargs):
+        return super(AllauthRecaptchaLoginForm, self).login(*args, **kwargs)

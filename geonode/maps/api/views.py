@@ -161,6 +161,8 @@ class MapViewSet(ApiPresetsInitializer, DynamicModelViewSet, AdvertisedListMixin
             instance = serializer.save(
                 subtype="tabular-collection" if tabular_collection else None,
             )
+        else:
+            instance = serializer.save()
 
         # thumbnail, events and resouce routines
         self._post_change_routines(
