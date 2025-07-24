@@ -123,7 +123,6 @@ class LocalAccountAdapter(DefaultAccountAdapter, BaseInvitationsAdapter):
     """
 
     def pre_login(self, request, user, *, email_verification, signal_kwargs, email, signup, redirect_url):
-
         if email_verification == "mandatory" and not (user.is_superuser or user.is_staff):
             check_result = self.check_user_invalid_email(request, user)
             # None means that the user is valid

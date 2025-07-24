@@ -27,8 +27,8 @@ from geonode.base.models import (
     RelatedIdentifierType,
     RelationType,
     RelatedIdentifier,
-    FundingReference,
-    Funder,
+    Organization,
+    Funding,
     HierarchicalKeyword,
 )
 
@@ -49,17 +49,17 @@ class RelatedIdentifierDynamicRelationField(DynamicRelationField):
         return r
 
 
-class FundersDynamicRelationField(DynamicRelationField):
+class FundingsDynamicRelationField(DynamicRelationField):
     def to_internal_value_single(self, data, serializer):
         try:
-            funding_reference = FundingReference.objects.get(**data["funding_reference"])
-            data["funding_reference"] = funding_reference
+            organization = Organization.objects.get(**data["organization"])
+            data["organization"] = organization
         except TypeError:
-            raise ParseError(detail="Missing funding_reference object in funders ...", code=400)
+            raise ParseError(detail="Missing funding_organization object in funding ...", code=400)
         try:
-            funder = Funder.objects.get_or_create(**data)
+            funder = Funding.objects.get_or_create(**data)
         except TypeError:
-            raise ParseError(detail="Could not convert related_identifier to internal object ...", code=400)
+            raise ParseError(detail="Could not convert funding to internal object ...", code=400)
         return funder[0]
 
 
@@ -87,7 +87,6 @@ class KeywordsDynamicRelationField(DynamicRelationField):
             return super().to_internal_value_single(data, serializer)
 
         def __set_full_keyword__(d):
-
             if "name" not in d:
                 raise ValidationError('No "name" object found for given keyword ...')
             if "slug" not in d:
