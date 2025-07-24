@@ -116,7 +116,11 @@ class Map(ResourceBase):
         return json.dumps(map_config)
 
     def keyword_list(self):
-        keywords_qs = self.keywords.all()
+        if isinstance(self.keywords, list):
+            keywords_qs = self.keywords
+        else:
+            keywords_qs = self.keywords.all()
+
         if keywords_qs:
             return [kw.name for kw in keywords_qs]
         else:
