@@ -662,7 +662,8 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     other_description = serializers.CharField(required=False)
 
     related_identifier = RelatedIdentifierDynamicRelationField(SimpleRelatedIdentifierSerializer, embed=True, many=True)
-    # fundings = FundingsDynamicRelationField(FundingSerializer, embed=True, many=True)
+    fundings = FundingsDynamicRelationField(FundingSerializer, embed=True, many=True)
+
     related_projects = ComplexDynamicRelationField(SimpleRelatedProjectSerializer, embed=True, many=True)
     conformity_results = serializers.CharField(required=False)
     conformity_explanation = serializers.CharField(required=False)
