@@ -627,6 +627,27 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     resource_provider = ContactRoleField(Roles.RESOURCE_PROVIDER.name, required=False)
     originator = ContactRoleField(Roles.ORIGINATOR.name, required=False)
     principal_investigator = ContactRoleField(Roles.PRINCIPAL_INVESTIGATOR.name, required=False)
+    
+    data_collector = ContactRoleField(Roles.DATA_COLLECTOR.name, required=False)
+    data_curator = ContactRoleField(Roles.DATA_CURATOR.name, required=False)
+    editor = ContactRoleField(Roles.EDITOR.name, required=False)
+    host_institution = ContactRoleField(Roles.HOSTING_INSTITUTION.name, required=False)
+    other = ContactRoleField(Roles.OTHER.name, required=False)
+    producer = ContactRoleField(Roles.PRODUCER.name, required=False)
+    project_leader = ContactRoleField(Roles.PROJECT_LEADER.name, required=False)
+    project_manager = ContactRoleField(Roles.PROJECT_MANAGER.name, required=False)
+    project_member = ContactRoleField(Roles.PROJECT_MEMBER.name, required=False)
+    registration_agency = ContactRoleField(Roles.REGISTRATION_AGENCY.name, required=False)
+    registration_authority = ContactRoleField(Roles.REGISTRATION_AUTHORITY.name, required=False)
+    related_person = ContactRoleField(Roles.RELATED_PERSON.name, required=False)
+    research_group = ContactRoleField(Roles.RESEARCH_GROUP.name, required=False)
+    researcher = ContactRoleField(Roles.RESEARCHER.name, required=False)
+    rights_holder = ContactRoleField(Roles.RIGHTS_HOLDER.name, required=False)
+    sponsor = ContactRoleField(Roles.SPONSOR.name, required=False)
+    supervisor = ContactRoleField(Roles.SUPERVISOR.name, required=False)
+    work_package_leader = ContactRoleField(Roles.WORK_PACKAGE_LEADER.name, required=False)
+
+    
     title = serializers.CharField(required=False)
     abstract = serializers.CharField(required=False)
 
@@ -642,6 +663,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
 
     related_identifier = RelatedIdentifierDynamicRelationField(SimpleRelatedIdentifierSerializer, embed=True, many=True)
     fundings = FundingsDynamicRelationField(FundingSerializer, embed=True, many=True)
+
     related_projects = ComplexDynamicRelationField(SimpleRelatedProjectSerializer, embed=True, many=True)
     conformity_results = serializers.CharField(required=False)
     conformity_explanation = serializers.CharField(required=False)
@@ -751,6 +773,26 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "resource_provider",
             "originator",
             "principal_investigator",
+            
+            "data_collector",
+            "data_curator",
+            "editor",
+            "host_institution",
+            "other",
+            "producer",
+            "project_leader",
+            "project_manager",
+            "project_member",
+            "registration_agency",
+            "registration_authority",
+            "related_person",
+            "research_group",
+            "researcher",
+            "rights_holder",
+            "sponsor",
+            "supervisor",
+            "work_package_leader",
+            
             "keywords",
             "tkeywords",
             "regions",
