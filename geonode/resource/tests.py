@@ -16,6 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 #########################################################################
+import io
 import os
 
 from uuid import uuid4
@@ -26,6 +27,7 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from geonode.groups.models import GroupProfile
 from geonode.base.populate_test_data import create_models
+from geonode.resource.utils import resourcebase_post_save
 from geonode.tests.base import GeoNodeBaseTestSupport
 from geonode.resource.manager import ResourceManager
 from geonode.base.models import LinkedResource, ResourceBase
@@ -36,6 +38,7 @@ from geonode.maps.models import Map, MapLayer
 from geonode.resource import settings as rm_settings
 from geonode.layers.populate_datasets_data import create_dataset_data
 from geonode.base.populate_test_data import create_single_doc, create_single_map, create_single_dataset
+from geonode.thumbs.utils import ThumbnailAlgorithms
 
 from gisdata import GOOD_DATA
 
@@ -118,15 +121,21 @@ class TestResourceManager(GeoNodeBaseTestSupport):
 
     def test_ingest(self):
         dt_files = [os.path.join(GOOD_DATA, "raster", "relief_san_andres.tif")]
-        defaults = {"owner": self.user}
-        # raises an exception if resource_type is not provided
-        self.rm.ingest(dt_files)
+
         # ingest with documents
-        res = self.rm.ingest(dt_files, resource_type=Document, defaults=defaults)
+        res = self.rm.create(
+            None,
+            resource_type=Document,
+            defaults=dict(owner=self.user, files=dt_files),
+        )
         self.assertTrue(isinstance(res, Document))
         res.delete()
         # ingest with datasets
-        res = self.rm.ingest(dt_files, resource_type=Dataset, defaults=defaults)
+        res = self.rm.create(
+            None,
+            resource_type=Dataset,
+            defaults=dict(owner=self.user, files=dt_files),
+        )
         self.assertTrue(isinstance(res, Dataset))
         res.delete()
 
@@ -147,17 +156,32 @@ class TestResourceManager(GeoNodeBaseTestSupport):
         dt_files = [os.path.join(GOOD_DATA, "raster", "relief_san_andres.tif")]
 
         # copy with documents
-        res = self.rm.ingest(
-            dt_files, resource_type=Document, defaults={"title": "relief_san_andres", "owner": self.user}
+        res = self.rm.create(
+            None,
+            resource_type=Document,
+            defaults={
+                "title": "relief_san_andres",
+                "owner": self.user,
+                "extension": "tif",
+                "data_title": "relief_san_andres",
+                "data_type": "tif",
+                "files": dt_files,
+            },
         )
         self.assertTrue(isinstance(res, Document))
         _copy_assert_resource(res, "Testing Document 2")
 
         # copy with datasets
-        res = self.rm.ingest(
-            dt_files,
+        res = self.rm.create(
+            None,
             resource_type=Dataset,
-            defaults={"owner": self.user, "title": "Testing Dataset", "files": dt_files},
+            defaults={
+                "owner": self.user,
+                "title": "Testing Dataset",
+                "data_title": "relief_san_andres",
+                "data_type": "tif",
+                "files": dt_files,
+            },
         )
         self.assertTrue(isinstance(res, Dataset))
         _copy_assert_resource(res, "Testing Dataset 2")
@@ -301,3 +325,75 @@ class TestResourceManager(GeoNodeBaseTestSupport):
         self.assertFalse(self.rm.set_thumbnail("invalid_uuid"))
         self.assertTrue(self.rm.set_thumbnail(dt.uuid, instance=dt))
         self.assertTrue(self.rm.set_thumbnail(doc.uuid, instance=doc))
+
+    def test_set_thumbnail_algo(self):
+        thumb_path = os.path.join(os.path.dirname(__file__), "../tests/data/thumb_sample.png")
+        image = io.open(thumb_path, "rb").read()
+        doc = create_single_doc("test_thumb_doc")
+
+        self.assertTrue(self.rm.set_thumbnail(doc.uuid, instance=doc), "Error in using default image algo")
+        self.assertTrue(
+            self.rm.set_thumbnail(doc.uuid, instance=doc, thumbnail=image, thumbnail_algorithm=ThumbnailAlgorithms.fit),
+            "Error in using FIT image algo",
+        )
+        self.assertTrue(
+            self.rm.set_thumbnail(
+                doc.uuid, instance=doc, thumbnail=image, thumbnail_algorithm=ThumbnailAlgorithms.scale
+            ),
+            "Error in using SCALE image algo",
+        )
+
+
+class TestResourcebasePostSave(GeoNodeBaseTestSupport):
+    @patch("geonode.resource.utils.call_storers")
+    def test_resourcebase_post_save(self, mock_call_storers):
+        """
+        Test the custom dict is correctly handled if passed as expected
+        """
+
+        instance = create_single_dataset(name="storer_db")
+        kwargs = {"custom": [1, 2, 3]}
+
+        mock_call_storers.return_value = instance
+
+        resourcebase_post_save(instance=instance, **kwargs)
+
+        mock_call_storers.assert_called_with(instance, kwargs["custom"])
+
+        instance.delete()
+
+    @patch("geonode.resource.utils.call_storers")
+    def test_resourcebase_post_save_raise_error(self, mock_call_storers):
+        """
+        Test the custom dict is ignored if not correctly passed
+        """
+
+        instance = create_single_dataset(name="storer_db")
+        kwargs = {"key": [1, 2, 3]}
+
+        mock_call_storers.return_value = instance
+
+        resourcebase_post_save(instance=instance, **kwargs)
+
+        with self.assertRaises(Exception):
+            mock_call_storers.assert_called_with(instance, kwargs["custom"])
+
+        instance.delete()
+
+    @patch("geonode.resource.utils.call_storers")
+    def test_resource_manager_update_should_handle_customs(self, mock_call_storers):
+        """
+        If custom payload is correctly applied, the storer will update the data
+        """
+        from geonode.resource.manager import resource_manager
+
+        instance = create_single_dataset(name="storer_db")
+
+        mock_call_storers.return_value = instance
+
+        self.custom = {"uuid": "abc123cfde", "name": "updated name"}
+
+        resource_manager.update(str(instance.uuid), instance=instance, custom=self.custom)
+        mock_call_storers.assert_called_with(instance, self.custom)
+
+        instance.delete()

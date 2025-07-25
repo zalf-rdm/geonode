@@ -28,6 +28,7 @@ from django.contrib.auth.models import Group
 from django.forms.models import model_to_dict
 from django.contrib.auth import get_user_model
 from django.db.models.query import QuerySet
+from geonode.assets.utils import get_default_asset
 from geonode.people import Roles
 from django.http import QueryDict
 from deprecated import deprecated
@@ -73,7 +74,8 @@ from geonode.base.api.fields import (
     FundingsDynamicRelationField,
     KeywordsDynamicRelationField,
 )
-from geonode.layers.utils import get_dataset_download_handlers, get_default_dataset_download_handler
+from geonode.layers.utils import get_download_handlers, get_default_dataset_download_handler
+from geonode.assets.handlers import asset_handler_registry
 from geonode.utils import build_absolute_uri
 from geonode.security.utils import get_resources_with_perms, get_geoapp_subtypes
 from geonode.resource.models import ExecutionRequest
@@ -378,15 +380,24 @@ class DownloadArrayLinkField(DynamicComputedField):
         except Exception as e:
             logger.exception(e)
             raise e
+
+        asset = get_default_asset(_instance)
+        if asset is not None:
+            asset_url = asset_handler_registry.get_handler(asset).create_download_url(asset)
+
         if _instance.resource_type in ["map"] + get_geoapp_subtypes():
             return []
         elif _instance.resource_type in ["document"]:
-            return [
+            payload = [
                 {
                     "url": _instance.download_url,
                     "ajax_safe": _instance.download_is_ajax_safe,
-                }
+                },
             ]
+            if asset:
+                payload.append({"url": asset_url, "ajax_safe": False, "default": False})
+            return payload
+
         elif _instance.resource_type in ["dataset"]:
             download_urls = []
             # lets get only the default one first to set it
@@ -395,11 +406,14 @@ class DownloadArrayLinkField(DynamicComputedField):
             if obj.download_url:
                 download_urls.append({"url": obj.download_url, "ajax_safe": obj.is_ajax_safe, "default": True})
             # then let's prepare the payload with everything
-            handler_list = get_dataset_download_handlers()
-            for handler in handler_list:
+            for handler in get_download_handlers():
                 obj = handler(self.context.get("request"), _instance.alternate)
                 if obj.download_url:
                     download_urls.append({"url": obj.download_url, "ajax_safe": obj.is_ajax_safe, "default": False})
+
+            if asset:
+                download_urls.append({"url": asset_url, "ajax_safe": True, "default": False if download_urls else True})
+
             return download_urls
         else:
             return []
@@ -570,7 +584,11 @@ class LinkedResourceEmbeddedSerializer(DynamicModelSerializer):
         request = self.context.get("request", None)
         _resource = ResourceBase.objects.get(pk=instance)
 
-        return base_linked_resources_payload(_resource, request.user) if request and request.user and _resource else {}
+        return (
+            base_linked_resources_payload(_resource.get_real_instance(), request.user)
+            if request and request.user and _resource
+            else {}
+        )
 
 
 api_bbox_settable_resource_models = [Document, GeoApp]
@@ -584,15 +602,7 @@ class PermsSerializer(DynamicModelSerializer):
     def to_representation(self, instance):
         request = self.context.get("request", None)
         resource = ResourceBase.objects.get(pk=instance)
-        return (
-            (
-                resource.get_user_perms(request.user)
-                .union(resource.get_self_resource().get_user_perms(request.user))
-                .union(resource.get_real_instance().get_user_perms(request.user))
-            )
-            if request and request.user and resource
-            else []
-        )
+        return resource.get_user_perms(request.user) if request and request.user and resource else []
 
 
 class LinksSerializer(DynamicModelSerializer):
@@ -603,12 +613,38 @@ class LinksSerializer(DynamicModelSerializer):
         ret = []
         link_fields = ["extension", "link_type", "name", "mime", "url"]
         links = Link.objects.filter(
-            resource_id=instance, link_type__in=["OGC:WMS", "OGC:WFS", "OGC:WCS", "image", "metadata"]
+            resource_id=instance,  # link_type__in=["OGC:WMS", "OGC:WFS", "OGC:WCS", "image", "metadata"]
         )
         for lnk in links:
             formatted_link = model_to_dict(lnk, fields=link_fields)
             ret.append(formatted_link)
+            if lnk.asset:
+                extras = {
+                    "type": "asset",
+                    "content": model_to_dict(lnk.asset, ["title", "description", "type", "created"]),
+                }
+                extras["content"]["download_url"] = asset_handler_registry.get_handler(lnk.asset).create_download_url(
+                    lnk.asset
+                )
+                formatted_link["extras"] = extras
+
         return ret
+
+
+class ResourceManagementField(serializers.BooleanField):
+    MAPPING = {"is_approved": "can_approve", "is_published": "can_publish", "featured": "can_feature"}
+
+    def to_internal_value(self, data):
+        new_val = super().to_internal_value(data)
+        user = self.context["request"].user
+        user_action = self.MAPPING.get(self.field_name)
+        instance = self.root.instance or ResourceBase.objects.get(pk=self.root.initial_data["pk"])
+        if getattr(user, user_action)(instance):
+            logger.debug("User can perform the action, the new value is returned")
+            return new_val
+        else:
+            logger.warning(f"The user does not have the perms to update the value of {self.field_name}")
+            return getattr(instance, self.field_name)
 
 
 class ResourceBaseSerializer(DynamicModelSerializer):
@@ -709,10 +745,10 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     popular_count = serializers.CharField(required=False)
     share_count = serializers.CharField(required=False)
     rating = serializers.CharField(required=False)
-    featured = serializers.BooleanField(required=False)
+    featured = ResourceManagementField(required=False)
     advertised = serializers.BooleanField(required=False)
-    is_published = serializers.BooleanField(required=False, read_only=True)
-    is_approved = serializers.BooleanField(required=False, read_only=True)
+    is_published = ResourceManagementField(required=False)
+    is_approved = ResourceManagementField(required=False)
     detail_url = DetailUrlField(read_only=True)
     created = serializers.DateTimeField(read_only=True)
     last_updated = serializers.DateTimeField(read_only=True)
@@ -882,6 +918,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "thumbnail_url",
             "links",
             "link",
+            "metadata_uploaded_preserve",
             # TODO
             # csw_typename, csw_schema, csw_mdsource, csw_insert_date, csw_type, csw_anytext, csw_wkt_geometry,
             # metadata_uploaded, metadata_uploaded_preserve, metadata_xml,

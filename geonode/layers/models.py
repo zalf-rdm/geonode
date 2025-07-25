@@ -400,9 +400,10 @@ class Attribute(models.Model):
         null=True,
         unique=False,
     )
-    description = models.TextField(
+    description = models.CharField(
         _("attribute description"),
         help_text=_("description of attribute to be used in metadata"),
+        max_length=255,
         blank=True,
         null=True,
     )

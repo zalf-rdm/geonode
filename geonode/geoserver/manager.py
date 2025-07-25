@@ -155,29 +155,6 @@ class GeoServerResourceManager(ResourceManagerInterface):
                 instance = _synced_resource or instance
         return instance
 
-    def ingest(
-        self,
-        files: typing.List[str],
-        /,
-        uuid: str = None,
-        resource_type: typing.Optional[object] = None,
-        defaults: dict = {},
-        **kwargs,
-    ) -> ResourceBase:
-        instance = ResourceManager._get_instance(uuid)
-        if instance and isinstance(instance.get_real_instance(), Dataset):
-            instance = self.import_dataset(
-                "import_dataset",
-                instance.uuid,
-                instance=instance,
-                files=files,
-                user=defaults.get("user", instance.owner),
-                defaults=defaults,
-                action_type="create",
-                **kwargs,
-            )
-        return instance
-
     def copy(
         self, instance: ResourceBase, /, uuid: str = None, owner: settings.AUTH_USER_MODEL = None, defaults: dict = {}
     ) -> ResourceBase:
@@ -290,7 +267,6 @@ class GeoServerResourceManager(ResourceManagerInterface):
                     _to_update = {
                         "name": _name,
                         "title": instance.title or _gs_import_session_info.dataset_name,
-                        "files": kwargs.get("files", None),
                         "workspace": _gs_import_session_info.workspace,
                         "alternate": _alternate,
                         "typename": _alternate,

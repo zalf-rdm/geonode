@@ -382,10 +382,16 @@ msgstr ""
 "Un espacio o una lista de palabras clave separadas por comas. Utilice el "
 "widget para seleccionar desde el árbol jerárquico."
 
+<<<<<<< HEAD
 #: geonode/base/forms.py:671 geonode/base/forms.py:817
 #: geonode/base/templates/base/_resourcebase_info_panel.html:121
 #: geonode/catalogue/templates/geonode_metadata_full.html:153
 #: geonode/templates/metadata_detail.html:142
+=======
+msgid "Region"
+msgstr "Region"
+
+>>>>>>> usergroup/datapackage_tabular-data
 msgid "Regions"
 msgstr "Regiones"
 
@@ -1010,7 +1016,13 @@ msgstr "DOI"
 msgid "Maintenance Frequency"
 msgstr "Frecuencia de Actualización"
 
+<<<<<<< HEAD
 #: geonode/base/models.py:1012 geonode/people/models.py:114
+=======
+msgid "Keyword"
+msgstr "Palabra claves"
+
+>>>>>>> usergroup/datapackage_tabular-data
 msgid "keywords"
 msgstr "palabras claves"
 
