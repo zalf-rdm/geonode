@@ -85,33 +85,30 @@ drf-spectacular==0.27.2
 dynamic-rest==2.3.0
 Markdown==3.6
 
-geonode-pinax-notifications==6.0.0.2
-
-# ---- GeoNode references -----
+# ---- GeoNode dependencies -----
 
 # importer package
-# TODO CREATE Release
--e git+https://github.com/GeoNodeUserGroup-DE/contrib_datapackage.git@issue_#24__GN_4_4_3__expects_custom_to_be_an_argument_of_create_geonode_resource__overwrite_geonode_resource#egg=importer_datapackage
+-e git+https://github.com/GeoNodeUserGroup-DE/contrib_datapackage.git@geonode-v4.4.3+datapackage001#egg=importer_datapackage
 frictionless>=5.17.0
 
 # mapstore client package
-# TODO CREATE Release
-# TODO merge to zalf mapstore client
-#-e git+https://github.com/zalf-rdm/geonode-mapstore-client/@v4.3.1-z0.0.2#egg=django-geonode-mapstore-client
--e git+https://github.com/GeoNodeUserGroup-DE/geonode-mapstore-client/@datapackage_tabular-data#egg=django-geonode-mapstore-client
+-e git+https://github.com/GeoNodeUserGroup-DE/geonode-mapstore-client/@geonode-mapstore-client-v4.4.3+tabular001#egg=django-geonode-mapstore-client
 
 # gn importer package
 geonode-importer==1.1.2
-# -------------
 
-django-avatar==8.0.0
+# more gn dependencies
 geonode-oauth-toolkit==2.2.2.2
 geonode-user-messages==2.0.2.2
 geonode-announcements==2.0.2.2
-django-activity-stream==2.0.0
+geonode-pinax-notifications==6.0.0.2
 gn-arcrest==10.5.6
-geoserver-restconfig~=2.0.13
 gn-gsimporter==2.0.4
+# -------------
+
+django-avatar==8.0.0
+django-activity-stream==2.0.0
+geoserver-restconfig~=2.0.13
 gisdata==0.5.4
 
 # datetimepicker widget
