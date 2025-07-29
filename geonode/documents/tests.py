@@ -32,6 +32,7 @@ from io import BytesIO
 
 from unittest.mock import patch
 from urllib.parse import urlparse
+from pathlib import Path
 
 from django.urls import reverse
 from django.conf import settings
@@ -42,6 +43,8 @@ from django.template.defaultfilters import filesizeformat
 
 from guardian.shortcuts import get_anonymous_user
 
+from geonode.assets.utils import create_asset_and_link, get_default_asset
+from geonode.base.forms import LinkedResourceForm
 from geonode.maps.models import Map
 from geonode.layers.models import Dataset
 from geonode.compat import ensure_string
@@ -58,7 +61,9 @@ from geonode.base.populate_test_data import all_public, create_models, create_si
 from geonode.upload.api.exceptions import FileUploadLimitException
 
 from .forms import DocumentCreateForm
-from ..base.forms import LinkedResourceForm
+
+
+TEST_GIF = os.path.join(os.path.dirname(__file__), "tests/data/img.gif")
 
 
 class DocumentsTest(GeoNodeBaseTestSupport):
@@ -113,10 +118,10 @@ class DocumentsTest(GeoNodeBaseTestSupport):
     def test_create_document_with_no_rel(self, thumb):
         """Tests the creation of a document with no relations"""
         thumb.return_value = True
-        f = [f"{settings.MEDIA_ROOT}/img.gif"]
 
         superuser = get_user_model().objects.get(pk=2)
-        c = Document.objects.create(files=f, owner=superuser, title="theimg")
+        c = Document.objects.create(owner=superuser, title="theimg")
+        _, _ = create_asset_and_link(c, superuser, [TEST_GIF])
         c.set_default_permissions()
         self.assertEqual(Document.objects.get(pk=c.id).title, "theimg")
 
@@ -188,6 +193,25 @@ class DocumentsTest(GeoNodeBaseTestSupport):
 
         d = Document.objects.get(title="GeoNode Map")
         self.assertEqual(d.doc_url, "http://www.geonode.org/map.pdf")
+
+    def test_uploaded_csv_with_uppercase_extension(self):
+        """
+        The extension of the file should always be lowercase
+        """
+
+        self.client.login(username="admin", password="admin")
+        try:
+            with open(os.path.join(os.path.dirname(__file__), "tests/data/test.CSV"), "rb") as f:
+                data = {"title": "CSV with uppercase extension", "doc_file": f, "extension": "CSV"}
+                self.client.post(reverse("document_upload"), data=data)
+            d = Document.objects.get(title="CSV with uppercase extension")
+            # verify that the extension is not lowercase
+            self.assertEqual(d.extension, "csv")
+            # be sure that also the file extension is not lowercase
+            asset = get_default_asset(d)
+            self.assertEqual(Path(asset.location[0]).suffix, ".csv")
+        finally:
+            Document.objects.filter(title="CSV with uppercase extension").delete()
 
     def test_upload_document_form(self):
         """
@@ -412,11 +436,11 @@ class DocumentsTest(GeoNodeBaseTestSupport):
         """Verify that the ajax_document_permissions view is behaving as expected"""
         create_thumb.return_value = True
         # Setup some document names to work with
-        f = [f"{settings.MEDIA_ROOT}/img.gif"]
-
         superuser = get_user_model().objects.get(pk=2)
         document = resource_manager.create(
-            None, resource_type=Document, defaults=dict(files=f, owner=superuser, title="theimg", is_approved=True)
+            None,
+            resource_type=Document,
+            defaults=dict(files=[TEST_GIF], owner=superuser, title="theimg", is_approved=True),
         )
         document_id = document.id
         invalid_document_id = 20
@@ -630,10 +654,10 @@ class DocumentResourceLinkTestCase(GeoNodeBaseTestSupport):
 
     def test_create_document_with_links(self):
         """Tests the creation of document links."""
-        f = [f"{settings.MEDIA_ROOT}/img.gif"]
         superuser = get_user_model().objects.get(pk=2)
 
-        d = Document.objects.create(files=f, owner=superuser, title="theimg")
+        d = Document.objects.create(owner=superuser, title="theimg")
+        _, _ = create_asset_and_link(d, superuser, [TEST_GIF])
 
         self.assertEqual(Document.objects.get(pk=d.id).title, "theimg")
 
@@ -679,11 +703,10 @@ class DocumentViewTestCase(GeoNodeBaseTestSupport):
         self.not_admin = get_user_model().objects.create(username="r-lukaku", is_active=True)
         self.not_admin.set_password("very-secret")
         self.not_admin.save()
-        self.files = [f"{settings.MEDIA_ROOT}/img.gif"]
         self.test_doc = resource_manager.create(
             None,
             resource_type=Document,
-            defaults=dict(files=self.files, owner=self.not_admin, title="test", is_approved=True),
+            defaults=dict(files=[TEST_GIF], owner=self.not_admin, title="test", is_approved=True),
         )
         self.perm_spec = {"users": {"AnonymousUser": []}}
         self.doc_link_url = reverse("document_link", args=(self.test_doc.pk,))
@@ -808,7 +831,7 @@ class DocumentViewTestCase(GeoNodeBaseTestSupport):
         # Access resource with user logged-in
         self.client.login(username=self.not_admin.username, password="very-secret")
         response = self.client.get(self.doc_link_url)
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 200)
         # test document link with external url
         doc = resource_manager.create(
             None,

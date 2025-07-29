@@ -374,13 +374,11 @@
         {% endif %}
       {% endblock %}
 
-        {% block restriction_code_type %}
-        {% if resource.restriction_code_type or resource.constraints_other %}
+        {% block constraints_other %}
+        {% if resource.constraints_other %}
         <dt>{% trans "Restrictions" %}</dt>
         <dd>{% if resource.constraints_other %}
             {{ resource.constraints_other|sanitize_html|safe }}
-            {% else %}
-              {{ resource.restriction_other }}
             {% endif %}
           </dd>
         {% endif %}

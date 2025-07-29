@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("layers", "0045_alter_attribute_description"),
+        ("layers", "0045_alter_dataset_abstract_en"),
         ("layers", "0047_auto_20240909_1236"),
     ]
 
