@@ -143,7 +143,7 @@ class Map(ResourceBase):
         bbox = [math.inf, -math.inf, math.inf, -math.inf]
         for layer in self.maplayers.filter(visibility=True).order_by("order").iterator():
             dataset = layer.dataset
-            if dataset is not None:
+            if dataset is not None and dataset.subtype != "tabular":
                 if dataset.ll_bbox_polygon:
                     dataset_bbox = bbox_utils.clean_bbox(dataset.ll_bbox, target_crs)
                 elif dataset.bbox:

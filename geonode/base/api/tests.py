@@ -783,7 +783,6 @@ class BaseApiTests(APITestCase):
             resource_type="dataset",
             license=License.objects.all().first(),
             metadata_license=License.objects.all().first(),
-            restriction_code_type=RestrictionCodeType.objects.all().first(),
             group=Group.objects.all().first(),
         ).save()
 

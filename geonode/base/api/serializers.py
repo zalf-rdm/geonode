@@ -767,7 +767,6 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     tkeywords = ComplexDynamicRelationField(SimpleThesaurusKeywordSerializer, many=True)
     regions = DynamicRelationField(SimpleRegionSerializer, embed=True, many=True, read_only=True)
     category = ComplexDynamicRelationField(SimpleTopicCategorySerializer, embed=True)
-    # restriction_code_type = ComplexDynamicRelationField(RestrictionCodeTypeSerializer, embed=True)
     spatial_representation_type = ComplexDynamicRelationField(SpatialRepresentationTypeSerializer, embed=True)
     blob = serializers.JSONField(required=False, write_only=True)
     is_copyable = serializers.BooleanField(read_only=True)
