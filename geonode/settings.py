@@ -2380,3 +2380,16 @@ GEONODE_APPS += ("geonode.assets",)
 AVATAR_ADD_TEMPLATE = "people/avatar/add.html"
 AVATAR_CHANGE_TEMPLATE = "people/avatar/change.html"
 AVATAR_DELETE_TEMPLATE = "people/avatar/confirm_delete.html"
+
+# disable certain fields from advanded metadata editor
+ADVANCED_EDIT_EXCLUDE_FIELD = ["sourcetype",
+                               "fundings", 
+                               "metadata_only", 
+                               "metadata", 
+                               "thumbnail_url", 
+                               "thumbnail_path",
+                               "csw_typename",
+                               "remote_typename",
+                               "typename",
+                               "ptype"
+                               ]
