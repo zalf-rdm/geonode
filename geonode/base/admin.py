@@ -244,7 +244,7 @@ class FundingAdmin(admin.ModelAdmin):
 
 class RelatedProjectAdmin(admin.ModelAdmin):
     model = RelatedProject
-    list_display = ("label", "display_name")
+    list_display = ("label", "display_name", "description")
     list_display_links = []
     list_filter = ("label", "display_name")
 
