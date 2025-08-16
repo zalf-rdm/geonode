@@ -2382,14 +2382,22 @@ AVATAR_CHANGE_TEMPLATE = "people/avatar/change.html"
 AVATAR_DELETE_TEMPLATE = "people/avatar/confirm_delete.html"
 
 # disable certain fields from advanded metadata editor
-ADVANCED_EDIT_EXCLUDE_FIELD = ["sourcetype",
+ADVANCED_EDIT_EXCLUDE_FIELD = [ # base
                                "fundings", 
                                "metadata_only", 
                                "metadata", 
+                               "resource_type",
+                               "spatial_representation_type",
+                                # datasets
+                                "sourcetype",
                                "thumbnail_url", 
                                "thumbnail_path",
                                "csw_typename",
                                "remote_typename",
                                "typename",
-                               "ptype"
+                               "ptype",
+                               # maps
+                               "alternate",
+                               "subtype",
+                               "featuredurl"
                                ]

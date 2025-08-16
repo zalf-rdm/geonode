@@ -142,116 +142,115 @@
           {% endblock related_project_form %}
           
           {% block funding_form %}
-          
-          
           <div class="row">
             <div class="col-md-12">
               
               <label class="control-label required-field ">Fundings</label>
-              <div id="form_funder"></div>
-              {{funding_form.management_form }}
-              <div id="DELETE" class="form-group">
-              </div>
-              <div class="panel ">
-                <!-- Tab panes -->
-                <div class="panel-heading panel-heading-nav">
-                  <ul class="nav nav-tabs allTabs">
-                    {% for form in funding_form %}
-                    {% if forloop.counter == 1 %}
-                    <li role="presentation" class="active">
-                      <a  href="#{{ form.prefix }}" aria-controls="{{ form.prefix }}" role="tab" data-toggle="tab">
-                        <span class="tabTex">{{ forloop.counter }}   </span> 
-                        <button type="button" class="nav-remove" onclick="removeTab(this)"><icon class="fa fa-minus-circle"></icon>
-                        </button></a>
-                      </li>
-                      {% else %}
-                      <li role="presentation" class="">
-                        <a  href="#{{ form.prefix }}" aria-controls="{{ form.prefix }}" role="tab" data-toggle="tab">
-                          <span class="tabTex">{{ forloop.counter }}   </span>
-                          <button type="button"  class="nav-remove"  onclick="removeTab(this)"><icon class="fa fa-minus-circle"></icon>
-                          </button></a>
-                        </li>
-                        {% endif %}
-                        {%endfor%}
-                        <li role="presentation"  class="nav-item enpt tab li-add" >
-                          <button id="nav-add"  class="btn-primary nav-add p-2" onclick="addNewTab(this)" type="button" style="margin: 8px;"><icon class="fa fa-plus-circle"> new </button>
+              <div id="form_funder">
+                {{funding_form.management_form }}
+                <div id="DELETE" class="form-group">
+                  <div class="panel ">
+                    <!-- Tab panes -->
+                    <div class="panel-heading panel-heading-nav">
+                      <ul class="nav nav-tabs allTabs">
+                        {% for form in funding_form %}
+                        {% if forloop.counter == 1 %}
+                        <li role="presentation" class="active">
+                          <a  href="#{{ form.prefix }}" aria-controls="{{ form.prefix }}" role="tab" data-toggle="tab">
+                            <span class="tabTex">{{ forloop.counter }}   </span> 
+                            <button type="button" class="nav-remove" onclick="removeTab(this)"><icon class="fa fa-minus-circle"></icon>
+                            </button></a>
                           </li>
-                          <li role="presentation"  class="nav-item enpt tab nav-empty templateTab hidden" >
-                            <a  href="" aria-controls="{{ form.prefix }}" role="tab" data-toggle="tab">
-                              <span class="newTabTex"></span>
-                              <button type="button" class="nav-remove" onclick="removeTab(this)" ><icon class="fa fa-minus-circle"></icon>
+                          {% else %}
+                          <li role="presentation" class="">
+                            <a  href="#{{ form.prefix }}" aria-controls="{{ form.prefix }}" role="tab" data-toggle="tab">
+                              <span class="tabTex">{{ forloop.counter }}   </span>
+                              <button type="button"  class="nav-remove"  onclick="removeTab(this)"><icon class="fa fa-minus-circle"></icon>
                               </button></a>
                             </li>
-                            
-                          </ul>
-                        </div>
-                        <!-- Tab panes -->
-                        <div class="tab-content allContent">
-                          {% for form in funding_form %}
-                          {% if forloop.counter == 1 %}
-                          <div class="tab-pane active" id="{{ form.prefix }}" role="tabpanel" >
-                            <div>
-                              {% if forloop.first %}
-                              {% for field in form.visible_fields %}
-                              <label for="{{ field.name }}">{{ field.label|capfirst }}</label>
-                              <div id="{{ field.name }}" class="form-group">
-                                {{ field }}
-                                {{ field.errors.as_ul }}
+                            {% endif %}
+                            {%endfor%}
+                            <li role="presentation"  class="nav-item enpt tab li-add" >
+                              <button id="nav-add"  class="btn-primary nav-add p-2" onclick="addNewTab(this)" type="button" style="margin: 8px;"><icon class="fa fa-plus-circle"> new </button>
+                              </li>
+                              <li role="presentation"  class="nav-item enpt tab nav-empty templateTab hidden" >
+                                <a  href="" aria-controls="{{ form.prefix }}" role="tab" data-toggle="tab">
+                                  <span class="newTabTex"></span>
+                                  <button type="button" class="nav-remove" onclick="removeTab(this)" ><icon class="fa fa-minus-circle"></icon>
+                                  </button></a>
+                                </li>
+                                
+                              </ul>
+                            </div>
+                            <!-- Tab panes -->
+                            <div class="tab-content allContent">
+                              {% for form in funding_form %}
+                              
+                              {% if forloop.counter == 1 %}
+                              <div class="tab-pane active" id="{{ form.prefix }}" role="tabpanel" >
+                                <div>
+                                  {% if forloop.first %}
+                                  {% for field in form.visible_fields %}
+                                  <label for="{{ field.name }}">{{ field.label|capfirst }}</label>
+                                  <div id="{{ field.name }}" class="form-group">
+                                    {{ field }}
+                                    {{ field.errors.as_ul }}
+                                  </div>
+                                  
+                                  {% endfor %}
+                                  {% endif %}
+                                  {% for hidden in form.hidden_fields %}
+                                  <div>
+                                    {{ hidden }}
+                                  </div> 
+                                  {% endfor %}
+                                </div>
                               </div>
                               
-                              {% endfor %}
+                              {% else %}
+                              <div class="tab-pane " id="{{ form.prefix }}" role="tabpanel" >
+                                <div>
+                                  
+                                  {% for field in form.visible_fields %}
+                                  <label for="{{ field.name }}">{{ field.label|capfirst }}</label>
+                                  <div id="{{ field.name }}" class="form-group">
+                                    {{ field }}
+                                    {{ field.errors.as_ul }}
+                                  </div>
+                                  {% endfor %}
+                                  {% for hidden in form.hidden_fields %}
+                                  <div>
+                                    {{ hidden }}
+                                  </div> 
+                                  {% endfor %}
+                                </div>
+                              </div>
                               {% endif %}
-                              {% for hidden in form.hidden_fields %}
-                              <div>
-                                {{ hidden }}
-                              </div> 
                               {% endfor %}
-                            </div>
-                          </div>
-                          {% else %}
-                          <div class="tab-pane " id="{{ form.prefix }}" role="tabpanel" >
-                            <div>
                               
-                              {% for field in form.visible_fields %}
-                              <label for="{{ field.name }}">{{ field.label|capfirst }}</label>
-                              <div id="{{ field.name }}" class="form-group">
-                                {{ field }}
-                                {{ field.errors.as_ul }}
+                              <div class="tab-pane hidden templateContent" id="templateContent" role="tabpanel" >
+                                <div>
+                                  
+                                  {% for field in funding_form.empty_form.visible_fields %}
+                                  <label for="{{ field.name }}">{{ field.label|capfirst }}</label>
+                                  <div id="{{ field.name }}" class="form-group">
+                                    {{ field }}
+                                    {{ field.errors.as_ul }}
+                                  </div>
+                                  {% endfor %}
+                                  {% for hidden in funding_form.empty_form.hidden_fields %}
+                                  <div>
+                                    {{ hidden }}
+                                  </div> 
+                                  {% endfor %}
+                                </div>
                               </div>
-                              {% endfor %}
-                              {% for hidden in form.hidden_fields %}
-                              <div>
-                                {{ hidden }}
-                              </div> 
-                              {% endfor %}
                             </div>
-                          </div>
-                          {% endif %}
-                          {% endfor %}
-                          
-                          <div class="tab-pane hidden templateContent" id="templateContent" role="tabpanel" >
-                            <div>
-                              
-                              {% for field in funding_form.empty_form.visible_fields %}
-                              <label for="{{ field.name }}">{{ field.label|capfirst }}</label>
-                              <div id="{{ field.name }}" class="form-group">
-                                {{ field }}
-                                {{ field.errors.as_ul }}
-                              </div>
-                              {% endfor %}
-                              {% for hidden in funding_form.empty_form.hidden_fields %}
-                              <div>
-                                {{ hidden }}
-                              </div> 
-                              {% endfor %}
-                            </div>
-                          </div>
-                          
-                        </div>
-                      </div> 
-                    </div> 
-                  </div> 
-                </div>
+                          </div> 
+                        </div> 
+                      </div>
+                    </div>
+                  </div>
                 
                 {% endblock funding_form %}
                 
@@ -368,7 +367,6 @@
                           </div>
                         </div>
                         {% endblock related_identifier_form %} 
-                        
                         
                         {% block category %}
                         <div class="row">
