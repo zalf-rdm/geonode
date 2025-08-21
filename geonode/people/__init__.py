@@ -53,7 +53,7 @@ class Roles(enum.Enum):
     PRODUCER = Role("Producer", False, True, True)
     PROJECT_LEADER = Role("Project Leader", False, True, True)
     PROJECT_MANAGER = Role("Project Manager", False, True, True)
-    PROJECT_MEMBER = Role("project Member", False, True, True)
+    PROJECT_MEMBER = Role("Project Member", False, True, True)
     REGISTRATION_AGENCY = Role("Registration Agency", False, True, True)
     REGISTRATION_AUTHORITY = Role("Registration Authority", False, True, True)
     RELATED_PERSON = Role("Related Person", False, True, True)
