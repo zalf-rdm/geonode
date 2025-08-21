@@ -544,6 +544,8 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
     )
     use_constrains = forms.CharField(label=_("Use Constraints"), required=False, widget=TinyMCE())
     constraints_other = forms.CharField(label=_("Other Constraints"), required=False, widget=TinyMCE())
+    data_lineage = forms.CharField(label=_("Data Lineage"), required=False, widget=TinyMCE())
+    metadata_lineage = forms.CharField(label=_("Metadata Lineage"), required=False, widget=TinyMCE())
 
     restriction_other = forms.ModelMultipleChoiceField(
         RestrictionCodeType.objects.all(),

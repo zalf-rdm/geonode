@@ -399,8 +399,20 @@
       "license_text": ""
     }
   },
-  {
+    {
     "pk": 11,
+    "model": "base.license",
+    "fields": {
+      "identifier": "CC-BY",
+      "name": "CC-BY",
+      "abbreviation": "CC-BY",
+      "description": "https://creativecommons.org/licenses/by/4.0/",
+      "url": "https://creativecommons.org/licenses/by/4.0/legalcode",
+      "license_text": ""
+    }
+  },
+  {
+    "pk": 12,
     "model": "base.license",
     "fields": {
       "identifier": "CC-ND",
@@ -412,7 +424,7 @@
     }
   },
   {
-    "pk": 12,
+    "pk": 13,
     "model": "base.license",
     "fields": {
       "identifier": "CC-NC-SA",
@@ -424,7 +436,7 @@
     }
   },
   {
-    "pk": 12,
+    "pk": 14,
     "model": "base.license",
     "fields": {
       "identifier": "CC-NC-SA",
