@@ -678,7 +678,7 @@ class RelatedIdentifier(models.Model):
     )
     related_identifier_type = models.ForeignKey(RelatedIdentifierType, null=True, blank=True, on_delete=models.CASCADE)
     relation_type = models.ForeignKey(RelationType, null=True, blank=True, on_delete=models.CASCADE)
-
+    description = models.CharField(_("Related Identifier Description"), blank=True, max_length=255, help_text=_("Description of the related identifier"))
     def __str__(self):
         return f"Related Identifier: {self.related_identifier}({self.relation_type}: {self.related_identifier_type})"
 
@@ -1204,7 +1204,6 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         null=True,
         blank=True,
         help_text=related_identifer_help_text,
-        # related_name="related_identifier",
     )
     fundings = models.ManyToManyField(
         Funding, verbose_name=_("Fundings"), null=True, blank=True, help_text=fundings_help_text

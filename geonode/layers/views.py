@@ -245,7 +245,7 @@ def dataset_metadata(
 
     RelatedIdentifierFormset = modelformset_factory(
         RelatedIdentifier,
-        fields=["related_identifier", "related_identifier_type", "relation_type"],
+        fields=["related_identifier", "related_identifier_type", "relation_type", "description"],
         can_delete=True,
         extra=0,
         min_num=1,
