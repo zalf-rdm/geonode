@@ -222,7 +222,7 @@ class SimpleRelatedIdentifierSerializer(DynamicModelSerializer):
     class Meta:
         model = RelatedIdentifier
         name = "RelatedIdentifier"
-        fields = ("related_identifier", "related_identifier_type", "relation_type")
+        fields = ("related_identifier", "related_identifier_type", "relation_type", "description")
 
     related_identifier_type = DynamicRelationField(SimpleRelatedIdentifierType, embed=True, many=False)
     relation_type = DynamicRelationField(SimpleRelationType, embed=True, many=False)
