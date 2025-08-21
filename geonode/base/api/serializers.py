@@ -248,7 +248,7 @@ class SimpleRelatedProjectSerializer(DynamicModelSerializer):
     class Meta:
         model = RelatedProject
         name = "RelatedProject"
-        fields = ("label", "display_name")
+        fields = ("label", "display_name", "description")
 
 
 class SimpleResourceSerializer(DynamicModelSerializer):
