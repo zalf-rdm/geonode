@@ -2388,6 +2388,8 @@ ADVANCED_EDIT_EXCLUDE_FIELD = [ # base
                                "metadata", 
                                "resource_type",
                                "spatial_representation_type",
+                               "attribution",
+                               "metadata_uploaded_preserve",
                                 # datasets
                                 "sourcetype",
                                "thumbnail_url", 

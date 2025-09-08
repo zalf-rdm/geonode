@@ -761,9 +761,9 @@ class RelatedProject(models.Model):
         help_text=label_help_text,
         unique=True,
     )
-
     display_name = models.CharField(_("Display Name"), max_length=255, help_text=display_name_help_text)
-
+    description = models.CharField(_("Related Project Description"), blank=True, max_length=255, help_text=_("Description of the related project"))
+    
     def __str__(self):
         return f"{self.display_name}"
 
@@ -860,7 +860,7 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         "This is the degree of conformity of the dataset to the implementing rules the BonaRes Schema."
     )
     conformity_explanation_help_text = _(
-        "Give an Explanation about the conformity check. (e.g. See the referenced specification."
+        "Give an Explanation about the conformity check. (e.g. See the referenced specification.)"
     )
     parent_identifier_help_text = _(
         "A file identifier of the metadata to which this metadata is a subset (child). (e.g. 73c0f49f-1502-48ee-b038-052563f36527)"

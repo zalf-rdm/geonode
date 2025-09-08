@@ -453,7 +453,7 @@
     "fields": {
       "is_choice": true,
       "gn_description": "exclusive right to the publication, production, or sale of the rights to a literary, dramatic, musical, or artistic work, or to the use of a commercial print or label, granted by law for a specified period of time to an author, composer, artist, distributor",
-      "identifier": "copyright",
+      "identifier": "Copyright",
       "description": "exclusive right to the publication, production, or sale of the rights to a literary, dramatic, musical, or artistic work, or to the use of a commercial print or label, granted by law for a specified period of time to an author, composer, artist, distributor"
     }
   },
@@ -463,7 +463,7 @@
     "fields": {
       "is_choice": true,
       "gn_description": "rights to financial benefit from and control of distribution of non-tangible property that is a result of creativity",
-      "identifier": "intellectualPropertyRights",
+      "identifier": "Intellectual Property Rights",
       "description": "rights to financial benefit from and control of distribution of non-tangible property that is a result of creativity"
     }
   },
@@ -473,7 +473,7 @@
     "fields": {
       "is_choice": true,
       "gn_description": "formal permission to do something",
-      "identifier": "license",
+      "identifier": "License",
       "description": "formal permission to do something"
     }
   },
@@ -483,7 +483,7 @@
     "fields": {
       "is_choice": true,
       "gn_description": "otherRestrictions",
-      "identifier": "limitation not listed",
+      "identifier": "Limitation Not Listed",
       "description": "otherRestrictions"
     }
   },
@@ -493,7 +493,7 @@
     "fields": {
       "is_choice": true,
       "gn_description": "government has granted exclusive right to make, sell, use or license an invention or discovery",
-      "identifier": "patent",
+      "identifier": "Patent",
       "description": "government has granted exclusive right to make, sell, use or license an invention or discovery"
     }
   },
@@ -503,7 +503,7 @@
     "fields": {
       "is_choice": true,
       "gn_description": "produced or sold information awaiting a patent",
-      "identifier": "patentPending",
+      "identifier": "Patent Pending",
       "description": "produced or sold information awaiting a patent"
     }
   },
@@ -513,7 +513,7 @@
     "fields": {
       "is_choice": true,
       "gn_description": "withheld from general circulation or disclosure",
-      "identifier": "restricted",
+      "identifier": "Restricted",
       "description": "withheld from general circulation or disclosure"
     }
   },
@@ -523,7 +523,7 @@
     "fields": {
       "is_choice": true,
       "gn_description": "a name, symbol, or other device identifying a product, officially registered and legally restricted to the use of the owner or manufacturer",
-      "identifier": "trademark",
+      "identifier": "Trademark",
       "description": "a name, symbol, or other device identifying a product, officially registered and legally restricted to the use of the owner or manufacturer"
     }
   },
