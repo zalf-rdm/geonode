@@ -707,11 +707,11 @@ LOGGING = {
     },
     "loggers": {
         "django": {
-            'class': 'logging.StreamHandler',
+            'handlers': ['console'],
             "level": "INFO",
         },
         "geonode": {
-            'class': 'logging.StreamHandler',
+            'handlers': ['console'],
             "level": "INFO",
         },
         "geonode.br": {"level": "INFO", "handlers": ["br"], "propagate": False},
