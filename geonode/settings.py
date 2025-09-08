@@ -707,10 +707,12 @@ LOGGING = {
     },
     "loggers": {
         "django": {
-            "level": "WARN",
+            'handlers': ['console'],
+            "level": "INFO",
         },
         "geonode": {
-            "level": "WARN",
+            'handlers': ['console'],
+            "level": "INFO",
         },
         "geonode.br": {"level": "INFO", "handlers": ["br"], "propagate": False},
         "geoserver-restconfig.catalog": {
@@ -726,7 +728,7 @@ LOGGING = {
             "level": "WARN",
         },
         "mapstore2_adapter.plugins.serializers": {
-            "level": "ERROR",
+            "level": "WARN",
         },
         "geonode_logstash.logstash": {
             "level": "ERROR",
