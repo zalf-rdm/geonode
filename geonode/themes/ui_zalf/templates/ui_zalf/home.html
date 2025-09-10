@@ -9,10 +9,13 @@
   <link rel="stylesheet" href="{% static 'ui_zalf/css/style.css' %}">
 {% endblock %}
 
+
+
 {% block extra_script %}
   {{ block.super }}
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js" defer></script>
+  <script>document.documentElement.classList.add('has-anim');</script>
   <script src="{% static 'ui_zalf/js/main.js' %}" defer></script>
 {% endblock %}
 
@@ -20,7 +23,13 @@
 
 
 
-{% block body %}
+{% block middle %}
+  {# Se quiser manter os avisos, pode envolvê-los em um container #}
+  <div class="container">
+    {% include "_status_message.html" %}
+    {% include "_announcements.html" %}
+    {% include "_messages.html" %}
+  </div>
 
 <!-- ============================== HERO ============================== -->
 <header class="hero reveal" role="banner" aria-label="{% trans 'Hero' %}">

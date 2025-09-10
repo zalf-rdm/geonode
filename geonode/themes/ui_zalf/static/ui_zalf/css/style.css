@@ -1,4 +1,3 @@
-
 /* Base background & typography already defined; extend hero look */
 body.msgapi {
     background: linear-gradient(180deg, #f9fbfb 0%, #f6faf6 100%);
@@ -78,6 +77,13 @@ body.msgapi .hero-decor {
     position: absolute;
     inset: 0;
     pointer-events: none;
+    z-index: 0;
+}
+
+body.msgapi .hero>.container {
+    position: relative;
+    z-index: 2;
+    /* <<< in front */
 }
 
 body.msgapi .particle {
@@ -102,6 +108,7 @@ body.msgapi .hero-svg {
     width: 140%;
     max-width: none;
     opacity: .9;
+    z-index: 0;
 }
 
 /* Stats */
@@ -319,14 +326,14 @@ body.msgapi .skip-anim {
 
 /* Reveals */
 body.msgapi .fade-up {
-    opacity: 0;
-    transform: translateY(24px);
-}
-
-/* quando html tiver .no-anim, desativa as transições para o conteúdo do body.msgapi */
-.no-anim body.msgapi .fade-up {
     opacity: 1;
     transform: none;
+}
+
+/* when html has .no-anim, disables transitions for body.msgapi content */
+html.has-anim body.msgapi .fade-up {
+    opacity: 0;
+    transform: translateY(24px);
 }
 
 /* Responsive tweaks */
