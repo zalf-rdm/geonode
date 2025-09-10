@@ -1,11 +1,12 @@
-/* Base background & typography already defined; extend hero look */
+/* General background */
 body.msgapi {
     background: linear-gradient(180deg, #f9fbfb 0%, #f6faf6 100%);
 }
 
-/* Hero */
+/* HERO */
 body.msgapi .hero {
     position: relative;
+    /* context for internal z-index */
     min-height: 92vh;
     display: flex;
     align-items: center;
@@ -16,6 +17,22 @@ body.msgapi .hero {
         linear-gradient(180deg, #ffffff 0%, #f4fbf6 100%);
     border-bottom: 1px solid var(--zalf-line, #e6ecf0);
     padding: 60px 0 40px;
+}
+
+/* Decorative layer (SVG + particles) behind content */
+body.msgapi .hero-decor {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    /* behind */
+}
+
+/* Hero content in front of decor */
+body.msgapi .hero>.container {
+    position: relative;
+    z-index: 2;
+    /* in front */
 }
 
 body.msgapi .hero-eyebrow {
@@ -37,7 +54,7 @@ body.msgapi .hero .zalf-hero-title {
     color: #233044;
 }
 
-@media (min-width:992px) {
+@media (min-width: 992px) {
     body.msgapi .hero .zalf-hero-title {
         font-size: 54px;
     }
@@ -73,19 +90,24 @@ body.msgapi .btn-ghost {
     color: var(--zalf-text, #172026);
 }
 
-body.msgapi .hero-decor {
+body.msgapi .hero-svg {
     position: absolute;
-    inset: 0;
-    pointer-events: none;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    width: 100vw;
+    /* ocupa toda a largura da viewport */
+    max-width: none;
+    height: auto;
+    opacity: 0.9;
     z-index: 0;
+    /* Impede qualquer vazamento horizontal */
+    min-width: 100%;
+    pointer-events: none;
+    transform: translateX(-50%);
+    /* opcional: não interfere em cliques */
 }
-
-body.msgapi .hero>.container {
-    position: relative;
-    z-index: 2;
-    /* <<< in front */
-}
-
+/* Particles (visual style only; movement handled by GSAP) */
 body.msgapi .particle {
     position: absolute;
     width: 10px;
@@ -98,17 +120,6 @@ body.msgapi .particle {
 
 body.msgapi .particle.p2 {
     background: rgba(135, 197, 198, .25);
-}
-
-body.msgapi .hero-svg {
-    position: absolute;
-    left: 50%;
-    bottom: -1px;
-    transform: translateX(-50%);
-    width: 140%;
-    max-width: none;
-    opacity: .9;
-    z-index: 0;
 }
 
 /* Stats */
@@ -145,7 +156,7 @@ body.msgapi .stat .lbl {
     margin-top: 6px;
 }
 
-/* Featured categories */
+/* Cards / categories */
 body.msgapi .cat-card {
     position: relative;
     background: #fff;
@@ -183,7 +194,7 @@ body.msgapi .cat-desc {
     font-size: 13px;
 }
 
-/* Dataset spotlight cards */
+/* Spotlight datasets */
 body.msgapi .ds-card {
     background: #fff;
     border: 1px solid var(--zalf-line, #e6ecf0);
@@ -223,7 +234,7 @@ body.msgapi .ds-actions {
     background: #fafdfb;
 }
 
-/* Logos marquee */
+/* Logos (marquee animated in JS) */
 body.msgapi .logos-wrap {
     overflow: hidden;
     border-top: 1px solid var(--zalf-line, #e6ecf0);
@@ -253,7 +264,9 @@ body.msgapi .logo {
     letter-spacing: .4px;
 }
 
-/* News & Newsletter */
+
+
+/* News & newsletter */
 body.msgapi .news-item {
     background: #fff;
     border: 1px solid var(--zalf-line, #e6ecf0);
@@ -314,6 +327,7 @@ body.msgapi .form-floating input:not(:placeholder-shown)+label {
     color: #2e7d32;
 }
 
+/* Button to skip animation */
 body.msgapi .skip-anim {
     display: inline-block;
     margin-left: 8px;
@@ -324,19 +338,25 @@ body.msgapi .skip-anim {
     cursor: pointer;
 }
 
-/* Reveals */
 body.msgapi .fade-up {
-    opacity: 1;
-    transform: none;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    /* no declarative transitions so GSAP keeps control */
+    transition: none !important;
 }
 
-/* when html has .no-anim, disables transitions for body.msgapi content */
-html.has-anim body.msgapi .fade-up {
-    opacity: 0;
-    transform: translateY(24px);
+/* Accessibility: when .no-anim is on <html>, everything stays visible */
+html.no-anim body.msgapi .fade-up {
+    opacity: 1 !important;
+    transform: none !important;
 }
 
-/* Responsive tweaks */
+/* Utilities */
+body.msgapi .btn-rounded {
+    border-radius: 999px;
+}
+
+/* Responsive */
 @media (max-width: 767px) {
     body.msgapi .hero {
         padding: 48px 0 36px;
@@ -347,6 +367,3 @@ html.has-anim body.msgapi .fade-up {
     }
 }
 
-body.msgapi .btn-rounded {
-    border-radius: 999px;
-}

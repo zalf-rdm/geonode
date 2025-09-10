@@ -1,75 +1,83 @@
 // geonode/themes/ui_zalf/static/ui_zalf/js/main.js
 (function () {
+  'use strict';
   console.log('[ui_zalf] main.js loaded');
-  var docEl = document.documentElement;
-
-  // Se esqueceram de setar 'has-anim' no HTML e também não está em 'no-anim', força 'has-anim' (FOUC mínimo)
-  if (!docEl.classList.contains('has-anim') && !docEl.classList.contains('no-anim')) {
-    docEl.classList.add('has-anim');
-  }
 
   var prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var $ = function (sel, root) { return (root || document).querySelector(sel); };
+  var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
 
-  function $all(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
-  function $(sel, root) { return (root || document).querySelector(sel); }
-
-  function revealFallback() {
-    // Mostra tudo e desativa animações
-    docEl.classList.remove('has-anim');
-    docEl.classList.add('no-anim');
-    $all('.fade-up').forEach(function (el) {
-      el.style.opacity = 1;
-      el.style.transform = 'none';
-    });
+  function ready(fn) {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+    else fn();
   }
 
-  function initAnimations() {
-    var reduced = prefersReduced || docEl.classList.contains('no-anim');
+  ready(function () {
+    var gsap = window.gsap;
+    var ST = window.ScrollTrigger;
 
-    if (reduced) {
-      revealFallback();
-      bindToggle(); // ainda habilita o botão para reativar
+    if (!gsap) {
+      console.warn('[ui_zalf] GSAP not found; skipping animations.');
       return;
     }
+    if (ST) gsap.registerPlugin(ST);
 
-    if (!window.gsap) {
-      console.warn('[ui_zalf] GSAP not found; fallback.');
-      revealFallback();
-      bindToggle();
-      return;
-    }
+    var reduced = prefersReduced || document.documentElement.classList.contains('no-anim');
 
-    // ---------- Setup GSAP ----------
-    gsap.registerPlugin(window.ScrollTrigger || {});
-
-    // Estado inicial dos elementos que revelam no scroll
-    if (docEl.classList.contains('has-anim')) {
+    // ---------- ESTADOS INICIAIS (sem CSS)
+    if (!reduced) {
       gsap.set('.fade-up', { autoAlpha: 0, y: 24 });
     } else {
-      // visível se por acaso não estiver com has-anim
-      $all('.fade-up').forEach(function (el) { el.style.opacity = 1; el.style.transform = 'none'; });
+      $$('.fade-up').forEach(function (el) { el.style.opacity = 1; el.style.transform = 'none'; });
     }
 
-    // ---------- Hero intro ----------
-    var heroTl = gsap.timeline({ defaults: { ease: 'power2.out', duration: 0.7 } });
-    heroTl
-      .from('.hero-eyebrow', { y: 12, autoAlpha: 0 })
-      .from('.zalf-hero-title', { y: 18, autoAlpha: 0 }, '-=0.4')
-      .from('.zalf-hero-sub', { y: 16, autoAlpha: 0 }, '-=0.4')
-      .from('.zalf-searchbar', { y: 16, autoAlpha: 0 }, '-=0.35')
-      .from('.hero-cta .btn', { y: 12, autoAlpha: 0, stagger: 0.08 }, '-=0.35')
-      .from('.hero-svg', { y: 20, autoAlpha: 0 }, '-=0.45');
+    // ---------- HERO INTRO
+    if (!reduced) {
+      var tl = gsap.timeline({ defaults: { ease: 'power2.out', duration: 0.7 } });
+      tl.from('.hero-eyebrow', { y: 12, autoAlpha: 0 })
+        .from('.zalf-hero-title', { y: 18, autoAlpha: 0 }, '-=0.4')
+        .from('.zalf-hero-sub', { y: 16, autoAlpha: 0 }, '-=0.4')
+        .from('.zalf-searchbar', { y: 16, autoAlpha: 0 }, '-=0.35')
+        .from('.hero-cta .btn', { y: 12, autoAlpha: 0, stagger: 0.08 }, '-=0.35')
+        .from('.hero-svg', { y: 20, autoAlpha: 0 }, '-=0.45');
+    }
 
-    // ---------- Floating particles ----------
-    $all('.particle').forEach(function (p) {
-      var dx = gsap.utils.random(-10, 10, 1, true);
-      var dy = gsap.utils.random(-8, 8, 1, true);
-      var d = gsap.utils.random(3, 6, 0.1, true);
-      gsap.to(p, { x: dx, y: dy, duration: d, yoyo: true, repeat: -1, ease: 'sine.inOut' });
-    });
+    // ---------- PARALLAX SUAVE DAS CRISTAS DO SVG AO ROLAR
+    if (!reduced && ST && $('.hero-svg')) {
+      gsap.to('#ridge1', {
+        yPercent: -6,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: '.hero',
+          start: 'top top',
+          end: 'bottom top',
+          scrub: true
+        }
+      });
+      gsap.to('#ridge2', {
+        yPercent: -12,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: '.hero',
+          start: 'top top',
+          end: 'bottom top',
+          scrub: true
+        }
+      });
+    }
 
-    // ---------- Scroll reveals ----------
-    if (window.ScrollTrigger) {
+    // ---------- PARTÍCULAS FLUTUANDO
+    if (!reduced) {
+      $$('.particle').forEach(function (p) {
+        var dx = gsap.utils.random(-10, 10, 1, true);
+        var dy = gsap.utils.random(-8, 8, 1, true);
+        var d = gsap.utils.random(3, 6, 0.1, true);
+        gsap.to(p, { x: dx, y: dy, duration: d, yoyo: true, repeat: -1, ease: 'sine.inOut' });
+      });
+    }
+
+    // ---------- REVEAL ON SCROLL
+    if (!reduced && ST) {
       gsap.utils.toArray('.fade-up').forEach(function (el) {
         gsap.to(el, {
           y: 0,
@@ -83,108 +91,132 @@
           }
         });
       });
-    } else {
-      // Sem ScrollTrigger, revela direto
-      $all('.fade-up').forEach(function (el) {
-        gsap.to(el, { y: 0, autoAlpha: 1, duration: 0.6, ease: 'power2.out' });
-      });
     }
 
-    // ---------- Stats counters ----------
-    var nums = $all('.stat .num[data-count]');
-    if (nums.length) {
-      nums.forEach(function (node) {
-        var target = parseFloat(node.getAttribute('data-count')) || 0;
-        var obj = { val: 0 };
-        var fmt = function (v) { return (v >= 1000) ? Math.round(v).toLocaleString() : Math.round(v); };
-        var counterTween = gsap.to(obj, {
-          val: target,
-          paused: true,
-          duration: gsap.utils.clamp(0.8, 1.8, target / 500),
-          ease: 'power1.out',
-          onUpdate: function () { node.textContent = fmt(obj.val); }
-        });
+    // ---------- CONTADORES DAS STATS
+    (function statsCounters() {
+  // Select all counter elements
+  var nodes = $$('.stat .num[data-count]');
+  if (!nodes.length) return;
 
-        if (window.ScrollTrigger) {
-          ScrollTrigger.create({
-            trigger: node,
-            start: 'top 90%',
-            once: true,
-            onEnter: function () { counterTween.play(); }
+  // Fallback for reduced motion preference
+  if (reduced) {
+    nodes.forEach(function (n) {
+      n.textContent = (+n.getAttribute('data-count') || 0).toLocaleString();
+    });
+    return;
+  }
+
+  // Animate each counter with smooth interpolation
+  nodes.forEach(function (n, index) {
+    // Parse target number from data attribute
+    var target = parseFloat(n.getAttribute('data-count')) || 0;
+
+    // Animation object — keep value as float for smooth interpolation
+    var obj = { v: 0 };
+
+    // Format function: round ONLY for display, never during animation
+    var fmt = function (x) {
+      var rounded = Math.round(x);
+      return rounded.toLocaleString(); // Add commas for thousands
+    };
+
+    // Dynamic duration: longer for larger numbers (min 1.2s, max 3.0s)
+    var duration = gsap.utils.clamp(1.2, 3.0, target / 300);
+
+    // Use 'expo.out' for natural easing — starts fast, ends smooth (perfect for counters)
+    var ease = 'expo.out';
+
+    // Create GSAP tween
+    var tween = gsap.to(obj, {
+      v: target,
+      duration: duration,
+      ease: ease,
+      paused: true,
+      onUpdate: function () {
+        // Update DOM text — format only here to preserve animation smoothness
+        n.textContent = fmt(obj.v);
+      }
+    });
+
+    // Trigger animation on scroll (if ScrollTrigger is available)
+    if (ST) {
+      ST.create({
+        trigger: n,
+        start: 'top 90%',
+        onEnter: function () {
+          // Optional: staggered delay for sequential animation (0.1s per item)
+          gsap.delayedCall(index * 0.1, function () {
+            tween.play();
           });
-        } else {
-          counterTween.play();
-        }
+        },
+        once: true // Animate only once
+      });
+    } else {
+      // Fallback: animate immediately with staggered delay
+      gsap.delayedCall(index * 0.1, function () {
+        tween.play();
       });
     }
+  });
+})();
 
-    // ---------- Logos marquee ----------
+    // ---------- MARQUEE DOS LOGOS
     (function marquee() {
       var wrap = $('.logos-wrap');
       var track = $('.logos', wrap);
       if (!wrap || !track) return;
+      if (reduced) return;
 
-      var totalW = track.scrollWidth; // largura do conteúdo (já duplicado no HTML)
-      var speed = 40; // px/s
+      var tl;
+      function build() {
+        if (tl) tl.kill();
+        gsap.set(track, { x: 0 });
+        // largura total do conteúdo
+        var totalW = track.scrollWidth;
+        var speed = 40; // px/s
+        // anima de 0 até -metade (HTML já tem itens duplicados)
+        tl = gsap.to(track, {
+          x: -totalW / 2,
+          duration: (totalW / 2) / speed,
+          ease: 'linear',
+          repeat: -1
+        });
+      }
 
-      gsap.set(track, { x: 0 });
-      gsap.to(track, {
-        x: -totalW / 2,
-        duration: (totalW / 2) / speed,
-        ease: 'none',
-        repeat: -1,
-        modifiers: {
-          x: function (x) {
-            var nx = parseFloat(x);
-            if (Math.abs(nx) >= totalW / 2) nx = 0;
-            return nx + 'px';
-          }
-        }
+      build();
+      // Recalcula em resize debounced
+      var to;
+      window.addEventListener('resize', function () {
+        clearTimeout(to);
+        to = setTimeout(build, 200);
       });
     })();
 
-    bindToggle();
-  }
+    
+  });
 
-  function bindToggle() {
-    var toggle = $('#toggle-anim');
-    if (!toggle || toggle.__bound) return;
-    toggle.__bound = true;
+  let resizeTimer;
 
-    toggle.addEventListener('click', function () {
-      var disabled = docEl.classList.contains('no-anim');
+function centerHeroSvg() {
+    const svg = document.querySelector('.hero-svg');
+    if (!svg) return;
 
-      if (disabled) {
-        // Re-ativar animações
-        docEl.classList.remove('no-anim');
-        docEl.classList.add('has-anim');
-        toggle.setAttribute('aria-pressed', 'false');
-        toggle.textContent = 'Skip Animation';
-        // reinicializa animações
-        initAnimations();
-      } else {
-        // Desligar animações
-        if (window.ScrollTrigger) ScrollTrigger.getAll().forEach(function (st) { st.kill(); });
-        if (window.gsap) gsap.globalTimeline.clear();
-        revealFallback();
-        toggle.setAttribute('aria-pressed', 'true');
-        toggle.textContent = 'Enable Animation';
-      }
-    });
-  }
+    const vw = window.innerWidth;
 
-  // Inicialização
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAnimations);
-  } else {
-    initAnimations();
-  }
+    gsap.set(svg, { clearProps: "transform" }); 
+}
 
-  // Segurança: se GSAP não carregar em até 2s e estamos com has-anim, faz fallback
-  setTimeout(function () {
-    if (docEl.classList.contains('has-anim') && typeof window.gsap === 'undefined') {
-      console.warn('[ui_zalf] GSAP did not load. Falling back.');
-      revealFallback();
-    }
-  }, 2000);
+// Executa ao carregar
+centerHeroSvg();
+
+// Executa ao redimensionar
+window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+        centerHeroSvg();
+    }, 250);
+});
 })();
+
+
