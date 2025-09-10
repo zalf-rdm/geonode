@@ -25,7 +25,7 @@ from django.conf import settings
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.conf.urls.static import static
 from geonode.sitemap import DatasetSitemap, MapSitemap
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, RedirectView
 from django.contrib import admin
 from django.conf.urls.i18n import i18n_patterns
 from django.views.i18n import JavaScriptCatalog
@@ -54,7 +54,8 @@ sitemaps = {"dataset": DatasetSitemap, "map": MapSitemap}
 homepage = register_url_event()(TemplateView.as_view(template_name="index.html"))
 
 urlpatterns = [
-    re_path(r"^$", homepage, name="home"),
+    # re_path(r"^$", homepage, name="home"),
+    re_path(r"^$", TemplateView.as_view(template_name="ui_zalf/home.html"), name="home"),
     re_path(r"^help/$", TemplateView.as_view(template_name="help.html"), name="help"),
     re_path(r"^developer/$", TemplateView.as_view(template_name="developer.html"), name="developer"),
     re_path(r"^about/$", TemplateView.as_view(template_name="about.html"), name="about"),
@@ -211,4 +212,14 @@ if settings.MONITORING_ENABLED:
 # Internationalization Javascript
 urlpatterns += [
     re_path(r"^metadata_update_redirect$", views.metadata_update_redirect, name="metadata_update_redirect"),
+]
+
+
+# additionals
+urlpatterns += [
+    re_path(
+        r"^search/$",
+        RedirectView.as_view(pattern_name="layer_browse", query_string=True, permanent=False),
+        name="search",
+    ),
 ]

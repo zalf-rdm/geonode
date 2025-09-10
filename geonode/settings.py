@@ -707,11 +707,11 @@ LOGGING = {
     },
     "loggers": {
         "django": {
-            'handlers': ['console'],
+            "handlers": ["console"],
             "level": "INFO",
         },
         "geonode": {
-            'handlers': ['console'],
+            "handlers": ["console"],
             "level": "INFO",
         },
         "geonode.br": {"level": "INFO", "handlers": ["br"], "propagate": False},
@@ -793,7 +793,10 @@ TEMPLATES = [
     {
         "NAME": "GeoNode Project Templates",
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [os.path.join(PROJECT_ROOT, "templates")],
+        "DIRS": [
+            os.path.join(PROJECT_ROOT, "themes", "ui_zalf", "templates"),
+            os.path.join(PROJECT_ROOT, "templates"),
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": CONTEXT_PROCESSORS,
@@ -2384,24 +2387,35 @@ AVATAR_CHANGE_TEMPLATE = "people/avatar/change.html"
 AVATAR_DELETE_TEMPLATE = "people/avatar/confirm_delete.html"
 
 # disable certain fields from advanded metadata editor
-ADVANCED_EDIT_EXCLUDE_FIELD = [ # base
-                               "fundings", 
-                               "metadata_only", 
-                               "metadata", 
-                               "resource_type",
-                               "spatial_representation_type",
-                               "attribution",
-                               "metadata_uploaded_preserve",
-                                # datasets
-                                "sourcetype",
-                               "thumbnail_url", 
-                               "thumbnail_path",
-                               "csw_typename",
-                               "remote_typename",
-                               "typename",
-                               "ptype",
-                               # maps
-                               "alternate",
-                               "subtype",
-                               "featuredurl"
-                               ]
+ADVANCED_EDIT_EXCLUDE_FIELD = [  # base
+    "fundings",
+    "metadata_only",
+    "metadata",
+    "resource_type",
+    "spatial_representation_type",
+    "attribution",
+    "metadata_uploaded_preserve",
+    # datasets
+    "sourcetype",
+    "thumbnail_url",
+    "thumbnail_path",
+    "csw_typename",
+    "remote_typename",
+    "typename",
+    "ptype",
+    # maps
+    "alternate",
+    "subtype",
+    "featuredurl",
+]
+
+THEME = "ui_zalf"
+THEME_STATIC_DIR = os.path.join(PROJECT_ROOT, "themes", THEME, "static")
+
+if isinstance(STATICFILES_DIRS, (list, tuple)):
+    STATICFILES_DIRS = list(STATICFILES_DIRS)
+else:
+    STATICFILES_DIRS = [STATICFILES_DIRS]
+
+if THEME_STATIC_DIR not in STATICFILES_DIRS:
+    STATICFILES_DIRS.append(THEME_STATIC_DIR)

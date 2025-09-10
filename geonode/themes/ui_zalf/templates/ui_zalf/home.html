@@ -1,0 +1,306 @@
+<!-- geonode/themes/ui_zalf/templates/ui_zalf/home.html -->
+{% extends "ui_zalf/base.html" %}
+{% load i18n static %}
+{% comment %} {% block body_class %}home gn-theme ui-zalf{% endblock %} {% endcomment %}
+{% block body_class %}msgapi{% endblock %}
+
+{% block extra_head %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'ui_zalf/css/style.css' %}">
+{% endblock %}
+
+{% block extra_script %}
+  {{ block.super }}
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js" defer></script>
+  <script src="{% static 'ui_zalf/js/main.js' %}" defer></script>
+{% endblock %}
+
+{% block title %}ZALF GeoNode — {% trans "Home" %}{% endblock %}
+
+
+
+{% block body %}
+
+<!-- ============================== HERO ============================== -->
+<header class="hero reveal" role="banner" aria-label="{% trans 'Hero' %}">
+  <div class="hero-decor" aria-hidden="true">
+    <!-- Decorative particles -->
+    <span class="particle" style="left:8%; top:22%"></span>
+    <span class="particle p2" style="left:18%; top:58%"></span>
+    <span class="particle" style="left:38%; top:18%"></span>
+    <span class="particle p2" style="left:64%; top:32%"></span>
+    <span class="particle" style="left:78%; top:66%"></span>
+    <span class="particle p2" style="left:90%; top:24%"></span>
+
+    <!-- Abstract SVG landscape -->
+    <svg class="hero-svg" viewBox="0 0 1600 380" preserveAspectRatio="xMidYMax slice">
+      <defs>
+        <linearGradient id="g1" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0%" stop-color="#5fbf72" stop-opacity=".35" />
+          <stop offset="100%" stop-color="#87c5c6" stop-opacity=".35" />
+        </linearGradient>
+        <linearGradient id="g2" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0%" stop-color="#2e7d32" stop-opacity=".10" />
+          <stop offset="100%" stop-color="#7cb342" stop-opacity=".10" />
+        </linearGradient>
+      </defs>
+      <path id="ridge1" d="M0,240 C220,180 420,260 640,210 C840,166 1060,260 1260,230 C1420,205 1600,250 1600,250 L1600,380 L0,380 Z" fill="url(#g1)" />
+      <path id="ridge2" d="M0,270 C260,250 460,300 680,260 C900,220 1120,300 1320,280 C1480,265 1600,300 1600,300 L1600,380 L0,380 Z" fill="url(#g2)" />
+    </svg>
+  </div>
+
+  <div class="container">
+    <span class="hero-eyebrow">{% trans "Official Repository · ZALF" %}</span>
+    <h1 class="zalf-hero-title">
+      {% trans "Open Geospatial & Agricultural Data for Sustainable Landscapes" %}
+    </h1>
+    <p class="zalf-hero-sub">
+      {% trans "Discover, visualize, and share high-quality datasets powering open science, policy, and innovation." %}
+    </p>
+
+    {# Search -> MapStore catalogue #}
+    <form role="search" class="zalf-searchbar"
+          onsubmit="window.location.href='/catalogue/#/search?q=' + encodeURIComponent(document.getElementById('zalf-q').value); return false;"
+          aria-label="{% trans 'Site search' %}">
+      <label for="zalf-q" class="sr-only">{% trans "Search datasets, maps, documents" %}</label>
+      <div class="input-group input-group-lg">
+        <input id="zalf-q" type="search" class="form-control" placeholder="{% trans 'Search datasets, maps, documents…' %}">
+        <span class="input-group-btn">
+          <button type="submit" class="btn btn-primary btn-rounded">{% trans "Search" %}</button>
+        </span>
+      </div>
+    </form>
+
+    <div class="hero-cta">
+      <a href="/catalogue/#/datasets" class="btn btn-primary-za btn-lg">{% trans "Explore Datasets" %}</a>
+      <a href="/catalogue/#/maps" class="btn btn-ghost btn-lg">{% trans "Browse Maps" %}</a>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats" aria-label="{% trans 'Repository statistics' %}">
+      <div class="stat">
+        <div class="num" data-count="{{ datasets_count|default:1280 }}">0</div>
+        <div class="lbl">{% trans "Datasets" %}</div>
+      </div>
+      <div class="stat">
+        <div class="num" data-count="{{ users_count|default:540 }}">0</div>
+        <div class="lbl">{% trans "Users" %}</div>
+      </div>
+      <div class="stat">
+        <div class="num" data-count="{{ countries_count|default:24 }}">0</div>
+        <div class="lbl">{% trans "Countries" %}</div>
+      </div>
+      <div class="stat">
+        <div class="num" data-count="{{ maps_count|default:310 }}">0</div>
+        <div class="lbl">{% trans "Maps & Layers" %}</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ============================== FEATURED CATEGORIES ============================== -->
+<section class="section" aria-labelledby="cats-title">
+  <div class="container">
+    <h2 id="cats-title" class="section-title fade-up">{% trans "Featured Categories" %}</h2>
+    <p class="section-subtitle fade-up" style="max-width:760px">{% trans "Explore thematic collections curated by ZALF scientists." %}</p>
+
+    <div class="row">
+      <div class="col-sm-6 col-md-3 fade-up">
+        <article class="cat-card" role="link" tabindex="0" onclick="location.href='/catalogue/#/search?q=soil'">
+          <div class="cat-icon" aria-hidden="true">
+            <span class="glyphicon glyphicon-grain"></span>
+          </div>
+          <h3 class="cat-title">{% trans "Soil" %}</h3>
+          <p class="cat-desc">{% trans "Profiles, chemistry, and soil functions across landscapes." %}</p>
+        </article>
+      </div>
+      <div class="col-sm-6 col-md-3 fade-up" style="transition-delay:.05s">
+        <article class="cat-card" role="link" tabindex="0" onclick="location.href='/catalogue/#/search?q=water'">
+          <div class="cat-icon" aria-hidden="true">
+            <span class="glyphicon glyphicon-tint"></span>
+          </div>
+          <h3 class="cat-title">{% trans "Water" %}</h3>
+          <p class="cat-desc">{% trans "Hydrology, quality, and availability for resilient agro-ecosystems." %}</p>
+        </article>
+      </div>
+      <div class="col-sm-6 col-md-3 fade-up" style="transition-delay:.1s">
+        <article class="cat-card" role="link" tabindex="0" onclick="location.href='/catalogue/#/search?q=climate'">
+          <div class="cat-icon" aria-hidden="true">
+            <span class="glyphicon glyphicon-cloud"></span>
+          </div>
+          <h3 class="cat-title">{% trans "Climate" %}</h3>
+          <p class="cat-desc">{% trans "Weather, extremes, and long-term trends impacting agriculture." %}</p>
+        </article>
+      </div>
+      <div class="col-sm-6 col-md-3 fade-up" style="transition-delay:.15s">
+        <article class="cat-card" role="link" tabindex="0" onclick="location.href='/catalogue/#/search?q=biodiversity'">
+          <div class="cat-icon" aria-hidden="true">
+            <span class="glyphicon glyphicon-leaf"></span>
+          </div>
+          <h3 class="cat-title">{% trans "Biodiversity" %}</h3>
+          <p class="cat-desc">{% trans "Species, habitats, and ecosystem services in agro-landscapes." %}</p>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== DATA SPOTLIGHT ============================== -->
+<section class="section" aria-labelledby="spot-title">
+  <div class="container">
+    <h2 id="spot-title" class="section-title fade-up">{% trans "Data Spotlight" %}</h2>
+    <p class="section-subtitle fade-up">{% trans "Featured datasets selected for scientific relevance and reusability." %}</p>
+
+    <div class="row">
+      <div class="col-sm-6 col-md-4 fade-up">
+        <article class="ds-card" itemscope itemtype="https://schema.org/Dataset">
+          <div class="ds-thumb" aria-hidden="true"></div>
+          <div class="ds-body">
+            <h3 class="ds-title" itemprop="name">{{ featured_1_title|default:_("Soil Organic Carbon in Brandenburg") }}</h3>
+            <div class="ds-meta">
+              {% trans "Updated" %}: <time itemprop="dateModified">{{ featured_1_date|default:"2025-06-12" }}</time> · {% trans "Format" %}: GeoTIFF
+            </div>
+            <p class="mb-0" itemprop="description">
+              {{ featured_1_desc|default:_("High-resolution soil organic carbon estimates for agricultural landscapes.") }}
+            </p>
+          </div>
+          <div class="ds-actions">
+            <a class="btn btn-primary-za btn-sm" href="{{ featured_1_url|default:'/catalogue/#/datasets' }}">{% trans "View" %}</a>
+            <a class="btn btn-ghost btn-sm" href="{{ featured_1_url|default:'/catalogue/#/datasets' }}#download">{% trans "Download" %}</a>
+          </div>
+        </article>
+      </div>
+
+      <div class="col-sm-6 col-md-4 fade-up" style="transition-delay:.05s">
+        <article class="ds-card" itemscope itemtype="https://schema.org/Dataset">
+          <div class="ds-thumb" aria-hidden="true"></div>
+          <div class="ds-body">
+            <h3 class="ds-title" itemprop="name">{{ featured_2_title|default:_("Multi-year Precipitation Anomalies (Germany)") }}</h3>
+            <div class="ds-meta">
+              {% trans "Updated" %}: <time itemprop="dateModified">{{ featured_2_date|default:"2025-05-30" }}</time> · {% trans "Format" %}: NetCDF
+            </div>
+            <p class="mb-0" itemprop="description">
+              {{ featured_2_desc|default:_("Monthly anomalies supporting climate impact assessments and modelling.") }}
+            </p>
+          </div>
+          <div class="ds-actions">
+            <a class="btn btn-primary-za btn-sm" href="{{ featured_2_url|default:'/catalogue/#/datasets' }}">{% trans "View" %}</a>
+            <a class="btn btn-ghost btn-sm" href="{{ featured_2_url|default:'/catalogue/#/datasets' }}#download">{% trans "Download" %}</a>
+          </div>
+        </article>
+      </div>
+
+      <div class="col-sm-6 col-md-4 fade-up" style="transition-delay:.1s">
+        <article class="ds-card" itemscope itemtype="https://schema.org/Dataset">
+          <div class="ds-thumb" aria-hidden="true"></div>
+          <div class="ds-body">
+            <h3 class="ds-title" itemprop="name">{{ featured_3_title|default:_("Biodiversity Monitoring Plots") }}</h3>
+            <div class="ds-meta">
+              {% trans "Updated" %}: <time itemprop="dateModified">{{ featured_3_date|default:"2025-04-18" }}</time> · {% trans "Format" %}: GeoPackage
+            </div>
+            <p class="mb-0" itemprop="description">
+              {{ featured_3_desc|default:_("Spatial data on species richness and habitat structure across plots.") }}
+            </p>
+          </div>
+          <div class="ds-actions">
+            <a class="btn btn-primary-za btn-sm" href="{{ featured_3_url|default:'/catalogue/#/datasets' }}">{% trans "View" %}</a>
+            <a class="btn btn-ghost btn-sm" href="{{ featured_3_url|default:'/catalogue/#/datasets' }}#download">{% trans "Download" %}</a>
+          </div>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== PARTNER LOGOS ============================== -->
+<section class="logos-wrap" aria-label="{% trans 'Partners' %}">
+  <div class="container">
+    <div class="logos fade-up" id="logos">
+      <div class="logo" aria-label="ZALF">ZALF</div>
+      <div class="logo" aria-label="Leibniz">LEIBNIZ</div>
+      <div class="logo" aria-label="EU">EU</div>
+      <div class="logo" aria-label="DFG">DFG</div>
+      <div class="logo" aria-label="ESA">ESA</div>
+      <div class="logo" aria-label="NASA">NASA</div>
+      <div class="logo" aria-label="FAO">FAO</div>
+      <div class="logo" aria-label="UNEP">UNEP</div>
+      <!-- duplicate for loop -->
+      <div class="logo" aria-label="ZALF">ZALF</div>
+      <div class="logo" aria-label="Leibniz">LEIBNIZ</div>
+      <div class="logo" aria-label="EU">EU</div>
+      <div class="logo" aria-label="DFG">DFG</div>
+      <div class="logo" aria-label="ESA">ESA</div>
+      <div class="logo" aria-label="NASA">NASA</div>
+      <div class="logo" aria-label="FAO">FAO</div>
+      <div class="logo" aria-label="UNEP">UNEP</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== LATEST NEWS ============================== -->
+<section class="section" aria-labelledby="news-title">
+  <div class="container">
+    <h2 id="news-title" class="section-title fade-up">{% trans "Latest from the Blog/News" %}</h2>
+    <div class="row">
+      <div class="col-sm-6 col-md-4 fade-up">
+        <article class="news-item">
+          <h3 class="news-title"><a href="{{ news_1_url|default:'/news/1' }}">{{ news_1_title|default:_('ZALF releases new soil moisture dataset') }}</a></h3>
+          <div class="news-date">{{ news_1_date|default:"2025-08-20" }}</div>
+          <p class="mb-0">{{ news_1_excerpt|default:_('High-resolution, validated measurements now available for Brandenburg pilot regions.') }}</p>
+          <div class="mt-10"><a href="{{ news_1_url|default:'/news/1' }}">{% trans "Read more" %}</a></div>
+        </article>
+      </div>
+      <div class="col-sm-6 col-md-4 fade-up" style="transition-delay:.05s">
+        <article class="news-item">
+          <h3 class="news-title"><a href="{{ news_2_url|default:'/news/2' }}">{{ news_2_title|default:_('Climate anomalies study informs adaptation planning') }}</a></h3>
+          <div class="news-date">{{ news_2_date|default:"2025-08-09" }}</div>
+          <p class="mb-0">{{ news_2_excerpt|default:_('Researchers leverage multi-year anomaly layers to model drought risk in crops.') }}</p>
+          <div class="mt-10"><a href="{{ news_2_url|default:'/news/2' }}">{% trans "Read more" %}</a></div>
+        </article>
+      </div>
+      <div class="col-sm-6 col-md-4 fade-up" style="transition-delay:.1s">
+        <article class="news-item">
+          <h3 class="news-title"><a href="{{ news_3_url|default:'/news/3' }}">{{ news_3_title|default:_('New biodiversity monitoring plots integrated') }}</a></h3>
+          <div class="news-date">{{ news_3_date|default:"2025-07-28" }}</div>
+          <p class="mb-0">{{ news_3_excerpt|default:_('Updated field surveys improve coverage and taxonomic detail in the repository.') }}</p>
+          <div class="mt-10"><a href="{{ news_3_url|default:'/news/3' }}">{% trans "Read more" %}</a></div>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== NEWSLETTER + UTILITIES ============================== -->
+<section class="section" aria-labelledby="nl-title">
+  <div class="container">
+    <div class="newsletter fade-up">
+      <div class="row">
+        <div class="col-sm-6">
+          <h2 id="nl-title" class="section-title">{% trans "Stay in the loop" %}</h2>
+          <p class="section-subtitle">{% trans "Get updates about new datasets, tools, and events at ZALF." %}</p>
+        </div>
+        <div class="col-sm-6">
+          <form id="nl-form" novalidate aria-label="{% trans 'Newsletter signup form' %}">
+            <div class="form-floating">
+              <input id="nl-email" type="email" placeholder=" " aria-required="true" required>
+              <label for="nl-email">{% trans "Your email address" %}</label>
+            </div>
+            <div class="help-inline" id="nl-help">{% trans "We respect your privacy and only send relevant updates." %}</div>
+            <div class="mt-10">
+              <button type="submit" class="btn btn-primary-za">{% trans "Subscribe" %}</button>
+              <span id="nl-status" class="help-inline" aria-live="polite"></span>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="mt-10 text-right">
+        <button id="toggle-anim" class="skip-anim" aria-pressed="false" aria-label="{% trans 'Toggle animations' %}">
+          {% trans "Skip Animation" %}
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
