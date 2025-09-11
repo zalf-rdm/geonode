@@ -7,7 +7,6 @@
 {% block extra_head %}
   {{ block.super }}
   <link rel="stylesheet" href="{% static 'ui_zalf/css/style.css' %}">
-  <link rel="stylesheet" href="{% static 'ui_zalf/css/styles_bootstrap.css' %}">
 {% endblock %}
 
 
@@ -227,7 +226,7 @@
 <section class="logos-wrap my-5" aria-label="{% trans 'Partners' %}">
   <div class="container">
     <div class="logos fade-up" id="logos">
-      <div class="w-50 overflow-hidden " aria-label="ZALF">
+      <div class="w-50 overflow-auto " aria-label="ZALF">
         <img  src="{% static 'ui_zalf/img/logos/logo_zalf_square.jpg' %}" alt="zalf" />
       </div>
       <div class="logo overflow-hidden " aria-label="ZALF">

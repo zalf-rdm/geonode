@@ -92,7 +92,8 @@ Markdown==3.6
 frictionless>=5.17.0
 
 # mapstore client package
--e git+https://github.com/GeoNodeUserGroup-DE/geonode-mapstore-client/@geonode-mapstore-client-v4.4.3+tabular002#egg=django-geonode-mapstore-client
+# -e git+https://github.com/GeoNodeUserGroup-DE/geonode-mapstore-client/@geonode-mapstore-client-v4.4.3+tabular002#egg=django-geonode-mapstore-client
+-e git+https://github.com/GeoNodeUserGroup-DE/geonode-mapstore-client/@geonode-mapstore-client-v4.4.3+ui_zalf#egg=django-geonode-mapstore-client
 
 # gn importer package
 geonode-importer==1.1.2

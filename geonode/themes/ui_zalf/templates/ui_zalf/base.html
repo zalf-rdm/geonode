@@ -22,9 +22,13 @@
     <link href="{% static "lib/css/ol.css" %}" rel="stylesheet" />
     <script src="{% static "lib/js/ol.js" %}"></script>
     <link rel="preload" as="style" href="{% static "geonode/css/font-awesome.min.css" %}" />
-    <link rel="preload" as="font" href="{% static "geonode/fonts/lato_regular.ttf" %}" crossorigin="" />
+    {% comment %} <link rel="preload" as="font" href="{% static "geonode/fonts/lato_regular.ttf" %}" crossorigin="" />
     <link rel="preload" as="font" href="{% static "geonode/fonts/lato_bold.ttf" %}" crossorigin="" />
-    <link rel="preload" as="font" href="{% static "geonode/fonts/lato_light.ttf" %}" crossorigin="" />
+    <link rel="preload" as="font" href="{% static "geonode/fonts/lato_light.ttf" %}" crossorigin="" /> {% endcomment %}
+    <!-- Google Fonts: Inter + Noto Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
 
     {% block head %}
 
@@ -37,6 +41,7 @@
           <link href="{% static "lib/css/jquery-ui.structure.min.css" %}" rel="stylesheet"/>
           <link href="{% static "lib/css/bootstrap-treeview.css" %}" rel="stylesheet"/>
           <script src="{% static 'ui_zalf/css/styles_bootstrap.css' %}" defer></script>
+          
       {% else %}
       <link href="{% static "lib/css/assets.min.css" %}" rel="stylesheet"/>
       {% endif %}
@@ -107,7 +112,11 @@
         {% endif %}
       </style>
       {% block extra_head %}
+      
+      <link rel="stylesheet" href="{% static 'ui_zalf/css/styles_bootstrap.css' %}">
+      <link rel="stylesheet" href="{% static 'ui_zalf/css/gn_zalf.css' %}">
       {% endblock %}
+      
     {% endblock %}
     <!--[if IE]>
       <script src="https://html5shim.googlecode.com/svn/trunk/html5.js"></script>
@@ -155,7 +164,7 @@
     {% endif %}
   </head>
 
-  <body class="{% block body_class %}{% endblock %} {% block body_extra_class %}{% endblock %}">
+  <body class="{% block body_class %}{% endblock %} {% block body_extra_class %}{% endblock %} msgapi">
     <!-- Loading Mask -->
     <div class='lmask'></div>
     <!-- Navbar -->
