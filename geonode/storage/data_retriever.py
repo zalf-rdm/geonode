@@ -166,7 +166,7 @@ class DataRetriever(object):
         Is more usefull to have always unzipped file than the zip file
         So in case is a zip_file, we unzip it and than delete it
         """
-        if zipfile.is_zipfile(self.file_paths.get("base_file", "not_zip")):
+        if self._is_real_zip(self.file_paths.get("base_file", "not_zip")):
             self._unzip(zip_name=self.file_paths.get("base_file"))
 
         if settings.FILE_UPLOAD_DIRECTORY_PERMISSIONS is not None:
@@ -200,6 +200,19 @@ class DataRetriever(object):
 
     def items(self):
         return self.data_items.items()
+
+
+    def _is_real_zip(self, file_path: str) -> bool:
+        """Check if file is a real ZIP and not an Office file (xlsx, docx etc)"""
+        if not zipfile.is_zipfile(file_path):
+            return False
+        
+        # Office files that use ZIP internally
+        office_extensions = ('.xlsx', '.docx', '.pptx')
+        if str(file_path).lower().endswith(office_extensions):
+            return False
+
+        return True
 
     def _unzip(self, zip_name: str) -> Mapping:
         from geonode.utils import get_allowed_extensions

@@ -436,18 +436,6 @@
     }
   },
   {
-    "pk": 14,
-    "model": "base.license",
-    "fields": {
-      "identifier": "CC-NC-SA",
-      "name": "CC-NC-SA",
-      "abbreviation": "CC-NC-SA",
-      "description": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
-      "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode",
-      "license_text": ""
-    }
-  },
-  {
     "pk": 1,
     "model": "base.restrictioncodetype",
     "fields": {
