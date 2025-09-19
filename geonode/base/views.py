@@ -810,7 +810,6 @@ def resourcebase_metadata(
         resourcebase_form.fields["is_published"].widget.attrs.update({"disabled": "true"})
     if not request.user.can_approve(resourcebase_obj):
         resourcebase_form.fields["is_approved"].widget.attrs.update({"disabled": "true"})
-    breakpoint()
     register_event(request, EventType.EVENT_VIEW_METADATA, resourcebase_obj)
     return render(
         request,
