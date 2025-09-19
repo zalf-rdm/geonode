@@ -5911,7 +5911,24 @@
       "abbreviation": "FLI"
     }
   },
-
+  {
+    "model": "base.organization",
+    "pk": 68,
+    "fields": {
+      "organization": "Christiane Nüsslein-Volhard-Stiftung",
+      "ror": "",
+      "abbreviation": "CNV"
+    }
+  },
+  {
+    "model": "base.organization",
+    "pk": 69,
+    "fields": {
+      "organization": "Model Forest of Newfoundland And Labrador",
+      "ror": "",
+      "abbreviation": ""
+    }
+  },
 
   {
     "model": "base.relatedproject",
