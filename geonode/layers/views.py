@@ -748,31 +748,8 @@ def dataset_metadata_detail(request, layername, template="datasets/dataset_metad
         return HttpResponse(_("Not allowed"), status=403)
     except Exception:
         raise Http404(_("Not found"))
-    if not layer:
-        raise Http404(_("Not found"))
-
-    group = None
-    if layer.group:
-        try:
-            group = GroupProfile.objects.get(slug=layer.group.name)
-        except GroupProfile.DoesNotExist:
-            group = None
-    site_url = settings.SITEURL.rstrip("/") if settings.SITEURL.startswith("http") else settings.SITEURL
-
-    register_event(request, "view_metadata", layer)
-    perms_list = layer.get_user_perms(request.user)
-
-    return render(
-        request,
-        template,
-        context={
-            "resource": layer,
-            "perms_list": perms_list,
-            "group": group,
-            "SITEURL": site_url,
-            "custom_metadata": custom_metadata,
-        },
-    )
+    # Reutiliza a função dataset_metadata para garantir todos os formulários/contexto, mudando apenas o template
+    return dataset_metadata(request, layername, template="datasets/dataset_metadata_detail.html")
 
 
 def dataset_metadata_upload(request, layername, template="datasets/dataset_metadata_upload.html"):

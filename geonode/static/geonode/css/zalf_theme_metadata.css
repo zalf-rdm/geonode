@@ -1,0 +1,173 @@
+/* ===========================
+    Metadata detail style
+    =========================== */
+
+/* Tabs */
+
+.metadata-title .page-header {
+    margin-bottom: 40px !important;
+}
+
+.metadata-title .page-title {
+    color: #004d40 !important;
+    font-weight: 400 !important;
+    margin-bottom: 00px !important;
+}
+
+.metadata-title .page-title strong {
+    font-weight: 700;
+    margin-right: 5px;
+}
+
+.metadata-tabs .nav-tabs {
+    margin-bottom: 0px !important;
+}
+
+
+.metadata-tabs .nav-tabs>li>a {
+    color: #000000 !important;
+    font-weight: 500;
+    border: none;
+    border-radius: 6px 6px 0 0;
+    padding: 10px 18px;
+    transition: all 0.2s ease-in-out;
+}
+
+.metadata-tabs .nav-tabs>li.active>a,
+.metadata-tabs .nav-tabs>li>a:hover {
+    background-color: #004d40 !important;
+    color: #fff !important;
+    border: none;
+}
+
+.metadata-tabs .nav-tabs>li.active>a {
+    background: #004d40 !important;
+    color: #fff !important;
+    border: none;
+}
+
+.metadata-tabs .tab-content {
+    background: #fafafa !important;
+    border: 1px solid #ddd !important;
+    border-top: none !important;
+    padding: 20px !important;
+    border-radius: 0 0 6px 6px !important;
+}
+
+/* Shared DL styling */
+.metadata-tabs dl.dl-horizontal {
+    background: #fafafa !important;
+    padding: 15px 20px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 6px !important;
+    margin-bottom: 15px !important;
+}
+
+.metadata-tabs dl.dl-horizontal dt {
+    font-weight: 600 !important;
+    color: #004d40 !important;
+    width: 140px !important;
+    float: left !important;
+    clear: left !important;
+    text-align: left !important;
+    padding-bottom: 6px !important;
+}
+
+.metadata-tabs dl.dl-horizontal dd {
+    margin-left: 160px !important;
+    padding-bottom: 6px !important;
+    color: #000 !important;
+    word-break: break-word !important;
+}
+
+/* Mobile accordion panels */
+.metadata-tabs .panel {
+    border-radius: 6px !important;
+    border: none !important;
+    margin-bottom: 10px !important;
+    overflow: hidden !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+}
+
+.metadata-tabs .panel-heading {
+    background: #d3d3d3 !important;
+    color: #000000 !important;
+    padding: 12px 15px !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease-in-out !important;
+}
+
+.metadata-tabs .panel-heading.active {
+    background: #004d40 !important;
+    color: #fff !important;
+}
+
+.metadata-tabs .panel-heading a {
+    color: inherit !important;
+    display: block !important;
+    font-weight: 400 !important;
+    text-decoration: none !important;
+}
+
+.metadata-tabs .panel-body {
+    background: #fafafa !important;
+    padding: 15px 20px !important;
+    border-top: 1px solid #ddd !important;
+    border-radius: 0 0 6px 6px !important;
+}
+
+/* Responsive refinements */
+@media (max-width: 768px) {
+    .metadata-tabs .nav-tabs {
+        display: none !important;
+    }
+
+    .metadata-tabs .tab-content {
+        border: none !important;
+        padding: 0 !important;
+        background: #fafafa !important;
+    }
+
+    .metadata-tabs dl.dl-horizontal dt {
+        width: 100% !important;
+        float: none !important;
+        margin: 0 !important;
+        font-weight: 700 !important;
+        color: #004d40 !important;
+    }
+
+    .metadata-tabs dl.dl-horizontal dd {
+        margin: 0 0 10px 0 !important;
+        padding-left: 10px !important;
+        color: #333 !important;
+        background: #fafafa !important;
+    }
+
+    /* Estado fechado */
+    .metadata-tabs .panel-heading a {
+        color: #004d40 !important;
+        display: block !important;
+        font-weight: 700 !important;
+        text-decoration: none !important;
+        transition: all 0.2s ease-in-out !important;
+    }
+
+    .metadata-tabs .panel-heading.active a {
+        color: #fff !important;
+        background-color: #004d40 !important;
+        border-radius: 4px 4px 0 0 !important;
+        padding: 10px 15px !important;
+    }
+
+    /* Se quiser um chevron/indicador no after */
+    .metadata-tabs .panel-heading a::after {
+        color: #004d40 !important;
+        float: right !important;
+        transition: transform 0.2s ease-in-out !important;
+    }
+
+    .metadata-tabs .panel-heading.active a::after {
+        transform: rotate(180deg) !important;
+        color: #fff !important;
+    }
+}
