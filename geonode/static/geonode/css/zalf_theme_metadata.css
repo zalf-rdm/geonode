@@ -143,7 +143,7 @@
         background: #fafafa !important;
     }
 
-    /* Estado fechado */
+
     .metadata-tabs .panel-heading a {
         color: #004d40 !important;
         display: block !important;
@@ -159,7 +159,7 @@
         padding: 10px 15px !important;
     }
 
-    /* Se quiser um chevron/indicador no after */
+
     .metadata-tabs .panel-heading a::after {
         color: #004d40 !important;
         float: right !important;
