@@ -38,13 +38,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GeoNode\n"
 "Report-Msgid-Bugs-To: \n"
-<<<<<<< HEAD
-"POT-Creation-Date: 2024-09-09 12:54+0000\n"
-"PO-Revision-Date: 2023-10-11 11:47+0200\n"
-=======
 "POT-Creation-Date: 2021-07-08 09:02+0300\n"
 "PO-Revision-Date: 2025-01-28 17:51+0100\n"
->>>>>>> usergroup/datapackage_tabular-data
 "Last-Translator: Julien Collaer <julien.collaer@opengeode.be>\n"
 "Language-Team: Italian (http://www.transifex.com/geonode/geonode/language/"
 "it/)\n"
@@ -377,16 +372,9 @@ msgstr ""
 "Uno spazio o un elenco delimitato da virgole di parole chiave. Utilizzare il "
 "widget per selezionare dalla struttura ad albero gerarchica."
 
-<<<<<<< HEAD
-#: geonode/base/forms.py:671 geonode/base/forms.py:817
-#: geonode/base/templates/base/_resourcebase_info_panel.html:121
-#: geonode/catalogue/templates/geonode_metadata_full.html:153
-#: geonode/templates/metadata_detail.html:142
-=======
 msgid "Region"
 msgstr "Regione"
 
->>>>>>> usergroup/datapackage_tabular-data
 msgid "Regions"
 msgstr "Regioni"
 
@@ -484,11 +472,6 @@ msgstr "Descrizione"
 
 #: geonode/base/models.py:671
 msgid ""
-<<<<<<< HEAD
-"Description of the relationship of the resource being registered (A) and the "
-"related resource (B). If Related identifier is used Relation type is "
-"mandatory"
-=======
 "authority or function assigned, as to a ruler, legislative assembly, delegate, or the like."
 msgstr ""
 "autorità o funzione assegnata, ad esempio un regolatore, un'assemblea legislativa, un "
@@ -668,7 +651,6 @@ msgid "State"
 msgstr "Stato"
 
 msgid "Hold the resource processing state."
->>>>>>> usergroup/datapackage_tabular-data
 msgstr ""
 
 #: geonode/base/models.py:681
@@ -2141,16 +2123,6 @@ msgstr "Falso"
 msgid "Speed Rating"
 msgstr "Classifica velocità"
 
-<<<<<<< HEAD
-#: geonode/documents/forms.py:61
-msgid ""
-"File size size exceeds {filesizeformat(max_size)}. Please try again with a "
-"smaller file."
-msgstr ""
-
-# msgstr "Risorse correlate"
-#: geonode/documents/forms.py:128 geonode/documents/forms.py:194
-=======
 msgid "Link to"
 msgstr "Collegamento a"
 
@@ -2158,7 +2130,6 @@ msgid "Related resources"
 msgstr "Risorse collegate"
 
 # msgstr "Risorse correlate"
->>>>>>> usergroup/datapackage_tabular-data
 msgid "File"
 msgstr "File"
 
@@ -8932,16 +8903,11 @@ msgstr "Livello di permessi non valido."
 msgid "Permission Denied"
 msgstr "Permesso negato"
 
-<<<<<<< HEAD
-#~ msgid "Person outside GeoNode (fill form)"
-#~ msgstr "Persona esterna a GeoNode (compilare il modulo)"
-=======
 msgid "All resources"
 msgstr "Tutte le risorse"
 
 #~ msgid "Layer name"
 #~ msgstr "Nome livello"
->>>>>>> usergroup/datapackage_tabular-data
 
 #~ msgid "Permission Type"
 #~ msgstr "Tipo di autorizzazione"

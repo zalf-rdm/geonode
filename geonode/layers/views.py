@@ -493,6 +493,7 @@ def dataset_metadata(
             la.description = form["description"]
             la.attribute_label = form["attribute_label"]
             la.attribute_unit = form["attribute_unit"]
+            la.attribute_method = form["attribute_method"]
             la.visible = form["visible"]
             la.display_order = form["display_order"]
             la.featureinfo_type = form["featureinfo_type"]
