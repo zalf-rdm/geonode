@@ -352,16 +352,9 @@ msgstr ""
 "Uma lista de palavras-chave separadas por vírgula ou espaço. Utilize o "
 "widget para selecionar a partir da árvore hierárquica."
 
-<<<<<<< HEAD
-#: geonode/base/forms.py:671 geonode/base/forms.py:817
-#: geonode/base/templates/base/_resourcebase_info_panel.html:121
-#: geonode/catalogue/templates/geonode_metadata_full.html:153
-#: geonode/templates/metadata_detail.html:142
-=======
 msgid "Region"
 msgstr "Região"
 
->>>>>>> usergroup/datapackage_tabular-data
 msgid "Regions"
 msgstr "Regiões"
 
@@ -776,19 +769,11 @@ msgid ""
 "specification."
 msgstr ""
 
-<<<<<<< HEAD
-#: geonode/base/models.py:889
-msgid ""
-"A file identifier of the metadata to which this metadata is a subset "
-"(child). (e.g. 73c0f49f-1502-48ee-b038-052563f36527)"
-msgstr ""
-=======
 msgid "Keyword"
 msgstr "Palavra-chave"
 
 msgid "keywords"
 msgstr "palavras-chave"
->>>>>>> usergroup/datapackage_tabular-data
 
 #: geonode/base/models.py:892
 msgid "The date that the publisher accepted the resource into their system."
