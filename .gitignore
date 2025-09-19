@@ -97,4 +97,8 @@ scripts/spcgeonode/_volume_*
 !hooks/*
 
 .env
-
+# Django migrations
+**/migrations/
+**/migrations/*.pyc
+**/migrations/*.py
+!**/migrations/__init__.py
