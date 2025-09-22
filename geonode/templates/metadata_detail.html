@@ -271,7 +271,7 @@
       </div>
       <h3 class="fw-medium mt-5">{% trans "GeoInformation" %}</h3><hr>
       <div class="metadata-block p-3 my-3">
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Identification Image" %}</div><div class="col-sm-9">{{ resource.supplemental_information|sanitize_html|safe }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Identification Image" %}</div><a href="{{ resource.get_thumbnail_url }}"><img class="p-4" ng-src="{{ resource.get_thumbnail_url }}" src="{{ resource.get_thumbnail_url }}" /></a></div>
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Projection System" %}</div><div class="col-sm-9">{{ resource.srid|default:"-" }}</div></div>
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Spatial Extent" %}</div><div class="col-sm-9">{{ resource.bbox_string|default:"-" }}</div></div>
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Extension x0" %}</div><div class="col-sm-9">{{ resource.bbox_x0|default:"-" }}</div></div>
