@@ -344,6 +344,7 @@ def dataset_metadata(
                 "errors": [re.sub(re.compile("<.*?>"), "", str(err)) for err in category_form.errors],
             }
             return HttpResponse(json.dumps(out), content_type="application/json", status=400)
+        
         if hasattr(settings, "THESAURUS"):
             tkeywords_form = TKeywordForm(request.POST)
         else:

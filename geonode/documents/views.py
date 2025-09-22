@@ -450,7 +450,7 @@ def document_metadata(
                 values = [keyword.id for keyword in doc_tkeywords if int(tid) == keyword.thesaurus.id]
                 tkeywords_form.fields[tid].initial = values
 
-    if request.method == "POST" and document_form.is_valid() and category_form.is_valid() and tkeywords_form.is_valid():
+    if request.method == "POST" and document_form.is_valid() and related_project_form.is_valid() and funding_form.is_valid() and related_identifier_form.is_valid() and category_form.is_valid() and tkeywords_form.is_valid():
         new_keywords = current_keywords if request.keyword_readonly else document_form.cleaned_data["keywords"]
         new_regions = document_form.cleaned_data["regions"]
 
