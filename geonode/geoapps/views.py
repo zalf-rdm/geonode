@@ -349,7 +349,7 @@ def geoapp_metadata(
 
         project = related_project_form.cleaned_data
         instance = project["display_name"]
-        
+
         geoapp_obj.related_projects.add(*instance)
 
         # update contact roles
