@@ -95,6 +95,216 @@
           {% endif %}
           {% endblock thesauri %}
         </div>
+
+        {% block related_project_form %}
+            <div class="row">
+              <div class="col-md-12">
+                <label class="control-label required-field">Related Project</label>
+                <div class="form_item_spacing" id="related_project">
+                  {% for field in related_project_form %}
+                    <div>
+                      {{ field }}
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          {% endblock related_project_form %}
+          
+          {% block funding_form %}
+            <div class="row">
+              <div class="col-md-12">
+                <label class="control-label required-field">Fundings</label>
+                <div id="{{ funding_form.prefix }}">
+                  {{ funding_form.management_form }}
+                  <div class="panel">
+                    <div class="panel-heading panel-heading-nav">
+                      <ul class="nav nav-tabs allTabs">
+                        {% for form in funding_form %}
+                          <li role="presentation" class="{% if forloop.first %}active{% endif %}">
+                            <a href="#{{ form.prefix }}" aria-controls="{{ form.prefix }}" role="tab" data-toggle="tab">
+                              <span class="tabTex">{{ forloop.counter }}</span>
+                              <button type="button" class="nav-remove" onclick="confirmRemoveTab(this)">
+
+                                <icon class="fa fa-minus-circle"></icon>
+                              </button>
+                            </a>
+                          </li>
+                        {% endfor %}
+                        <li role="presentation" class="nav-item enpt tab li-add">
+                          <button id="nav-add" class="btn-primary nav-add p-2" onclick="addNewTab(this)" type="button" style="margin: 8px;">
+                            <icon class="fa fa-plus-circle"> new </icon>
+                          </button>
+                        </li>
+                        <li role="presentation" class="nav-item enpt tab nav-empty templateTab hidden">
+                          <a href="" aria-controls="" role="tab" data-toggle="tab">
+                            <span class="newTabTex"></span>
+                            <button type="button" class="nav-remove" onclick="confirmRemoveTab(this)">
+
+                              <icon class="fa fa-minus-circle"></icon>
+                            </button>
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div class="tab-content allContent">
+                      {% for form in funding_form %}
+                        <div class="tab-pane {% if forloop.first %}active{% endif %}" id="{{ form.prefix }}" role="tabpanel">
+                          <div>
+                            {% for field in form.visible_fields %}
+                              {% if field.name == "DELETE" %}
+                                <div class="hidden">
+                                  <label for="{{ field.id_for_label }}">{{ field.label|capfirst }}</label>
+                                  <div class="form-group">
+                                    {{ field }}
+                                    {{ field.errors.as_ul }}
+                                  </div>
+                                </div>
+                              {% else %}
+                                <label for="{{ field.id_for_label }}">{{ field.label|capfirst }}</label>
+                                <div id="{{ form.prefix }}-{{ field.name }}-group" class="form-group">
+                                  {{ field }}
+                                  {{ field.errors.as_ul }}
+                                </div>
+                              {% endif %}
+                            {% endfor %}
+                            {% for hidden in form.hidden_fields %}
+                              <div>{{ hidden }}</div>
+                            {% endfor %}
+                          </div>
+                        </div>
+                      {% endfor %}
+
+                      <div class="tab-pane hidden templateContent" id="templateContent" role="tabpanel">
+                        <div>
+                          {% for field in funding_form.empty_form.visible_fields %}
+                            {% if field.name == "DELETE" %}
+                              <div class="hidden">
+                                <label for="{{ field.id_for_label }}">{{ field.label|capfirst }}</label>
+                                <div class="form-group">
+                                  {{ field }}
+                                  {{ field.errors.as_ul }}
+                                </div>
+                              </div>
+                            {% else %}
+                              <label for="{{ field.id_for_label }}">{{ field.label|capfirst }}</label>
+                              <div id="{{ funding_form.empty_form.prefix }}-{{ field.name }}-group" class="form-group">
+                                {{ field }}
+                                {{ field.errors.as_ul }}
+                              </div>
+                            {% endif %}
+                          {% endfor %}
+                          {% for hidden in funding_form.empty_form.hidden_fields %}
+                            <div>{{ hidden }}</div>
+                          {% endfor %}
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endblock funding_form %}
+
+          {% block related_identifier_form %}
+            <div class="row">
+              <div class="col-md-12">
+                <label class="control-label required-field">Related Identifiers</label>
+                <div id="{{ related_identifier_form.prefix }}">
+                  {{ related_identifier_form.management_form }}
+                  <div class="panel">
+                    <div class="panel-heading panel-heading-nav">
+                      <ul class="nav nav-tabs allTabs">
+                        {% for form in related_identifier_form %}
+                          <li role="presentation" class="{% if forloop.first %}active{% endif %}">
+                            <a href="#{{ form.prefix }}" aria-controls="{{ form.prefix }}" role="tab" data-toggle="tab">
+                              <span class="tabTex">{{ forloop.counter }}</span>
+                              <button type="button" class="nav-remove" onclick="confirmRemoveTab(this)">
+
+                                <icon class="fa fa-minus-circle"></icon>
+                              </button>
+                            </a>
+                          </li>
+                        {% endfor %}
+                        <li role="presentation" class="nav-item enpt tab li-add">
+                          <button id="nav-add" class="btn-primary nav-add" onclick="addNewTab(this)" type="button" style="margin: 8px;">
+                            <icon class="fa fa-plus-circle"> new </icon>
+                          </button>
+                        </li>
+                        <li role="presentation" class="nav-item enpt tab nav-empty templateTab hidden">
+                          <a href="" aria-controls="" role="tab" data-toggle="tab">
+                            <span class="newTabTex"></span>
+                            <button type="button" class="nav-remove" onclick="confirmRemoveTab(this)">
+
+                              <icon class="fa fa-minus-circle"></icon>
+                            </button>
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div class="tab-content allContent">
+                      {% for form in related_identifier_form %}
+                        <div class="tab-pane {% if forloop.first %}active{% endif %}" id="{{ form.prefix }}" role="tabpanel">
+                          <div>
+                            {% for field in form.visible_fields %}
+                              {% if field.name == "DELETE" %}
+                                <div class="hidden">
+                                  <label for="{{ field.id_for_label }}">{{ field.label|capfirst }}</label>
+                                  <div class="form-group">
+                                    {{ field }}
+                                    {{ field.errors.as_ul }}
+                                  </div>
+                                </div>
+                              {% else %}
+                                <label for="{{ field.id_for_label }}">{{ field.label|capfirst }}</label>
+                                <div id="{{ form.prefix }}-{{ field.name }}-group" class="form-group">
+                                  {{ field }}
+                                  {{ field.errors.as_ul }}
+                                </div>
+                              {% endif %}
+                            {% endfor %}
+                            {% for hidden in form.hidden_fields %}
+                              <div>{{ hidden }}</div>
+                            {% endfor %}
+                          </div>
+                        </div>
+                      {% endfor %}
+
+                      <div class="tab-pane hidden templateContent" id="templateContent" role="tabpanel">
+                        <div>
+                          {% for field in related_identifier_form.empty_form.visible_fields %}
+                            {% if field.name == "DELETE" %}
+                              <div class="hidden">
+                                <label for="{{ field.id_for_label }}">{{ field.label|capfirst }}</label>
+                                <div class="form-group">
+                                  {{ field }}
+                                  {{ field.errors.as_ul }}
+                                </div>
+                              </div>
+                            {% else %}
+                              <label for="{{ field.id_for_label }}">{{ field.label|capfirst }}</label>
+                              <div id="{{ related_identifier_form.empty_form.prefix }}-{{ field.name }}-group" class="form-group">
+                                {{ field }}
+                                {{ field.errors.as_ul }}
+                              </div>
+                            {% endif %}
+                          {% endfor %}
+                          {% for hidden in related_identifier_form.empty_form.hidden_fields %}
+                            <div>{{ hidden }}</div>
+                          {% endfor %}
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endblock related_identifier_form %}
+
         <div class="row">
           <div class="col-md-12">
             <label class="control-label required-field">{% trans "Category" %}</label>
@@ -134,4 +344,24 @@
       </form>
   </div>
 </div>
+{% endblock %}
+{% block extra_script %}
+  {{ block.super }}
+  <script type="text/javascript">
+    $(document.body).on("change", "#id_resource-use_featureinfo_custom_template", function (event) {
+      if (this.checked) {
+        $('#layer-attributes-panel').css("visibility", "collapse");
+        $('#layer-attributes-custom_template').css("visibility", "visible");
+      } else {
+        $('#layer-attributes-panel').css("visibility", "visible");
+        $('#layer-attributes-custom_template').css("visibility", "collapse");
+      }
+    });
+  </script>
+  <script>
+    let formsetsInTabs = ["{{ funding_form.prefix }}", "{{ related_identifier_form.prefix }}"];
+  </script>
+  <script type="text/javascript" src="{% static "geonode/js/utils/filter-multi-select-bundle.min.js" %}"></script>
+  <script type="text/javascript" src="{% static "geonode/js/utils/formsetsInTabs.js" %}"></script>
+  <script type="text/javascript" src="{% static "geonode/js/utils/focus.js" %}"></script>
 {% endblock %}

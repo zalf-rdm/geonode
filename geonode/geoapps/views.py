@@ -21,6 +21,7 @@ import json
 import logging
 import warnings
 import traceback
+import re
 
 from django.conf import settings
 from django.shortcuts import render
@@ -346,6 +347,9 @@ def geoapp_metadata(
         ):
             new_category = TopicCategory.objects.get(id=int(category_form.cleaned_data["category_choice_field"]))
 
+        project = related_project_form.cleaned_data
+        instance = project["display_name"]
+        
         geoapp_obj.related_projects.add(*instance)
 
         # update contact roles
@@ -363,7 +367,7 @@ def geoapp_metadata(
 
         geoapp_form.cleaned_data.pop("ptype")
 
-        geoapp_obj = geoapp_form.instance
+        # geoapp_obj = geoapp_form.instance
 
         vals = dict(category=new_category)
 
@@ -423,7 +427,12 @@ def geoapp_metadata(
 
         return HttpResponse(json.dumps({"message": message}))
     elif request.method == "POST" and (
-        not geoapp_form.is_valid() or not category_form.is_valid() or not tkeywords_form.is_valid()
+        not geoapp_form.is_valid()
+        or not related_project_form.is_valid()
+        or not funding_form.is_valid()
+        or not related_identifier_form.is_valid()
+        or not category_form.is_valid()
+        or not tkeywords_form.is_valid()
     ):
         errors_list = {
             **geoapp_form.errors.as_data(),

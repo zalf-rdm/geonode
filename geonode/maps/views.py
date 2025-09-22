@@ -20,6 +20,7 @@ import json
 import logging
 import traceback
 import warnings
+import re
 from urllib.parse import urljoin
 
 from deprecated import deprecated
@@ -121,6 +122,16 @@ def map_metadata(
 
     if request.method == "POST":
         map_form = MapForm(request.POST, instance=map_obj, prefix="resource", user=request.user)
+        funding_form = FundingFormset(
+            request.POST,
+            prefix="form_funding",
+        )
+
+        related_identifier_form = RelatedIdentifierFormset(
+            request.POST,
+            prefix="form_related_identifier",
+        )
+
         category_form = CategoryForm(
             request.POST,
             prefix="category_choice_field",
@@ -141,7 +152,7 @@ def map_metadata(
 
         related_project_form = RelatedProjectForm(
             request.POST,
-            instance=layer,
+            instance=map_obj,
         )
         if not related_project_form.is_valid():
             logger.error(f"Dataset Related Project Fields are not valid: {related_project_form.errors}")
@@ -202,11 +213,28 @@ def map_metadata(
                 values = [keyword.id for keyword in topic_thesaurus if int(tid) == keyword.thesaurus.id]
                 tkeywords_form.fields[tid].initial = values
 
-    if request.method == "POST" and map_form.is_valid() and category_form.is_valid() and tkeywords_form.is_valid():
+    if request.method == "POST" and map_form.is_valid() and related_project_form.is_valid() and funding_form.is_valid() and related_identifier_form.is_valid()and category_form.is_valid() and tkeywords_form.is_valid():
         new_keywords = current_keywords if request.keyword_readonly else map_form.cleaned_data["keywords"]
         new_regions = map_form.cleaned_data["regions"]
         new_title = map_form.cleaned_data["title"]
         new_abstract = map_form.cleaned_data["abstract"]
+
+        # projects_initial_values = list(layer.related_projects.all())
+        projects_initial_values = list(RelatedProject.objects.filter(related_projects=map_obj))
+
+        related_project_form = RelatedProjectForm(
+            prefix="related_project_form",
+            instance=map_obj,
+            initial={"display_name": projects_initial_values},
+        )
+
+        funding_intial_values = Funding.objects.all().filter(resourcebase=map_obj)
+        funding_form = FundingFormset(prefix="form_funding", queryset=funding_intial_values)
+
+        related_identifier_intial_values = RelatedIdentifier.objects.all().filter(resourcebase=map_obj)
+        related_identifier_form = RelatedIdentifierFormset(
+            prefix="form_related_identifier", queryset=related_identifier_intial_values
+        )
 
         new_category = None
         if (
@@ -291,9 +319,17 @@ def map_metadata(
         )
         return HttpResponse(json.dumps({"message": message}))
     elif request.method == "POST" and (
-        not map_form.is_valid() or not category_form.is_valid() or not tkeywords_form.is_valid()
+        not map_form.is_valid()
+        or not related_project_form.is_valid()
+        or not funding_form.is_valid()
+        or not related_identifier_form.is_valid()
+        or not category_form.is_valid()
+        or not tkeywords_form.is_valid()
     ):
-        errors_list = {**map_form.errors.as_data(), **category_form.errors.as_data(), **tkeywords_form.errors.as_data()}
+        errors_list = {
+            **map_form.errors.as_data(), 
+            **category_form.errors.as_data(), 
+            **tkeywords_form.errors.as_data()}
         logger.error(f"GeoApp Metadata form is not valid: {errors_list}")
         out = {"success": False, "errors": [f"{x}: {y[0].messages[0]}" for x, y in errors_list.items()]}
         return HttpResponse(json.dumps(out), content_type="application/json", status=400)
