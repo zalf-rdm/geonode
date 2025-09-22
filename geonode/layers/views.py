@@ -740,14 +740,14 @@ def get_dataset(request, layername):
         )
 
 
-def dataset_metadata_detail(request, layername, template="datasets/dataset_metadata_detail.html", custom_metadata=None):
+def dataset_metadata_detail(request, layername):
     try:
-        layer = _resolve_dataset(request, layername, "view_resourcebase", _PERMISSION_MSG_METADATA)
+        _resolve_dataset(request, layername, "view_resourcebase", _PERMISSION_MSG_METADATA)
     except PermissionDenied:
         return HttpResponse(_("Not allowed"), status=403)
     except Exception:
         raise Http404(_("Not found"))
-    # Reutiliza a função dataset_metadata para garantir todos os formulários/contexto, mudando apenas o template
+
     return dataset_metadata(request, layername, template="datasets/dataset_metadata_detail.html")
 
 
