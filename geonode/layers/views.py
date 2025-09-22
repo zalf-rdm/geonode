@@ -344,7 +344,7 @@ def dataset_metadata(
                 "errors": [re.sub(re.compile("<.*?>"), "", str(err)) for err in category_form.errors],
             }
             return HttpResponse(json.dumps(out), content_type="application/json", status=400)
-        
+
         if hasattr(settings, "THESAURUS"):
             tkeywords_form = TKeywordForm(request.POST)
         else:
@@ -506,14 +506,12 @@ def dataset_metadata(
 
         # update contact roles
         layer.set_contact_roles_from_metadata_edit(dataset_form)
-        funding_form.save()
-        instance = funding_form.save(commit=False)
-
-        layer.fundings.add(*instance)
-
-        related_identifier_form.save()
-        instance = related_identifier_form.save(commit=False)
-        layer.related_identifier.add(*instance)
+        
+        
+        instances = funding_form.save()
+        layer.fundings.set(instances)
+        instances = related_identifier_form.save()
+        layer.related_identifier.set(instances)
 
         layer.save()
 

@@ -250,14 +250,19 @@ def map_metadata(
 
         # update contact roles
         map_obj.set_contact_roles_from_metadata_edit(map_form)
-        funding_form.save()
-        instance = funding_form.save(commit=False)
 
-        map_obj.fundings.add(*instance)
+        # funding_form.save()
+        # instance = funding_form.save(commit=False)
+        # map_obj.fundings.add(*instance)
 
-        related_identifier_form.save()
-        instance = related_identifier_form.save(commit=False)
-        map_obj.related_identifier.add(*instance)
+        # related_identifier_form.save()
+        # instance = related_identifier_form.save(commit=False)
+        # map_obj.related_identifier.add(*instance)
+
+        instances = funding_form.save()
+        map_obj.fundings.set(instances)
+        instances = related_identifier_form.save()
+        map_obj.related_identifier.set(instances)
 
         map_obj.save()
 
