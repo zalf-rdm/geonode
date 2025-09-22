@@ -26,6 +26,7 @@ from deprecated import deprecated
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.forms.models import inlineformset_factory, modelformset_factory
 from django.http import Http404, HttpResponse, HttpResponseNotAllowed, HttpResponseRedirect, HttpResponseServerError
 from django.shortcuts import render
 from django.urls import reverse
@@ -34,8 +35,8 @@ from django.views.decorators.clickjacking import xframe_options_exempt
 from geonode import geoserver
 from geonode.base import register_event
 from geonode.base.auth import get_or_create_token
-from geonode.base.forms import CategoryForm, ThesaurusAvailableForm, TKeywordForm
-from geonode.base.models import ExtraMetadata, Thesaurus, TopicCategory
+from geonode.base.forms import CategoryForm, ThesaurusAvailableForm, TKeywordForm, RelatedProjectForm
+from geonode.base.models import ExtraMetadata, Thesaurus, TopicCategory, Funding, RelatedIdentifier, RelatedProject
 from geonode.base.views import batch_modify
 from geonode.client.hooks import hookset
 from geonode.resource.manager import resource_manager
@@ -97,6 +98,22 @@ def map_metadata(
     # Add metadata_author or poc if missing
     map_obj.add_missing_metadata_author_or_poc()
 
+    FundingFormset = modelformset_factory(
+        Funding,
+        fields=["organization", "award_number", "award_uri", "award_title"],
+        can_delete=True,
+        extra=0,
+        min_num=1,
+    )
+
+    RelatedIdentifierFormset = modelformset_factory(
+        RelatedIdentifier,
+        fields=["related_identifier", "related_identifier_type", "relation_type", "description"],
+        can_delete=True,
+        extra=0,
+        min_num=1,
+    )
+
     current_keywords = [keyword.name for keyword in map_obj.keywords.all()]
     topic_thesaurus = map_obj.tkeywords.all()
 
@@ -121,6 +138,29 @@ def map_metadata(
     else:
         map_form = MapForm(instance=map_obj, prefix="resource", user=request.user)
         map_form.disable_keywords_widget_for_non_superuser(request.user)
+
+        related_project_form = RelatedProjectForm(
+            request.POST,
+            instance=layer,
+        )
+        if not related_project_form.is_valid():
+            logger.error(f"Dataset Related Project Fields are not valid: {related_project_form.errors}")
+            out = {
+                "success": False,
+                "errors": [re.sub(re.compile("<.*?>"), "", str(err)) for err in related_project_form.errors],
+            }
+            return HttpResponse(json.dumps(out), content_type="application/json", status=400)
+
+        funding_form = FundingFormset(
+            request.POST,
+            prefix="form_funding",
+        )
+
+        related_identifier_form = RelatedIdentifierFormset(
+            request.POST,
+            prefix="form_related_identifier",
+        )
+
         category_form = CategoryForm(
             prefix="category_choice_field", initial=topic_category.id if topic_category else None
         )
@@ -176,8 +216,22 @@ def map_metadata(
         ):
             new_category = TopicCategory.objects.get(id=int(category_form.cleaned_data["category_choice_field"]))
 
+        project = related_project_form.cleaned_data
+        instance = project["display_name"]
+
+        map_obj.related_projects.add(*instance)
+
         # update contact roles
         map_obj.set_contact_roles_from_metadata_edit(map_form)
+        funding_form.save()
+        instance = funding_form.save(commit=False)
+
+        map_obj.fundings.add(*instance)
+
+        related_identifier_form.save()
+        instance = related_identifier_form.save(commit=False)
+        map_obj.related_identifier.add(*instance)
+
         map_obj.save()
 
         map_obj.title = new_title
@@ -273,6 +327,9 @@ def map_metadata(
             "panel_template": panel_template,
             "custom_metadata": custom_metadata,
             "map_form": map_form,
+            "related_project_form": related_project_form,
+            "funding_form": funding_form,
+            "related_identifier_form": related_identifier_form,
             "category_form": category_form,
             "tkeywords_form": tkeywords_form,
             "layers": layers,

@@ -326,7 +326,15 @@ def geoapp_metadata(
                 values = [keyword.id for keyword in topic_thesaurus if int(tid) == keyword.thesaurus.id]
                 tkeywords_form.fields[tid].initial = values
 
-    if request.method == "POST" and geoapp_form.is_valid() and related_project_form.is_valid() and funding_form.is_valid() and related_identifier_form.is_valid() and category_form.is_valid() and tkeywords_form.is_valid():
+    if (
+        request.method == "POST"
+        and geoapp_form.is_valid()
+        and related_project_form.is_valid()
+        and funding_form.is_valid()
+        and related_identifier_form.is_valid()
+        and category_form.is_valid()
+        and tkeywords_form.is_valid()
+    ):
         new_keywords = current_keywords if request.keyword_readonly else geoapp_form.cleaned_data.pop("keywords")
         new_regions = geoapp_form.cleaned_data.pop("regions")
 
@@ -356,8 +364,6 @@ def geoapp_metadata(
         geoapp_form.cleaned_data.pop("ptype")
 
         geoapp_obj = geoapp_form.instance
-        # update contact roles
-        geoapp_obj.set_contact_roles_from_metadata_edit(geoapp_form)
 
         vals = dict(category=new_category)
 
