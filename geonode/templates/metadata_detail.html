@@ -102,11 +102,13 @@
       </div>
       <div id="collapse-related" class="panel-collapse collapse">
         <div class="panel-body">
-          {% if resource.relatedidentifiers.exists %}
-            {% for rel in resource.relatedidentifiers.all %}
+          {% if resource.related_identifier.exists %}
+            {% for rel in resource.related_identifier.all %}
             <dl class="dl-horizontal">
+              <dt>{% trans "Relation Identifier" %}</dt><dd>{{ rel.related_identifier }}</dd>
+              <dt>{% trans "Related Identifier Type" %}</dt><dd>{{ rel.related_identifier_type }}</dd>
               <dt>{% trans "Relation Type" %}</dt><dd>{{ rel.relation_type }}</dd>
-              <dt>{% trans "Identifier" %}</dt><dd>{{ rel.identifier }}</dd>
+              <dt>{% trans "Description" %}</dt><dd>{{ rel.description }}</dd>
             </dl>
             <hr>
             {% endfor %}
@@ -210,11 +212,13 @@
 
     <!-- Related Identifiers -->
     <div class="tab-pane" id="tab-related">
-      {% if resource.relatedidentifiers.exists %}
-        {% for rel in resource.relatedidentifiers.all %}
+      {% if resource.related_identifier.exists %}
+        {% for rel in resource.related_identifier.all %}
         <dl class="dl-horizontal">
+          <dt>{% trans "Relation Identifier" %}</dt><dd>{{ rel.related_identifier }}</dd>
+          <dt>{% trans "Related Identifier Type" %}</dt><dd>{{ rel.related_identifier_type }}</dd>
           <dt>{% trans "Relation Type" %}</dt><dd>{{ rel.relation_type }}</dd>
-          <dt>{% trans "Identifier" %}</dt><dd>{{ rel.identifier }}</dd>
+          <dt>{% trans "Description" %}</dt><dd>{{ rel.description }}</dd>
         </dl>
         <hr>
         {% endfor %}
