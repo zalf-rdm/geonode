@@ -148,7 +148,7 @@
 
     <!-- Identification -->
     <div class="tab-pane active" id="tab-identification">
-      <h3 class="fw-semibold">{% trans "Identification" %}</h3><hr>
+      <h3 class="fw-medium">{% trans "Identification" %}</h3><hr>
       <div class="metadata-block p-3 mb-3">
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Title" %}</div><div class="col-sm-9">{{ resource.title|default:"-" }}</div></div>
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Abstract" %}</div><div class="col-sm-9">{{ resource.abstract|default:"-" }}</div></div>
@@ -166,29 +166,52 @@
 
     <!-- Responsible -->
     <div class="tab-pane" id="tab-responsible">
-      <h3 class="fw-semibold">{% trans "Responsibles" %}</h3><hr>
+      <h3 class="fw-medium">{% trans "Responsibles" %}</h3><hr>
       <div class="metadata-block p-3 mb-3">
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Name" %}</div><div class="col-sm-9">{{ resource.owner }}</div></div>
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Email" %}</div><div class="col-sm-9">{{ resource.owner.email }}</div></div>
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Organization" %}</div><div class="col-sm-9">{{ resource.owner.organization|default:"-" }}</div></div>
       </div>
-      <h3 class="fw-semibold">{% trans "Contact Person" %}</h3><hr>
+      <h3 class="fw-medium">{% trans "Contact Person" %}</h3><hr>
       <div class="metadata-block p-3 mb-3">
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Name" %}</div><div class="col-sm-9">{{ resource.owner }}</div></div>
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Email" %}</div><div class="col-sm-9">{{ resource.owner.email }}</div></div>
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Organization" %}</div><div class="col-sm-9">{{ resource.owner.organization|default:"-" }}</div></div>
+        {% if resource.poc %}
+          {% for poc in resource.poc %}
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Name' %}</div><div class="col-sm-9">{{ poc.name_long|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Email' %}</div><div class="col-sm-9">{{ poc.email|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Position' %}</div><div class="col-sm-9">{{ poc.position|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Organization' %}</div><div class="col-sm-9">{{ poc.organization|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Location' %}</div><div class="col-sm-9">{{ poc.location|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Voice' %}</div><div class="col-sm-9">{{ poc.voice|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Fax' %}</div><div class="col-sm-9">{{ poc.fax|default:"-" }}</div></div>
+              {% if poc.keyword_list %}
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Keywords' %}</div><div class="col-sm-9">{% for keyword in poc.keyword_list %}{{ keyword }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>
+              {% endif %}
+          {% endfor %}
+        {% endif %}
+
       </div>
-      <h3 class="fw-semibold">{% trans "Metadata Author" %}</h3><hr>
-      <div class="metadata-block p-3 mb-3">
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Name" %}</div><div class="col-sm-9">{{ resource.owner }}</div></div>
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Email" %}</div><div class="col-sm-9">{{ resource.owner.email }}</div></div>
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Organization" %}</div><div class="col-sm-9">{{ resource.owner.organization|default:"-" }}</div></div>
-      </div>
+      <h3 class="fw-medium">{% trans "Metadata Author" %}</h3><hr>
+        {% if resource.metadata_author %}
+          {% for metadata_author in resource.metadata_author %}
+            <div class="metadata-block p-3 mb-3">
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Name' %}</div><div class="col-sm-9">{{ metadata_author.name_long|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Email' %}</div><div class="col-sm-9">{{ metadata_author.email|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Position' %}</div><div class="col-sm-9">{{ metadata_author.position|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Organization' %}</div><div class="col-sm-9">{{ metadata_author.organization|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Location' %}</div><div class="col-sm-9">{{ metadata_author.location|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Voice' %}</div><div class="col-sm-9">{{ metadata_author.voice|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Fax' %}</div><div class="col-sm-9">{{ metadata_author.fax|default:"-" }}</div></div>
+              {% if metadata_author.keyword_list %}
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Keywords' %}</div><div class="col-sm-9">{% for keyword in metadata_author.keyword_list %}{{ keyword }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        {% endif %}
     </div>
 
     <!-- Projects -->
     <div class="tab-pane" id="tab-projects">
-      <h3 class="fw-semibold">{% trans "Projects" %}</h3><hr>
+      <h3 class="fw-medium">{% trans "Projects" %}</h3><hr>
       {% if resource.related_projects.exists %}
         {% for rel in resource.related_projects.all %}
         <div class="metadata-block p-3 my-3">
@@ -204,7 +227,7 @@
 
     <!-- Fundings -->
     <div class="tab-pane" id="tab-fundings">
-      <h3 class="fw-semibold">{% trans "Fundings" %}</h3><hr>
+      <h3 class="fw-medium">{% trans "Fundings" %}</h3><hr>
       {% if resource.fundings.exists %}
         {% for funding in resource.fundings.all %}
         <div class="metadata-block p-3 my-3">
@@ -221,7 +244,7 @@
 
     <!-- Related Identifiers -->
     <div class="tab-pane" id="tab-related">
-      <h3 class="fw-semibold">{% trans "Related Identifiers" %}</h3><hr>
+      <h3 class="fw-medium">{% trans "Related Identifiers" %}</h3><hr>
       {% if resource.related_identifier.exists %}
         {% for rel in resource.related_identifier.all %}
         <div class="metadata-block p-3 my-3">
@@ -238,7 +261,7 @@
 
     <!-- Features -->
     <div class="tab-pane" id="tab-features">
-      <h3 class="fw-semibold">{% trans "Features" %}</h3><hr>
+      <h3 class="fw-medium">{% trans "Features" %}</h3><hr>
       <div class="metadata-block p-3 my-3">
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Edition" %}</div><div class="col-sm-9">{{ resource.edition|default:"-" }}</div></div>
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Language" %}</div><div class="col-sm-9">{{ resource.language|default:"-" }}</div></div>
@@ -246,7 +269,7 @@
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Supplemental Information" %}</div><div class="col-sm-9">{{ resource.supplemental_information|sanitize_html|safe }}</div></div>
         
       </div>
-      <h3 class="fw-semibold mt-5">{% trans "GeoInformation" %}</h3><hr>
+      <h3 class="fw-medium mt-5">{% trans "GeoInformation" %}</h3><hr>
       <div class="metadata-block p-3 my-3">
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Identification Image" %}</div><div class="col-sm-9">{{ resource.supplemental_information|sanitize_html|safe }}</div></div>
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Projection System" %}</div><div class="col-sm-9">{{ resource.srid|default:"-" }}</div></div>
@@ -260,11 +283,24 @@
 
     <!-- References -->
     <div class="tab-pane" id="tab-references">
-      <h3 class="fw-semibold">{% trans "References" %}</h3><hr>
+      <h3 class="fw-medium">{% trans "References" %}</h3><hr>
       <div class="metadata-block p-3 my-3">
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Link Online" %}</div><div class="col-sm-9"><a href="{{ resource.detail_url }}">{{ resource.detail_url }}</a></div></div>
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Metadata Page" %}</div><div class="col-sm-9"><a href="{{ resource.detail_url }}metadata_detail">{{ resource.detail_url }}metadata_detail</a></div></div>
+        
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Link Online" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}">{{ resource.get_absolute_url }}</a></div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Metadata Page" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}/metadata_detail">{{ resource.get_absolute_url }}/metadata_detail</a></div></div>
+        {% if resource.doc_file %}
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Online Link" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}/download">{{ resource.get_absolute_url }}/download</a></div></div>
+        {% endif %}
+        {% if 'download_resourcebase' in perms_list %}
+          {% for link in resource.link_set.download %}
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{{ link.name }}</div><div class="col-sm-9"><a href="{{ link.url }}">{{ resource.title }}.{{ link.extension }}</a></div></div>
+          {% endfor %}
+        {% endif %}
+        {% for link in resource.link_set.ows %}
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{{ link.name }}</div><div class="col-sm-9"><a href="{{ link.url }}">Geoservice {{ link.link_type }}</a></div></div>
+        {% endfor %}
       </div>
+
     </div>
 
   </div>
