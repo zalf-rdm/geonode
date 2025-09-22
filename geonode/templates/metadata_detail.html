@@ -175,8 +175,9 @@
     <!-- Identification -->
     <div class="tab-pane active" id="tab-identification">
       <dl class="dl-horizontal">
-        <dt>{% trans "Title" %}</dt><dd>{{ resource.title }}</dd>
-        <dt>{% trans "Abstract" %}</dt><dd>{{ resource.abstract }}</dd>
+        <dt>{% trans "Title" %}</dt><dd>{{ resource.title|default:"-" }}</dd>
+        <dt>{% trans "Abstract" %}</dt><dd>{{ resource.abstract|default:"-" }}</dd>
+        <dt>{% trans "Language" %}</dt><dd>{{ resource.language|default:"-" }}</dd>
         <dt>{% trans "Publication Data" %}</dt><dd>{{ resource.date_created }}</dd>
         <dt>{% trans "Publication Accepted" %}</dt><dd>{{ resource.date_accepted }}</dd>
         <dt>{% trans "Publication Available" %}</dt><dd>{{ resource.date_available }}</dd>
@@ -248,9 +249,9 @@
       <dl class="dl-horizontal">
         <h3>{% trans "GeoInformation" %}</h3>
         
-        <dt>{% trans "Identification Image" %}</dt><dd>{{ resource.image|default:"-" }}</dd>
+        <dt>{% trans "Identification Image" %}</dt><dd><img ng-src="{{ resource.get_thumbnail_url }}" src="{{ resource.get_thumbnail_url }}" /></dd>
         <dt>{% trans "Projection System" %}</dt><dd>{{ resource.srid|default:"-" }}</dd>
-        <dt>{% trans "Spatial Extent" %}</dt><dd>{{ resource.bbox_string|default:"-" }}</dd>
+        <dt>{% trans "Extension x0" %}</dt><dd>{{ resource.|default:"-" }}</dd>
         <dt>{% trans "Projection System" %}</dt><dd>{{ resource.srid|default:"-" }}</dd>
         <dt>{% trans "Spatial Extent" %}</dt><dd>{{ resource.bbox_string|default:"-" }}</dd>
         <dt>{% trans "Language" %}</dt><dd>{{ resource.language|default:"-" }}</dd>
@@ -262,7 +263,6 @@
       <dl class="dl-horizontal">
         <dt>{% trans "Projection System" %}</dt><dd>{{ resource.srid|default:"-" }}</dd>
         <dt>{% trans "Spatial Extent" %}</dt><dd>{{ resource.bbox_string|default:"-" }}</dd>
-        <dt>{% trans "Language" %}</dt><dd>{{ resource.language|default:"-" }}</dd>
       </dl>
     </div>
 
