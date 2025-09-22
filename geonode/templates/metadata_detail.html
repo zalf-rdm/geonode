@@ -176,7 +176,10 @@
     <div class="tab-pane active" id="tab-identification">
       <dl class="dl-horizontal">
         <dt>{% trans "Title" %}</dt><dd>{{ resource.title }}</dd>
-        <dt>{% trans "Publication Date" %}</dt><dd>{{ resource.date }}</dd>
+        <dt>{% trans "Abstract" %}</dt><dd>{{ resource.abstract }}</dd>
+        <dt>{% trans "Publication Data" %}</dt><dd>{{ resource.date_created }}</dd>
+        <dt>{% trans "Publication Accepted" %}</dt><dd>{{ resource.date_accepted }}</dd>
+        <dt>{% trans "Publication Available" %}</dt><dd>{{ resource.date_available }}</dd>
         <dt>{% trans "Type" %}</dt><dd>{{ resource.display_type }}</dd>
         <dt>{% trans "Approved" %}</dt><dd>{{ resource.is_approved|yesno:_("Yes,No") }}</dd>
         <dt>{% trans "Published" %}</dt><dd>{{ resource.is_published|yesno:_("Yes,No") }}</dd>
@@ -188,7 +191,21 @@
 
     <!-- Responsible -->
     <div class="tab-pane" id="tab-responsible">
+      
       <dl class="dl-horizontal">
+        <h3>{% trans "Responsible" %}</h3>
+        <dt>{% trans "Name" %}</dt><dd>{{ resource.owner }}</dd>
+        <dt>{% trans "Email" %}</dt><dd>{{ resource.owner.email }}</dd>
+        <dt>{% trans "Organization" %}</dt><dd>{{ resource.owner.organization|default:"-" }}</dd>
+      </dl>
+      <dl class="dl-horizontal">
+        <h3>{% trans "Contact Point" %}</h3>
+        <dt>{% trans "Name" %}</dt><dd>{{ resource.owner }}</dd>
+        <dt>{% trans "Email" %}</dt><dd>{{ resource.owner.email }}</dd>
+        <dt>{% trans "Organization" %}</dt><dd>{{ resource.owner.organization|default:"-" }}</dd>
+      </dl>
+      <dl class="dl-horizontal">
+        <h3>{% trans "Metada Author" %}</h3>
         <dt>{% trans "Name" %}</dt><dd>{{ resource.owner }}</dd>
         <dt>{% trans "Email" %}</dt><dd>{{ resource.owner.email }}</dd>
         <dt>{% trans "Organization" %}</dt><dd>{{ resource.owner.organization|default:"-" }}</dd>
@@ -225,6 +242,19 @@
       {% else %}
         <p><em>{% trans "No related identifiers available." %}</em></p>
       {% endif %}
+    </div>
+    <!-- GeoInformation -->
+    <div class="tab-pane" id="tab-features">
+      <dl class="dl-horizontal">
+        <h3>{% trans "GeoInformation" %}</h3>
+        
+        <dt>{% trans "Identification Image" %}</dt><dd>{{ resource.image|default:"-" }}</dd>
+        <dt>{% trans "Projection System" %}</dt><dd>{{ resource.srid|default:"-" }}</dd>
+        <dt>{% trans "Spatial Extent" %}</dt><dd>{{ resource.bbox_string|default:"-" }}</dd>
+        <dt>{% trans "Projection System" %}</dt><dd>{{ resource.srid|default:"-" }}</dd>
+        <dt>{% trans "Spatial Extent" %}</dt><dd>{{ resource.bbox_string|default:"-" }}</dd>
+        <dt>{% trans "Language" %}</dt><dd>{{ resource.language|default:"-" }}</dd>
+      </dl>
     </div>
 
     <!-- Features -->
