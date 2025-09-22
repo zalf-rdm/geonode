@@ -2,6 +2,7 @@
    Metadata detail style
    =========================== */
 
+/* Title area */
 .metadata-title .page-header {
     margin-bottom: 40px !important;
 }
@@ -17,7 +18,9 @@
     margin-right: 5px;
 }
 
-/* Tabs */
+/* ===========================
+   Tabs (desktop)
+   =========================== */
 .metadata-tabs .nav-tabs {
     margin-bottom: 0 !important;
 }
@@ -46,7 +49,9 @@
     border-radius: 0 0 .5rem .5rem !important;
 }
 
-/* DL modernized */
+/* ===========================
+   DL (definition lists modernized)
+   =========================== */
 .metadata-tabs dl.dl-horizontal {
     display: flex !important;
     flex-wrap: wrap !important;
@@ -74,7 +79,9 @@
     word-break: break-word !important;
 }
 
-/* Panels modernized */
+/* ===========================
+   Panels (mobile accordion)
+   =========================== */
 .metadata-tabs .panel {
     border: none !important;
     border-radius: .5rem !important;
@@ -103,6 +110,24 @@
     text-decoration: none !important;
 }
 
+/* Fix initial open state (first accordion) */
+.metadata-tabs .panel-collapse.in~.panel-heading,
+.metadata-tabs .panel-collapse.show~.panel-heading {
+    background: #004d40 !important;
+    color: #fff !important;
+}
+
+.metadata-tabs .panel-collapse.in~.panel-heading a,
+.metadata-tabs .panel-collapse.show~.panel-heading a {
+    color: #fff !important;
+}
+
+/* Ensure arrow and text stay white when active */
+.metadata-tabs .panel-heading.active a,
+.metadata-tabs .panel-heading.active a::after {
+    color: #fff !important;
+}
+
 .metadata-tabs .panel-body {
     background: #fff !important;
     padding: 15px 20px !important;
@@ -110,7 +135,9 @@
     border-radius: 0 0 .5rem .5rem !important;
 }
 
-/* Responsive refinements */
+/* ===========================
+   Responsive refinements
+   =========================== */
 @media (max-width: 768px) {
     .metadata-tabs .nav-tabs {
         display: none !important;
@@ -147,17 +174,17 @@
     }
 }
 
-/* Wrapper para blocos de metadados */
+/* ===========================
+   Metadata block wrapper
+   =========================== */
 .metadata-block {
     background-color: #f8f9fa;
-    /* leve cinza */
+    /* light gray */
     border: 1px solid #dee2e6;
     border-radius: .5rem;
-    /* arredondado */
     box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
 }
 
-/* Espaçamento entre as linhas internas */
 .metadata-block .row {
     border-bottom: 1px solid #eee;
 }
@@ -166,12 +193,10 @@
     border-bottom: none;
 }
 
-/* Label (col-esquerda) */
 .metadata-block .fw-semibold {
     color: #343a40;
 }
 
-/* Valor (col-direita) */
 .metadata-block .col-sm-9 {
     color: #212529;
 }

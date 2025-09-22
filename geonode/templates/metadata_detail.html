@@ -44,9 +44,12 @@
       </div>
       <div id="collapse-identification" class="panel-collapse collapse in">
         <div class="panel-body p-3 metadata-block">
-          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Title" %}</div><div class="col-sm-9">{{ resource.title }}</div></div>
-          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Publication Date" %}</div><div class="col-sm-9">{{ resource.date }}</div></div>
-          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Type" %}</div><div class="col-sm-9">{{ resource.display_type }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Title" %}</div><div class="col-sm-9">{{ resource.title|default:"-" }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Abstract" %}</div><div class="col-sm-9">{{ resource.abstract|default:"-" }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Publication Data" %}</div><div class="col-sm-9">{{ resource.date_created|default:"-" }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Publication Accepted" %}</div><div class="col-sm-9">{{ resource.date_accepted|default:"-" }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Publication Available" %}</div><div class="col-sm-9">{{ resource.date_available|default:"-" }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Type" %}</div><div class="col-sm-9">{{ resource.display_type|default:"-" }}</div></div>
           <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Approved" %}</div><div class="col-sm-9">{{ resource.is_approved|yesno:_("Yes,No") }}</div></div>
           <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Published" %}</div><div class="col-sm-9">{{ resource.is_published|yesno:_("Yes,No") }}</div></div>
           <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Featured" %}</div><div class="col-sm-9">{{ resource.featured|yesno:_("Yes,No") }}</div></div>
@@ -62,10 +65,56 @@
         <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapse-responsible">{% trans "Responsible" %}</a></h4>
       </div>
       <div id="collapse-responsible" class="panel-collapse collapse">
-        <div class="panel-body p-3 metadata-block">
-          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Name" %}</div><div class="col-sm-9">{{ resource.owner }}</div></div>
-          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Email" %}</div><div class="col-sm-9">{{ resource.owner.email }}</div></div>
-          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Organization" %}</div><div class="col-sm-9">{{ resource.owner.organization|default:"-" }}</div></div>
+        <div class="panel-body p-3">
+          <div class="metadata-block p-3 mb-3">
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Name" %}</div><div class="col-sm-9">{{ resource.owner }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Email" %}</div><div class="col-sm-9">{{ resource.owner.email }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Organization" %}</div><div class="col-sm-9">{{ resource.owner.organization|default:"-" }}</div></div>
+          </div>
+
+          {% if resource.custodian %}
+            <h5 class="fw-medium mt-3">{% trans "Custodian" %}</h5>
+            {% for custodian in resource.custodian %}
+              <div class="metadata-block p-3 mb-3">
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Name' %}</div><div class="col-sm-9">{{ custodian.name_long|default:"-" }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Email' %}</div><div class="col-sm-9">{{ custodian.email|default:"-" }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Organization' %}</div><div class="col-sm-9">{{ custodian.organization|default:"-" }}</div></div>
+              </div>
+            {% endfor %}
+          {% endif %}
+
+          {% if resource.poc %}
+            <h5 class="fw-medium mt-3">{% trans "Contact Person" %}</h5>
+            {% for poc in resource.poc %}
+              <div class="metadata-block p-3 mb-3">
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Name' %}</div><div class="col-sm-9">{{ poc.name_long|default:"-" }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Email' %}</div><div class="col-sm-9">{{ poc.email|default:"-" }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Organization' %}</div><div class="col-sm-9">{{ poc.organization|default:"-" }}</div></div>
+              </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Projects -->
+    <div class="panel panel-default rounded shadow-sm mb-3">
+      <div class="panel-heading p-2">
+        <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapse-projects">{% trans "Projects" %}</a></h4>
+      </div>
+      <div id="collapse-projects" class="panel-collapse collapse">
+        <div class="panel-body p-3">
+          {% if resource.related_projects.exists %}
+            {% for rel in resource.related_projects.all %}
+              <div class="metadata-block p-3 mb-3">
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Related Project Label" %}</div><div class="col-sm-9">{{ rel.label|default:"-" }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Related Project Name" %}</div><div class="col-sm-9">{{ rel.display_name|default:"-" }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Related Project Description" %}</div><div class="col-sm-9">{{ rel.description|default:"-" }}</div></div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <p><em>{% trans "No Projects available." %}</em></p>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -77,16 +126,18 @@
       </div>
       <div id="collapse-fundings" class="panel-collapse collapse">
         <div class="panel-body p-3">
-          {% for funding in resource.fundings.all %}
-          <div class="metadata-block mb-3 p-3">
-            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Organization" %}</div><div class="col-sm-9">{{ funding.organization }}</div></div>
-            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Award Number" %}</div><div class="col-sm-9">{{ funding.award_number }}</div></div>
-            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Award URI" %}</div><div class="col-sm-9">{{ funding.award_uri }}</div></div>
-            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Award Title" %}</div><div class="col-sm-9">{{ funding.award_title }}</div></div>
-          </div>
-          {% empty %}
-          <p><em>{% trans "No fundings available." %}</em></p>
-          {% endfor %}
+          {% if resource.fundings.exists %}
+            {% for funding in resource.fundings.all %}
+              <div class="metadata-block p-3 mb-3">
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Organization" %}</div><div class="col-sm-9">{{ funding.organization }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Award Number" %}</div><div class="col-sm-9">{{ funding.award_number }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Award URI" %}</div><div class="col-sm-9">{{ funding.award_uri }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Award Title" %}</div><div class="col-sm-9">{{ funding.award_title }}</div></div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <p><em>{% trans "No fundings available." %}</em></p>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -100,12 +151,12 @@
         <div class="panel-body p-3">
           {% if resource.related_identifier.exists %}
             {% for rel in resource.related_identifier.all %}
-            <div class="metadata-block mb-3 p-3">
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Relation Identifier" %}</div><div class="col-sm-9">{{ rel.related_identifier }}</div></div>
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Related Identifier Type" %}</div><div class="col-sm-9">{{ rel.related_identifier_type }}</div></div>
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Relation Type" %}</div><div class="col-sm-9">{{ rel.relation_type }}</div></div>
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Description" %}</div><div class="col-sm-9">{{ rel.description }}</div></div>
-            </div>
+              <div class="metadata-block p-3 mb-3">
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Relation Identifier" %}</div><div class="col-sm-9">{{ rel.related_identifier }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Related Identifier Type" %}</div><div class="col-sm-9">{{ rel.related_identifier_type }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Relation Type" %}</div><div class="col-sm-9">{{ rel.relation_type }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Description" %}</div><div class="col-sm-9">{{ rel.description }}</div></div>
+              </div>
             {% endfor %}
           {% else %}
             <p><em>{% trans "No related identifiers available." %}</em></p>
@@ -120,10 +171,17 @@
         <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapse-features">{% trans "Features" %}</a></h4>
       </div>
       <div id="collapse-features" class="panel-collapse collapse">
-        <div class="panel-body p-3 metadata-block">
-          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Projection System" %}</div><div class="col-sm-9">{{ resource.srid|default:"-" }}</div></div>
-          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Spatial Extent" %}</div><div class="col-sm-9">{{ resource.bbox_string|default:"-" }}</div></div>
-          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Language" %}</div><div class="col-sm-9">{{ resource.language|default:"-" }}</div></div>
+        <div class="panel-body p-3">
+          <div class="metadata-block p-3 mb-3">
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Edition" %}</div><div class="col-sm-9">{{ resource.edition|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Language" %}</div><div class="col-sm-9">{{ resource.language|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Data Quality" %}</div><div class="col-sm-9">{{ resource.data_quality_statement }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Supplemental Information" %}</div><div class="col-sm-9">{{ resource.supplemental_information|sanitize_html|safe }}</div></div>
+          </div>
+          <div class="metadata-block p-3 mb-3">
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Projection System" %}</div><div class="col-sm-9">{{ resource.srid|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Spatial Extent" %}</div><div class="col-sm-9">{{ resource.bbox_string|default:"-" }}</div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -135,8 +193,8 @@
       </div>
       <div id="collapse-references" class="panel-collapse collapse">
         <div class="panel-body p-3 metadata-block">
-          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Link Online" %}</div><div class="col-sm-9"><a href="{{ resource.detail_url }}">{{ resource.detail_url }}</a></div></div>
-          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Metadata Page" %}</div><div class="col-sm-9"><a href="{{ resource.detail_url }}metadata_detail">{{ resource.detail_url }}metadata_detail</a></div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Link Online" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}">{{ resource.get_absolute_url }}</a></div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Metadata Page" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}/metadata_detail">{{ resource.get_absolute_url }}/metadata_detail</a></div></div>
         </div>
       </div>
     </div>
@@ -172,6 +230,25 @@
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Email" %}</div><div class="col-sm-9">{{ resource.owner.email }}</div></div>
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Organization" %}</div><div class="col-sm-9">{{ resource.owner.organization|default:"-" }}</div></div>
       </div>
+      
+      <h3 class="fw-medium">{% trans "Custodian" %}</h3><hr>
+      {% if resource.custodian %}
+        {% for custodian in resource.custodian %}
+          <div class="metadata-block p-3 mb-3">
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Name' %}</div><div class="col-sm-9">{{ custodian.name_long|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Email' %}</div><div class="col-sm-9">{{ custodian.email|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Position' %}</div><div class="col-sm-9">{{ custodian.position|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Organization' %}</div><div class="col-sm-9">{{ custodian.organization|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Location' %}</div><div class="col-sm-9">{{ custodian.location|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Voice' %}</div><div class="col-sm-9">{{ custodian.voice|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Fax' %}</div><div class="col-sm-9">{{ custodian.fax|default:"-" }}</div></div>
+            {% if custodian.keyword_list %}
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Keywords' %}</div><div class="col-sm-9">{% for keyword in custodian.keyword_list %}{{ keyword }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% endif %}
+
       <h3 class="fw-medium">{% trans "Contact Person" %}</h3><hr>
       <div class="metadata-block p-3 mb-3">
         {% if resource.poc %}
