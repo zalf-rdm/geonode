@@ -355,10 +355,13 @@ def geoapp_metadata(
         # update contact roles
         geoapp_obj.set_contact_roles_from_metadata_edit(geoapp_form)
         
-        instances = funding_form.save()
-        geoapp_obj.fundings.set(instances)
-        instances = related_identifier_form.save()
-        geoapp_obj.related_identifier.set(instances)
+        funding_form.save()
+        instance = funding_form.save(commit=False)
+        geoapp_obj.fundings.add(*instance)
+        
+        related_identifier_form.save()
+        instance = related_identifier_form.save(commit=False)
+        geoapp_obj.related_identifier.add(*instance)
 
 
         geoapp_obj.save()

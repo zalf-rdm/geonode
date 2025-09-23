@@ -468,11 +468,15 @@ def document_metadata(
 
             project = related_project_form.cleaned_data
             instance = project["display_name"]
-            document.related_projects.add(*instance)
-            instances = funding_form.save()
-            document.fundings.set(instances)
-            instances = related_identifier_form.save()
-            document.related_identifier.set(instances)
+            
+            funding_form.save()
+            instance = funding_form.save(commit=False)
+            document.fundings.add(*instance)
+
+            related_identifier_form.save()
+            instance = related_identifier_form.save(commit=False)
+            document.related_identifier.add(*instance)
+            
         # update contact roles
         document.set_contact_roles_from_metadata_edit(document_form)
         document.save()

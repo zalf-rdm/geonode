@@ -507,11 +507,13 @@ def dataset_metadata(
         # update contact roles
         layer.set_contact_roles_from_metadata_edit(dataset_form)
         
+        funding_form.save()
+        instance = funding_form.save(commit=False)
+        layer.fundings.add(*instance)
         
-        instances = funding_form.save()
-        layer.fundings.set(instances)
-        instances = related_identifier_form.save()
-        layer.related_identifier.set(instances)
+        related_identifier_form.save()
+        instance = related_identifier_form.save(commit=False)
+        layer.related_identifier.add(*instance)
 
         layer.save()
 
