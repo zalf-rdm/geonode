@@ -776,13 +776,32 @@ textarea.form-control {
 
 /* test */
 /* Bootstrap 5 Navbar customizations */
+/* Navbar base */
 .navbar {
     border: none;
-    border-bottom: 1px solid rgba(230, 236, 240, .8);
-    background: linear-gradient(180deg, rgba(255, 255, 255, .9), rgba(255, 255, 255, .72));
+    border-bottom: 1px solid rgba(230, 236, 240, 0.8);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.72));
     backdrop-filter: var(--gn-blur);
     -webkit-backdrop-filter: var(--gn-blur);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, .04);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+    min-height: 50px;
+}
+
+.navbar .navbar-nav {
+    align-items: stretch;
+}
+
+.navbar .nav-item {
+    display: flex;
+}
+
+.navbar .nav-item>.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0 1rem;
+    width: 100%;
+    /* height: 100% é herdado do stretch */
 }
 
 .navbar .navbar-brand,
@@ -791,49 +810,47 @@ textarea.form-control {
     color: var(--gn-txt-1);
 }
 
+.navbar .nav-item {
+    height: 100%;
+}
+
+.navbar .nav-item>.nav-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    height: 100%;
+    padding: 0 1rem;
+}
+
+/* Estados ativo e hover */
 .navbar .nav-link.active {
     background: linear-gradient(135deg, var(--gn-primary-1), var(--gn-primary-2));
-    color: #fff !important; 
+    color: #fff !important;
 }
 
 .navbar .nav-link:hover,
 .navbar .nav-link:focus {
     color: white !important;
     background: var(--gn-txt-1);
-    margin: 0;
 }
 
-.navbar .nav-link {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding-bottom: 8px;
-}
-
-.navbar .nav-link::after {
+.navbar .nav-item>.nav-link::after {
     content: "";
     position: absolute;
     left: 12px;
     right: 12px;
-    bottom: 6px;
-    height: 2px;
+    bottom: 0;height: 2px;
     background: linear-gradient(90deg, var(--gn-primary-1), var(--gn-primary-2));
     transform: scaleX(0);
     transform-origin: left;
-    transition: transform var(--gn-fast) var(--gn-ease);
-    will-change: transform;
-    border-radius: 1px;
+    transition: transform var(--gn-fast, 0.25s) var(--gn-ease, ease);
+    pointer-events: none;
 }
 
-.navbar .nav-link:hover::after,
-.navbar .nav-link.active::after {
+.navbar .nav-item>.nav-link:hover::after,
+.navbar .nav-item>.nav-link.active::after {
     transform: scaleX(1);
-    
-}
-
-.navbar .nav-item.dropdown.show .nav-link::after {
-  transform: scaleX(0);
 }
 
 

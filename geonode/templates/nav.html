@@ -3,73 +3,92 @@
 {% load base_tags %}
 {% load client_lib_tags %}
 
-<!-- NAVBAR  ───────────────────────────────────────────── -->
-<nav class="navbar navbar-expand-lg navbar-light bg-nav fixed-top">
+<!-- NAVBAR ───────────────────────────────────────────── -->
+<nav class="navbar navbar-expand-lg navbar-light bg-nav fixed-top" aria-label="Main navigation">
   <div class="container-fluid nav-container">
+    
+    <!-- Brand -->
+    <a class="navbar-brand" href="/" aria-label="GeoNode homepage">GeoNode</a>
 
-    <!-- logo / brand -->
-    <a class="navbar-brand" href="/">GeoNode</a>
-
-    <!-- botão hamburguer -->
-    <button class="navbar-toggler" type="button"
-            data-bs-toggle="collapse" data-bs-target="#mainNav"
-            aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+    <!-- Toggler -->
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#mainNav"
+      aria-controls="mainNav"
+      aria-expanded="false"
+      aria-label="{% trans 'Toggle navigation' %}"
+    >
       <span class="navbar-toggler-icon"></span>
     </button>
 
-    <!-- links / dropdowns -->
+    <!-- Nav content -->
     <div class="collapse navbar-collapse" id="mainNav">
-
-      <!-- bloco da esquerda --------------------------------------------------->
-      <ul class="navbar-nav me-auto toolbar">
-
-        <!-- Data -------------------------------------------------------------->
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#"
-             id="ddData" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            Data <i class="fa fa-angle-down fa-lg ms-1"></i>
+      
+      <!-- Left nav -->
+      <ul class="navbar-nav me-auto toolbar" role="menubar">
+        
+        <!-- Data Dropdown -->
+        <li class="nav-item dropdown" role="none">
+          <a
+            class="nav-link"
+            href="#"
+            id="ddData"
+            role="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+            aria-haspopup="true"
+          >
+            Data <i class="fa fa-angle-down fa-lg ms-1" aria-hidden="true"></i>
           </a>
-          <ul class="dropdown-menu" aria-labelledby="ddData">
-            <li><a class="dropdown-item" href="/catalogue/#/search/?filter{resource_type.in}=dataset">Datasets</a></li>
-            <li><a class="dropdown-item" href="/catalogue/#/search/?filter{resource_type.in}=document">Documents</a></li>
-            <li><a class="dropdown-item" href="/services/?limit=5">Remote Services</a></li>
+          <ul class="dropdown-menu" aria-labelledby="ddData" role="menu">
+            <li><a class="dropdown-item" href="/catalogue/#/search/?filter{resource_type.in}=dataset" role="menuitem">Datasets</a></li>
+            <li><a class="dropdown-item" href="/catalogue/#/search/?filter{resource_type.in}=document" role="menuitem">Documents</a></li>
+            <li><a class="dropdown-item" href="/services/?limit=5" role="menuitem">Remote Services</a></li>
           </ul>
         </li>
 
-        
-        <li class="nav-item">
-          <a class="nav-link" href="/catalogue/#/search/?filter{resource_type.in}=map">Maps</a>
+        <!-- Maps -->
+        <li class="nav-item" role="none">
+          <a class="nav-link" href="/catalogue/#/search/?filter{resource_type.in}=map" role="menuitem">Maps</a>
         </li>
 
-        
-        <li class="nav-item">
-          <a class="nav-link" href="/catalogue/#/search/?filter{resource_type.in}=geostory">Apps</a>
+        <!-- Apps -->
+        <li class="nav-item" role="none">
+          <a class="nav-link" href="/catalogue/#/search/?filter{resource_type.in}=geostory" role="menuitem">Apps</a>
         </li>
 
-        
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#"
-             id="ddAbout" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            About <i class="fa fa-angle-down fa-lg ms-1"></i>
+        <!-- About Dropdown -->
+        <li class="nav-item dropdown" role="none">
+          <a
+            class="nav-link"
+            href="#"
+            id="ddAbout"
+            role="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+            aria-haspopup="true"
+          >
+            About <i class="fa fa-angle-down fa-lg ms-1" aria-hidden="true"></i>
           </a>
-          <ul class="dropdown-menu" aria-labelledby="ddAbout">
-            <li><a class="dropdown-item" href="/people/">People</a></li>
-            <li><a class="dropdown-item" href="/groups/">Groups</a></li>
-            <li><a class="dropdown-item" href="/groups/categories/">Group Categories</a></li>
+          <ul class="dropdown-menu" aria-labelledby="ddAbout" role="menu">
+            <li><a class="dropdown-item" href="/people/" role="menuitem">People</a></li>
+            <li><a class="dropdown-item" href="/groups/" role="menuitem">Groups</a></li>
+            <li><a class="dropdown-item" href="/groups/categories/" role="menuitem">Group Categories</a></li>
           </ul>
         </li>
       </ul>
 
-      <!-- bloco da direita ---------------------------------------------------->
-      <ul class="navbar-nav ms-auto">
-        <li class="nav-item">
-          <a class="nav-link" href="/account/signup/">Register</a>
+      <!-- Right nav -->
+      <ul class="navbar-nav ms-auto" role="menubar">
+        <li class="nav-item" role="none">
+          <a class="nav-link" href="/account/signup/" role="menuitem">Register</a>
         </li>
-        <li class="nav-item">
-          <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#SigninModal">Sign in</a>
+        <li class="nav-item" role="none">
+          <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#SigninModal" role="button">Sign in</a>
         </li>
       </ul>
-
-    </div><!-- /.navbar-collapse -->
-  </div><!-- /.container-fluid -->
+    </div>
+  </div>
 </nav>
