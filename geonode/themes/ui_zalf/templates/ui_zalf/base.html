@@ -119,16 +119,6 @@
       {% endblock %}
       
     {% endblock %}
-    <!--[if IE]>
-      <script src="https://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-      <style>
-        #ieflag{
-            display: block !important;
-            height: 150px;
-            text-align: center;
-        }
-      </style>
-    <![endif]-->
     <link rel="search" type="application/opensearchdescription+xml" href="{% if SITEURL|default:""|slice:"-1:" == "/" %}{{SITEURL}}{% else %}{{SITEURL}}/{% endif %}catalogue/opensearch" title="{% trans "GeoNode Search" %}"/>
 
     <script>
@@ -170,132 +160,8 @@
     <div class='lmask'></div>
     <!-- Navbar -->
     {% block header %}
-  <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-    <div class="nav-container">
-        <div class="navbar-header">
-        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-          <i class="fa fa-navicon fa-lg"></i>
-        </button>
-        <a class="navbar-brand" href="{% url "home" %}">GeoNode</a>
-      </div>
-      <div id="navbar" class="navbar-collapse collapse">
-        <ul class="nav navbar-nav toolbar">
-
-          {% block tabs %}
-
-          <li id="nav_layers">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">{% trans "Data" %}<i class="fa fa-angle-down fa-lg"></i></a>
-              <ul class="dropdown-menu">
-                <li><a href="{% dataset_list_url %}">{% trans "Datasets" %}</a></li>
-                <li><a href="{% document_list_url %}">{% trans "Documents" %}</a></li>
-                <li><a href="{% url "services" %}?limit={{ CLIENT_RESULTS_LIMIT }}">{% trans "Remote Services" %}</a></li>
-                {% if user.is_superuser or user.is_staff %}
-                  {%  if "add_resource" in user.perms %}
-                    <li><a href="{% url "register_service" %}">{% trans "Add Remote Service" %}</a></li>
-                  {% endif %}
-                {% endif %}
-              </ul>
-            </li>
-          <li id="nav_maps">
-              {% if user.is_authenticated %}
-                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">{% trans "Maps" %}<i class="fa fa-angle-down fa-lg"></i></a>
-                <ul class="dropdown-menu">
-                  <li><a href="{% map_list_url %}">{% trans "Explore Maps" %}</a></li>
-                </ul>
-              {% else %}
-                <a href="{% map_list_url %}">{% trans "Maps" %}</a>
-              {% endif %}
-          </li>
-          {% if GEONODE_APPS_ENABLE and GEONODE_APPS_NAV_MENU_ENABLE %}
-          <li id="nav_maps">
-            {% if user.is_authenticated %}
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">{% blocktrans %}{{GEONODE_APPS_NAME}}{% endblocktrans %}<i class="fa fa-angle-down fa-lg"></i></a>
-              <ul class="dropdown-menu">
-                  <li><a href="{% geoapp_list_url %}">{% trans "Explore" %} {% blocktrans %}{{GEONODE_APPS_NAME}}{% endblocktrans %}</a></li>
-                </ul>
-            {% else %}
-              <a href="{% geoapp_list_url %}">{% blocktrans %}{{GEONODE_APPS_NAME}}{% endblocktrans %}</a>
-            {% endif %}
-          </li>
-          {% endif %}
-          <li>
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">{% trans "About" %}<i class="fa fa-angle-down fa-lg"></i></a>
-              <ul class="dropdown-menu">
-                <li><a href="{% url "profile_browse" %}">{% trans "People" %}</a></li>
-                <li><a href="{% url "group_list" %}">{% trans "Groups" %}</a></li>
-                <li><a href="{% url "group_category_list" %}">{% trans "Group Categories" %}</a></li>
-                {% if perms.announcements.can_manage %}
-                  <li><a href="{% url "announcements_list" %}">{% trans "Announcements" %}</a></li>
-                {% endif %}
-                {% if user.is_authenticated and not READ_ONLY_MODE %}
-                  <li role="separator" class="divider"></li>
-                  <li><a href="{% url "geonode.invitations:geonode-send-invite" %}">{% trans "Invite Users" %}</a></li>
-                {% endif %}
-                {% if user.is_superuser and not READ_ONLY_MODE %}
-                  <li><a href="{% if SITEURL|default:""|slice:"-1:" == "/" %}{{SITEURL}}{% else %}{{SITEURL}}/{% endif %}admin/people/profile/add/">{% trans "Add User" %}</a></li>
-                  <li><a href="{% url "group_create" %}">{% trans "Create Group" %}</a></li>
-                {% endif %}
-              </ul>
-          </li>
-
-          {% block extra_tab %}
-
-          {% endblock %}
-
-          {% endblock %}
-
-        </ul>
-        <ul class="nav navbar-nav navbar-right">
-
-            {% block my_extra_right_tab %}
-               {% render_nav_menu 'TOPBAR_MENU' %}
-            {% endblock my_extra_right_tab %}
-
-            {% if not user.is_authenticated and ACCOUNT_OPEN_SIGNUP and not READ_ONLY_MODE %}
-              <li><a href="{% url "account_signup" %}">{% trans "Register" %}</a></li>
-            {% endif %}
-            {% if user.is_authenticated %}
-            <li>
-              <a href="#" class="dropdown-toggle avatar" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
-                {% autoescape off %}{% avatar user 40 %}{% endautoescape %}
-                {% with full_name=user.first_name|add:' '|add:user.last_name %}
-                  {% if full_name.strip %}
-                    {{ full_name | truncatechars:20 }}
-                  {% else %}
-                    {{ user.username | truncatechars:20 }}
-                  {% endif %}
-                {% endwith %}
-                <i class="fa fa-angle-down fa-lg"></i>
-              </a>
-              <ul class="dropdown-menu">
-                <li><a href="{{ user.get_absolute_url }}">{% trans "Profile" %}</a></li>
-                <li><a href="{% url "recent-activity" %}">{% trans "Recent Activity" %}</a></li>
-                <li><a href="{% url "messages_inbox" %}">{% trans "Inbox" %}</a></li>
-                {% if user.is_superuser or user.is_staff %}
-                    <li role="separator" class="divider"></li>
-                    <li><a href="{% url "admin:index" %}">{% trans "Admin" %}</a></li>
-                    {% if 'geonode.geoserver' in INSTALLED_APPS %}
-                    <li><a href="{{ OGC_SERVER.default.WEB_UI_LOCATION }}">GeoServer</a></li>
-                    {% endif %}
-                    {% if USE_MONITORING %}
-                    <li role="separator" class="divider"></li>
-                    <li><a href="{% url "monitoring:index" %}">{% trans "Monitoring & Analytics" %}</a></li>
-                    {% endif %}
-                {% endif %}
-                <li role="separator" class="divider"></li>
-                <li><a href="{% url "help" %}">{% trans "Help" %}</a></li>
-                <li role="separator" class="divider"></li>
-                <li><a href="{% if SITEURL|default:""|slice:"-1:" == "/" %}{{SITEURL}}{% else %}{{SITEURL}}/{% endif %}account/logout/">{% trans "Log out" %}</a></li>
-                </ul>
-              </li>
-          {% else %}
-          <li><a href="#" data-toggle="modal" data-target="#SigninModal" role="button" >{% trans "Sign in" %} </a></li>
-              {% endif %}
-            </ul>
-          </div> <!--/.nav-collapse -->
-        </div>
-      </nav>
-      {% endblock header %}
+      {% include "nav.html" %}
+    {% endblock header %}
       <!-- End of Navbar -->
 
     <div class="alert alert-danger alert-dismissible" role="alert" id="ieflag" style="display:none">
@@ -329,71 +195,7 @@
   {% endblock %}
 
   {% block footer %}
-  <footer>
-    <div class="container">
-      <div class="row">
-        <div class="col-md-2">
-          <ul class="list-unstyled">
-            <li>{% trans "Data" %}</li>
-            <li><a href="{% dataset_list_url %}">{% trans "Datasets" %}</a></li>
-            <li><a href="{% document_list_url %}">{% trans "Documents" %}</a></li>
-            <li><a href="{% url "services" %}?limit={{ CLIENT_RESULTS_LIMIT }}">{% trans "Remote Services" %}</a></li>
-            {% if user.is_staff or user.is_superuser %}
-              {% if "add_resource" in user.perms %}
-                <li><a href="{% url "register_service" %}">{% trans "Add Remote Service" %}</a></li>
-              {% endif %}
-            {% endif %}
-          </ul>
-        </div>
-        <div class="col-md-2">
-          <ul class="list-unstyled">
-            <li>{% trans "Maps" %}</li>
-            <li><a href="{% map_list_url %}">{% trans "Explore Maps" %}</a></li>
-          </ul>
-        </div>
-        <div class="col-md-2">
-          <ul class="list-unstyled">
-            <li>{% trans "About" %}</li>
-            <li><a href="{% url "profile_browse" %}">{% trans "People" %}</a></li>
-            <li><a href="{% url "group_list" %}">{% trans "Groups" %}</a></li>
-            {% if perms.announcements.can_manage %}
-            <li><a href="{% url "announcements_list" %}">{% trans "Announcements" %}</a></li>
-            {% endif %}
-            {% if user.is_authenticated and not READ_ONLY_MODE %}
-            <li><a href="{% url "geonode.invitations:geonode-send-invite" %}">{% trans "Invite Users" %}</a></li>
-            {% endif %}
-            {% if user.is_superuser and not READ_ONLY_MODE %}
-            <li><a href="{% if SITEURL|default:""|slice:"-1:" == "/" %}{{SITEURL}}{% else %}{{SITEURL}}/{% endif %}admin/people/profile/add/">{% trans "Add User" %}</a></li>
-            <li><a href="{% url "group_create" %}">{% trans "Create Group" %}</a></li>
-            {% endif %}
-          </ul>
-        </div>
-
-        <div class="col-md-6 text-right">
-          {% block contactus %}
-          {% endblock contactus %}
-          <ul class="list-unstyled">
-            <li>{% trans "Powered by" %} <a href="http://geonode.org">{% trans "GeoNode" %}</a>{% if user.is_staff %} <em>{% trans "version" %} {{ VERSION }}</em>{% endif %}</li>
-            <li><a href="{% url "developer" %}">{% trans "Developers" %}</a> | <a href="{% url "about" %}">{% trans "About" %}</a><li>
-          </ul>
-          <label class="hidden">{% trans "Language" %}</label>
-          {% if csrf_token != "NOTPROVIDED" %}
-          {% get_current_language as LANGUAGE %}
-          <form class="form-inline" action="/i18n/setlang/" method="post">
-          {% csrf_token %}
-            <select class="col-md-6 pull-right" name="language" onchange="javascript:form.submit()">
-              {% for lang in LANGUAGES %}
-              <option value="{{ lang.0 }}" {% if LANGUAGE_CODE == lang.0 %} selected="selected"{% endif %}>
-                {{ lang.1 }}
-              </option>
-              {% endfor %}
-            </select>
-          </form>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </footer>
+   {% include "footer.html" %}
 
   {% if custom_theme.copyright %}
     <section class="footer-copyright">
@@ -563,18 +365,6 @@
     </div>
 
     <div id="confirmMsgBoxModalOK" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-      <!-- How to use it:
-        $("#confirmMsgBoxModalOK").find('.modal-title').text('{% trans "Title" %}');
-        $("#confirmMsgBoxModalOK").find('.modal-body').text('{% trans "Message. Do you want to proceed?" %}');
-        $("#confirmMsgBoxModalOK_control_field").val('your_control_value');
-        $("#confirmMsgBoxModalOK").modal("show");
-
-        $('#confirmMsgBoxModalOK').find('.modal-footer #confirm').on('click', function() {
-          if ($("#control_field").val() == 'your_control_value') {
-            CONFIRMED
-          }
-        });
-      -->
       <div class="modal-dialog">
         <input type="hidden" class="form-control" id="confirmMsgBoxModalOK_control_field" />
         <div class="modal-content panel-success">

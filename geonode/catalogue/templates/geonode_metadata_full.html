@@ -11,7 +11,7 @@
       {% if DEBUG_STATIC %}
       <link href="{% static "lib/css/jquery.dataTables.css" %}" rel="stylesheet" />
       <link href="{% static "lib/css/select2.css" %}" rel="stylesheet"/>
-      <link href="{% static "lib/css/bootstrap.css" %}" rel="stylesheet"/>
+      {% comment %} <link href="{% static "lib/css/bootstrap.css" %}" rel="stylesheet"/> {% endcomment %}
       <link href="{% static "lib/css/jquery-ui.css" %}" rel="stylesheet"/>
       <link href="{% static "lib/css/bootstrap-datetimepicker.css" %}" rel="stylesheet" />
       {% else %}
