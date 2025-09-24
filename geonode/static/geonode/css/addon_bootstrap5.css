@@ -1,7 +1,3 @@
-/* ========================================
-   UTILITÁRIOS BOOTSTRAP 5 STYLE (Compatível com qualquer projeto)
-   ======================================== */
-
 :root {
     --bs-border-radius: 0.375rem;
     --bs-border-radius-sm: 0.25rem;
@@ -9,23 +5,28 @@
     --bs-border-radius-xl: 1rem;
     --bs-border-radius-2xl: 2rem;
     --bs-border-radius-pill: 50rem;
+    
+    /* Sombras extras usadas por .shadow-lg (custom) */
+    --gn-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    --gn-shadow-heavy: 0 1rem 3rem rgba(0, 0, 0, 0.175);
 }
 
 /* =============
-   SPACING (p-, m-)
-   Escala: 0 → 0 | 1 → 0.25rem | 2 → 0.5rem | 3 → 1rem | 4 → 1.5rem | 5 → 3rem
-   ============= */
+SPACING (p-, m-)
+Escala: 0 → 0 | 1 → 0.25rem | 2 → 0.5rem | 3 → 1rem | 4 → 1.5rem | 5 → 3rem
+============= */
 
+/* Padding (shorthand, eixo X/Y) */
 .p-0 {
     padding: 0 !important;
 }
 
 .p-1 {
-    padding: 0.25rem !important;
+    padding: .25rem !important;
 }
 
 .p-2 {
-    padding: 0.5rem !important;
+    padding: .5rem !important;
 }
 
 .p-3 {
@@ -46,13 +47,13 @@
 }
 
 .px-1 {
-    padding-left: 0.25rem !important;
-    padding-right: 0.25rem !important;
+    padding-left: .25rem !important;
+    padding-right: .25rem !important;
 }
 
 .px-2 {
-    padding-left: 0.5rem !important;
-    padding-right: 0.5rem !important;
+    padding-left: .5rem !important;
+    padding-right: .5rem !important;
 }
 
 .px-3 {
@@ -76,13 +77,13 @@
 }
 
 .py-1 {
-    padding-top: 0.25rem !important;
-    padding-bottom: 0.25rem !important;
+    padding-top: .25rem !important;
+    padding-bottom: .25rem !important;
 }
 
 .py-2 {
-    padding-top: 0.5rem !important;
-    padding-bottom: 0.5rem !important;
+    padding-top: .5rem !important;
+    padding-bottom: .5rem !important;
 }
 
 .py-3 {
@@ -105,11 +106,11 @@
 }
 
 .pt-1 {
-    padding-top: 0.25rem !important;
+    padding-top: .25rem !important;
 }
 
 .pt-2 {
-    padding-top: 0.5rem !important;
+    padding-top: .5rem !important;
 }
 
 .pt-3 {
@@ -129,11 +130,11 @@
 }
 
 .pe-1 {
-    padding-right: 0.25rem !important;
+    padding-right: .25rem !important;
 }
 
 .pe-2 {
-    padding-right: 0.5rem !important;
+    padding-right: .5rem !important;
 }
 
 .pe-3 {
@@ -153,11 +154,11 @@
 }
 
 .pb-1 {
-    padding-bottom: 0.25rem !important;
+    padding-bottom: .25rem !important;
 }
 
 .pb-2 {
-    padding-bottom: 0.5rem !important;
+    padding-bottom: .5rem !important;
 }
 
 .pb-3 {
@@ -177,11 +178,11 @@
 }
 
 .ps-1 {
-    padding-left: 0.25rem !important;
+    padding-left: .25rem !important;
 }
 
 .ps-2 {
-    padding-left: 0.5rem !important;
+    padding-left: .5rem !important;
 }
 
 .ps-3 {
@@ -196,16 +197,17 @@
     padding-left: 3rem !important;
 }
 
+/* Margin */
 .m-0 {
     margin: 0 !important;
 }
 
 .m-1 {
-    margin: 0.25rem !important;
+    margin: .25rem !important;
 }
 
 .m-2 {
-    margin: 0.5rem !important;
+    margin: .5rem !important;
 }
 
 .m-3 {
@@ -226,13 +228,13 @@
 }
 
 .mx-1 {
-    margin-left: 0.25rem !important;
-    margin-right: 0.25rem !important;
+    margin-left: .25rem !important;
+    margin-right: .25rem !important;
 }
 
 .mx-2 {
-    margin-left: 0.5rem !important;
-    margin-right: 0.5rem !important;
+    margin-left: .5rem !important;
+    margin-right: .5rem !important;
 }
 
 .mx-3 {
@@ -256,13 +258,13 @@
 }
 
 .my-1 {
-    margin-top: 0.25rem !important;
-    margin-bottom: 0.25rem !important;
+    margin-top: .25rem !important;
+    margin-bottom: .25rem !important;
 }
 
 .my-2 {
-    margin-top: 0.5rem !important;
-    margin-bottom: 0.5rem !important;
+    margin-top: .5rem !important;
+    margin-bottom: .5rem !important;
 }
 
 .my-3 {
@@ -285,11 +287,11 @@
 }
 
 .mt-1 {
-    margin-top: 0.25rem !important;
+    margin-top: .25rem !important;
 }
 
 .mt-2 {
-    margin-top: 0.5rem !important;
+    margin-top: .5rem !important;
 }
 
 .mt-3 {
@@ -309,11 +311,11 @@
 }
 
 .me-1 {
-    margin-right: 0.25rem !important;
+    margin-right: .25rem !important;
 }
 
 .me-2 {
-    margin-right: 0.5rem !important;
+    margin-right: .5rem !important;
 }
 
 .me-3 {
@@ -333,11 +335,11 @@
 }
 
 .mb-1 {
-    margin-bottom: 0.25rem !important;
+    margin-bottom: .25rem !important;
 }
 
 .mb-2 {
-    margin-bottom: 0.5rem !important;
+    margin-bottom: .5rem !important;
 }
 
 .mb-3 {
@@ -357,11 +359,11 @@
 }
 
 .ms-1 {
-    margin-left: 0.25rem !important;
+    margin-left: .25rem !important;
 }
 
 .ms-2 {
-    margin-left: 0.5rem !important;
+    margin-left: .5rem !important;
 }
 
 .ms-3 {
@@ -376,10 +378,90 @@
     margin-left: 3rem !important;
 }
 
-/* =============
-   DISPLAY
-   ============= */
 
+.ml-1 {
+    margin-left: 4px !important;
+}
+
+.ml-2 {
+    margin-left: 8px !important;
+}
+
+.ml-3 {
+    margin-left: 12px !important;
+}
+
+.ml-4 {
+    margin-left: 20px !important;
+}
+
+.ml-5 {
+    margin-left: 32px !important;
+}
+
+.mr-1 {
+    margin-right: 4px !important;
+}
+
+.mr-2 {
+    margin-right: 8px !important;
+}
+
+.mr-3 {
+    margin-right: 12px !important;
+}
+
+.mr-4 {
+    margin-right: 20px !important;
+}
+
+.mr-5 {
+    margin-right: 32px !important;
+}
+
+.pl-1 {
+    padding-left: 4px !important;
+}
+
+.pl-2 {
+    padding-left: 8px !important;
+}
+
+.pl-3 {
+    padding-left: 12px !important;
+}
+
+.pl-4 {
+    padding-left: 20px !important;
+}
+
+.pl-5 {
+    padding-left: 32px !important;
+}
+
+.pr-1 {
+    padding-right: 4px !important;
+}
+
+.pr-2 {
+    padding-right: 8px !important;
+}
+
+.pr-3 {
+    padding-right: 12px !important;
+}
+
+.pr-4 {
+    padding-right: 20px !important;
+}
+
+.pr-5 {
+    padding-right: 32px !important;
+}
+
+/* =============
+DISPLAY
+============= */
 .d-none {
     display: none !important;
 }
@@ -420,10 +502,18 @@
     display: grid !important;
 }
 
-/* =============
-   FLEXBOX
-   ============= */
 
+.justify-between {
+    justify-content: space-between !important;
+}
+
+.align-center {
+    align-items: center !important;
+}
+
+/* =============
+FLEXBOX
+============= */
 .flex-row {
     flex-direction: row !important;
 }
@@ -565,9 +655,8 @@
 }
 
 /* =============
-   TEXT & TYPOGRAPHY
-   ============= */
-
+TEXT & TYPOGRAPHY
+============= */
 .text-start {
     text-align: left !important;
 }
@@ -624,8 +713,7 @@
     font-weight: 700 !important;
 }
 
-/* Bootstrap 5 usa .fw-light, .fw-bold etc — adicionei os dois estilos */
-
+/* aliases BS5 */
 .fw-light {
     font-weight: 300 !important;
 }
@@ -682,10 +770,10 @@
     color: #212529 !important;
 }
 
-/* =============
-   COLORS & BACKGROUNDS
-   ============= */
 
+/* =============
+COLORS & BACKGROUNDS
+============= */
 .bg-primary {
     background-color: #0d6efd !important;
 }
@@ -727,9 +815,8 @@
 }
 
 /* =============
-   BORDERS & RADIUS
-   ============= */
-
+BORDERS & RADIUS
+============= */
 .border {
     border: 1px solid #dee2e6 !important;
 }
@@ -858,10 +945,18 @@
     border-top-left-radius: var(--bs-border-radius) !important;
 }
 
-/* =============
-   POSITION & Z-INDEX
-   ============= */
+/* Extras */
+.rounded-lg {
+    border-radius: 18px !important;
+}
 
+.rounded-xl {
+    border-radius: 24px !important;
+}
+
+/* =============
+POSITION & Z-INDEX
+============= */
 .position-static {
     position: static !important;
 }
@@ -963,9 +1058,8 @@
 }
 
 /* =============
-   SIZING (width/height)
-   ============= */
-
+SIZING
+============= */
 .w-25 {
     width: 25% !important;
 }
@@ -1019,9 +1113,8 @@
 }
 
 /* =============
-   VISIBILITY & OVERFLOW
-   ============= */
-
+VISIBILITY & OVERFLOW
+============= */
 .visible {
     visibility: visible !important;
 }
@@ -1046,50 +1139,51 @@
     overflow: scroll !important;
 }
 
-/* =============
-   SHADOWS
-   ============= */
+/* / =============
+SHADOWS
+============= / */
 
-.shadow {
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+.shadow{
+box-shadow:0 .5rem 1rem rgba(0,0,0,.15)!important;
 }
 
-.shadow-sm {
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+.shadow-sm{
+box-shadow:0 .125rem .25rem rgba(0,0,0,.075)!important;
 }
-
-.shadow-lg {
-    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175) !important;
-}
-
+.shadow-lg{
+box-shadow:0 1rem 3rem rgba(0,0,0,.175)!important;
+} 
+.shadow-heavy{
+box-shadow:var(--gn-shadow-heavy)!important;
+}   
 .shadow-none {
     box-shadow: none !important;
 }
 
 /* =============
-   OPACITY
-   ============= */
-
+OPACITY
+============= */
 .opacity-0 {
     opacity: 0 !important;
 }
 
 .opacity-25 {
-    opacity: 0.25 !important;
+    opacity: .25 !important;
 }
 
 .opacity-50 {
-    opacity: 0.5 !important;
+    opacity: .5 !important;
 }
 
 .opacity-75 {
-    opacity: 0.75 !important;
+    opacity: .75 !important;
 }
 
 .opacity-100 {
     opacity: 1 !important;
 }
 
+/* Float helpers + clearfix */
 .float-start {
     float: left !important;
 }
@@ -1102,56 +1196,15 @@
     float: none !important;
 }
 
-/* Clearfix (para containers com floats) */
 .clearfix::after {
     display: block;
     clear: both;
     content: "";
 }
 
-/* --- LARGURA --- */
-.w-25 {
-    width: 25% !important;
-}
-
-.w-50 {
-    width: 50% !important;
-}
-
-.w-75 {
-    width: 75% !important;
-}
-
-.w-100 {
-    width: 100% !important;
-}
-
-.w-auto {
-    width: auto !important;
-}
-
-/* --- ALTURA --- */
-.h-25 {
-    height: 25% !important;
-}
-
-.h-50 {
-    height: 50% !important;
-}
-
-.h-75 {
-    height: 75% !important;
-}
-
-.h-100 {
-    height: 100% !important;
-}
-
-.h-auto {
-    height: auto !important;
-}
-
-/* --- OBJECT FIT (para imagens e vídeos) --- */
+/* =============
+OBJECT-FIT + POSITION (extras)
+============= */
 .object-fit-contain {
     object-fit: contain !important;
 }
@@ -1172,7 +1225,6 @@
     object-fit: none !important;
 }
 
-/* --- POSITION + OBJECT POSITION (opcional) --- */
 .object-position-center {
     object-position: center !important;
 }

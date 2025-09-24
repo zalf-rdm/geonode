@@ -2428,3 +2428,19 @@ MAPSTORE_CLIENT_CONFIG = {
         'default': 'ui_zalf',  # mantém o tema base, mas sobrescreve com seu CSS
     }
 }
+
+# TEMP For mapstoredevelopment
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:8080",
+    "http://localhost:8081",
+    "http://127.0.0.1:8080",
+    "http://127.0.0.1:8081",
+]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8081",
+    "http://127.0.0.1:8081",
+]
+
+USE_DEV_SERVER = True
+DEV_SERVER_URL = "http://localhost:8081/"
