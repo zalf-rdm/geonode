@@ -3,174 +3,73 @@
 {% load base_tags %}
 {% load client_lib_tags %}
 
-{# GitHub-like top bar: dark, compact, with global search #}
-<nav class="navbar navbar-expand-lg navbar-dark gn-gh-nav" role="navigation" aria-label="{% trans 'Main navigation' %}">
-  <div class="container-fluid px-3">
+<!-- NAVBAR  ───────────────────────────────────────────── -->
+<nav class="navbar navbar-expand-lg navbar-light bg-nav fixed-top">
+  <div class="container-fluid nav-container">
 
-    {# Brand #}
-    <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'home' %}" aria-label="{{ SITE_NAME }}">
-      {% if custom_theme.logo %}
-        <img src="{{ custom_theme.logo.url }}" alt="{{ SITE_NAME }}" class="brand-img">
-      {% else %}
-        <i class="fa fa-globe" aria-hidden="true"></i>
-      {% endif %}
-      <span class="brand-text d-none d-sm-inline-block">{{ SITE_NAME|default:"GeoNode" }}</span>
-    </a>
+    <!-- logo / brand -->
+    <a class="navbar-brand" href="/">GeoNode</a>
 
-    {# Toggler #}
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#ghNavbar"
-            aria-controls="ghNavbar" aria-expanded="false" aria-label="{% trans 'Toggle navigation' %}">
+    <!-- botão hamburguer -->
+    <button class="navbar-toggler" type="button"
+            data-bs-toggle="collapse" data-bs-target="#mainNav"
+            aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
 
-    <div class="collapse navbar-collapse" id="ghNavbar">
+    <!-- links / dropdowns -->
+    <div class="collapse navbar-collapse" id="mainNav">
 
-      {# Left: primary nav (compact) #}
-      <ul class="navbar-nav me-3">
-        {% block tabs %}
+      <!-- bloco da esquerda --------------------------------------------------->
+      <ul class="navbar-nav me-auto toolbar">
 
-        {# Data #}
+        <!-- Data -------------------------------------------------------------->
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" id="ddData" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            {% trans "Data" %}
+          <a class="nav-link dropdown-toggle" href="#"
+             id="ddData" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Data <i class="fa fa-angle-down fa-lg ms-1"></i>
           </a>
-          <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="ddData">
-            <li><a class="dropdown-item" href="{% dataset_list_url %}">{% trans "Datasets" %}</a></li>
-            <li><a class="dropdown-item" href="{% document_list_url %}">{% trans "Documents" %}</a></li>
-            <li><a class="dropdown-item" href="{% url 'services' %}?limit={{ CLIENT_RESULTS_LIMIT }}">{% trans "Remote Services" %}</a></li>
-            {% if user.is_superuser or user.is_staff %}
-              {% if "add_resource" in user.perms %}
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="{% url 'register_service' %}">{% trans "Add Remote Service" %}</a></li>
-              {% endif %}
-            {% endif %}
+          <ul class="dropdown-menu" aria-labelledby="ddData">
+            <li><a class="dropdown-item" href="/catalogue/#/search/?filter{resource_type.in}=dataset">Datasets</a></li>
+            <li><a class="dropdown-item" href="/catalogue/#/search/?filter{resource_type.in}=document">Documents</a></li>
+            <li><a class="dropdown-item" href="/services/?limit=5">Remote Services</a></li>
           </ul>
         </li>
 
-        {# Maps #}
-        <li class="nav-item dropdown">
-          {% if user.is_authenticated %}
-            <a class="nav-link dropdown-toggle" href="#" id="ddMaps" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              {% trans "Maps" %}
-            </a>
-            <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="ddMaps">
-              <li><a class="dropdown-item" href="{% map_list_url %}">{% trans "Explore Maps" %}</a></li>
-            </ul>
-          {% else %}
-            <a class="nav-link" href="{% map_list_url %}">{% trans "Maps" %}</a>
-          {% endif %}
+        <!-- Maps -------------------------------------------------------------->
+        <li class="nav-item">
+          <a class="nav-link" href="/catalogue/#/search/?filter{resource_type.in}=map">Maps</a>
         </li>
 
-        {# Apps #}
-        {% if GEONODE_APPS_ENABLE and GEONODE_APPS_NAV_MENU_ENABLE %}
-          <li class="nav-item dropdown">
-            {% if user.is_authenticated %}
-              <a class="nav-link dropdown-toggle" href="#" id="ddApps" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                {% blocktrans %}{{ GEONODE_APPS_NAME }}{% endblocktrans %}
-              </a>
-              <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="ddApps">
-                <li><a class="dropdown-item" href="{% geoapp_list_url %}">{% trans "Explore" %} {% blocktrans %}{{ GEONODE_APPS_NAME }}{% endblocktrans %}</a></li>
-              </ul>
-            {% else %}
-              <a class="nav-link" href="{% geoapp_list_url %}">{% blocktrans %}{{ GEONODE_APPS_NAME }}{% endblocktrans %}</a>
-            {% endif %}
-          </li>
-        {% endif %}
+        <!-- Apps -------------------------------------------------------------->
+        <li class="nav-item">
+          <a class="nav-link" href="/catalogue/#/search/?filter{resource_type.in}=geostory">Apps</a>
+        </li>
 
-        {# About #}
+        
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" id="ddAbout" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            {% trans "About" %}
+          <a class="nav-link dropdown-toggle" href="#"
+             id="ddAbout" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            About <i class="fa fa-angle-down fa-lg ms-1"></i>
           </a>
-          <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="ddAbout">
-            <li><a class="dropdown-item" href="{% url 'profile_browse' %}">{% trans "People" %}</a></li>
-            <li><a class="dropdown-item" href="{% url 'group_list' %}">{% trans "Groups" %}</a></li>
-            <li><a class="dropdown-item" href="{% url 'group_category_list' %}">{% trans "Group Categories" %}</a></li>
-            {% if perms.announcements.can_manage %}
-              <li><a class="dropdown-item" href="{% url 'announcements_list' %}">{% trans "Announcements" %}</a></li>
-            {% endif %}
-            {% if user.is_authenticated and not READ_ONLY_MODE %}
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="{% url 'geonode.invitations:geonode-send-invite' %}">{% trans "Invite Users" %}</a></li>
-            {% endif %}
-            {% if user.is_superuser and not READ_ONLY_MODE %}
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="{% if SITEURL|default:""|slice:"-1:" == "/" %}{{SITEURL}}{% else %}{{SITEURL}}/{% endif %}admin/people/profile/add/">{% trans "Add User" %}</a></li>
-              <li><a class="dropdown-item" href="{% url 'group_create' %}">{% trans "Create Group" %}</a></li>
-            {% endif %}
+          <ul class="dropdown-menu" aria-labelledby="ddAbout">
+            <li><a class="dropdown-item" href="/people/">People</a></li>
+            <li><a class="dropdown-item" href="/groups/">Groups</a></li>
+            <li><a class="dropdown-item" href="/groups/categories/">Group Categories</a></li>
           </ul>
         </li>
-
-        {% block extra_tab %}{% endblock %}
-        {% endblock %}
       </ul>
 
-      {# Center: global search (GitHub-like) #}
-      <form id="search" class="gn-gh-search d-none d-lg-flex flex-grow-1 mx-2" role="search" aria-label="{% trans 'Global search' %}">
-        <div id="search-container" class="position-relative w-100">
-          <i class="fa fa-search gn-gh-search-icon" aria-hidden="true"></i>
-          <input id="search_input" class="form-control gn-gh-search-input"
-                 type="search" placeholder="{% trans 'Search datasets, maps, documents…' %}"
-                 autocomplete="off" aria-label="{% trans 'Search' %}">
-          <kbd class="gn-kbd">/</kbd>
-        </div>
-        <input type="hidden" id="search_abstract_input" name="abstract" />
-        <input type="hidden" id="search_purpose_input" name="purpose" />
-      </form>
-
-      {# Right: utilities #}
-      <ul class="navbar-nav ms-auto align-items-center gap-1">
-        {% block my_extra_right_tab %}
-          {% render_nav_menu 'TOPBAR_MENU' %}
-        {% endblock my_extra_right_tab %}
-
-        {% if not user.is_authenticated and ACCOUNT_OPEN_SIGNUP and not READ_ONLY_MODE %}
-          <li class="nav-item"><a class="nav-link" href="{% url 'account_signup' %}">{% trans 'Register' %}</a></li>
-        {% endif %}
-
-        {% if user.is_authenticated %}
-          {# Notifications #}
-          <li class="nav-item">
-            <a class="nav-link position-relative" href="{% url 'messages_inbox' %}" aria-label="{% trans 'Notifications' %}">
-              <i class="fa fa-bell" aria-hidden="true"></i>
-              {# example badge: <span class="badge bg-danger position-absolute top-0 start-100 translate-middle p-1 border border-light rounded-circle"> </span> #}
-            </a>
-          </li>
-
-          {# User menu #}
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle d-flex align-items-center gap-2 avatar" href="#" id="ddUser" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              {% autoescape off %}{% avatar user 28 %}{% endautoescape %}
-              <span class="d-none d-sm-inline">
-                {% with full_name=user.first_name|add:' '|add:user.last_name %}
-                  {% if full_name.strip %}{{ full_name|truncatechars:20 }}{% else %}{{ user.username|truncatechars:20 }}{% endif %}
-                {% endwith %}
-              </span>
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="ddUser">
-              <li><a class="dropdown-item" href="{{ user.get_absolute_url }}">{% trans "Profile" %}</a></li>
-              <li><a class="dropdown-item" href="{% url 'recent-activity' %}">{% trans "Recent Activity" %}</a></li>
-              <li><a class="dropdown-item" href="{% url 'messages_inbox' %}">{% trans "Inbox" %}</a></li>
-              {% if user.is_superuser or user.is_staff %}
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="{% url 'admin:index' %}">{% trans 'Admin' %}</a></li>
-                {% if 'geonode.geoserver' in INSTALLED_APPS %}
-                  <li><a class="dropdown-item" href="{{ OGC_SERVER.default.WEB_UI_LOCATION }}">GeoServer</a></li>
-                {% endif %}
-                {% if USE_MONITORING %}
-                  <li><a class="dropdown-item" href="{% url 'monitoring:index' %}">{% trans 'Monitoring & Analytics' %}</a></li>
-                {% endif %}
-              {% endif %}
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="{% url 'help' %}">{% trans 'Help' %}</a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="{% if SITEURL|default:""|slice:"-1:" == "/" %}{{SITEURL}}{% else %}{{SITEURL}}/{% endif %}account/logout/">{% trans 'Log out' %}</a></li>
-            </ul>
-          </li>
-        {% else %}
-          <li class="nav-item"><a class="btn btn-sm btn-primary ms-2" href="#" data-bs-toggle="modal" data-bs-target="#SigninModal">{% trans "Sign in" %}</a></li>
-        {% endif %}
+      <!-- bloco da direita ---------------------------------------------------->
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="/account/signup/">Register</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#SigninModal">Sign in</a>
+        </li>
       </ul>
-    </div>
-  </div>
+
+    </div><!-- /.navbar-collapse -->
+  </div><!-- /.container-fluid -->
 </nav>

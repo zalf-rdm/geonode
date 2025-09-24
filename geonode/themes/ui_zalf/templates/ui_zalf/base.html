@@ -32,10 +32,7 @@
           crossorigin="anonymous">
 
     {% block head %}
-      {# Remove/avoid legacy BS3 bundles (assets.min.css) to prevent conflicts #}
-      {# If you MUST keep a legacy bundle, ensure it does NOT include bootstrap.css/js #}
 
-      {# Third-party plugin CSS (keep neutral themes; we skin via base.css) #}
       <link href="{% static "lib/css/jquery.dataTables.css" %}" rel="stylesheet" />
       <link href="{% static "lib/css/select2.css" %}" rel="stylesheet"/>
       <link href="https://cdn.jsdelivr.net/npm/jstree@3.3.16/dist/themes/default/style.min.css" rel="stylesheet"/>
