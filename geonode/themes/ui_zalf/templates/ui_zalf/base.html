@@ -1,4 +1,3 @@
-
 {% load i18n avatar_tags %}
 {% load static %}
 {% load account socialaccount %}
@@ -8,396 +7,369 @@
 <html lang="en" class="{% block html_class %}{% endblock %}">
   <head>
     <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta Http-Equiv="Cache-Control" Content="no-cache">
-    <meta Http-Equiv="Pragma" Content="no-cache">
-    <meta Http-Equiv="Expires" Content="0">
-    <meta Http-Equiv="Pragma-directive: no-cache">
-    <meta Http-Equiv="Cache-directive: no-cache">
 
     <title>{% block title %}{{ SITE_NAME }}{% endblock %}</title>
 
     <link rel="shortcut icon" href="{% static 'geonode/img/favicon.ico' %}" />
+
+    <!-- OpenLayers (unchanged) -->
     <link href="{% static "lib/css/ol.css" %}" rel="stylesheet" />
     <script src="{% static "lib/js/ol.js" %}"></script>
+
+    <!-- Icons + Fonts -->
     <link rel="preload" as="style" href="{% static "geonode/css/font-awesome.min.css" %}" />
-    {% comment %} <link rel="preload" as="font" href="{% static "geonode/fonts/lato_regular.ttf" %}" crossorigin="" />
-    <link rel="preload" as="font" href="{% static "geonode/fonts/lato_bold.ttf" %}" crossorigin="" />
-    <link rel="preload" as="font" href="{% static "geonode/fonts/lato_light.ttf" %}" crossorigin="" /> {% endcomment %}
-    <!-- Google Fonts: Inter + Noto Sans -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="{% static "geonode/css/font-awesome.min.css" %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
 
-    {% block head %}
+    {# ------------------------------------------------------------------ #}
+    {# Bootstrap 5 CSS (CDN) — load BEFORE our theme to allow overrides   #}
+    {# ------------------------------------------------------------------ #}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
+          crossorigin="anonymous">
 
-      {% if DEBUG_STATIC %}
-          <link href="{% static "lib/css/jquery.dataTables.css" %}" rel="stylesheet" />
-          <link href="{% static "lib/css/select2.css" %}" rel="stylesheet"/>
-          {% comment %} <link href="{% static "lib/css/bootstrap.css" %}" rel="stylesheet"/> {% endcomment %}
-          <link href="{% static "lib/css/bootstrap-treeview.css" %}" rel="stylesheet"/>
-          <link href="{% static "lib/css/jquery-ui.theme.min.css" %}" rel="stylesheet"/>
-          <link href="{% static "lib/css/jquery-ui.structure.min.css" %}" rel="stylesheet"/>
-          <link href="{% static "lib/css/bootstrap-treeview.css" %}" rel="stylesheet"/>
-          <script src="{% static 'geonode/css/addon_bootstrap5.css' %}" defer></script>
-          {% comment %} <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous"> {% endcomment %}
-          
-      {% else %}
-      <link href="{% static "lib/css/assets.min.css" %}" rel="stylesheet"/>
-      {% endif %}
+    {% block head %}
+      {# Remove/avoid legacy BS3 bundles (assets.min.css) to prevent conflicts #}
+      {# If you MUST keep a legacy bundle, ensure it does NOT include bootstrap.css/js #}
+
+      {# Third-party plugin CSS (keep neutral themes; we skin via base.css) #}
+      <link href="{% static "lib/css/jquery.dataTables.css" %}" rel="stylesheet" />
+      <link href="{% static "lib/css/select2.css" %}" rel="stylesheet"/>
+      <link href="https://cdn.jsdelivr.net/npm/jstree@3.3.16/dist/themes/default/style.min.css" rel="stylesheet"/>
+      <link href="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.9.7/dist/css/tempus-dominus.min.css" rel="stylesheet"/>
+
+      {# Our theme (rewritten base.css on top of gn_zalf tokens) #}
       <link href="{% static "geonode/css/base.css" %}" rel="stylesheet"/>
+
+      {# Cookie law #}
       <link rel='stylesheet' id='cookie-law-info-css'  href="{% static "geonode/css/cookie-law-info/cookie-law-info-public.css" %}" type='text/css' media='all' />
       <link rel='stylesheet' id='cookie-law-info-gdpr-css'  href="{% static "geonode/css/cookie-law-info/cookie-law-info-gdpr.css" %}" type='text/css' media='all' />
-      <style type="text/css">[ng\:cloak],[ng-cloak],[data-ng-cloak],[x-ng-cloak],.ng-cloak,.x-ng-cloak,.ng-hide:not(.ng-hide-animate){display:none !important;}</style>
-      <style type="text/css">
+
+      <style>[ng\:cloak],[ng-cloak],[data-ng-cloak],[x-ng-cloak],.ng-cloak,.x-ng-cloak,.ng-hide:not(.ng-hide-animate){display:none !important;}</style>
+      <style>
+        /* Branding hooks from custom theme */
         {% if custom_theme.logo %}
-        .navbar-brand {
-          background-image: url({{ custom_theme.logo.url }});
-          background-repeat: no-repeat;
-          background-position: center;
-          background-size: contain;
-        }
+        .navbar-brand{background-image:url({{ custom_theme.logo.url }});background-repeat:no-repeat;background-position:center;background-size:contain;}
         {% endif %}
-
-        {% if custom_theme.jumbotron_color %}
-        .home .jumbotron {
-          background-color: {{ custom_theme.jumbotron_color }}
-        }
-        {% endif %}
-
-        {% if custom_theme.jumbotron_title_color %}
-        .home .jumbotron h1,
-        .home .jumbotron h2,
-        .home .jumbotron h3 {
-          color: {{ custom_theme.jumbotron_title_color }}
-        }
-        {% endif %}
-
-        {% if custom_theme.jumbotron_text_color %}
-        .home .jumbotron p {
-          color: {{ custom_theme.jumbotron_text_color }};
-          font-weight: normal;
-          font-size: xx-large;
-          font-family: 'Open Sans','Helvetica Neue',Arial,sans-serif;
-        }
-        {% endif %}
-
-        {% if custom_theme.jumbotron_welcome_hide %}
-        .home .jumbotron .container {
-          visibility: hidden;
-        }
-        {% endif %}
-
+        {% if custom_theme.jumbotron_color %}.home .jumbotron{background-color:{{ custom_theme.jumbotron_color }}}{% endif %}
+        {% if custom_theme.jumbotron_title_color %}.home .jumbotron h1,.home .jumbotron h2,.home .jumbotron h3{color:{{ custom_theme.jumbotron_title_color }}}{% endif %}
+        {% if custom_theme.jumbotron_text_color %}.home .jumbotron p{color:{{ custom_theme.jumbotron_text_color }};font-weight:normal;font-size:xx-large;font-family:'Open Sans','Helvetica Neue',Arial,sans-serif}{% endif %}
+        {% if custom_theme.jumbotron_welcome_hide %}.home .jumbotron .container{visibility:hidden}{% endif %}
         {% if custom_theme.jumbotron_bg %}
-        .home .jumbotron .container {
-          position: relative;
-          z-index: 1;
-        }
-        .home .jumbotron:after {
-          content: "";
-          background-image: url({{ custom_theme.jumbotron_bg.url }});
-          background-repeat: no-repeat;
-          background-position: center;
-          background-size: cover;
-          {% if not custom_theme.jumbotron_welcome_hide %}
-          opacity: 0.5;
-          {% endif %}
-          top: 0;
-          left: 0;
-          bottom: 0;
-          right: 0;
-          position: absolute;
-          z-index: 0;
-        }
+        .home .jumbotron .container{position:relative;z-index:1}
+        .home .jumbotron:after{content:"";background-image:url({{ custom_theme.jumbotron_bg.url }});background-repeat:no-repeat;background-position:center;background-size:cover;{% if not custom_theme.jumbotron_welcome_hide %}opacity:.5;{% endif %}top:0;left:0;bottom:0;right:0;position:absolute;z-index:0}
         {% endif %}
       </style>
+
       {% block extra_head %}
-      
-      <link rel="stylesheet" href="{% static 'ui_zalf/css/styles_bootstrap.css' %}">
-      <link rel="stylesheet" href="{% static 'ui_zalf/css/gn_zalf.css' %}">
+        <link rel="stylesheet" href="{% static 'ui_zalf/css/gn_zalf.css' %}">
       {% endblock %}
-      
     {% endblock %}
-    <link rel="search" type="application/opensearchdescription+xml" href="{% if SITEURL|default:""|slice:"-1:" == "/" %}{{SITEURL}}{% else %}{{SITEURL}}/{% endif %}catalogue/opensearch" title="{% trans "GeoNode Search" %}"/>
+
+    <link rel="search" type="application/opensearchdescription+xml"
+          href="{% if SITEURL|default:""|slice:"-1:" == "/" %}{{SITEURL}}{% else %}{{SITEURL}}/{% endif %}catalogue/opensearch"
+          title="{% trans "GeoNode Search" %}"/>
 
     <script>
-        var siteUrl = '{{ SITEURL }}'.replace(/\/?$/, '/');
-        var staticUrl = '{% static '' %}';
+      var siteUrl = '{{ SITEURL }}'.replace(/\/?$/, '/');
+      var staticUrl = '{% static '' %}';
     </script>
-
-    <!-- Autocomplete script for input boxes -->
     <script src="{% static "geonode/js/search/autocomplete.js" %}"></script>
 
-    <script type="text/javascript">
-      function thumbnailFeedbacks(data, status) {
-        try {
-          $("#_thumbnail_feedbacks").find('.modal-title').text(status);
-          $("#_thumbnail_feedbacks").find('.modal-body').text(data);
-          $("#_thumbnail_feedbacks").modal("show");
-        } catch (err) {
-          console.log(err);
-        } finally {
-          return true;
-        }
-      }
-    </script>
-
-    <!-- RTL styles -->
+    {# RTL: keep GeoNode RTL if needed; avoid bootstrap-rtl 3.x #}
     {% get_current_language_bidi as LANGUAGE_BIDI %}
     {% if LANGUAGE_BIDI %}
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-rtl/3.3.4/css/bootstrap-rtl.min.css">
-        {% if DEBUG_STATIC %}
-          <link rel="stylesheet" type="text/css" href="{% static "geonode/css/geonode-rtl.css" %}">
-        {% else %}
-          <link rel="stylesheet" type="text/css" href="{% static "geonode/css/geonode-rtl.min.css" %}">
-        {% endif %}
+      <link rel="stylesheet" href="{% static "geonode/css/geonode-rtl.css" %}">
     {% endif %}
   </head>
 
   <body class="{% block body_class %}{% endblock %} {% block body_extra_class %}{% endblock %} msgapi">
     <!-- Loading Mask -->
     <div class='lmask'></div>
+
     <!-- Navbar -->
-    {% block header %}
-      {% include "nav.html" %}
-    {% endblock header %}
-      <!-- End of Navbar -->
+    {% block header %}{% include "nav.html" %}{% endblock header %}
 
-    <div class="alert alert-danger alert-dismissible" role="alert" id="ieflag" style="display:none">
-      <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-      <h1>{% trans "You are using an outdated browser that is not supported by GeoNode." %}</h1>
-      <p>{% trans "Please use a <strong>modern browser</strong> like Mozilla Firefox, Google Chrome or Safari." %}</p>
+    <div class="alert alert-danger alert-dismissible d-none" role="alert" id="ieflag">
+      <strong>{% trans "You are using an outdated browser that is not supported by GeoNode." %}</strong>
+      <p class="mb-0">{% trans "Please use a <strong>modern browser</strong> like Mozilla Firefox, Google Chrome or Safari." %}</p>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{% trans 'Close' %}"></button>
     </div>
 
-  <div id="wrap">
-    {% block middle %}
-    <div class="container">
-      {% include "_status_message.html" %}
-      {% include "_announcements.html" %}
-      {% include "_messages.html" %}
-      {% block body_outer %}
-      <div class="row">
-        <div class="col">
-        {% block body %}{% endblock %}
-        </div>
-      </div>
-      {% endblock %}
-    </div>
-    {% endblock middle %}
-
-    {% block extra_mainbody %}
-    {% endblock extra_mainbody %}
-
-  </div>
-
-  {% block monitoring %}
-  {% endblock %}
-
-  {% block footer %}
-   {% include "footer.html" %}
-
-  {% if custom_theme.copyright %}
-    <section class="footer-copyright">
-      <div class="container">
-        <div class="row">
-          <div class="col-md-12 copyright ">
-            <div class="module">
-              <small>{{ custom_theme.copyright|safe }}</small>
+    <div id="wrap">
+      {% block middle %}
+        <div class="container-gn">
+          {% include "_status_message.html" %}
+          {% include "_announcements.html" %}
+          {% include "_messages.html" %}
+          {% block body_outer %}
+            <div class="row">
+              <div class="col">
+                {% block body %}{% endblock %}
+              </div>
             </div>
-          </div>
+          {% endblock %}
         </div>
-      </div>
-    </section>
-  {% endif %}
+      {% endblock middle %}
 
-  {% endblock footer %}
+      {% block extra_mainbody %}{% endblock extra_mainbody %}
+    </div>
 
+    {% block monitoring %}{% endblock %}
 
-    <!-- Modal must stay outside the navbar -->
+    {% block footer %}
+      {% include "footer.html" %}
+      {% if custom_theme.copyright %}
+      <section class="footer-copyright">
+        <div class="container-gn">
+          <div class="row"><div class="col text-center">
+            <div class="module"><small>{{ custom_theme.copyright|safe }}</small></div>
+          </div></div>
+        </div>
+      </section>
+      {% endif %}
+    {% endblock footer %}
+
+    {# ---------------------------- Sign in modal ---------------------------- #}
     {% if not user.is_authenticated %}
-    <div class="modal fade" id="SigninModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal fade" id="SigninModal" tabindex="-1" aria-labelledby="SigninModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-sm">
         <div class="modal-content">
           <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">{% trans "Close" %}</span></button>
-            <h4 class="modal-title" id="myModalLabel">{% trans "Sign in" %}</h4>
+            <h5 class="modal-title" id="SigninModalLabel">{% trans "Sign in" %}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Close' %}"></button>
           </div>
-          <form class="form-signin" role="form" action="{% url "account_login" %}?next={{ request.path }}" method="post">
+          <form class="form-signin" action="{% url "account_login" %}?next={{ request.path }}" method="post">
             <div class="modal-body">
               {% csrf_token %}
               {% get_providers as socialaccount_providers %}
               {% if socialaccount_providers %}
-                  {% include "socialaccount/snippets/provider_list.html" with process="login" %}
-                  {% include "socialaccount/snippets/login_extra.html" %}
+                {% include "socialaccount/snippets/provider_list.html" with process="login" %}
+                {% include "socialaccount/snippets/login_extra.html" %}
                 <hr>
               {% endif %}
-              <div class="form-group">
-                <label for="id_username" class="sr-only">{% trans "Username" %}:</label>
+              <div class="mb-3">
+                <label for="id_username" class="visually-hidden">{% trans "Username" %}:</label>
                 <input id="id_username" class="form-control" name="login" placeholder="{% trans "Username" %}" type="text" />
               </div>
-              <div class="form-group">
-                <label for="id_password" class="sr-only">{% trans "Password" %}:</label>
+              <div class="mb-2">
+                <label for="id_password" class="visually-hidden">{% trans "Password" %}:</label>
                 <input id="id_password" class="form-control" name="password" placeholder="{% trans "Password" %}" type="password" autocomplete="off" />
               </div>
-              <label class="checkbox">
-                <input type="checkbox" /> {% trans "Remember Me" %}
-              </label>
-              <p>
+              <div class="form-check my-2">
+                <input class="form-check-input" type="checkbox" id="remember_me">
+                <label class="form-check-label" for="remember_me">{% trans "Remember Me" %}</label>
+              </div>
+              <p class="mb-0">
                 <a href="{% url 'account_reset_password' %}">{% trans "Forgot Password?" %}</a>
               </p>
             </div>
             <div class="modal-footer">
-              <button type="submit" class="btn btn-primary btn-block">{% trans "Sign in" %}</button>
+              <button type="submit" class="btn btn-primary w-100">{% trans "Sign in" %}</button>
             </div>
           </form>
         </div>
       </div>
     </div>
     {% endif %}
-    <!-- End of Modal -->
 
-    {% if DEBUG_STATIC %}
+    {# ============================ Scripts ============================ #}
+
+    {# jQuery first for legacy plugins (DataTables, Select2, jQuery UI) #}
     <script src="{% static "lib/js/jquery.js" %}"></script>
+
+    {# DataTables + Select2 (keep) #}
     <script src="{% static "lib/js/jquery.dataTables.js" %}"></script>
-    <script src="{% static "lib/js/bootstrap-treeview.js" %}"></script>
-    <script src="{% static "lib/js/bootstrap-tokenfield.js" %}"></script>
-    <script src="{% static "lib/js/fastselect.standalone.js" %}"></script>
     <script src="{% static "lib/js/select2.full.js" %}"></script>
+
+    {# jQuery UI (datepicker still used in places) #}
+    <script src="{% static "lib/js/jquery-ui.js" %}"></script>
+
+    {# Other neutral libs used by GeoNode #}
     <script src="{% static "lib/js/jquery.timeago.js" %}"></script>
     <script src="{% static "lib/js/jq-ajax-progress.js" %}"></script>
-    <script src="{% static "lib/js/jquery-ui.js" %}"></script>
-    <script src="{% static "lib/js/jquery.raty.js" %}"></script>
-    <script src="{% static "lib/js/bootstrap.js" %}"></script>
-    <script src="{% static "lib/js/moment-with-locales.js" %}"></script>
-    <script src="{% static "lib/js/bootstrap-datetimepicker.js" %}"></script>
-    <script src="{% static "lib/js/json2.js" %}"></script>
     <script src="{% static "lib/js/waypoints.js" %}"></script>
     <script src="{% static "lib/js/underscore.js" %}"></script>
-    {% else %}
-    <script src="{% static "lib/js/assets.min.js" %}"></script>
-    {% endif %}
+    <script src="{% static "lib/js/json2.js" %}"></script>
+
+    {# jsTree (replacement for bootstrap-treeview) #}
+    <script src="https://cdn.jsdelivr.net/npm/jstree@3.3.16/dist/jstree.min.js"></script>
+
+    {# Tempus Dominus v6 (replacement for bootstrap-datetimepicker) #}
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.5.0/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.9.7/dist/js/tempus-dominus.min.js"></script>
+
+    {# Bootstrap 5 bundle (Popper included). Do NOT load bootstrap.js (BS3). #}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+            crossorigin="anonymous"></script>
+
+    {# GeoNode base scripts #}
     <script src="{% static "geonode/js/utils/utils.js" %}"></script>
     <script src="{% static "geonode/js/base/base.js" %}"></script>
     <script type="text/javascript" src="{% url "javascript-catalog" %}"></script>
+
     {% block extra_script %}{% endblock extra_script %}
-    <script type="text/javascript">
 
-      // Autocomplete instance for the search found in the header.
-      $(document).ready(function() {
+    <script>
+      // Header autocomplete (kept)
+      document.addEventListener('DOMContentLoaded', function () {
         window.autocomplete2 = new Autocomplete({
-          form_btn: null,
-          form_submit: '#search',
-          form_selector: '#search',
-          input_selector: '#search_input',
-          container_selector: '#search-container',
+          form_btn: null, form_submit: '#search', form_selector: '#search',
+          input_selector: '#search_input', container_selector: '#search-container',
           url: '{% url "autocomplete_base" %}'
-        })
-        window.autocomplete2.setup()
-      })
-
-      $('#search').on('submit', (e) => {
-          $('#search_abstract_input')[0].value =$('#search_input')[0].value;
-          $('#search_purpose_input')[0].value = $('#search_input')[0].value;
-      });
-
-      $(window).on('load', function() {
-          setTimeout(() => {
-              document.body.scrollTop = 0;
-              document.documentElement.scrollTop = 0;
-          });
         });
+        window.autocomplete2.setup();
 
-      $(".datepicker").datepicker({
-          format: "yyyy-mm-dd"
+        // Reset scroll on load (quirk fix)
+        setTimeout(function(){ document.body.scrollTop = 0; document.documentElement.scrollTop = 0; });
       });
+
+      // Mirror search value into hidden fields (kept)
+      document.getElementById('search')?.addEventListener('submit', function(){
+        const v = document.getElementById('search_input')?.value || '';
+        const a = document.getElementById('search_abstract_input');
+        const p = document.getElementById('search_purpose_input');
+        if(a) a.value = v; if(p) p.value = v;
+      });
+
+      // jQuery UI datepicker (legacy fields)
+      $(".datepicker").datepicker({ dateFormat: "yy-mm-dd" });
+
+      // Tempus Dominus (BS5 datetimepicker replacement)
+      // Usage: <div class="td-wrap" data-td-target-input="nearest" data-td-target-toggle="nearest">
+      //          <input id="dt1" data-td-target="#dt1" class="form-control"/>
+      //          <span data-td-toggle="datetimepicker" data-td-target="#dt1" class="input-group-text">📅</span>
+      //        </div>
+      window.initDateTimePickers = function(selector='.datetimepicker'){
+        document.querySelectorAll(selector).forEach(function(el){
+          // If element is an <input/>, mount on parent wrapper to support toggle addon
+          const target = el.closest('[data-td-target-input]') || el;
+          if (!target._td) {
+            target._td = new tempusDominus.TempusDominus(target, {
+              display: { components: { useTwentyfourHour: true } }
+            });
+          }
+        });
+      };
+      window.initDateTimePickers();
+
+      // Select2 tags mode (replacement for bootstrap-tokenfield)
+      // Usage: <select class="select2-tags" multiple></select>
+      $(function(){
+        $('.select2-tags').select2({
+          tags: true,
+          tokenSeparators: [',', ' '],
+          width: '100%',
+          placeholder: '{{ _("Add tags") }}'
+        });
+      });
+
+      // jsTree basic initializer (replacement for bootstrap-treeview)
+      // Usage: <div id="tree" data-tree='[{"text":"Node","children":[...]}]'></div>
+      $(function(){
+        $('[data-tree]').each(function(){
+          try {
+            const data = JSON.parse(this.getAttribute('data-tree'));
+            $(this).jstree({ core: { data }, plugins: ['wholerow','state','search'] });
+          } catch(e){ console.warn('Invalid tree JSON', e); }
+        });
+      });
+
+      // Modal helper (BS5)
+      function showModalById(id){
+        var el = document.getElementById(id);
+        if(!el) return;
+        var m = bootstrap.Modal.getOrCreateInstance(el);
+        m.show();
+      }
+      // Thumbnail feedbacks using BS5 API
+      function thumbnailFeedbacks(data, status) {
+        try {
+          const modal = document.getElementById('_thumbnail_feedbacks');
+          modal.querySelector('.modal-title').textContent = status;
+          modal.querySelector('.modal-body').textContent = data;
+          showModalById('_thumbnail_feedbacks');
+        } catch (err) {
+          console.log(err);
+        } finally {
+          return true;
+        }
+      }
+      window.thumbnailFeedbacks = thumbnailFeedbacks;
     </script>
 
-    <div class="modal fade" style="width: 100%; height: 100%;" id="_resource_uploading" data-backdrop="static" data-keyboard="false" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h1>{% trans "Uploading..." %}</h1>
-                </div>
-                <div class="modal-body">
-                    <div class="progress">
-                      <div class="progress-bar progress-bar-info progress-bar-striped active" role="progressbar" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100" style="width:100%">
-                        {% trans "Upload in progress..." %}
-                      </div>
-                    </div>
-                </div>
+    {# -------------------- Processing / feedback modals -------------------- #}
+    <div class="modal fade" style="width:100%;height:100%;" id="_resource_uploading" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
+      <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h1 class="modal-title">{% trans "Uploading..." %}</h1></div>
+        <div class="modal-body">
+          <div class="progress">
+            <div class="progress-bar progress-bar-striped progress-bar-animated w-100" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+              {% trans "Upload in progress..." %}
             </div>
+          </div>
         </div>
+      </div></div>
     </div>
 
-    <div class="modal fade" style="width: 100%; height: 100%;" id="_thumbnail_processing" data-backdrop="static" data-keyboard="false" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h1>{% trans "Processing..." %}</h1>
-                </div>
-                <div class="modal-body">
-                    <div class="progress">
-                      <div class="progress-bar progress-bar-info progress-bar-striped active" role="progressbar" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100" style="width:100%">
-                        {% trans "Updating Thumbnail..." %}
-                      </div>
-                    </div>
-                </div>
+    <div class="modal fade" style="width:100%;height:100%;" id="_thumbnail_processing" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
+      <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h1 class="modal-title">{% trans "Processing..." %}</h1></div>
+        <div class="modal-body">
+          <div class="progress">
+            <div class="progress-bar progress-bar-striped progress-bar-animated w-100" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+              {% trans "Updating Thumbnail..." %}
             </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="_thumbnail_feedbacks" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <h4 class="modal-title" id="exampleModalLabel">{% trans "Message box" %}</h4>
-          </div>
-          <div class="modal-body">
-            ...
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">{% trans "OK" %}</button>
           </div>
         </div>
-      </div>
+      </div></div>
     </div>
 
-    <div id="confirmMsgBoxModalOK" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal fade" id="_thumbnail_feedbacks" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">{% trans "Message box" %}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Close' %}"></button>
+        </div>
+        <div class="modal-body">...</div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "OK" %}</button>
+        </div>
+      </div></div>
+    </div>
+
+    <div id="confirmMsgBoxModalOK" class="modal fade" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog">
         <input type="hidden" class="form-control" id="confirmMsgBoxModalOK_control_field" />
         <div class="modal-content panel-success">
           <div class="modal-header panel-heading">
-            <button type="button" class="close" data-dismiss="modal">&times;</button>
-            <h4 class="modal-title">{% trans "Confirm" %}</h4>
+            <h5 class="modal-title">{% trans "Confirm" %}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Close' %}"></button>
           </div>
-          <div class="modal-body">
-            <p>{% trans "Some text in the modal" %}.</p>
-          </div>
+          <div class="modal-body"><p>{% trans "Some text in the modal" %}.</p></div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">{% trans "Cancel" %}</button>
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
             <button type="button" class="btn btn-danger confirm" id="confirm">{% trans "OK" %}</button>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="modal fade" style="width: 100%; height: 100%;" id="_perms_processing" data-backdrop="static" data-keyboard="false" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h1>{% trans "Processing..." %}</h1>
-                </div>
-                <div class="modal-body">
-                    <div class="progress">
-                        <div class="progress-bar progress-bar-info progress-bar-striped active" role="progressbar" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100" style="width:100%">
-                        {% trans "Processing Resource..." %}
-                        </div>
-                    </div>
-                </div>
+    <div class="modal fade" style="width:100%;height:100%;" id="_perms_processing" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
+      <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h1 class="modal-title">{% trans "Processing..." %}</h1></div>
+        <div class="modal-body">
+          <div class="progress">
+            <div class="progress-bar progress-bar-striped progress-bar-animated w-100" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+              {% trans "Processing Resource..." %}
             </div>
+          </div>
         </div>
+      </div></div>
     </div>
 
   </body>
