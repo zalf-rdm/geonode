@@ -1,5 +1,3 @@
-
-
 /* ---------------------------------------------
    0) Design Tokens (imported from gn_zalf.css)
    --------------------------------------------- */
@@ -179,7 +177,7 @@ a:focus {
     color: #225f27;
     color: var(--bs-link-hover-color);
     outline: none;
-    text-decoration: underline;
+    text-decoration: none;
 }
 
 /* Code, kbd, pre: keep close to Bootstrap but match colors */
@@ -765,14 +763,14 @@ textarea.form-control {
 .navbar .nav-link {
     color: var(--gn-txt-2);
     font-weight: 600;
-    border-radius: 999px;
-    padding: .45rem .8rem;
+    border-radius: 0;
+    padding: .9rem .8rem;
 }
 
 .navbar .nav-link:hover,
 .navbar .nav-link:focus {
-    background: rgba(124, 179, 66, .12);
-    color: var(--gn-primary-1);
+    background: var(--gn-txt-1);
+    color: white !important;
 }
 
 .navbar .nav-link.active {
@@ -1674,7 +1672,7 @@ textarea.form-control {
 
 /* High contrast helper */
 .gn-contrast a {
-    text-decoration: underline;
+    text-decoration: none;
 }
 
 .gn-contrast .btn {
