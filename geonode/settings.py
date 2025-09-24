@@ -2421,9 +2421,6 @@ if THEME_STATIC_DIR not in STATICFILES_DIRS:
     STATICFILES_DIRS.append(THEME_STATIC_DIR)
 
 MAPSTORE_CLIENT_CONFIG = {
-    'css': [
-        '/static/ui_zalf/css/gn_zalf.css',
-    ],
     'themes': {
         'default': 'ui_zalf',  # mantém o tema base, mas sobrescreve com seu CSS
     }
