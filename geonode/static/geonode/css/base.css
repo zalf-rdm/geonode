@@ -824,6 +824,18 @@ textarea.form-control {
     z-index: 1030;
 }
 
+.bg-nav {
+    background: var(--gn-nav-bg, #0b2239);
+}
+
+.navbar .navbar-toggler {
+    border: 0;
+}
+
+.navbar .navbar-toggler-icon {
+    filter: invert(1) grayscale(1);
+}
+
 /* 2.6 Breadcrumb + page header alignment */
 .page-header {
     display: flex;
