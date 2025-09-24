@@ -35,12 +35,13 @@
       {% if DEBUG_STATIC %}
           <link href="{% static "lib/css/jquery.dataTables.css" %}" rel="stylesheet" />
           <link href="{% static "lib/css/select2.css" %}" rel="stylesheet"/>
-          <link href="{% static "lib/css/bootstrap.css" %}" rel="stylesheet"/>
+          {% comment %} <link href="{% static "lib/css/bootstrap.css" %}" rel="stylesheet"/> {% endcomment %}
           <link href="{% static "lib/css/bootstrap-treeview.css" %}" rel="stylesheet"/>
           <link href="{% static "lib/css/jquery-ui.theme.min.css" %}" rel="stylesheet"/>
           <link href="{% static "lib/css/jquery-ui.structure.min.css" %}" rel="stylesheet"/>
           <link href="{% static "lib/css/bootstrap-treeview.css" %}" rel="stylesheet"/>
-          <script src="{% static 'ui_zalf/css/styles_bootstrap.css' %}" defer></script>
+          <script src="{% static 'geonode/css/addon_bootstrap5.css' %}" defer></script>
+          {% comment %} <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous"> {% endcomment %}
           
       {% else %}
       <link href="{% static "lib/css/assets.min.css" %}" rel="stylesheet"/>
