@@ -212,7 +212,7 @@ def geoapp_metadata(
         fields=["organization", "award_number", "award_uri", "award_title"],
         can_delete=True,
         extra=0,
-        min_num=1,
+        min_num=0,
     )
 
     RelatedIdentifierFormset = modelformset_factory(
@@ -220,7 +220,7 @@ def geoapp_metadata(
         fields=["related_identifier", "related_identifier_type", "relation_type", "description"],
         can_delete=True,
         extra=0,
-        min_num=1,
+        min_num=0,
     )
 
     topic_category = geoapp_obj.category

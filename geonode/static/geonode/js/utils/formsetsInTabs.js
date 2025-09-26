@@ -1,11 +1,3 @@
-/* global $ */
-/**
- * Formsets in Tabs — Bootstrap3 + graceful fallback
- * - Shows a confirmation modal before deleting (prefers BS3; lazy-loads it if missing; else inline modal)
- * - Keeps Django formset expectations: increment TOTAL_FORMS on add; do NOT decrement on delete
- * - UX: if the removed tab was active -> activate first remaining; else keep current
- * - Hides DELETE controls from the UI
- */
 
 (function () {
     // ---- Safe boot for the global config array ----
