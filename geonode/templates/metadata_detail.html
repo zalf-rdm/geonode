@@ -1,5 +1,5 @@
 {% extends 'geonode_base.html' %}
-{% load i18n %}
+{% load i18n static %}
 {% load bootstrap_tags %}
 {% load thesaurus %}
 {% load client_lib_tags %}
@@ -9,1224 +9,395 @@
   {{ resource.title }} — {{ block.super }}
 {% endblock %}
 
-{% block body_class %}
-  data
-{% endblock %}
-
 {% block body_outer %}
-  <style>
-    .subtitle {
-      font-size: 16px;
-      color: #428bca;
-    }
-    
-    .sep_title hr {
-      margin-top: 2px;
-    }
-  </style>
 
+<div class="metadata-title">
   <div class="page-header">
-    <h2 class="page-title">{% trans 'Metadata' %}: {{ resource.title }}</h2>
+    <h2 class="page-title">
+      <strong>{% trans "Metadata" %}:</strong> {{ resource.title }}
+    </h2>
+  </div>
+</div>
+
+<div class="metadata-tabs my-5">
+
+  <!-- Tabs (desktop) -->
+  <ul class="nav nav-tabs hidden-xs mb-3" role="tablist">
+    <li class="active"><a href="#tab-identification" data-toggle="tab">{% trans "Identification" %}</a></li>
+    <li><a href="#tab-responsible" data-toggle="tab">{% trans "Responsible" %}</a></li>
+    <li><a href="#tab-projects" data-toggle="tab">{% trans "Projects" %}</a></li>
+    <li><a href="#tab-fundings" data-toggle="tab">{% trans "Fundings" %}</a></li>
+    <li><a href="#tab-related" data-toggle="tab">{% trans "Related Identifiers" %}</a></li>
+    <li><a href="#tab-features" data-toggle="tab">{% trans "Features" %}</a></li>
+    <li><a href="#tab-references" data-toggle="tab">{% trans "References" %}</a></li>
+  </ul>
+
+  <!-- Accordion (mobile) -->
+  <div class="panel-group visible-xs" id="accordion">
+
+    <!-- Identification -->
+    <div class="panel panel-default rounded shadow-sm mb-3">
+      <div class="panel-heading p-2">
+        <h4 class="panel-title">
+          <a data-toggle="collapse" data-parent="#accordion" href="#collapse-identification">{% trans "Identification" %}</a>
+        </h4>
+      </div>
+      <div id="collapse-identification" class="panel-collapse collapse in">
+        <div class="panel-body p-3 metadata-block">
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Title" %}</div><div class="col-sm-9">{{ resource.title|default:"-" }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Abstract" %}</div><div class="col-sm-9">{{ resource.abstract|default:"-" }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Publication Data" %}</div><div class="col-sm-9">{{ resource.date_created|default:"-" }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Publication Accepted" %}</div><div class="col-sm-9">{{ resource.date_accepted|default:"-" }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Publication Available" %}</div><div class="col-sm-9">{{ resource.date_available|default:"-" }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Type" %}</div><div class="col-sm-9">{{ resource.display_type|default:"-" }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Approved" %}</div><div class="col-sm-9">{{ resource.is_approved|yesno:_("Yes,No") }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Published" %}</div><div class="col-sm-9">{{ resource.is_published|yesno:_("Yes,No") }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Featured" %}</div><div class="col-sm-9">{{ resource.featured|yesno:_("Yes,No") }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "DOI" %}</div><div class="col-sm-9">{{ resource.doi|default:"-" }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Attribution" %}</div><div class="col-sm-9">{{ resource.attribution|default:"-" }}</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Responsible -->
+    <div class="panel panel-default rounded shadow-sm mb-3">
+      <div class="panel-heading p-2">
+        <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapse-responsible">{% trans "Responsible" %}</a></h4>
+      </div>
+      <div id="collapse-responsible" class="panel-collapse collapse">
+        <div class="panel-body p-3">
+          <div class="metadata-block p-3 mb-3">
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Name" %}</div><div class="col-sm-9">{{ resource.owner }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Email" %}</div><div class="col-sm-9">{{ resource.owner.email }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Organization" %}</div><div class="col-sm-9">{{ resource.owner.organization|default:"-" }}</div></div>
+          </div>
+
+          {% if resource.custodian %}
+            <h5 class="fw-medium mt-3">{% trans "Custodian" %}</h5>
+            {% for custodian in resource.custodian %}
+              <div class="metadata-block p-3 mb-3">
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Name' %}</div><div class="col-sm-9">{{ custodian.name_long|default:"-" }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Email' %}</div><div class="col-sm-9">{{ custodian.email|default:"-" }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Organization' %}</div><div class="col-sm-9">{{ custodian.organization|default:"-" }}</div></div>
+              </div>
+            {% endfor %}
+          {% endif %}
+
+          {% if resource.poc %}
+            <h5 class="fw-medium mt-3">{% trans "Contact Person" %}</h5>
+            {% for poc in resource.poc %}
+              <div class="metadata-block p-3 mb-3">
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Name' %}</div><div class="col-sm-9">{{ poc.name_long|default:"-" }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Email' %}</div><div class="col-sm-9">{{ poc.email|default:"-" }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Organization' %}</div><div class="col-sm-9">{{ poc.organization|default:"-" }}</div></div>
+              </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Projects -->
+    <div class="panel panel-default rounded shadow-sm mb-3">
+      <div class="panel-heading p-2">
+        <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapse-projects">{% trans "Projects" %}</a></h4>
+      </div>
+      <div id="collapse-projects" class="panel-collapse collapse">
+        <div class="panel-body p-3">
+          {% if resource.related_projects.exists %}
+            {% for rel in resource.related_projects.all %}
+              <div class="metadata-block p-3 mb-3">
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Related Project Label" %}</div><div class="col-sm-9">{{ rel.label|default:"-" }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Related Project Name" %}</div><div class="col-sm-9">{{ rel.display_name|default:"-" }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Related Project Description" %}</div><div class="col-sm-9">{{ rel.description|default:"-" }}</div></div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <p><em>{% trans "No Projects available." %}</em></p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Fundings -->
+    <div class="panel panel-default rounded shadow-sm mb-3">
+      <div class="panel-heading p-2">
+        <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapse-fundings">{% trans "Fundings" %}</a></h4>
+      </div>
+      <div id="collapse-fundings" class="panel-collapse collapse">
+        <div class="panel-body p-3">
+          {% if resource.fundings.exists %}
+            {% for funding in resource.fundings.all %}
+              <div class="metadata-block p-3 mb-3">
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Organization" %}</div><div class="col-sm-9">{{ funding.organization }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Award Number" %}</div><div class="col-sm-9">{{ funding.award_number }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Award URI" %}</div><div class="col-sm-9">{{ funding.award_uri }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Award Title" %}</div><div class="col-sm-9">{{ funding.award_title }}</div></div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <p><em>{% trans "No fundings available." %}</em></p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Related Identifiers -->
+    <div class="panel panel-default rounded shadow-sm mb-3">
+      <div class="panel-heading p-2">
+        <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapse-related">{% trans "Related Identifiers" %}</a></h4>
+      </div>
+      <div id="collapse-related" class="panel-collapse collapse">
+        <div class="panel-body p-3">
+          {% if resource.related_identifier.exists %}
+            {% for rel in resource.related_identifier.all %}
+              <div class="metadata-block p-3 mb-3">
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Relation Identifier" %}</div><div class="col-sm-9">{{ rel.related_identifier }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Related Identifier Type" %}</div><div class="col-sm-9">{{ rel.related_identifier_type }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Relation Type" %}</div><div class="col-sm-9">{{ rel.relation_type }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Description" %}</div><div class="col-sm-9">{{ rel.description }}</div></div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <p><em>{% trans "No related identifiers available." %}</em></p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Features -->
+    <div class="panel panel-default rounded shadow-sm mb-3">
+      <div class="panel-heading p-2">
+        <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapse-features">{% trans "Features" %}</a></h4>
+      </div>
+      <div id="collapse-features" class="panel-collapse collapse">
+        <div class="panel-body p-3">
+          <div class="metadata-block p-3 mb-3">
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Edition" %}</div><div class="col-sm-9">{{ resource.edition|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Language" %}</div><div class="col-sm-9">{{ resource.language|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Data Quality" %}</div><div class="col-sm-9">{{ resource.data_quality_statement }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Supplemental Information" %}</div><div class="col-sm-9">{{ resource.supplemental_information|sanitize_html|safe }}</div></div>
+          </div>
+          <div class="metadata-block p-3 mb-3">
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Projection System" %}</div><div class="col-sm-9">{{ resource.srid|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Spatial Extent" %}</div><div class="col-sm-9">{{ resource.bbox_string|default:"-" }}</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- References -->
+    <div class="panel panel-default rounded shadow-sm mb-3">
+      <div class="panel-heading p-2">
+        <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapse-references">{% trans "References" %}</a></h4>
+      </div>
+      <div id="collapse-references" class="panel-collapse collapse">
+        <div class="panel-body p-3 metadata-block">
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Link Online" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}">{{ resource.get_absolute_url }}</a></div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Metadata Page" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}/metadata_detail">{{ resource.get_absolute_url }}/metadata_detail</a></div></div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
-  <article class="description tab-pane active" id="info">
-    <span class="subtitle">{% trans 'Identification' %}</span>
-    <div class="sep_title">
-      <hr />
-    </div>
-    <dl class="dl-horizontal">
-      {% block resource_title %}
-        {% if resource.title %}
-          <dt>
-            {% trans 'Title' %}
-          </dt>
-          <dd>{{ resource.title|truncatechars:80 }}</dd>
-        {% endif %}
-      {% endblock %}
+  <!-- Desktop tab content -->
+  <div class="tab-content rounded shadow p-3 bg-white hidden-xs">
 
-      {% block abstract %}
-        {% if resource.abstract %}
-        <dt>{% trans "Abstract" %}</dt>
-        <dd>{{ resource.abstract|sanitize_html|safe }}</dd>
-        {% endif %}
-      {% endblock %}
-    </dl>
-
-    <dl class="dl-horizontal">
-      {% block license %}
-        {% if LICENSES_ENABLED and LICENSES_DETAIL == 'above' and resource.license %}
-          <dt>
-            {% trans 'License' %}
-          </dt>
-          <dd>{{ resource.license.name_long }} <a href="#license-more-above" data-toggle="collapse" data-target=".license-more-above"><i class="fa fa-info-circle"></i></a></dd>
-        {% endif %}
-        <dd class="license-more-above collapse">
-          {% for bullet in resource.license.description_bullets %}
-            {{ bullet }}<br /><br />
-          {% endfor %}
-          {% if resource.license.url %}
-            +{% trans 'For more info see' %} <a href="{{ resource.license.url }}">{{ resource.license.url }}</a>.
-          {% endif %}
-        </dd>
-      {% endblock %}
-
-      {% block date %}
-        {% if resource.date %}
-          <dt>
-            {% trans resource.date_type|title %} {% trans 'Date' %}
-          </dt>
-          <dd>{{ resource.date }}</dd>
-        {% endif %}
-      {% endblock %}
-
-      {% block display_type %}
-        {% if resource.display_type %}
-          <dt>
-            {% trans 'Type' %}
-          </dt>
-          <dd>{{ resource.display_type }}</dd>
-        {% endif %}
-      {% endblock %}
-
-        {% block keyword_list %}
-          {% if resource.keywords.count > 0 or resource.tkeywords.count > 0 %}
-            <dt>{% trans "Keywords" %}</dt>
-            <dd itemprop="keywords">
-                <ul>
-                    {% for keyword in resource.keywords.all %}
-                    <li>
-                        <span itemscope itemtype="http://schema.org/Text">
-                        {{ keyword.name|sanitize_html|safe }}
-                        </span>
-                    </li>
-                    {% endfor %}
-                    {% for tid in resource.tkeywords.all|get_unique_thesaurus_set %}
-                    <li>{{ tid|get_thesaurus_translation_by_id }}
-                        {% for tkeywords in resource.tkeywords.all %}
-                        <ul>
-                        {% if tid == tkeywords.thesaurus.id %}
-                            <li><span itemscope itemtype="http://schema.org/Text">{{tkeywords|get_thesaurus_localized_label}}</span></li>
-                        {% endif %}
-                        </ul>
-                        {% endfor %}
-                    </li>
-                    {% endfor %}
-                </ul>
-            </dd>
-            {% endif %}
-        {% endblock keyword_list %}
-
-      {% block category %}
-        {% if resource.category %}
-          <dt>
-            {% trans 'Category' %}
-          </dt>
-          <dd>
-            <span>{{ resource.category }}</span> {% if resource.category.description %}
-              <a href="#category-more" data-toggle="collapse" data-target=".category-more"><i class="fa fa-info-circle"></i></a>
-            {% endif %}
-          </dd>
-          {% if resource.category.description %}
-            <dd class="category-more collapse">{{ resource.category.description }}</dd>
-          {% endif %}
-        {% endif %}
-      {% endblock %}
-
-      {% block regions %}
-        {% if resource.regions.all %}
-          <dt>
-            {% trans 'Regions' %}
-          </dt>
-          <dd>{{ resource.regions.all|join:', ' }}</dd>
-        {% endif %}
-      {% endblock %}
-
-      {% block is_approved %}
-        <dt>
-          {% trans 'Approved' %}
-        </dt>
-        <dd>
-          {% if resource.is_approved %}
-            {% trans 'Yes' %}
-          {% else %}
-            {% trans 'No' %}
-          {% endif %}
-        </dd>
-      {% endblock %}
-
-      {% block is_published %}
-        <dt>
-          {% trans 'Published' %}
-        </dt>
-        <dd>
-          {% if resource.is_published %}
-            {% trans 'Yes' %}
-          {% else %}
-            {% trans 'No' %}
-          {% endif %}
-        </dd>
-      {% endblock %}
-
-      {% block featured %}
-        <dt>
-          {% trans 'Featured' %}
-        </dt>
-        <dd>
-          {% if resource.featured %}
-            {% trans 'Yes' %}
-          {% else %}
-            {% trans 'No' %}
-          {% endif %}
-        </dd>
-      {% endblock %}
-
-      {% block group %}
-        {% if resource.group %}
-          <dt>
-            {% trans 'Group' %}
-          </dt>
-          <dd><a href="{% url 'group_activity' resource.group.name %}">{{ group }}</a></dd>
-        {% endif %}
-      {% endblock %}
-
-      {% block doi %}
-        <dt>
-          {% trans 'DOI' %}
-        </dt>
-        <dd>{{ resource.doi }}</dd>
-      {% endblock %}
-
-      {% block attribution %}
-        <dt>
-          {% trans 'Attribution' %}
-        </dt>
-        <dd>{{ resource.attribution }}</dd>
-      {% endblock %}
-
-      {% block extra_tag %}
-      {% endblock %}
-    </dl>
-
-    <span class="subtitle">{% trans 'Responsible' %}</span>
-    <div class="sep_title">
-      <hr />
+    <!-- Identification -->
+    <div class="tab-pane active" id="tab-identification">
+      <h3 class="fw-medium">{% trans "Identification" %}</h3><hr>
+      <div class="metadata-block p-3 mb-3">
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Title" %}</div><div class="col-sm-9">{{ resource.title|default:"-" }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Abstract" %}</div><div class="col-sm-9">{{ resource.abstract|default:"-" }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Publication Data" %}</div><div class="col-sm-9">{{ resource.date_created|default:"-" }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Publication Accepted" %}</div><div class="col-sm-9">{{ resource.date_accepted|default:"-" }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Publication Available" %}</div><div class="col-sm-9">{{ resource.date_available|default:"-" }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Type" %}</div><div class="col-sm-9">{{ resource.display_type|default:"-" }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Approved" %}</div><div class="col-sm-9">{{ resource.is_approved|yesno:_("Yes,No") }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Published" %}</div><div class="col-sm-9">{{ resource.is_published|yesno:_("Yes,No") }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Featured" %}</div><div class="col-sm-9">{{ resource.featured|yesno:_("Yes,No") }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "DOI" %}</div><div class="col-sm-9">{{ resource.doi|default:"-" }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Attribution" %}</div><div class="col-sm-9">{{ resource.attribution|default:"-" }}</div></div>
+      </div>
     </div>
 
-    <dl class="dl-horizontal">
-      {% if resource.owner %}
-        {% with poc=resource.owner %}
-          {% block name_long %}
-            <dt>
-              {% trans 'Name' %}
-            </dt>
-            <dd>{{ poc.name_long }}</dd>
-          {% endblock %}
-
-          {% block email %}
-            <dt>
-              {% trans 'email' %}
-            </dt>
-            <dd>{{ poc.email }}</dd>
-          {% endblock %}
-
-          {% block position %}
-            <dt>
-              {% trans 'Position' %}
-            </dt>
-            <dd>{{ poc.position }}</dd>
-          {% endblock %}
-
-          {% block organization %}
-            <dt>
-              {% trans 'Organization' %}
-            </dt>
-            <dd>{{ poc.organization }}</dd>
-          {% endblock %}
-
-          {% block location %}
-            <dt>
-              {% trans 'Location' %}
-            </dt>
-            <dd>{{ poc.location }}</dd>
-          {% endblock %}
-
-          {% block voice %}
-            <dt>
-              {% trans 'Voice' %}
-            </dt>
-            <dd>{{ poc.voice }}</dd>
-          {% endblock %}
-
-          {% block fax %}
-            <dt>
-              {% trans 'Fax' %}
-            </dt>
-            <dd>{{ poc.fax }}</dd>
-          {% endblock %}
-
-          {% block poc_keyword_list %}
-            {% if poc.keyword_list %}
-              <dt>
-                {% trans 'Keywords' %}
-              </dt>
-              <dd>
-                {% for keyword in poc.keyword_list %}
-                  {{ keyword }}
-                {% endfor %}
-              </dd>
-            {% endif %}
-          {% endblock %}
-        {% endwith %}
-      {% endif %}
-    </dl>
-
-    <span class="subtitle">{% trans 'Information' %}</span>
-    <div class="sep_title">
-      <hr />
-    </div>
-
-    <dl class="dl-horizontal">
-      <dt>
-        {% trans 'Identification Image' %}
-      </dt>
-      <dd><a href="{{ resource.get_thumbnail_url }}"><img ng-src="{{ resource.get_thumbnail_url }}" src="{{ resource.get_thumbnail_url }}" /></a></dd>
-    </dl>
-
-    <dl class="dl-horizontal">
-      {% block scale %}
-        <dt>
-          {% trans 'Spatial Extent' %}
-        </dt>
-        <dd>
-          {% if resource.scale %}
-            {{ resource.scale }}
-          {% else %}
-            ---
-          {% endif %}
-        </dd>
-      {% endblock %}
-
-      {% block srid %}
-        <dt>
-          {% trans 'Projection System' %}
-        </dt>
-        <dd>{{ resource.srid }}</dd>
-      {% endblock %}
-
-      <dt>
-        {% trans 'Extension x0' %}
-      </dt>
-
-      {% block bbox_x0 %}
-        <dd>{{ resource.bbox_x0 }}</dd>
-      {% endblock %}
-
-      <dt>
-        {% trans 'Extension x1' %}
-      </dt>
-      {% block bbox_x1 %}
-        <dd>{{ resource.bbox_x1 }}</dd>
-      {% endblock %}
-
-      <dt>
-        {% trans 'Extension y0' %}
-      </dt>
-      {% block bbox_y0 %}
-        <dd>{{ resource.bbox_y0 }}</dd>
-      {% endblock %}
-
-      <dt>
-        {% trans 'Extension y1' %}
-      </dt>
-      {% block bbox_y1 %}
-        <dd>{{ resource.bbox_y1 }}</dd>
-      {% endblock %}
-    </dl>
-
-    <span class="subtitle">{% trans 'Features' %}</span>
-    <div class="sep_title">
-      <hr />
-    </div>
-
-    <dl class="dl-horizontal">
-      {% block license2 %}
-        {% if LICENSES_ENABLED and LICENSES_DETAIL == 'below' and resource.license %}
-          <dt>
-            {% trans 'License' %}
-          </dt>
-          <dd>{{ resource.license.name_long }} <a href="#license-more-below" data-toggle="collapse" data-target=".license-more-below"><i class="fa fa-info-circle"></i></a></dd>
-          <dd class="license-more-below collapse">
-            {% for bullet in resource.license.description_bullets %}
-              {{ bullet }}<br /><br />
-            {% endfor %}
-            {% if resource.license.url %}
-              +{% trans 'For more info see' %} <a href="{{ resource.license.url }}">{{ resource.license.url }}</a>.
-            {% endif %}
-          </dd>
-        {% endif %}
-      {% endblock %}
-      {% block maintenance_frequency %}
-        {% if resource.maintenance_frequency %}
-          <dt>
-            {% trans 'Maintenance Frequency' %}
-          </dt>
-          <dd>{{ resource.maintenance_frequency_title }}</dd>
-        {% endif %}
-      {% endblock %}
-
-        {% block constraints_other %}
-        {% if resource.constraints_other %}
-        <dt>{% trans "Restrictions" %}</dt>
-        <dd>{% if resource.constraints_other %}
-            {{ resource.constraints_other|sanitize_html|safe }}
-            {% endif %}
-          </dd>
-        {% endif %}
-      {% endblock %}
-
-      {% block edition %}
-        {% if resource.edition %}
-          <dt>
-            {% trans 'Edition' %}
-          </dt>
-          <dd>{{ resource.edition }}</dd>
-        {% endif %}
-      {% endblock %}
-
-      {% block purpose %}
-        {% if resource.purpose %}
-        <dt>{% trans "Purpose" %}</dt>
-        <dd>{{ resource.purpose|sanitize_html|safe }}</dd>
-        {% endif %}
-      {% endblock %}
-
-      {% block language %}
-        {% if resource.language %}
-          <dt>
-            {% trans 'Language' %}
-          </dt>
-          <dd>{{ resource.language_title }}</dd>
-        {% endif %}
-      {% endblock %}
-
-      {% block temporal_extent_start %}
-        {% if resource.temporal_extent_start and resource.temporal_extent_end %}
-          <dt>
-            {% trans 'Temporal Extent' %}
-          </dt>
-          <dd>{{ resource.temporal_extent_start }} - {{ resource.temporal_extent_end }}</dd>
-        {% endif %}
-      {% endblock %}
-
-      {% block data_quality_statement %}
-        {% if resource.data_quality_statement %}
-        <dt>{% trans "Data Quality" %}</dt>
-        <dd>{{ resource.data_quality_statement|sanitize_html|safe }}</dd>
-        {% endif %}
-      {% endblock %}
-
-      {% block supplemental_information %}
-        {% if resource.supplemental_information %}
-        <dt>{% trans "Supplemental Information" %}</dt>
-        <dd>{{ resource.supplemental_information|sanitize_html|safe }}</dd>
-        {% endif %}
-      {% endblock %}
-
-      {% block extra_metadata %}
-
-      {% endblock %}
-
-      {% block spatial_representation_type %}
-        {% if resource.spatial_representation_type %}
-          <dt>
-            {% trans 'Spatial Representation Type' %}
-          </dt>
-          <dd>{{ resource.spatial_representation_type }}</dd>
-        {% endif %}
-      {% endblock %}
-    </dl>
-
-    {% if resource.poc %}
-      <span class="subtitle">{% trans 'Contact Points' %}</span>
-      <div class="sep_title">
-        <hr />
+    <!-- Responsible -->
+    <div class="tab-pane" id="tab-responsible">
+      <h3 class="fw-medium">{% trans "Responsibles" %}</h3><hr>
+      <div class="metadata-block p-3 mb-3">
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Name" %}</div><div class="col-sm-9">{{ resource.owner }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Email" %}</div><div class="col-sm-9">{{ resource.owner.email }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Organization" %}</div><div class="col-sm-9">{{ resource.owner.organization|default:"-" }}</div></div>
       </div>
-      {% for poc in resource.poc %}
-        <dl class="dl-horizontal">
-          {% block poc_name_long %}
-            <dt>
-              {% trans 'Name' %}
-            </dt>
-            <dd>{{ poc.name_long }}</dd>
-          {% endblock %}
-
-          {% block poc_email %}
-            <dt>
-              {% trans 'email' %}
-            </dt>
-            <dd>{{ poc.email }}</dd>
-          {% endblock %}
-
-          {% block poc_position %}
-            <dt>
-              {% trans 'Position' %}
-            </dt>
-            <dd>{{ poc.position }}</dd>
-          {% endblock %}
-
-          {% block poc_organization %}
-            <dt>
-              {% trans 'Organization' %}
-            </dt>
-            <dd>{{ poc.organization }}</dd>
-          {% endblock %}
-
-          {% block poc_location %}
-            <dt>
-              {% trans 'Location' %}
-            </dt>
-            <dd>{{ poc.location }}</dd>
-          {% endblock %}
-
-          {% block poc_voice %}
-            <dt>
-              {% trans 'Voice' %}
-            </dt>
-            <dd>{{ poc.voice }}</dd>
-          {% endblock %}
-
-          {% block poc_fax %}
-            <dt>
-              {% trans 'Fax' %}
-            </dt>
-            <dd>{{ poc.fax }}</dd>
-          {% endblock %}
-
-          {% block poc_keyword %}
-            {% if poc.keyword_list %}
-              <dt>
-                {% trans 'Keywords' %}
-              </dt>
-              <dd>
-                {% for keyword in poc.keyword_list %}
-                  {{ keyword }}
-                {% endfor %}
-              </dd>
-            {% endif %}
-          {% endblock %}
-          <hr />
-        </dl>
-      {% endfor %}
-    {% endif %}
-
-    <span class="subtitle">{% trans 'References' %}</span>
-    <div class="sep_title">
-      <hr />
-    </div>
-
-    <dl class="dl-horizontal">
-      {% block get_absolute_url %}
-        <dt>
-          {% trans 'Link Online' %}
-        </dt>
-        <dd><a href="{{ resource.get_absolute_url }}">{{ resource.get_absolute_url }}</a></dd>
-      {% endblock %}
-
-      {% block metaget_absolute_url %}
-        <dt>
-          {% trans 'Metadata Page' %}
-        </dt>
-        <dd><a href="{{ resource.get_absolute_url }}/metadata_detail">{{ resource.get_absolute_url }}/metadata_detail</a></dd>
-      {% endblock %}
-
-      {% block doc_file %}
-        {% if resource.doc_file %}
-          <dt>
-            {% trans 'Online Link' %}
-          </dt>
-          <dd><a href="{{ resource.get_absolute_url }}/download">{{ resource.get_absolute_url }}/download</a></dd>
-        {% endif %}
-      {% endblock %}
-      <hr />
-
-      {% if 'download_resourcebase' in perms_list %}
-        {% for link in resource.link_set.download %}
-          <dt>{{ link.name }}</dt>
-          <dd><a href="{{ link.url }}">{{ resource.title }}.{{ link.extension }}</a></dd>
-        {% endfor %}
-        <hr />
-      {% endif %}
-
-      {% for link in resource.link_set.ows %}
-        <dt>{{ link.name }}</dt>
-        <dd><a href="{{ link.url }}">Geoservice {{ link.link_type }}</a></dd>
-      {% endfor %}
-    </dl>
-
-    {% comment %}Contact Role: Metadata Author{% endcomment %}
-    {% if resource.metadata_author %}
-      <span class="subtitle">{% trans 'Metadata Author' %}</span>
-      <div class="sep_title">
-        <hr />
-      </div>
-
-      {% for metadata_author in resource.metadata_author %}
-        <dl class="dl-horizontal">
-          {% block metadata_author_doc_file %}
-            <dt>
-              {% trans 'Name' %}
-            </dt>
-            <dd>{{ metadata_author.name_long }}</dd>
-          {% endblock %}
-
-          {% block metadata_author_email %}
-            <dt>
-              {% trans 'email' %}
-            </dt>
-            <dd>{{ metadata_author.email }}</dd>
-          {% endblock %}
-
-          {% block metadata_author_position %}
-            <dt>
-              {% trans 'Position' %}
-            </dt>
-            <dd>{{ metadata_author.position }}</dd>
-          {% endblock %}
-
-          {% block metadata_author_organization %}
-            <dt>
-              {% trans 'Organization' %}
-            </dt>
-            <dd>{{ metadata_author.organization }}</dd>
-          {% endblock %}
-
-          {% block metadata_author_location %}
-            <dt>
-              {% trans 'Location' %}
-            </dt>
-            <dd>{{ metadata_author.location }}</dd>
-          {% endblock %}
-
-          {% block metadata_author_voice %}
-            <dt>
-              {% trans 'Voice' %}
-            </dt>
-            <dd>{{ metadata_author.voice }}</dd>
-          {% endblock %}
-
-          {% block metadata_author_fax %}
-            <dt>
-              {% trans 'Fax' %}
-            </dt>
-            <dd>{{ metadata_author.fax }}</dd>
-          {% endblock %}
-
-          {% block metadata_author_keyword_list %}
-            {% if metadata_author.keyword_list %}
-              <dt>
-                {% trans 'Keywords' %}
-              </dt>
-              <dd>
-                {% for keyword in metadata_author.keyword_list %}
-                  {{ keyword }}
-                {% endfor %}
-              </dd>
-            {% endif %}
-          {% endblock %}
-        </dl>
-      {% endfor %}
-    {% endif %}
-
-    {% comment %}Contact Role: Processor{% endcomment %}
-    {% if resource.processor %}
-      <span class="subtitle">{% trans 'Processor' %}</span>
-      <div class="sep_title">
-        <hr />
-      </div>
-
-      {% for processor in resource.processor %}
-        <dl class="dl-horizontal">
-          {% block processor_doc_file %}
-            <dt>
-              {% trans 'Name' %}
-            </dt>
-            <dd>{{ processor.name_long }}</dd>
-          {% endblock %}
-
-          {% block processor_email %}
-            <dt>
-              {% trans 'email' %}
-            </dt>
-            <dd>{{ processor.email }}</dd>
-          {% endblock %}
-
-          {% block processor_position %}
-            <dt>
-              {% trans 'Position' %}
-            </dt>
-            <dd>{{ processor.position }}</dd>
-          {% endblock %}
-
-          {% block processor_organization %}
-            <dt>
-              {% trans 'Organization' %}
-            </dt>
-            <dd>{{ processor.organization }}</dd>
-          {% endblock %}
-
-          {% block processor_location %}
-            <dt>
-              {% trans 'Location' %}
-            </dt>
-            <dd>{{ processor.location }}</dd>
-          {% endblock %}
-
-          {% block processor_voice %}
-            <dt>
-              {% trans 'Voice' %}
-            </dt>
-            <dd>{{ processor.voice }}</dd>
-          {% endblock %}
-
-          {% block processor_fax %}
-            <dt>
-              {% trans 'Fax' %}
-            </dt>
-            <dd>{{ processor.fax }}</dd>
-          {% endblock %}
-
-          {% block processor_keyword_list %}
-            {% if processor.keyword_list %}
-              <dt>
-                {% trans 'Keywords' %}
-              </dt>
-              <dd>
-                {% for keyword in processor.keyword_list %}
-                  {{ keyword }}
-                {% endfor %}
-              </dd>
-            {% endif %}
-          {% endblock %}
-        </dl>
-      {% endfor %}
-    {% endif %}
-
-    {% comment %}Contact Role: Publisher{% endcomment %}
-    {% if resource.publisher %}
-      <span class="subtitle">{% trans 'Publisher' %}</span>
-      <div class="sep_title">
-        <hr />
-      </div>
-
-      {% for publisher in resource.publisher %}
-        <dl class="dl-horizontal">
-          {% block publisher_doc_file %}
-            <dt>
-              {% trans 'Name' %}
-            </dt>
-            <dd>{{ publisher.name_long }}</dd>
-          {% endblock %}
-
-          {% block publisher_email %}
-            <dt>
-              {% trans 'email' %}
-            </dt>
-            <dd>{{ publisher.email }}</dd>
-          {% endblock %}
-
-          {% block publisher_position %}
-            <dt>
-              {% trans 'Position' %}
-            </dt>
-            <dd>{{ publisher.position }}</dd>
-          {% endblock %}
-
-          {% block publisher_organization %}
-            <dt>
-              {% trans 'Organization' %}
-            </dt>
-            <dd>{{ publisher.organization }}</dd>
-          {% endblock %}
-
-          {% block publisher_location %}
-            <dt>
-              {% trans 'Location' %}
-            </dt>
-            <dd>{{ publisher.location }}</dd>
-          {% endblock %}
-
-          {% block publisher_voice %}
-            <dt>
-              {% trans 'Voice' %}
-            </dt>
-            <dd>{{ publisher.voice }}</dd>
-          {% endblock %}
-
-          {% block publisher_fax %}
-            <dt>
-              {% trans 'Fax' %}
-            </dt>
-            <dd>{{ publisher.fax }}</dd>
-          {% endblock %}
-
-          {% block publisher_keyword_list %}
-            {% if publisher.keyword_list %}
-              <dt>
-                {% trans 'Keywords' %}
-              </dt>
-              <dd>
-                {% for keyword in publisher.keyword_list %}
-                  {{ keyword }}
-                {% endfor %}
-              </dd>
-            {% endif %}
-          {% endblock %}
-        </dl>
-      {% endfor %}
-    {% endif %}
-
-    {% comment %}Contact Role: Custodian{% endcomment %}
-    {% if resource.custodian %}
-      <span class="subtitle">{% trans 'Custodian' %}</span>
-      <div class="sep_title">
-        <hr />
-      </div>
-
-      {% for custodian in resource.custodian %}
-        <dl class="dl-horizontal">
-          {% block custodian_doc_file %}
-            <dt>
-              {% trans 'Name' %}
-            </dt>
-            <dd>{{ custodian.name_long }}</dd>
-          {% endblock %}
-
-          {% block custodian_email %}
-            <dt>
-              {% trans 'email' %}
-            </dt>
-            <dd>{{ custodian.email }}</dd>
-          {% endblock %}
-
-          {% block custodian_position %}
-            <dt>
-              {% trans 'Position' %}
-            </dt>
-            <dd>{{ custodian.position }}</dd>
-          {% endblock %}
-
-          {% block custodian_organization %}
-            <dt>
-              {% trans 'Organization' %}
-            </dt>
-            <dd>{{ custodian.organization }}</dd>
-          {% endblock %}
-
-          {% block custodian_location %}
-            <dt>
-              {% trans 'Location' %}
-            </dt>
-            <dd>{{ custodian.location }}</dd>
-          {% endblock %}
-
-          {% block custodian_voice %}
-            <dt>
-              {% trans 'Voice' %}
-            </dt>
-            <dd>{{ custodian.voice }}</dd>
-          {% endblock %}
-
-          {% block custodian_fax %}
-            <dt>
-              {% trans 'Fax' %}
-            </dt>
-            <dd>{{ custodian.fax }}</dd>
-          {% endblock %}
-
-          {% block custodian_keyword_list %}
+      
+      <h3 class="fw-medium">{% trans "Custodian" %}</h3><hr>
+      {% if resource.custodian %}
+        {% for custodian in resource.custodian %}
+          <div class="metadata-block p-3 mb-3">
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Name' %}</div><div class="col-sm-9">{{ custodian.name_long|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Email' %}</div><div class="col-sm-9">{{ custodian.email|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Position' %}</div><div class="col-sm-9">{{ custodian.position|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Organization' %}</div><div class="col-sm-9">{{ custodian.organization|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Location' %}</div><div class="col-sm-9">{{ custodian.location|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Voice' %}</div><div class="col-sm-9">{{ custodian.voice|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Fax' %}</div><div class="col-sm-9">{{ custodian.fax|default:"-" }}</div></div>
             {% if custodian.keyword_list %}
-              <dt>
-                {% trans 'Keywords' %}
-              </dt>
-              <dd>
-                {% for keyword in custodian.keyword_list %}
-                  {{ keyword }}
-                {% endfor %}
-              </dd>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Keywords' %}</div><div class="col-sm-9">{% for keyword in custodian.keyword_list %}{{ keyword }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>
             {% endif %}
-          {% endblock %}
-        </dl>
-      {% endfor %}
-    {% endif %}
+          </div>
+        {% endfor %}
+      {% endif %}
 
-    {% comment %}Contact Role: Distributor{% endcomment %}
-    {% if resource.distributor %}
-      <span class="subtitle">{% trans 'Distributor' %}</span>
-      <div class="sep_title">
-        <hr />
+      <h3 class="fw-medium">{% trans "Contact Person" %}</h3><hr>
+      <div class="metadata-block p-3 mb-3">
+        {% if resource.poc %}
+          {% for poc in resource.poc %}
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Name' %}</div><div class="col-sm-9">{{ poc.name_long|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Email' %}</div><div class="col-sm-9">{{ poc.email|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Position' %}</div><div class="col-sm-9">{{ poc.position|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Organization' %}</div><div class="col-sm-9">{{ poc.organization|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Location' %}</div><div class="col-sm-9">{{ poc.location|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Voice' %}</div><div class="col-sm-9">{{ poc.voice|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Fax' %}</div><div class="col-sm-9">{{ poc.fax|default:"-" }}</div></div>
+              {% if poc.keyword_list %}
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Keywords' %}</div><div class="col-sm-9">{% for keyword in poc.keyword_list %}{{ keyword }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>
+              {% endif %}
+          {% endfor %}
+        {% endif %}
+
+      </div>
+      <h3 class="fw-medium">{% trans "Metadata Author" %}</h3><hr>
+        {% if resource.metadata_author %}
+          {% for metadata_author in resource.metadata_author %}
+            <div class="metadata-block p-3 mb-3">
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Name' %}</div><div class="col-sm-9">{{ metadata_author.name_long|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Email' %}</div><div class="col-sm-9">{{ metadata_author.email|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Position' %}</div><div class="col-sm-9">{{ metadata_author.position|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Organization' %}</div><div class="col-sm-9">{{ metadata_author.organization|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Location' %}</div><div class="col-sm-9">{{ metadata_author.location|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Voice' %}</div><div class="col-sm-9">{{ metadata_author.voice|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Fax' %}</div><div class="col-sm-9">{{ metadata_author.fax|default:"-" }}</div></div>
+              {% if metadata_author.keyword_list %}
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Keywords' %}</div><div class="col-sm-9">{% for keyword in metadata_author.keyword_list %}{{ keyword }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Projects -->
+    <div class="tab-pane" id="tab-projects">
+      <h3 class="fw-medium">{% trans "Projects" %}</h3><hr>
+      {% if resource.related_projects.exists %}
+        {% for rel in resource.related_projects.all %}
+        <div class="metadata-block p-3 my-3">
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Related Project Label" %}</div><div class="col-sm-9">{{ rel.label|default:"-" }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Related Project Name" %}</div><div class="col-sm-9">{{ rel.display_name|default:"-" }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Related Project Description" %}</div><div class="col-sm-9">{{ rel.description|default:"-" }}</div></div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <p><em>{% trans "No Projects available." %}</em></p>
+      {% endif %}
+    </div>
+
+    <!-- Fundings -->
+    <div class="tab-pane" id="tab-fundings">
+      <h3 class="fw-medium">{% trans "Fundings" %}</h3><hr>
+      {% if resource.fundings.exists %}
+        {% for funding in resource.fundings.all %}
+        <div class="metadata-block p-3 my-3">
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Organization" %}</div><div class="col-sm-9">{{ funding.organization }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Award Number" %}</div><div class="col-sm-9">{{ funding.award_number }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Award URI" %}</div><div class="col-sm-9">{{ funding.award_uri }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Award Title" %}</div><div class="col-sm-9">{{ funding.award_title }}</div></div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <p><em>{% trans "No fundings available." %}</em></p>
+      {% endif %}
+    </div>
+
+    <!-- Related Identifiers -->
+    <div class="tab-pane" id="tab-related">
+      <h3 class="fw-medium">{% trans "Related Identifiers" %}</h3><hr>
+      {% if resource.related_identifier.exists %}
+        {% for rel in resource.related_identifier.all %}
+        <div class="metadata-block p-3 my-3">
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Relation Identifier" %}</div><div class="col-sm-9">{{ rel.related_identifier }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Related Identifier Type" %}</div><div class="col-sm-9">{{ rel.related_identifier_type }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Relation Type" %}</div><div class="col-sm-9">{{ rel.relation_type }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Description" %}</div><div class="col-sm-9">{{ rel.description }}</div></div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <p><em>{% trans "No related identifiers available." %}</em></p>
+      {% endif %}
+    </div>
+
+    <!-- Features -->
+    <div class="tab-pane" id="tab-features">
+      <h3 class="fw-medium">{% trans "Features" %}</h3><hr>
+      <div class="metadata-block p-3 my-3">
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Edition" %}</div><div class="col-sm-9">{{ resource.edition|default:"-" }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Language" %}</div><div class="col-sm-9">{{ resource.language|default:"-" }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Data Quality" %}</div><div class="col-sm-9">{{ resource.data_quality_statement }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Supplemental Information" %}</div><div class="col-sm-9">{{ resource.supplemental_information|sanitize_html|safe }}</div></div>
+        
+      </div>
+      <h3 class="fw-medium mt-5">{% trans "GeoInformation" %}</h3><hr>
+      <div class="metadata-block p-3 my-3">
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Identification Image" %}</div><a href="{{ resource.get_thumbnail_url }}"><img class="p-4" ng-src="{{ resource.get_thumbnail_url }}" src="{{ resource.get_thumbnail_url }}" /></a></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Projection System" %}</div><div class="col-sm-9">{{ resource.srid|default:"-" }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Spatial Extent" %}</div><div class="col-sm-9">{{ resource.bbox_string|default:"-" }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Extension x0" %}</div><div class="col-sm-9">{{ resource.bbox_x0|default:"-" }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Extent x1" %}</div><div class="col-sm-9">{{ resource.bbox_x1|default:"-" }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Extent y0" %}</div><div class="col-sm-9">{{ resource.bbox_y0|default:"-" }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Extent x1" %}</div><div class="col-sm-9">{{ resource.bbox_y1|default:"-" }}</div></div>
+      </div>
+    </div>
+
+    <!-- References -->
+    <div class="tab-pane" id="tab-references">
+      <h3 class="fw-medium">{% trans "References" %}</h3><hr>
+      <div class="metadata-block p-3 my-3">
+        
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Link Online" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}">{{ resource.get_absolute_url }}</a></div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Metadata Page" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}/metadata_detail">{{ resource.get_absolute_url }}/metadata_detail</a></div></div>
+        {% if resource.doc_file %}
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Online Link" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}/download">{{ resource.get_absolute_url }}/download</a></div></div>
+        {% endif %}
+        {% if 'download_resourcebase' in perms_list %}
+          {% for link in resource.link_set.download %}
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{{ link.name }}</div><div class="col-sm-9"><a href="{{ link.url }}">{{ resource.title }}.{{ link.extension }}</a></div></div>
+          {% endfor %}
+        {% endif %}
+        {% for link in resource.link_set.ows %}
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{{ link.name }}</div><div class="col-sm-9"><a href="{{ link.url }}">Geoservice {{ link.link_type }}</a></div></div>
+        {% endfor %}
       </div>
 
-      {% for distributor in resource.distributor %}
-        <dl class="dl-horizontal">
-          {% block distributor_doc_file %}
-            <dt>
-              {% trans 'Name' %}
-            </dt>
-            <dd>{{ distributor.name_long }}</dd>
-          {% endblock %}
+    </div>
 
-          {% block distributor_email %}
-            <dt>
-              {% trans 'email' %}
-            </dt>
-            <dd>{{ distributor.email }}</dd>
-          {% endblock %}
+  </div>
+</div>
 
-          {% block distributor_position %}
-            <dt>
-              {% trans 'Position' %}
-            </dt>
-            <dd>{{ distributor.position }}</dd>
-          {% endblock %}
+{% endblock %}
 
-          {% block distributor_organization %}
-            <dt>
-              {% trans 'Organization' %}
-            </dt>
-            <dd>{{ distributor.organization }}</dd>
-          {% endblock %}
+{% block extra_head %}
+{{ block.super }}
+  <link rel="stylesheet" href="{% static 'geonode/css/zalf_theme_metadata.css' %}">
+{% endblock %}
 
-          {% block distributor_location %}
-            <dt>
-              {% trans 'Location' %}
-            </dt>
-            <dd>{{ distributor.location }}</dd>
-          {% endblock %}
-
-          {% block distributor_voice %}
-            <dt>
-              {% trans 'Voice' %}
-            </dt>
-            <dd>{{ distributor.voice }}</dd>
-          {% endblock %}
-
-          {% block distributor_fax %}
-            <dt>
-              {% trans 'Fax' %}
-            </dt>
-            <dd>{{ distributor.fax }}</dd>
-          {% endblock %}
-
-          {% block distributor_keyword_list %}
-            {% if distributor.keyword_list %}
-              <dt>
-                {% trans 'Keywords' %}
-              </dt>
-              <dd>
-                {% for keyword in distributor.keyword_list %}
-                  {{ keyword }}
-                {% endfor %}
-              </dd>
-            {% endif %}
-          {% endblock %}
-        </dl>
-      {% endfor %}
-    {% endif %}
-
-    {% comment %}Contact Role: User{% endcomment %}
-    {% if resource.resource_user %}
-      <span class="subtitle">{% trans 'User' %}</span>
-      <div class="sep_title">
-        <hr />
-      </div>
-
-      {% for resource_user in resource.resource_user %}
-        <dl class="dl-horizontal">
-          {% block resource_user_doc_file %}
-            <dt>
-              {% trans 'Name' %}
-            </dt>
-            <dd>{{ resource_user.name_long }}</dd>
-          {% endblock %}
-
-          {% block resource_user_email %}
-            <dt>
-              {% trans 'email' %}
-            </dt>
-            <dd>{{ resource_user.email }}</dd>
-          {% endblock %}
-
-          {% block resource_user_position %}
-            <dt>
-              {% trans 'Position' %}
-            </dt>
-            <dd>{{ resource_user.position }}</dd>
-          {% endblock %}
-
-          {% block resource_user_organization %}
-            <dt>
-              {% trans 'Organization' %}
-            </dt>
-            <dd>{{ resource_user.organization }}</dd>
-          {% endblock %}
-
-          {% block resource_user_location %}
-            <dt>
-              {% trans 'Location' %}
-            </dt>
-            <dd>{{ resource_user.location }}</dd>
-          {% endblock %}
-
-          {% block resource_user_voice %}
-            <dt>
-              {% trans 'Voice' %}
-            </dt>
-            <dd>{{ resource_user.voice }}</dd>
-          {% endblock %}
-
-          {% block resource_user_fax %}
-            <dt>
-              {% trans 'Fax' %}
-            </dt>
-            <dd>{{ resource_user.fax }}</dd>
-          {% endblock %}
-
-          {% block resource_user_keyword_list %}
-            {% if resource_user.keyword_list %}
-              <dt>
-                {% trans 'Keywords' %}
-              </dt>
-              <dd>
-                {% for keyword in resource_user.keyword_list %}
-                  {{ keyword }}
-                {% endfor %}
-              </dd>
-            {% endif %}
-          {% endblock %}
-        </dl>
-      {% endfor %}
-    {% endif %}
-
-    {% comment %}Contact Role: Resource Provider{% endcomment %}
-    {% if resource.resource_provider %}
-      <span class="subtitle">{% trans 'Resource Provider' %}</span>
-      <div class="sep_title">
-        <hr />
-      </div>
-
-      {% for resource_provider in resource.resource_provider %}
-        <dl class="dl-horizontal">
-          {% block resource_provider_doc_file %}
-            <dt>
-              {% trans 'Name' %}
-            </dt>
-            <dd>{{ resource_provider.name_long }}</dd>
-          {% endblock %}
-
-          {% block resource_provider_email %}
-            <dt>
-              {% trans 'email' %}
-            </dt>
-            <dd>{{ resource_provider.email }}</dd>
-          {% endblock %}
-
-          {% block resource_provider_position %}
-            <dt>
-              {% trans 'Position' %}
-            </dt>
-            <dd>{{ resource_provider.position }}</dd>
-          {% endblock %}
-
-          {% block resource_provider_organization %}
-            <dt>
-              {% trans 'Organization' %}
-            </dt>
-            <dd>{{ resource_provider.organization }}</dd>
-          {% endblock %}
-
-          {% block resource_provider_location %}
-            <dt>
-              {% trans 'Location' %}
-            </dt>
-            <dd>{{ resource_provider.location }}</dd>
-          {% endblock %}
-
-          {% block resource_provider_voice %}
-            <dt>
-              {% trans 'Voice' %}
-            </dt>
-            <dd>{{ resource_provider.voice }}</dd>
-          {% endblock %}
-
-          {% block resource_provider_fax %}
-            <dt>
-              {% trans 'Fax' %}
-            </dt>
-            <dd>{{ resource_provider.fax }}</dd>
-          {% endblock %}
-
-          {% block resource_provider_keyword_list %}
-            {% if resource_provider.keyword_list %}
-              <dt>
-                {% trans 'Keywords' %}
-              </dt>
-              <dd>
-                {% for keyword in resource_provider.keyword_list %}
-                  {{ keyword }}
-                {% endfor %}
-              </dd>
-            {% endif %}
-          {% endblock %}
-        </dl>
-      {% endfor %}
-    {% endif %}
-
-    {% comment %}Contact Role: Originator{% endcomment %}
-    {% if resource.originator %}
-      <span class="subtitle">{% trans 'Resource Provider' %}</span>
-      <div class="sep_title">
-        <hr />
-      </div>
-
-      {% for originator in resource.originator %}
-        <dl class="dl-horizontal">
-          {% block originator_doc_file %}
-            <dt>
-              {% trans 'Name' %}
-            </dt>
-            <dd>{{ originator.name_long }}</dd>
-          {% endblock %}
-
-          {% block originator_email %}
-            <dt>
-              {% trans 'email' %}
-            </dt>
-            <dd>{{ originator.email }}</dd>
-          {% endblock %}
-
-          {% block originator_position %}
-            <dt>
-              {% trans 'Position' %}
-            </dt>
-            <dd>{{ originator.position }}</dd>
-          {% endblock %}
-
-          {% block originator_organization %}
-            <dt>
-              {% trans 'Organization' %}
-            </dt>
-            <dd>{{ originator.organization }}</dd>
-          {% endblock %}
-
-          {% block originator_location %}
-            <dt>
-              {% trans 'Location' %}
-            </dt>
-            <dd>{{ originator.location }}</dd>
-          {% endblock %}
-
-          {% block originator_voice %}
-            <dt>
-              {% trans 'Voice' %}
-            </dt>
-            <dd>{{ originator.voice }}</dd>
-          {% endblock %}
-
-          {% block originator_fax %}
-            <dt>
-              {% trans 'Fax' %}
-            </dt>
-            <dd>{{ originator.fax }}</dd>
-          {% endblock %}
-
-          {% block originator_keyword_list %}
-            {% if originator.keyword_list %}
-              <dt>
-                {% trans 'Keywords' %}
-              </dt>
-              <dd>
-                {% for keyword in originator.keyword_list %}
-                  {{ keyword }}
-                {% endfor %}
-              </dd>
-            {% endif %}
-          {% endblock %}
-        </dl>
-      {% endfor %}
-    {% endif %}
-
-    {% comment %}Contact Role: Resource Provider{% endcomment %}
-    {% if resource.principal_investigator %}
-      <span class="subtitle">{% trans 'Principal Investigator' %}</span>
-      <div class="sep_title">
-        <hr />
-      </div>
-
-      {% for principal_investigator in resource.principal_investigator %}
-        <dl class="dl-horizontal">
-          {% block principal_investigator_doc_file %}
-            <dt>
-              {% trans 'Name' %}
-            </dt>
-            <dd>{{ principal_investigator.name_long }}</dd>
-          {% endblock %}
-
-          {% block principal_investigator_email %}
-            <dt>
-              {% trans 'email' %}
-            </dt>
-            <dd>{{ principal_investigator.email }}</dd>
-          {% endblock %}
-
-          {% block principal_investigator_position %}
-            <dt>
-              {% trans 'Position' %}
-            </dt>
-            <dd>{{ principal_investigator.position }}</dd>
-          {% endblock %}
-
-          {% block principal_investigator_organization %}
-            <dt>
-              {% trans 'Organization' %}
-            </dt>
-            <dd>{{ principal_investigator.organization }}</dd>
-          {% endblock %}
-
-          {% block principal_investigator_location %}
-            <dt>
-              {% trans 'Location' %}
-            </dt>
-            <dd>{{ principal_investigator.location }}</dd>
-          {% endblock %}
-
-          {% block principal_investigator_voice %}
-            <dt>
-              {% trans 'Voice' %}
-            </dt>
-            <dd>{{ principal_investigator.voice }}</dd>
-          {% endblock %}
-
-          {% block principal_investigator_fax %}
-            <dt>
-              {% trans 'Fax' %}
-            </dt>
-            <dd>{{ principal_investigator.fax }}</dd>
-          {% endblock %}
-
-          {% block principal_investigator_keyword_list %}
-            {% if principal_investigator.keyword_list %}
-              <dt>
-                {% trans 'Keywords' %}
-              </dt>
-              <dd>
-                {% for keyword in principal_investigator.keyword_list %}
-                  {{ keyword }}
-                {% endfor %}
-              </dd>
-            {% endif %}
-          {% endblock %}
-        </dl>
-      {% endfor %}
-    {% endif %}
-  </article>
+{% block extra_script %}
+<script>
+  $(document).ready(function() {
+    $('.panel-collapse').on('show.bs.collapse', function () {
+      $(this).siblings('.panel-heading').addClass('active');
+    }).on('hide.bs.collapse', function () {
+      $(this).siblings('.panel-heading').removeClass('active');
+    });
+  });
+</script>
 {% endblock %}

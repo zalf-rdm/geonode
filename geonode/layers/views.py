@@ -240,7 +240,7 @@ def dataset_metadata(
         fields=["organization", "award_number", "award_uri", "award_title"],
         can_delete=True,
         extra=0,
-        min_num=1,
+        min_num=0,
     )
 
     RelatedIdentifierFormset = modelformset_factory(
@@ -248,7 +248,7 @@ def dataset_metadata(
         fields=["related_identifier", "related_identifier_type", "relation_type", "description"],
         can_delete=True,
         extra=0,
-        min_num=1,
+        min_num=0,
     )
     current_keywords = [keyword.name for keyword in layer.keywords.all()]
     topic_category = layer.category
@@ -344,6 +344,7 @@ def dataset_metadata(
                 "errors": [re.sub(re.compile("<.*?>"), "", str(err)) for err in category_form.errors],
             }
             return HttpResponse(json.dumps(out), content_type="application/json", status=400)
+
         if hasattr(settings, "THESAURUS"):
             tkeywords_form = TKeywordForm(request.POST)
         else:
@@ -505,11 +506,11 @@ def dataset_metadata(
 
         # update contact roles
         layer.set_contact_roles_from_metadata_edit(dataset_form)
+        
         funding_form.save()
         instance = funding_form.save(commit=False)
-
         layer.fundings.add(*instance)
-
+        
         related_identifier_form.save()
         instance = related_identifier_form.save(commit=False)
         layer.related_identifier.add(*instance)
@@ -741,38 +742,15 @@ def get_dataset(request, layername):
         )
 
 
-def dataset_metadata_detail(request, layername, template="datasets/dataset_metadata_detail.html", custom_metadata=None):
+def dataset_metadata_detail(request, layername):
     try:
-        layer = _resolve_dataset(request, layername, "view_resourcebase", _PERMISSION_MSG_METADATA)
+        _resolve_dataset(request, layername, "view_resourcebase", _PERMISSION_MSG_METADATA)
     except PermissionDenied:
         return HttpResponse(_("Not allowed"), status=403)
     except Exception:
         raise Http404(_("Not found"))
-    if not layer:
-        raise Http404(_("Not found"))
 
-    group = None
-    if layer.group:
-        try:
-            group = GroupProfile.objects.get(slug=layer.group.name)
-        except GroupProfile.DoesNotExist:
-            group = None
-    site_url = settings.SITEURL.rstrip("/") if settings.SITEURL.startswith("http") else settings.SITEURL
-
-    register_event(request, "view_metadata", layer)
-    perms_list = layer.get_user_perms(request.user)
-
-    return render(
-        request,
-        template,
-        context={
-            "resource": layer,
-            "perms_list": perms_list,
-            "group": group,
-            "SITEURL": site_url,
-            "custom_metadata": custom_metadata,
-        },
-    )
+    return dataset_metadata(request, layername, template="datasets/dataset_metadata_detail.html")
 
 
 def dataset_metadata_upload(request, layername, template="datasets/dataset_metadata_upload.html"):

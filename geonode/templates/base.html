@@ -39,6 +39,7 @@
     <link rel="shortcut icon" href="{% static 'geonode/img/favicon.ico' %}" />
     <link href="{% static "lib/css/ol.css" %}" rel="stylesheet" />
     <script src="{% static "lib/js/ol.js" %}"></script>
+    
     <link rel="preload" as="style" href="{% static "geonode/css/font-awesome.min.css" %}" />
     <link rel="preload" as="font" href="{% static "geonode/fonts/lato_regular.ttf" %}" crossorigin="" />
     <link rel="preload" as="font" href="{% static "geonode/fonts/lato_bold.ttf" %}" crossorigin="" />
@@ -58,6 +59,8 @@
       <link href="{% static "lib/css/assets.min.css" %}" rel="stylesheet"/>
       {% endif %}
       <link href="{% static "geonode/css/base.css" %}" rel="stylesheet"/>
+      <link rel="stylesheet" href="{% static 'geonode/css/addon_bootstrap5.css' %}">
+      <link rel="stylesheet" href="{% static 'geonode/css/zalf_theme_metadata.css' %}">
       <link rel='stylesheet' id='cookie-law-info-css'  href="{% static "geonode/css/cookie-law-info/cookie-law-info-public.css" %}" type='text/css' media='all' />
       <link rel='stylesheet' id='cookie-law-info-gdpr-css'  href="{% static "geonode/css/cookie-law-info/cookie-law-info-gdpr.css" %}" type='text/css' media='all' />
       <style type="text/css">[ng\:cloak],[ng-cloak],[data-ng-cloak],[x-ng-cloak],.ng-cloak,.x-ng-cloak,.ng-hide:not(.ng-hide-animate){display:none !important;}</style>
@@ -123,7 +126,9 @@
         }
         {% endif %}
       </style>
+      
       {% block extra_head %}
+      <link rel="stylesheet" href="{% static 'geonode/css/zalf_theme_metadata_lateral.css' %}">
       {% endblock %}
     {% endblock %}
     <!--[if IE]>

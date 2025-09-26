@@ -21,6 +21,7 @@ import json
 import logging
 import warnings
 import traceback
+import re
 
 from django.conf import settings
 from django.shortcuts import render
@@ -28,6 +29,7 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
+from django.forms.models import inlineformset_factory, modelformset_factory
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from geonode.base.enumerations import SOURCE_TYPE_LOCAL
 
@@ -43,8 +45,8 @@ from geonode.geoapps.models import GeoApp
 from geonode.resource.manager import resource_manager
 from geonode.decorators import check_keyword_write_perms
 
-from geonode.base.forms import CategoryForm, TKeywordForm, ThesaurusAvailableForm
-from geonode.base.models import Thesaurus, TopicCategory
+from geonode.base.forms import CategoryForm, TKeywordForm, ThesaurusAvailableForm, RelatedProjectForm
+from geonode.base.models import Thesaurus, TopicCategory, Funding, RelatedIdentifier, RelatedProject
 from geonode.utils import resolve_object
 
 from .forms import GeoAppForm
@@ -204,6 +206,23 @@ def geoapp_metadata(
     # Add metadata_author or poc if missing
     geoapp_obj.add_missing_metadata_author_or_poc()
     resource_type = geoapp_obj.resource_type
+
+    FundingFormset = modelformset_factory(
+        Funding,
+        fields=["organization", "award_number", "award_uri", "award_title"],
+        can_delete=True,
+        extra=0,
+        min_num=0,
+    )
+
+    RelatedIdentifierFormset = modelformset_factory(
+        RelatedIdentifier,
+        fields=["related_identifier", "related_identifier_type", "relation_type", "description"],
+        can_delete=True,
+        extra=0,
+        min_num=0,
+    )
+
     topic_category = geoapp_obj.category
     current_keywords = [keyword.name for keyword in geoapp_obj.keywords.all()]
 
@@ -211,6 +230,29 @@ def geoapp_metadata(
 
     if request.method == "POST":
         geoapp_form = GeoAppForm(request.POST, instance=geoapp_obj, prefix="resource", user=request.user)
+
+        related_project_form = RelatedProjectForm(
+            request.POST,
+            instance=geoapp_obj,
+        )
+        if not related_project_form.is_valid():
+            logger.error(f"Dataset Related Project Fields are not valid: {related_project_form.errors}")
+            out = {
+                "success": False,
+                "errors": [re.sub(re.compile("<.*?>"), "", str(err)) for err in related_project_form.errors],
+            }
+            return HttpResponse(json.dumps(out), content_type="application/json", status=400)
+
+        funding_form = FundingFormset(
+            request.POST,
+            prefix="form_funding",
+        )
+
+        related_identifier_form = RelatedIdentifierFormset(
+            request.POST,
+            prefix="form_related_identifier",
+        )
+
         category_form = CategoryForm(
             request.POST,
             prefix="category_choice_field",
@@ -229,6 +271,24 @@ def geoapp_metadata(
     else:
         geoapp_form = GeoAppForm(instance=geoapp_obj, prefix="resource", user=request.user)
         geoapp_form.disable_keywords_widget_for_non_superuser(request.user)
+
+        # projects_initial_values = list(layer.related_projects.all())
+        projects_initial_values = list(RelatedProject.objects.filter(related_projects=geoapp_obj))
+
+        related_project_form = RelatedProjectForm(
+            prefix="related_project_form",
+            instance=geoapp_obj,
+            initial={"display_name": projects_initial_values},
+        )
+
+        funding_intial_values = Funding.objects.all().filter(resourcebase=geoapp_obj)
+        funding_form = FundingFormset(prefix="form_funding", queryset=funding_intial_values)
+
+        related_identifier_intial_values = RelatedIdentifier.objects.all().filter(resourcebase=geoapp_obj)
+        related_identifier_form = RelatedIdentifierFormset(
+            prefix="form_related_identifier", queryset=related_identifier_intial_values
+        )
+
         category_form = CategoryForm(
             prefix="category_choice_field", initial=topic_category.id if topic_category else None
         )
@@ -267,7 +327,15 @@ def geoapp_metadata(
                 values = [keyword.id for keyword in topic_thesaurus if int(tid) == keyword.thesaurus.id]
                 tkeywords_form.fields[tid].initial = values
 
-    if request.method == "POST" and geoapp_form.is_valid() and category_form.is_valid() and tkeywords_form.is_valid():
+    if (
+        request.method == "POST"
+        and geoapp_form.is_valid()
+        and related_project_form.is_valid()
+        and funding_form.is_valid()
+        and related_identifier_form.is_valid()
+        and category_form.is_valid()
+        and tkeywords_form.is_valid()
+    ):
         new_keywords = current_keywords if request.keyword_readonly else geoapp_form.cleaned_data.pop("keywords")
         new_regions = geoapp_form.cleaned_data.pop("regions")
 
@@ -278,11 +346,29 @@ def geoapp_metadata(
             and category_form.cleaned_data["category_choice_field"]
         ):
             new_category = TopicCategory.objects.get(id=int(category_form.cleaned_data["category_choice_field"]))
-        geoapp_form.cleaned_data.pop("ptype")
 
-        geoapp_obj = geoapp_form.instance
+        project = related_project_form.cleaned_data
+        instance = project["display_name"]
+
+        geoapp_obj.related_projects.add(*instance)
+
         # update contact roles
         geoapp_obj.set_contact_roles_from_metadata_edit(geoapp_form)
+        
+        funding_form.save()
+        instance = funding_form.save(commit=False)
+        geoapp_obj.fundings.add(*instance)
+        
+        related_identifier_form.save()
+        instance = related_identifier_form.save(commit=False)
+        geoapp_obj.related_identifier.add(*instance)
+
+
+        geoapp_obj.save()
+
+        geoapp_form.cleaned_data.pop("ptype")
+
+        # geoapp_obj = geoapp_form.instance
 
         vals = dict(category=new_category)
 
@@ -342,7 +428,12 @@ def geoapp_metadata(
 
         return HttpResponse(json.dumps({"message": message}))
     elif request.method == "POST" and (
-        not geoapp_form.is_valid() or not category_form.is_valid() or not tkeywords_form.is_valid()
+        not geoapp_form.is_valid()
+        or not related_project_form.is_valid()
+        or not funding_form.is_valid()
+        or not related_identifier_form.is_valid()
+        or not category_form.is_valid()
+        or not tkeywords_form.is_valid()
     ):
         errors_list = {
             **geoapp_form.errors.as_data(),
@@ -379,6 +470,9 @@ def geoapp_metadata(
             "panel_template": panel_template,
             "custom_metadata": custom_metadata,
             "geoapp_form": geoapp_form,
+            "related_project_form": related_project_form,
+            "funding_form": funding_form,
+            "related_identifier_form": related_identifier_form,
             "category_form": category_form,
             "tkeywords_form": tkeywords_form,
             "metadata_author_groups": metadata_author_groups,
