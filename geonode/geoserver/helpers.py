@@ -1137,7 +1137,7 @@ def clean_styles(layer, gs_catalog: Catalog):
             gs_catalog.delete(style, purge=True, recurse=False)
             logger.debug(f"clean_styles: Style removed: {gs_dataset.default_style.name}")
         else:
-            logger.debug(f"clean_styles: Style does not exist: {gs_dataset.default_style.name}")
+            logger.debug(f"clean_styles: Style does not exist ...")
     except Exception as e:
         logger.warning(f"Could not clean style for layer {layer.name}", exc_info=e)
         logger.debug(f"Could not clean style for layer {layer.name} - STACK INFO", stack_info=True)
