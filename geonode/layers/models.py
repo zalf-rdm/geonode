@@ -403,7 +403,7 @@ class Attribute(models.Model):
     description = models.CharField(
         _("attribute description"),
         help_text=_("description of attribute to be used in metadata"),
-        max_length=255,
+        max_length=2048,
         blank=True,
         null=True,
     )
