@@ -114,6 +114,7 @@ class AttributeAdmin(admin.ModelAdmin):
         "attribute_label",
         "attribute_type",
         "attribute_unit",
+        "attribute_method",
         "display_order",
     )
     list_filter = ("dataset", "attribute_type", "attribute_unit")

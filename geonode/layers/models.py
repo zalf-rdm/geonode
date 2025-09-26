@@ -432,7 +432,14 @@ class Attribute(models.Model):
         null=True,
         unique=False,
     )
-
+    attribute_method = models.CharField(
+        _("attribute method"),
+        help_text=_("the used method for the attribute"),
+        max_length=2000,
+        blank=True,
+        null=True,
+        unique=False,
+    )
     visible = models.BooleanField(
         _("visible?"), help_text=_("specifies if the attribute should be displayed in identify results"), default=True
     )
