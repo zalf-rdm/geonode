@@ -2421,12 +2421,12 @@ if THEME_STATIC_DIR not in STATICFILES_DIRS:
     STATICFILES_DIRS.append(THEME_STATIC_DIR)
 
 MAPSTORE_CLIENT_CONFIG = {
-    'css': [
-        '/static/ui_zalf/css/gn_zalf.css',
+    "css": [
+        "/static/ui_zalf/css/gn_zalf.css",
     ],
-    'themes': {
-        'default': 'ui_zalf',  # mantém o tema base, mas sobrescreve com seu CSS
-    }
+    "themes": {
+        "default": "ui_zalf",  # mantém o tema base, mas sobrescreve com seu CSS
+    },
 }
 
 # TEMP For mapstoredevelopment
@@ -2442,5 +2442,6 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:8081",
 ]
 
+DEBUT = True
 USE_DEV_SERVER = True
 DEV_SERVER_URL = "http://localhost:8081/"
