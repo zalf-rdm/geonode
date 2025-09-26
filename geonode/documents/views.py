@@ -33,6 +33,7 @@ from django.template import loader
 from django.views.generic.edit import CreateView, UpdateView
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
+from django.forms.models import inlineformset_factory, modelformset_factory
 
 from geonode.assets.handlers import asset_handler_registry
 from geonode.assets.utils import get_default_asset
@@ -49,8 +50,8 @@ from geonode.storage.manager import storage_manager
 from geonode.resource.manager import resource_manager
 from geonode.decorators import check_keyword_write_perms
 from geonode.security.utils import get_user_visible_groups
-from geonode.base.forms import CategoryForm, TKeywordForm, ThesaurusAvailableForm
-from geonode.base.models import Thesaurus, TopicCategory
+from geonode.base.forms import CategoryForm, TKeywordForm, ThesaurusAvailableForm, RelatedProjectForm
+from geonode.base.models import Thesaurus, TopicCategory, Funding, RelatedIdentifier, RelatedProject
 from geonode.base import enumerations
 
 from pathlib import Path
@@ -334,11 +335,49 @@ def document_metadata(
     # Add metadata_author or poc if missing
     document.add_missing_metadata_author_or_poc()
 
+    FundingFormset = modelformset_factory(
+        Funding,
+        fields=["organization", "award_number", "award_uri", "award_title"],
+        can_delete=True,
+        extra=0,
+        min_num=0,
+    )
+
+    RelatedIdentifierFormset = modelformset_factory(
+        RelatedIdentifier,
+        fields=["related_identifier", "related_identifier_type", "relation_type", "description"],
+        can_delete=True,
+        extra=0,
+        min_num=0,
+    )
+
     topic_category = document.category
     current_keywords = [keyword.name for keyword in document.keywords.all()]
 
     if request.method == "POST":
         document_form = DocumentForm(request.POST, instance=document, prefix="resource", user=request.user)
+        related_project_form = RelatedProjectForm(
+            request.POST,
+            instance=document,
+        )
+        if not related_project_form.is_valid():
+            logger.error(f"Dataset Related Project Fields are not valid: {related_project_form.errors}")
+            out = {
+                "success": False,
+                "errors": [re.sub(re.compile("<.*?>"), "", str(err)) for err in related_project_form.errors],
+            }
+            return HttpResponse(json.dumps(out), content_type="application/json", status=400)
+
+        funding_form = FundingFormset(
+            request.POST,
+            prefix="form_funding",
+        )
+
+        related_identifier_form = RelatedIdentifierFormset(
+            request.POST,
+            prefix="form_related_identifier",
+        )
+
         category_form = CategoryForm(
             request.POST,
             prefix="category_choice_field",
@@ -357,6 +396,21 @@ def document_metadata(
     else:
         document_form = DocumentForm(instance=document, prefix="resource", user=request.user)
         document_form.disable_keywords_widget_for_non_superuser(request.user)
+        projects_initial_values = list(RelatedProject.objects.filter(related_projects=document))
+
+        related_project_form = RelatedProjectForm(
+            prefix="related_project_form",
+            instance=document,
+            initial={"display_name": projects_initial_values},
+        )
+
+        funding_intial_values = Funding.objects.all().filter(resourcebase=document)
+        funding_form = FundingFormset(prefix="form_funding", queryset=funding_intial_values)
+
+        related_identifier_intial_values = RelatedIdentifier.objects.all().filter(resourcebase=document)
+        related_identifier_form = RelatedIdentifierFormset(
+            prefix="form_related_identifier", queryset=related_identifier_intial_values
+        )
         category_form = CategoryForm(
             prefix="category_choice_field", initial=topic_category.id if topic_category else None
         )
@@ -396,7 +450,7 @@ def document_metadata(
                 values = [keyword.id for keyword in doc_tkeywords if int(tid) == keyword.thesaurus.id]
                 tkeywords_form.fields[tid].initial = values
 
-    if request.method == "POST" and document_form.is_valid() and category_form.is_valid() and tkeywords_form.is_valid():
+    if request.method == "POST" and document_form.is_valid() and related_project_form.is_valid() and funding_form.is_valid() and related_identifier_form.is_valid() and category_form.is_valid() and tkeywords_form.is_valid():
         new_keywords = current_keywords if request.keyword_readonly else document_form.cleaned_data["keywords"]
         new_regions = document_form.cleaned_data["regions"]
 
@@ -408,6 +462,21 @@ def document_metadata(
         ):
             new_category = TopicCategory.objects.get(id=int(category_form.cleaned_data["category_choice_field"]))
 
+        if funding_form.is_valid() and related_project_form.is_valid() and related_identifier_form.is_valid():
+
+            document.save()
+
+            project = related_project_form.cleaned_data
+            instance = project["display_name"]
+            
+            funding_form.save()
+            instance = funding_form.save(commit=False)
+            document.fundings.add(*instance)
+
+            related_identifier_form.save()
+            instance = related_identifier_form.save(commit=False)
+            document.related_identifier.add(*instance)
+            
         # update contact roles
         document.set_contact_roles_from_metadata_edit(document_form)
         document.save()
@@ -503,6 +572,9 @@ def document_metadata(
             "panel_template": panel_template,
             "custom_metadata": custom_metadata,
             "document_form": document_form,
+            "related_project_form": related_project_form,
+            "funding_form": funding_form,
+            "related_identifier_form": related_identifier_form,
             "category_form": category_form,
             "tkeywords_form": tkeywords_form,
             "metadata_author_groups": metadata_author_groups,

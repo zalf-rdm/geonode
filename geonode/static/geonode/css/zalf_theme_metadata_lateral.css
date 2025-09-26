@@ -1,0 +1,44 @@
+/* Painel lateral */
+.gn-details-panel {
+    font-family: "Montserrat", sans-serif;
+}
+
+.gn-details-panel-header {
+    background: #004d40;
+    color: #fff;
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.gn-details-panel-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+}
+
+/* Abas */
+.gn-details-info .nav-pills>li>a {
+    color: #004d40;
+    font-weight: 500;
+    padding: 8px 15px;
+}
+
+.gn-details-info .nav-pills>li.active>a {
+    border-bottom: 2px solid #004d40;
+    font-weight: 700;
+    color: #004d40;
+    background: transparent;
+}
+
+/* Labels e valores */
+.gn-details-info-label span {
+    font-weight: 600;
+    color: #004d40;
+}
+
+.gn-details-info-value span,
+.gn-details-info-value a {
+    color: #000;
+}
