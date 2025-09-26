@@ -88,7 +88,7 @@ Markdown==3.6
 # ---- GeoNode dependencies -----
 
 # importer package
--e git+https://github.com/GeoNodeUserGroup-DE/contrib_datapackage.git@geonode-v4.4.3+datapackage001#egg=importer_datapackage
+-e git+https://github.com/GeoNodeUserGroup-DE/contrib_datapackage.git@geonode-v4.4.3+datapackage002#egg=importer_datapackage
 frictionless>=5.17.0
 
 # mapstore client package
