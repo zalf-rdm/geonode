@@ -2406,7 +2406,7 @@ ADVANCED_EDIT_EXCLUDE_FIELD = [ # base
                                "featuredurl"
                                ]
 
-
-CORS_ALLOWED_ORIGINS = ["http://localhost:8081"]
+#Dev Temp
 DEBUG = True
+CORS_ALLOWED_ORIGINS = ["http://localhost:8081","http://localhost:8000"]
 USE_DEV_SERVER = True
