@@ -60,6 +60,8 @@ class AttributeSerializer(DynamicModelSerializer):
             "attribute",
             "description",
             "attribute_label",
+            "attribute_unit",
+            "attribute_method",
             "attribute_type",
             "visible",
             "display_order",
@@ -75,7 +77,7 @@ class AttributeSerializer(DynamicModelSerializer):
             "last_stats_updated",
         )
 
-    attribute = serializers.CharField(read_only=True)
+    attribute = serializers.CharField(read_only=False)
 
 
 class FeatureInfoTemplateField(DynamicComputedField):
