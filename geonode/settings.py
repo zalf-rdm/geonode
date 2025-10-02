@@ -707,11 +707,11 @@ LOGGING = {
     },
     "loggers": {
         "django": {
-            'handlers': ['console'],
+            "handlers": ["console"],
             "level": "INFO",
         },
         "geonode": {
-            'handlers': ['console'],
+            "handlers": ["console"],
             "level": "INFO",
         },
         "geonode.br": {"level": "INFO", "handlers": ["br"], "propagate": False},
@@ -2384,24 +2384,25 @@ AVATAR_CHANGE_TEMPLATE = "people/avatar/change.html"
 AVATAR_DELETE_TEMPLATE = "people/avatar/confirm_delete.html"
 
 # disable certain fields from advanded metadata editor
-ADVANCED_EDIT_EXCLUDE_FIELD = [ # base
-                               "fundings", 
-                               "metadata_only", 
-                               "metadata", 
-                               "resource_type",
-                               "spatial_representation_type",
-                               "attribution",
-                               "metadata_uploaded_preserve",
-                                # datasets
-                                "sourcetype",
-                               "thumbnail_url", 
-                               "thumbnail_path",
-                               "csw_typename",
-                               "remote_typename",
-                               "typename",
-                               "ptype",
-                               # maps
-                               "alternate",
-                               "subtype",
-                               "featuredurl"
-                               ]
+ADVANCED_EDIT_EXCLUDE_FIELD = [  # base
+    "fundings",
+    "metadata_only",
+    "metadata",
+    "resource_type",
+    "spatial_representation_type",
+    "attribution",
+    "metadata_uploaded_preserve",
+    # datasets
+    "sourcetype",
+    "thumbnail_url",
+    "thumbnail_path",
+    "csw_typename",
+    "remote_typename",
+    "typename",
+    "ptype",
+    # maps
+    "alternate",
+    "subtype",
+    "featuredurl",
+]
+

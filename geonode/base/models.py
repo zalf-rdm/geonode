@@ -678,7 +678,13 @@ class RelatedIdentifier(models.Model):
     )
     related_identifier_type = models.ForeignKey(RelatedIdentifierType, null=True, blank=True, on_delete=models.CASCADE)
     relation_type = models.ForeignKey(RelationType, null=True, blank=True, on_delete=models.CASCADE)
-    description = models.CharField(_("Related Identifier Description"), blank=True, max_length=255, help_text=_("Description of the related identifier"))
+    description = models.CharField(
+        _("Related Identifier Description"),
+        blank=True,
+        max_length=255,
+        help_text=_("Description of the related identifier"),
+    )
+
     def __str__(self):
         return f"Related Identifier: {self.related_identifier}({self.relation_type}: {self.related_identifier_type})"
 
@@ -762,8 +768,10 @@ class RelatedProject(models.Model):
         unique=True,
     )
     display_name = models.CharField(_("Display Name"), max_length=255, help_text=display_name_help_text)
-    description = models.CharField(_("Related Project Description"), blank=True, max_length=255, help_text=_("Description of the related project"))
-    
+    description = models.CharField(
+        _("Related Project Description"), blank=True, max_length=255, help_text=_("Description of the related project")
+    )
+
     def __str__(self):
         return f"{self.display_name}"
 
@@ -814,9 +822,13 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     use_constrains_help_text = _(
         "This metadata element shall provide information on the Use constraints applied to assure the protection of privacy or intellectual property (e.g. Trademark)"
     )
-    use_constraint_restrictions_help_text = _("limitation(s) placed upon the access or use of the data by Admin. (Hold control to select more than one)")
+    use_constraint_restrictions_help_text = _(
+        "limitation(s) placed upon the access or use of the data by Admin. (Hold control to select more than one)"
+    )
     use_constrains_help_text = _("limitation(s) placed upon the access or use of the data by Admin.")
-    restriction_other_help_text = _("limitation(s) placed upon the access or use of the data by User. (Hold control to select more than one)")
+    restriction_other_help_text = _(
+        "limitation(s) placed upon the access or use of the data by User. (Hold control to select more than one)"
+    )
     constraints_other_help_text = _(
         "other restrictions and legal prerequisites for accessing and using the resource or metadata by User"
     )
@@ -1040,7 +1052,9 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         help_text=metadata_license_help_text,
         on_delete=models.SET_NULL,
     )
-    metadata_lineage = models.TextField(_("Metadata Lineage"),null=True, blank=True, help_text=metadata_lineage_help_text)
+    metadata_lineage = models.TextField(
+        _("Metadata Lineage"), null=True, blank=True, help_text=metadata_lineage_help_text
+    )
 
     language = models.CharField(
         _("Language"), max_length=3, choices=enumerations.ALL_LANGUAGES, default="eng", help_text=language_help_text
