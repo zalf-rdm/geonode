@@ -130,6 +130,7 @@ class DatasetTimeSerieForm(forms.ModelForm):
     attribute = forms.ChoiceField(
         required=False,
     )
+
     end_attribute = forms.ChoiceField(
         required=False,
     )

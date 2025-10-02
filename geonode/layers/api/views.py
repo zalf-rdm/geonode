@@ -83,6 +83,21 @@ class DatasetViewSet(ApiPresetsInitializer, DynamicModelViewSet, AdvertisedListM
         return DatasetSerializer
 
     def partial_update(self, request, *args, **kwargs):
+        dataset = self.get_object()
+        attribute_data = request.data.get('attribute', [])
+
+        for attr in attribute_data:
+            pk = attr.get('pk')
+            try:
+                instance = dataset.attribute_set.get(pk=pk)
+                from .serializers import AttributeSerializer
+                serializer = AttributeSerializer(instance, data=attr, partial=True)
+                if serializer.is_valid():
+                    serializer.save()
+
+            except Exception as e:
+                logging.error(f"Error updating attribute {pk}: {e}")
+
         result = super().partial_update(request, *args, **kwargs)
 
         dataset = self.get_object()
