@@ -2406,3 +2406,4 @@ ADVANCED_EDIT_EXCLUDE_FIELD = [  # base
     "featuredurl",
 ]
 
+INSTALLED_APPS += ("geonode.ui_zalf",)
