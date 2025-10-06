@@ -54,8 +54,8 @@ sitemaps = {"dataset": DatasetSitemap, "map": MapSitemap}
 homepage = register_url_event()(TemplateView.as_view(template_name="index.html"))
 
 urlpatterns = [
-    # re_path(r"^$", homepage, name="home"),
-    re_path(r"^$", TemplateView.as_view(template_name="ui_zalf/home.html"), name="home"),
+    re_path(r"^$", homepage, name="home"),
+    # re_path(r"^$", TemplateView.as_view(template_name="ui_zalf/home.html"), name="home"),
     re_path(r"^help/$", TemplateView.as_view(template_name="help.html"), name="help"),
     re_path(r"^developer/$", TemplateView.as_view(template_name="developer.html"), name="developer"),
     re_path(r"^about/$", TemplateView.as_view(template_name="about.html"), name="about"),
