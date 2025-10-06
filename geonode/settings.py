@@ -793,7 +793,8 @@ TEMPLATES = [
     {
         "NAME": "GeoNode Project Templates",
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [os.path.join(PROJECT_ROOT, "templates")],
+        "DIRS": [os.path.join(PROJECT_ROOT, "ui_zalf", "templates"),
+                 os.path.join(PROJECT_ROOT, "templates")],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": CONTEXT_PROCESSORS,
@@ -2406,4 +2407,4 @@ ADVANCED_EDIT_EXCLUDE_FIELD = [  # base
     "featuredurl",
 ]
 
-INSTALLED_APPS += ("geonode.ui_zalf",)
+INSTALLED_APPS = ["geonode.ui_zalf"] + list(INSTALLED_APPS)
