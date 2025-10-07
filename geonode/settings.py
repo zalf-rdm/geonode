@@ -2407,5 +2407,5 @@ ADVANCED_EDIT_EXCLUDE_FIELD = [  # base
     "featuredurl",
 ]
 
-THEME = "ui_zalf"
-THEME_STATIC_DIR = os.path.join(PROJECT_ROOT, "themes", THEME, "static")
+
+INSTALLED_APPS += ("geonode.themes.ui_zalf",)
