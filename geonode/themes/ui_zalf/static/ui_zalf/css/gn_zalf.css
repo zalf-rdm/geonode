@@ -14,8 +14,12 @@
     --gn-txt-1: #233044;
     /* headings */
     --gn-txt-2: #3e505a;
+
+
     /* body */
     --gn-txt-3: #64727a;
+    /* text-grey-3 */
+    --text-gray-3: #9e9e9e;
     /* muted */
 
     /* Effects */
@@ -76,8 +80,48 @@ h6,
     font-weight: 700;
 }
 
+.font-inter {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+}
+
+.font-noto {
+    font-family: "Noto Sans",
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Oxygen,
+        Ubuntu,
+        Cantarell,
+        "Helvetica Neue",
+        Arial,
+        sans-serif;
+}
+
+.text-gray-3 {
+    color: var(--text-gray-3);
+}
+
+.border-gray {
+    border-color: #50505088 !important;
+}
+
+.ui-zalf .footer a {
+
+    color: var(--text-gray-3);
+    text-decoration: none;
+    transition: color var(--gn-fast) var(--gn-ease), opacity var(--gn-fast) var(--gn-ease);
+}
+
+.ui-zalf .footer a:hover,
+.ui-zalf .footer a:focus {
+    color: #FFF;
+    outline: none;
+}
+
+
 .ui-zalf a {
-    
+
     color: var(--gn-primary-1);
     text-decoration: none;
     transition: color var(--gn-fast) var(--gn-ease), opacity var(--gn-fast) var(--gn-ease);
