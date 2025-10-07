@@ -76,8 +76,8 @@ h6,
     font-weight: 700;
 }
 
-a {
-    /* color: #2e7d32; */
+.ui-zalf a {
+    
     color: var(--gn-primary-1);
     text-decoration: none;
     transition: color var(--gn-fast) var(--gn-ease), opacity var(--gn-fast) var(--gn-ease);
