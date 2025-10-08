@@ -508,11 +508,11 @@ def dataset_metadata(
 
         # update contact roles
         layer.set_contact_roles_from_metadata_edit(dataset_form)
-        
+
         funding_form.save()
         instance = funding_form.save(commit=False)
         layer.fundings.add(*instance)
-        
+
         related_identifier_form.save()
         instance = related_identifier_form.save(commit=False)
         layer.related_identifier.add(*instance)
@@ -754,26 +754,20 @@ def dataset_metadata_detail(request, layername, template="datasets/dataset_metad
         return HttpResponse(_("Not allowed"), status=403)
     except Exception:
         raise Http404(_("Not found"))
-    
-    if not layer:    
+
+    if not layer:
         raise Http404(_("Not found"))
     group = None
     if layer.group:
-            try:
-                group = GroupProfile.objects.get(slug=layer.group.name)
-            except GroupProfile.DoesNotExist:
-                group = None
+        try:
+            group = GroupProfile.objects.get(slug=layer.group.name)
+        except GroupProfile.DoesNotExist:
+            group = None
     site_url = settings.SITEURL.rstrip("/") if settings.SITEURL.startswith("http") else settings.SITEURL
     register_event(request, "view_metadata", layer)
     perms_list = layer.get_user_perms(request.user)
-    return render(request, 
-                  template,
-                  context={
-                        "resource": layer,
-                        "perms_list": perms_list,
-                        "group": group,
-                        "SITEURL": site_url
-                    }
+    return render(
+        request, template, context={"resource": layer, "perms_list": perms_list, "group": group, "SITEURL": site_url}
     )
 
 
