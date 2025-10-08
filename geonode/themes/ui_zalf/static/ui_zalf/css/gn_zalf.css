@@ -58,7 +58,10 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-.
+html {
+    overflow-y: auto !important;
+}
+
 
 h1,
 h2,
