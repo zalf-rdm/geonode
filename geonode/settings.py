@@ -2399,10 +2399,16 @@ ADVANCED_EDIT_EXCLUDE_FIELD = [  # base
     "csw_typename",
     "remote_typename",
     "typename",
+    "is_mosaic",
+    "has_time",
+    "has_elevation",
+    "time_regex",
+    "elevation_regex",
     "ptype",
     # maps
     "alternate",
     "subtype",
     "featuredurl",
+    "extra_metadata",
 ]
 
