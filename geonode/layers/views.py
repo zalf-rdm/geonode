@@ -218,6 +218,7 @@ def dataset_metadata(
     template="datasets/dataset_metadata.html",
     panel_template="layouts/panels.html",
     custom_metadata=None,
+    perms_list=None,
     ajax=True,
 ):
     try:
@@ -507,11 +508,11 @@ def dataset_metadata(
 
         # update contact roles
         layer.set_contact_roles_from_metadata_edit(dataset_form)
-        
+
         funding_form.save()
         instance = funding_form.save(commit=False)
         layer.fundings.add(*instance)
-        
+
         related_identifier_form.save()
         instance = related_identifier_form.save(commit=False)
         layer.related_identifier.add(*instance)
@@ -743,15 +744,31 @@ def get_dataset(request, layername):
         )
 
 
-def dataset_metadata_detail(request, layername):
+def dataset_metadata_detail(request, layername, template="datasets/dataset_metadata_detail.html", custom_metadata=None):
+    """
+    View for dataset metadata detail page.
+    """
     try:
-        _resolve_dataset(request, layername, "view_resourcebase", _PERMISSION_MSG_METADATA)
+        layer = _resolve_dataset(request, layername, "view_resourcebase", _PERMISSION_MSG_METADATA)
     except PermissionDenied:
         return HttpResponse(_("Not allowed"), status=403)
     except Exception:
         raise Http404(_("Not found"))
 
-    return dataset_metadata(request, layername, template="datasets/dataset_metadata_detail.html")
+    if not layer:
+        raise Http404(_("Not found"))
+    group = None
+    if layer.group:
+        try:
+            group = GroupProfile.objects.get(slug=layer.group.name)
+        except GroupProfile.DoesNotExist:
+            group = None
+    site_url = settings.SITEURL.rstrip("/") if settings.SITEURL.startswith("http") else settings.SITEURL
+    register_event(request, "view_metadata", layer)
+    perms_list = layer.get_user_perms(request.user)
+    return render(
+        request, template, context={"resource": layer, "perms_list": perms_list, "group": group, "SITEURL": site_url}
+    )
 
 
 def dataset_metadata_upload(request, layername, template="datasets/dataset_metadata_upload.html"):
