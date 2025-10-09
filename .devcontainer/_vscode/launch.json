@@ -1,0 +1,65 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Django",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "./manage.py",
+      "args": [
+        "runserver",
+        "0.0.0.0:8000"
+      ],
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}",
+    },
+    {
+      "name": "Python: Celery",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "/usr/local/bin/celery",
+      "args": [
+        "--app=geonode.celery_app:app",
+        "worker",
+        "--without-gossip",
+        "--without-mingle",
+        "-Ofair",
+        "-B",
+        "-E",
+        "--statedb=worker.state",
+        "--scheduler=celery.beat:PersistentScheduler",
+        "--loglevel=INFO",
+        "--concurrency=2",
+        "-n",
+        "worker1@%h"
+      ],
+      "django": true,
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}",
+    },
+    {
+      "name": "Django Test",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/manage.py",
+      "args": [
+        "test",
+        "--keepdb",
+        "importer.handlers.shapefile"
+      ],
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}",
+    },
+    {
+      "name": "Django Command",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/manage.py",
+      "args": [
+        "set_all_datasets_metadata",
+      ],
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}",
+    }
+  ]
+}
