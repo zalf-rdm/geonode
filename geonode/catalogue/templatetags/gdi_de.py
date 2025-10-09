@@ -20,13 +20,13 @@ GDI_DE_ROLE_LABEL_MAPPING = {
     'Principal Investigator': 'principalInvestigator'
 }
 
-@register.filter
+@register.simple_tag
 def get_gdi_compliant_role_label(value):
     """
     Replace labels based on the GDI_DE_ROLE_LABEL_MAPPING dict.
     Example: {{ role_label_string|get_gdi_compliant_role_label }}
     """
-    return GDI_DE_ROLE_LABEL_MAPPING.get(value, value)
+    return GDI_DE_ROLE_LABEL_MAPPING.get(value)
 
 @register.simple_tag
 def get_individual_name(role):

@@ -17,7 +17,8 @@
 
    {% for label, contact_roles in layer.get_defined_multivalue_contact_roles.items %}
    {% for contact_role in contact_roles %}
-   {% if label|get_gdi_compliant_role_label == 'pointOfContact' %}
+   {% get_gdi_compliant_role_label label as role_label %}
+   {% if role_label == 'pointOfContact' %}
    <gmd:contact>
      <gmd:CI_ResponsibleParty>
        {% get_individual_name contact_role as individualName %}
@@ -80,7 +81,7 @@
          </gmd:CI_Contact>
        </gmd:contactInfo>
        <gmd:role>
-         <gmd:CI_RoleCode codeSpace="ISOTC211/19115" codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode" codeListValue="pointOfContact">pointOfContact</gmd:CI_RoleCode>
+         <gmd:CI_RoleCode codeSpace="ISOTC211/19115" codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode" codeListValue="{{ role_label }}">{{ role_label }}</gmd:CI_RoleCode>
        </gmd:role>
      </gmd:CI_ResponsibleParty>
    </gmd:contact>
@@ -167,7 +168,8 @@
 
        {% for label, contact_roles in layer.get_defined_multivalue_contact_roles.items %}
        {% for contact_role in contact_roles %}
-       {% if label|get_gdi_compliant_role_label != 'pointOfContact' %}
+       {% get_gdi_compliant_role_label label as role_label %}
+       {% if role_label and role_label != 'pointOfContact' %}
        <gmd:pointOfContact>
          <gmd:CI_ResponsibleParty>
             {% get_individual_name contact_role as individualName %}
@@ -230,7 +232,7 @@
              </gmd:CI_Contact>
            </gmd:contactInfo>
            <gmd:role>
-             <gmd:CI_RoleCode codeSpace="ISOTC211/19115" codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode" codeListValue="{{ label|get_gdi_compliant_role_label }}">{{ label|get_gdi_compliant_role_label }}</gmd:CI_RoleCode>
+             <gmd:CI_RoleCode codeSpace="ISOTC211/19115" codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode" codeListValue="{{ role_label }}">{{ role_label }}</gmd:CI_RoleCode>
            </gmd:role>
          </gmd:CI_ResponsibleParty>
        </gmd:pointOfContact>
