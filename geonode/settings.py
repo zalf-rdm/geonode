@@ -2409,3 +2409,7 @@ ADVANCED_EDIT_EXCLUDE_FIELD = [  # base
 
 THEME = "ui_zalf"
 THEME_STATIC_DIR = os.path.join(PROJECT_ROOT, "themes", THEME, "static")
+STATICFILES_DIRS += [
+    THEME_STATIC_DIR,
+]
+
