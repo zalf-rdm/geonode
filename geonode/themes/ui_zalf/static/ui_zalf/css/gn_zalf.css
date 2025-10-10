@@ -467,6 +467,7 @@ small,
 /* ---------------------------------------------
    7) Navbar (glassy, sticky)
    --------------------------------------------- */
+.ui-zalf .navbar,
 .navbar {
     border: none;
     border-bottom: 1px solid rgba(230, 236, 240, .8);
