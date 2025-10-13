@@ -73,6 +73,7 @@ from geonode.base.models import (
     Organization,
     Funding,
     RelatedProject,
+    RestrictionCodeType,
 )
 from geonode.base.api.filters import (
     DynamicSearchFilter,
@@ -112,6 +113,7 @@ from .serializers import (
     HierarchicalKeywordSerializer,
     TopicCategorySerializer,
     FullLicenseSerializer,
+    RestrictionCodeTypeSerializer,
     RelationTypeSerializer,
     RelatedIdentifierTypeSerializer,
     OrganizationSerializer,
@@ -290,6 +292,21 @@ class LicenseViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin
 
     queryset = License.objects.all()
     serializer_class = FullLicenseSerializer
+    pagination_class = GeoNodeApiPagination
+    
+class RestrictionCodeTypeViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
+    """
+    API endpoint that lists RestrictCodeType.
+    """
+
+    permission_classes = [
+        AllowAny,
+    ]
+    filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter]
+    permission_classes = [IsAuthenticatedOrReadOnly, UserHasPerms]
+
+    queryset = RestrictionCodeType.objects.all()
+    serializer_class = RestrictionCodeTypeSerializer
     pagination_class = GeoNodeApiPagination
 
 
