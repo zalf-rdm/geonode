@@ -172,20 +172,20 @@
     <div class="nav-container">
         <div class="navbar-header">
           <ul class="gn-menu-list">
-              <li>
-                  <a href="/">
-                      {% if custom_theme.logo and custom_theme.logo.url %}
-                          <img src="{{ custom_theme.logo.url }}">
-                      {% else %}
-                          <img src="{% block logo_src %}{% static 'ui_zalf/img/logos/logo_zalf_half.png' %}{% endblock %}">
-                      {% endif %}
-                  </a>
-              </li>
+              
           </ul>
       </div>
       <div id="navbar" class="navbar-collapse collapse">
         <ul class="nav navbar-nav toolbar">
-
+          <li>
+                  <a href="/">
+                      {% if custom_theme.logo and custom_theme.logo.url %}
+                          <img src="{{ custom_theme.logo.url }}">
+                      {% else %}
+                          <img src="{% block logo_src %}{% static 'ui_zalf/img/logos/logo_zalf_half.png' %}{% endblock %}" style="width: 70px;">
+                      {% endif %}
+                  </a>
+              </li>
           {% block tabs %}
 
           <li id="nav_data">
@@ -253,15 +253,15 @@
               </ul>
           </li>
 
-          {% block extra_tab %}
-
-          {% endblock %}
+          
 
           {% endblock %}
 
         </ul>
         <ul class="nav navbar-nav navbar-right">
-
+          <li>
+            {% include './search_bar.html' with search_bar_id='gn-search-bar' %}
+          </li>
             {% block my_extra_right_tab %}
                {% render_nav_menu 'TOPBAR_MENU' %}
             {% endblock my_extra_right_tab %}
@@ -320,155 +320,22 @@
     </div>
 
   <div id="wrap">
-    {% block middle %}
     <div class="container">
-      {% include "_status_message.html" %}
-      {% include "_announcements.html" %}
-      {% include "_messages.html" %}
-      {% block body_outer %}
+      
       <div class="row">
-        <div class="col">
-        {% block body %}{% endblock %}
-        </div>
+        ##EMPTY TEST
       </div>
-      {% endblock %}
     </div>
-    {% endblock middle %}
-
-    {% block extra_mainbody %}
-    {% endblock extra_mainbody %}
 
   </div>
 
-  {% block monitoring %}
-  {% endblock %}
+
 
   {% block footer %}
-  <footer>
-    <div class="container">
-      <div class="row">
-        <div class="col-md-2">
-          <ul class="list-unstyled">
-            <li>{% trans "Data" %}</li>
-            <li><a href="{% dataset_list_url %}">{% trans "Datasets" %}</a></li>
-            <li><a href="{% document_list_url %}">{% trans "Documents" %}</a></li>
-            <li><a href="{% url "services" %}?limit={{ CLIENT_RESULTS_LIMIT }}">{% trans "Remote Services" %}</a></li>
-            {% if user.is_staff or user.is_superuser %}
-              {% if "add_resource" in user.perms %}
-                <li><a href="{% url "register_service" %}">{% trans "Add Remote Service" %}</a></li>
-              {% endif %}
-            {% endif %}
-          </ul>
-        </div>
-        <div class="col-md-2">
-          <ul class="list-unstyled">
-            <li>{% trans "Maps" %}</li>
-            <li><a href="{% map_list_url %}">{% trans "Explore Maps" %}</a></li>
-          </ul>
-        </div>
-        <div class="col-md-2">
-          <ul class="list-unstyled">
-            <li>{% trans "About" %}</li>
-            <li><a href="{% url "profile_browse" %}">{% trans "People" %}</a></li>
-            <li><a href="{% url "group_list" %}">{% trans "Groups" %}</a></li>
-            {% if perms.announcements.can_manage %}
-            <li><a href="{% url "announcements_list" %}">{% trans "Announcements" %}</a></li>
-            {% endif %}
-            {% if user.is_authenticated and not READ_ONLY_MODE %}
-            <li><a href="{% url "geonode.invitations:geonode-send-invite" %}">{% trans "Invite Users" %}</a></li>
-            {% endif %}
-            {% if user.is_superuser and not READ_ONLY_MODE %}
-            <li><a href="{% if SITEURL|default:""|slice:"-1:" == "/" %}{{SITEURL}}{% else %}{{SITEURL}}/{% endif %}admin/people/profile/add/">{% trans "Add User" %}</a></li>
-            <li><a href="{% url "group_create" %}">{% trans "Create Group" %}</a></li>
-            {% endif %}
-          </ul>
-        </div>
-
-        <div class="col-md-6 text-right">
-          {% block contactus %}
-          {% endblock contactus %}
-          <ul class="list-unstyled">
-            <li>{% trans "Powered by" %} <a href="http://geonode.org">{% trans "GeoNode" %}</a>{% if user.is_staff %} <em>{% trans "version" %} {{ VERSION }}</em>{% endif %}</li>
-            <li><a href="{% url "developer" %}">{% trans "Developers" %}</a> | <a href="{% url "about" %}">{% trans "About" %}</a><li>
-          </ul>
-          <label class="hidden">{% trans "Language" %}</label>
-          {% if csrf_token != "NOTPROVIDED" %}
-          {% get_current_language as LANGUAGE %}
-          <form class="form-inline" action="/i18n/setlang/" method="post">
-          {% csrf_token %}
-            <select class="col-md-6 pull-right" name="language" onchange="javascript:form.submit()">
-              {% for lang in LANGUAGES %}
-              <option value="{{ lang.0 }}" {% if LANGUAGE_CODE == lang.0 %} selected="selected"{% endif %}>
-                {{ lang.1 }}
-              </option>
-              {% endfor %}
-            </select>
-          </form>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </footer>
-
-  {% if custom_theme.copyright %}
-    <section class="footer-copyright">
-      <div class="container">
-        <div class="row">
-          <div class="col-md-12 copyright ">
-            <div class="module">
-              <small>{{ custom_theme.copyright|safe }}</small>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  {% endif %}
-
+  {% include './footer.html'  %}
   {% endblock footer %}
 
 
-    <!-- Modal must stay outside the navbar -->
-    {% if not user.is_authenticated %}
-    <div class="modal fade" id="SigninModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-sm">
-        <div class="modal-content">
-          <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">{% trans "Close" %}</span></button>
-            <h4 class="modal-title" id="myModalLabel">{% trans "Sign in" %}</h4>
-          </div>
-          <form class="form-signin" role="form" action="{% url "account_login" %}?next={{ request.path }}" method="post">
-            <div class="modal-body">
-              {% csrf_token %}
-              {% get_providers as socialaccount_providers %}
-              {% if socialaccount_providers %}
-                  {% include "socialaccount/snippets/provider_list.html" with process="login" %}
-                  {% include "socialaccount/snippets/login_extra.html" %}
-                <hr>
-              {% endif %}
-              <div class="form-group">
-                <label for="id_username" class="sr-only">{% trans "Username" %}:</label>
-                <input id="id_username" class="form-control" name="login" placeholder="{% trans "Username" %}" type="text" />
-              </div>
-              <div class="form-group">
-                <label for="id_password" class="sr-only">{% trans "Password" %}:</label>
-                <input id="id_password" class="form-control" name="password" placeholder="{% trans "Password" %}" type="password" autocomplete="off" />
-              </div>
-              <label class="checkbox">
-                <input type="checkbox" /> {% trans "Remember Me" %}
-              </label>
-              <p>
-                <a href="{% url 'account_reset_password' %}">{% trans "Forgot Password?" %}</a>
-              </p>
-            </div>
-            <div class="modal-footer">
-              <button type="submit" class="btn btn-primary btn-block">{% trans "Sign in" %}</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-    {% endif %}
-    <!-- End of Modal -->
 
     {% if DEBUG_STATIC %}
     <script src="{% static "lib/js/jquery.js" %}"></script>
