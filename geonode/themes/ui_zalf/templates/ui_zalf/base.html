@@ -171,21 +171,17 @@
   <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
     <div class="nav-container">
         <div class="navbar-header">
-          <ul class="gn-menu-list">
-              
+          <li class="gn-menu-icon active" style="text-decoration: none;">
+            <a href="/">
+              <img src="{% block logo_src %}{% static 'ui_zalf/img/logos/logo_zalf_half.png' %}{% endblock %}" style="width: 70px;">
+            </a>
+          </li>
+              </li>
           </ul>
       </div>
       <div id="navbar" class="navbar-collapse collapse">
         <ul class="nav navbar-nav toolbar">
-          <li>
-                  <a href="/">
-                      {% if custom_theme.logo and custom_theme.logo.url %}
-                          <img src="{{ custom_theme.logo.url }}">
-                      {% else %}
-                          <img src="{% block logo_src %}{% static 'ui_zalf/img/logos/logo_zalf_half.png' %}{% endblock %}" style="width: 70px;">
-                      {% endif %}
-                  </a>
-              </li>
+          
           {% block tabs %}
 
           <li id="nav_data">
