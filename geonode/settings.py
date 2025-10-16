@@ -2412,3 +2412,5 @@ ADVANCED_EDIT_EXCLUDE_FIELD = [  # base
     "extra_metadata",
 ]
 
+CSRF_TRUSTED_ORIGINS=os.getenv("CSRF_TRUSTED_ORIGINS", "").split()
+INSTALLED_APPS += ("geonode.zalf",)
