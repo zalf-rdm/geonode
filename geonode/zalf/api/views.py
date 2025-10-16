@@ -1,19 +1,15 @@
 import logging
-import itertools
-import datetime
 
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import PermissionDenied, BadRequest, ValidationError
-from django.contrib.auth.decorators import login_required
 
 from rest_framework.decorators import api_view, authentication_classes
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication
 from oauth2_provider.contrib.rest_framework import OAuth2Authentication
 
-from geonode.base.models import ResourceBase
-from geonode.maps.models import Map, MapLayer
+from geonode.maps.models import Map
 from geonode.zalf.api.serializer import PublishSerializer
 
 logger = logging.getLogger(__name__)
@@ -26,6 +22,17 @@ allowed_authentication_classes = [
 
 def _approve_data_collection(user, map_resource: Map):
 
+    to_approve = [ 
+        map_resource,
+        *set(
+            filter(
+                lambda resource: resource.owner == user, 
+                # map layers are also just linked resources
+                [ lr.target for lr in map_resource.get_linked_resources() ]
+            ),
+        )
+    ]
+
     def approve_resource(resource):
         resource.is_approved = True
         # first save to ensure permission update loads status from db
@@ -34,18 +41,6 @@ def _approve_data_collection(user, map_resource: Map):
         # now save the permission change
         resource.save()
     
-    # status.approved_at = datetime.utcnow()
-    to_approve = [ 
-        map_resource,
-        *set(
-            filter(
-                # linked and owned resource
-                lambda resource: resource.owner == user, 
-                [ lr.target for lr in map_resource.get_linked_resources() ]
-            ),
-        )
-    ]
-
     [ approve_resource(resource) for resource in to_approve ]
     
     return JsonResponse({
@@ -82,6 +77,25 @@ def approve_data_collection_post(request, mapid):
 
 def _publish_data_collection(user, map: Map, payload):
 
+    resources = set(
+        filter(
+            lambda resource: (
+                resource.id in payload.resources
+                and
+                not resource.is_published
+                and 
+                resource.owner == user
+            ),
+            # map layers are also just linked resources
+            [ lr.target for lr in map.get_linked_resources() ]
+        )
+    )
+
+    for resource in resources:
+        if not resource.is_approved:
+            raise ValidationError(_(f"Resource '{resource.title}' (ID: {resource.id}) is not approved, yet!"))
+
+
     def publish_resource(resource):
         resource.is_published = True
         # first save to ensure permission update loads status from db
@@ -89,22 +103,8 @@ def _publish_data_collection(user, map: Map, payload):
         resource.set_permissions(approval_status_changed=True)
         # now save the permission change
         resource.save()
-    
-    # linked resources contains map layers
-    linked_resources = set(
-        filter(
-            lambda resource: (
-                resource.id in payload.linked_resources
-                and 
-                resource.owner == user
-                and
-                not resource.is_published
-            ),
-            [ lr.target for lr in map.get_linked_resources() ]
-        )
-    )
 
-    to_publish = [ map, *linked_resources ]
+    to_publish = [ map, *resources ]
     
     doi_prefix = payload.doi_prefix
     if doi_prefix:
