@@ -16,8 +16,8 @@ from geonode.zalf.api.serializer import PublishSerializer
 logger = logging.getLogger(__name__)
 
 allowed_authentication_classes = [
-    BasicAuthentication,
     SessionAuthentication,
+    BasicAuthentication,
     OAuth2Authentication,
 ]
 
@@ -25,7 +25,7 @@ def _update_resource_status(resource, is_approved=None, is_published=None):
     if is_approved != None:
         resource.is_approved = is_approved
     if is_published != None:
-        resource.is_published
+        resource.is_published = is_published
 
     # first save to ensure permission update loads status from db
     resource.save()
@@ -85,7 +85,7 @@ def _publish_data_collection(user, map: Map, payload):
     resources = set(
         filter(
             lambda resource: (
-                resource.id in payload.resources
+                resource.id in payload["resources"]
                 and
                 not resource.is_published
                 and 
@@ -103,7 +103,7 @@ def _publish_data_collection(user, map: Map, payload):
 
     to_publish = [ map, *resources ]
     
-    doi_prefix = payload.doi_prefix
+    doi_prefix = getattr(payload, "doi_prefix", False)
     if doi_prefix:
 
         # TODO check if doi_prefix is valid
@@ -131,7 +131,7 @@ def publish_data_collection(request, mapid):
     if not user.can_publish(map):
         raise PermissionDenied(_("Permission Denied"))
 
-    serializer = PublishSerializer(request.data)
+    serializer = PublishSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     payload = serializer.validated_data
 

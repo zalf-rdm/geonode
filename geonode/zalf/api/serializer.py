@@ -7,4 +7,4 @@ class PublishSerializer(serializers.Serializer):
     resources = serializers.ListField(
         child=serializers.IntegerField(min_value=1)
     )
-    doi_prefix = serializers.CharField()
+    doi_prefix = serializers.CharField(required=False)
