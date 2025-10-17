@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
@@ -20,6 +21,18 @@ allowed_authentication_classes = [
     OAuth2Authentication,
 ]
 
+def _update_resource_status(resource, is_approved=None, is_published=None):
+    if is_approved != None:
+        resource.is_approved = is_approved
+    if is_published != None:
+        resource.is_published
+
+    # first save to ensure permission update loads status from db
+    resource.save()
+    resource.set_permissions(approval_status_changed=True)
+    # now save the permission change
+    resource.save()
+
 def _approve_data_collection(user, map_resource: Map):
 
     to_approve = [ 
@@ -32,16 +45,8 @@ def _approve_data_collection(user, map_resource: Map):
             ),
         )
     ]
-
-    def approve_resource(resource):
-        resource.is_approved = True
-        # first save to ensure permission update loads status from db
-        resource.save()
-        resource.set_permissions(approval_status_changed=True)
-        # now save the permission change
-        resource.save()
     
-    [ approve_resource(resource) for resource in to_approve ]
+    [ _update_resource_status(resource, is_approved=True) for resource in to_approve ]
     
     return JsonResponse({
         "success": True,
@@ -96,14 +101,6 @@ def _publish_data_collection(user, map: Map, payload):
             raise ValidationError(_(f"Resource '{resource.title}' (ID: {resource.id}) is not approved, yet!"))
 
 
-    def publish_resource(resource):
-        resource.is_published = True
-        # first save to ensure permission update loads status from db
-        resource.save()
-        resource.set_permissions(approval_status_changed=True)
-        # now save the permission change
-        resource.save()
-
     to_publish = [ map, *resources ]
     
     doi_prefix = payload.doi_prefix
@@ -116,8 +113,7 @@ def _publish_data_collection(user, map: Map, payload):
 
         pass
 
-
-    [ publish_resource(resource) for resource in to_publish ]
+    [ _update_resource_status(resource, is_published=True) for resource in to_publish ]
     
     return JsonResponse({
         "success": True,
