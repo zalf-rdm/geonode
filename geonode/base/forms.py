@@ -510,14 +510,6 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
         input_formats=["%Y-%m-%d"],
         widget=ResourceBaseDateTimePicker(options={"format": "YYYY-MM-DD"}),
     )
-
-    date_collected = forms.DateTimeField(
-        label=_("Date Collected"),
-        required=False,
-        localize=True,
-        input_formats=["%Y-%m-%d"],
-        widget=ResourceBaseDateTimePicker(options={"format": "YYYY-MM-DD"}),
-    )
     date_copyrighted = forms.DateTimeField(
         label=_("Date Copyright"),
         localize=True,
@@ -525,7 +517,6 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
         input_formats=["%Y-%m-%d"],
         widget=ResourceBaseDateTimePicker(options={"format": "YYYY-MM-DD"}),
     )
-
     date_submitted = forms.DateTimeField(
         label=_("Date Submitted"),
         localize=True,
