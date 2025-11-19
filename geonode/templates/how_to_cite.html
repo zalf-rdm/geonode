@@ -1,0 +1,99 @@
+{% extends "geonode_base.html" %}
+{% load i18n %}
+
+{% block title %}
+    {% trans "How to Cite Us" %} — {{ block.super }}
+{% endblock %}
+
+{% block body_outer %}
+
+<div class="page-header">
+    <h2>{% trans "How to Cite the ZALF Repository" %}</h2>
+</div>
+
+<p>
+    {% trans "When using datasets, metadata, or other materials hosted in the ZALF Repository, we kindly request that you properly acknowledge the platform. Citation ensures transparency, credit to contributors, and supports the long-term sustainability of research data services." %}
+</p>
+
+<hr>
+
+<h3>{% trans "1. Cite the ZALF Repository Platform" %}</h3>
+<p>{% trans "If you want to reference the repository as an infrastructure or as a data source in general, please use the following recommended citation:" %}</p>
+
+<pre style="background:#f8f8f8; padding:1rem; border-radius:6px;">
+ZALF Repository ({{ now|date:"Y" }}).
+Leibniz Centre for Agricultural Landscape Research (ZALF).
+Available at: https://repository.zalf.de
+</pre>
+
+<hr>
+
+<h3>{% trans "2. Cite Individual Datasets" %}</h3>
+<p>
+    {% trans "Each dataset published in the ZALF Repository includes a preferred citation format. To cite a specific dataset, use the citation provided on the dataset’s page, which typically includes:" %}
+</p>
+
+<ul>
+    <li>{% trans "Authors / data creators" %}</li>
+    <li>{% trans "Year of publication" %}</li>
+    <li>{% trans "Dataset title" %}</li>
+    <li>{% trans "ZALF Repository as the data publisher" %}</li>
+    <li>{% trans "Persistent Identifier (PID or DOI)" %}</li>
+    <li>{% trans "Version, if available" %}</li>
+</ul>
+
+<p>{% trans "Example:" %}</p>
+
+<pre style="background:#f8f8f8; padding:1rem; border-radius:6px;">
+Müller, A.; Schmidt, L.; Hoffmann, M. (2024).
+Soil moisture measurements from the DEMM study area (v1.1).
+ZALF Repository.
+https://repository.zalf.de/dataset/abcd-1234
+</pre>
+
+<hr>
+
+<h3>{% trans "3. Citing Datasets Without a Provided Format" %}</h3>
+<p>
+    {% trans "If a dataset does not include a detailed citation suggestion, you may use the general pattern below:" %}
+</p>
+
+<pre style="background:#f8f8f8; padding:1rem; border-radius:6px;">
+Author(s) (Year).
+Title of the dataset.
+ZALF Repository.
+Persistent Identifier (if available).
+URL
+</pre>
+
+<hr>
+
+<h3>{% trans "4. Referencing the Repository in Research Papers" %}</h3>
+<p>
+    {% trans "When describing your data sources, methods, or Research Data Management practices, you may generally refer to the platform as follows:" %}
+</p>
+
+<pre style="background:#f8f8f8; padding:1rem; border-radius:6px;">
+"The research data used in this study were accessed through the ZALF Repository,
+the institutional research data platform of the Leibniz Centre for Agricultural Landscape Research (ZALF)."
+</pre>
+
+<hr>
+
+<h3>{% trans "5. Why Proper Citation Matters" %}</h3>
+
+<ul>
+    <li>{% trans "Ensures that data creators receive appropriate credit." %}</li>
+    <li>{% trans "Improves scientific transparency and reproducibility." %}</li>
+    <li>{% trans "Helps track dataset usage and scientific impact." %}</li>
+    <li>{% trans "Supports long-term maintenance and infrastructure funding." %}</li>
+</ul>
+
+<hr>
+
+<h3>{% trans "Contact" %}</h3>
+<p>
+    {% trans "If you have questions about how to cite datasets or the platform, feel free to contact the ZALF Research Data Management support team." %}
+</p>
+
+{% endblock %}

@@ -57,7 +57,14 @@ urlpatterns = [
     re_path(r"^$", homepage, name="home"),
     re_path(r"^help/$", TemplateView.as_view(template_name="help.html"), name="help"),
     re_path(r"^developer/$", TemplateView.as_view(template_name="developer.html"), name="developer"),
+    #Extra Pages
     re_path(r"^about/$", TemplateView.as_view(template_name="about.html"), name="about"),
+    re_path(r"^upload/$", TemplateView.as_view(template_name="upload.html"), name="upload"),
+    re_path(r"^publications/$", TemplateView.as_view(template_name="publications.html"), name="publications"),
+    re_path(r"^data_policy/$", TemplateView.as_view(template_name="data_policy.html"), name="data_policy"),
+    re_path(r"^how_to_cite/$", TemplateView.as_view(template_name="how_to_cite.html"), name="how_to_cite"),
+    re_path(r"^imprint/$", TemplateView.as_view(template_name="imprint.html"), name="imprint"),
+    re_path(r"^privacy/$", TemplateView.as_view(template_name="privacy.html"), name="privacy"),
     re_path(r"^privacy_cookies/$", TemplateView.as_view(template_name="privacy-cookies.html"), name="privacy-cookies"),
     # Meta
     re_path(r"^sitemap\.xml$", sitemap, {"sitemaps": sitemaps}, name="sitemap"),
