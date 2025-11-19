@@ -65,6 +65,7 @@ urlpatterns = [
     re_path(r"^how_to_cite/$", TemplateView.as_view(template_name="how_to_cite.html"), name="how_to_cite"),
     re_path(r"^imprint/$", TemplateView.as_view(template_name="imprint.html"), name="imprint"),
     re_path(r"^privacy/$", TemplateView.as_view(template_name="privacy.html"), name="privacy"),
+    re_path(r"^ogc_and_api/$", TemplateView.as_view(template_name="ogc_and_api.html"), name="ogc_and_api"),
     re_path(r"^privacy_cookies/$", TemplateView.as_view(template_name="privacy-cookies.html"), name="privacy-cookies"),
     # Meta
     re_path(r"^sitemap\.xml$", sitemap, {"sitemaps": sitemaps}, name="sitemap"),

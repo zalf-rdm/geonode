@@ -1,0 +1,161 @@
+{% extends "geonode_base.html" %}
+{% load i18n %}
+
+{% block title %}
+    {% trans "Privacy Policy" %} — {{ block.super }}
+{% endblock %}
+
+{% block body_outer %}
+
+<div class="page-header">
+    <h2>{% trans "Privacy Policy of the ZALF Repository" %}</h2>
+</div>
+
+<p>
+{% trans "This Privacy Policy explains how personal data is collected, processed, and protected when using the ZALF Repository (repository.zalf.de). We comply with the European General Data Protection Regulation (GDPR/DSGVO) and applicable German data protection laws." %}
+</p>
+
+<hr>
+
+<h3>{% trans "1. Data Controller" %}</h3>
+<p>
+<strong>Leibniz Centre for Agricultural Landscape Research (ZALF) e.V.</strong><br>
+Eberswalder Straße 84, 15374 Müncheberg, Germany<br>
+{% trans "Email" %}: datenschutz@zalf.de
+</p>
+
+<hr>
+
+<h3>{% trans "2. Personal Data We Process" %}</h3>
+<p>{% trans "We only collect personal data that is technically necessary or voluntarily provided by users." %}</p>
+
+<ul>
+    <li>{% trans "Account information (name, email, username)" %}</li>
+    <li>{% trans "Login credentials and authentication metadata" %}</li>
+    <li>{% trans "Uploaded content associated with your user profile" %}</li>
+    <li>{% trans "Server log files (IP address, browser type, timestamp)" %}</li>
+    <li>{% trans "Cookies required for login sessions and platform functionality" %}</li>
+</ul>
+
+<p>
+{% trans "No personal data is sold, transferred, or used for profiling." %}
+</p>
+
+<hr>
+
+<h3>{% trans "3. Purpose of Processing" %}</h3>
+<p>{% trans "We process personal data for the following purposes:" %}</p>
+
+<ul>
+    <li>{% trans "Providing access to the repository and its services" %}</li>
+    <li>{% trans "Managing user accounts and authentication" %}</li>
+    <li>{% trans "Ensuring the security and stability of the platform" %}</li>
+    <li>{% trans "Complying with legal and research data management obligations" %}</li>
+</ul>
+
+<hr>
+
+<h3>{% trans "4. Legal Basis (GDPR Art. 6)" %}</h3>
+
+<ul>
+    <li><strong>{% trans "Art. 6(1)(b) – Contract" %}</strong> {% trans "Processing is necessary for providing the repository service." %}</li>
+    <li><strong>{% trans "Art. 6(1)(c) – Legal obligation" %}</strong> {% trans "For compliance with archival, research, or documentation requirements." %}</li>
+    <li><strong>{% trans "Art. 6(1)(f) – Legitimate interest" %}</strong> {% trans "For IT security, abuse prevention, and service maintenance." %}</li>
+</ul>
+
+<hr>
+
+<h3>{% trans "5. Use of Cookies" %}</h3>
+<p>
+{% trans "The ZALF Repository uses only essential cookies required for authentication, session management, and secure platform operation. No tracking or advertising cookies are used." %}
+</p>
+
+<hr>
+
+<h3>{% trans "6. Server Logs" %}</h3>
+<p>
+{% trans "When accessing the platform, the following technical data are automatically collected and stored in log files:" %}
+</p>
+
+<ul>
+    <li>{% trans "IP address (anonymized where possible)" %}</li>
+    <li>{% trans "Browser type and operating system" %}</li>
+    <li>{% trans "Visited pages and access time" %}</li>
+    <li>{% trans "Referrer URL" %}</li>
+</ul>
+
+<p>
+{% trans "This data is used exclusively for technical monitoring and security purposes and is deleted automatically after a limited retention period." %}
+</p>
+
+<hr>
+
+<h3>{% trans "7. User Accounts and Uploaded Data" %}</h3>
+<p>
+{% trans "When you create an account or upload data, personal information (name, email, affiliation) is stored to allow attribution, communication, and citation. This information is required for research integrity and FAIR data principles." %}
+</p>
+
+<p>
+<strong>{% trans "Uploaded datasets may become publicly accessible depending on the chosen permission settings." %}</strong>
+</p>
+
+<hr>
+
+<h3>{% trans "8. Data Sharing and Third Parties" %}</h3>
+<p>
+{% trans "We do not transfer personal data to third parties except when required by law or when necessary for secure hosting and system maintenance." %}
+</p>
+
+<p>
+{% trans "The platform infrastructure may be hosted on institutional servers or certified providers in the EU." %}
+</p>
+
+<hr>
+
+<h3>{% trans "9. Data Retention" %}</h3>
+<ul>
+    <li>{% trans "Account data is stored as long as your user account is active." %}</li>
+    <li>{% trans "Server logs are automatically deleted after the standard retention period." %}</li>
+    <li>{% trans "Published datasets are preserved long-term to ensure scientific reproducibility." %}</li>
+</ul>
+
+<hr>
+
+<h3>{% trans "10. Your Rights Under GDPR" %}</h3>
+
+<p>{% trans "You may exercise the following rights at any time:" %}</p>
+
+<ul>
+    <li>{% trans "Right of access" %} (Art. 15)</li>
+    <li>{% trans "Right to rectification" %} (Art. 16)</li>
+    <li>{% trans "Right to erasure" %} (Art. 17)</li>
+    <li>{% trans "Right to restrict processing" %} (Art. 18)</li>
+    <li>{% trans "Right to data portability" %} (Art. 20)</li>
+    <li>{% trans "Right to object" %} (Art. 21)</li>
+</ul>
+
+<p>
+{% trans "Please note that published datasets may not be deletable due to scientific integrity, documentation requirements, or legal obligations." %}
+</p>
+
+<hr>
+
+<h3>{% trans "11. Contact for Data Protection" %}</h3>
+<p>
+<strong>{% trans "Data Protection Officer (DPO)" %}</strong><br>
+Leibniz Centre for Agricultural Landscape Research (ZALF) e.V.<br>
+{% trans "Email" %}: datenschutz@zalf.de
+</p>
+
+<hr>
+
+<h3>{% trans "12. Updates to this Privacy Policy" %}</h3>
+<p>
+{% trans "We may update this Privacy Policy to comply with new legal requirements or improvements to the platform. The current version is always available on this page." %}
+</p>
+
+{% endblock %}
+
+{% block footer %}
+    {% include "geonode-mapstore-client/snippets/footer.html" %}
+{% endblock %}
