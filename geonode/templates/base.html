@@ -625,7 +625,16 @@
         </div>
     </div>
   {% block global_modals %}
-     
+     <div class="modal fade" id="SigninModal" tabindex="-1" aria-labelledby="SigninModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="SigninModalLabel">{% trans "Sign in" %}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Close' %}"></button>
+        </div>
+      </div>
+    </div>
+  </div>
   {% endblock %}
   </body>
 </html>
