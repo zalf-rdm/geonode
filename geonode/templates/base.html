@@ -67,7 +67,7 @@
       <style type="text/css">
         {% if custom_theme.logo %}
         .navbar-brand {
-          background-image: url({{ custom_theme.logo.url }});
+          {% comment %} background-image: url({{ custom_theme.logo.url }}); {% endcomment %}
           background-repeat: no-repeat;
           background-position: center;
           background-size: contain;
