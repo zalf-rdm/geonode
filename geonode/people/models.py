@@ -60,6 +60,7 @@ class ProfileUserManager(UserManager):
 
 class Profile(AbstractUser):
     """Fully featured Geonode user"""
+
     organization = models.CharField(
         _("Organization Name"),
         max_length=255,

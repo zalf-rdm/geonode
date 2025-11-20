@@ -201,14 +201,13 @@ class DataRetriever(object):
     def items(self):
         return self.data_items.items()
 
-
     def _is_real_zip(self, file_path: str) -> bool:
         """Check if file is a real ZIP and not an Office file (xlsx, docx etc)"""
         if not zipfile.is_zipfile(file_path):
             return False
-        
+
         # Office files that use ZIP internally
-        office_extensions = ('.xlsx', '.docx', '.pptx')
+        office_extensions = (".xlsx", ".docx", ".pptx")
         if str(file_path).lower().endswith(office_extensions):
             return False
 

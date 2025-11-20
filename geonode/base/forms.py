@@ -431,22 +431,14 @@ class ResourceBaseDateTimePicker(DateTimePicker):
 class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
     """Base form for metadata, should be inherited by childres classes of ResourceBase"""
 
-    abstract = forms.CharField(
-        label=_("Abstract"),
-        required=False,
-        widget=TinyMCE()
-    )
+    abstract = forms.CharField(label=_("Abstract"), required=False, widget=TinyMCE())
     abstract_translated = forms.CharField(
         label=_("Abstract Translated"),
         required=False,
         widget=TinyMCE(),
     )
 
-    subtitle = forms.CharField(
-        label=_("Subtitle"),
-        required=False,
-        widget=TinyMCE()
-    )
+    subtitle = forms.CharField(label=_("Subtitle"), required=False, widget=TinyMCE())
 
     method_description = forms.CharField(
         label=_("Method Description"),
@@ -466,11 +458,7 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
         widget=TinyMCE(),
     )
 
-    technical_info = forms.CharField(
-        label=_("Technical Info"),
-        required=False,
-        widget=TinyMCE()
-    )
+    technical_info = forms.CharField(label=_("Technical Info"), required=False, widget=TinyMCE())
 
     other_description = forms.CharField(
         label=_("Other Description"),
@@ -695,7 +683,7 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
         required=Roles.OTHER.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
         widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
-    )    
+    )
 
     producer = ContactRoleMultipleChoiceField(
         label=_(Roles.PRODUCER.label),
@@ -916,6 +904,7 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
             "files",
             "was_approved",
             "was_published",
+            "eLTER_information",
             "funding",
             "related_identifier",
             "related_projects",

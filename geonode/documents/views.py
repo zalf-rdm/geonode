@@ -450,7 +450,15 @@ def document_metadata(
                 values = [keyword.id for keyword in doc_tkeywords if int(tid) == keyword.thesaurus.id]
                 tkeywords_form.fields[tid].initial = values
 
-    if request.method == "POST" and document_form.is_valid() and related_project_form.is_valid() and funding_form.is_valid() and related_identifier_form.is_valid() and category_form.is_valid() and tkeywords_form.is_valid():
+    if (
+        request.method == "POST"
+        and document_form.is_valid()
+        and related_project_form.is_valid()
+        and funding_form.is_valid()
+        and related_identifier_form.is_valid()
+        and category_form.is_valid()
+        and tkeywords_form.is_valid()
+    ):
         new_keywords = current_keywords if request.keyword_readonly else document_form.cleaned_data["keywords"]
         new_regions = document_form.cleaned_data["regions"]
 
@@ -463,12 +471,11 @@ def document_metadata(
             new_category = TopicCategory.objects.get(id=int(category_form.cleaned_data["category_choice_field"]))
 
         if funding_form.is_valid() and related_project_form.is_valid() and related_identifier_form.is_valid():
-
             document.save()
 
             project = related_project_form.cleaned_data
             instance = project["display_name"]
-            
+
             funding_form.save()
             instance = funding_form.save(commit=False)
             document.fundings.add(*instance)
@@ -476,7 +483,7 @@ def document_metadata(
             related_identifier_form.save()
             instance = related_identifier_form.save(commit=False)
             document.related_identifier.add(*instance)
-            
+
         # update contact roles
         document.set_contact_roles_from_metadata_edit(document_form)
         document.save()

@@ -46,6 +46,9 @@ from geonode.base.api.exceptions import InvalidResourceException
 
 from geonode.favorite.models import Favorite
 from geonode.base.models import (
+    ELTERHabitatType,
+    ELTERInformation,
+    ELTERStandardObservations,
     Link,
     ResourceBase,
     HierarchicalKeyword,
@@ -249,6 +252,30 @@ class SimpleRelatedProjectSerializer(DynamicModelSerializer):
         model = RelatedProject
         name = "RelatedProject"
         fields = ("label", "display_name", "description")
+
+
+class ELTERStandardObservationSerializer(DynamicModelSerializer):
+    class Meta:
+        model = ELTERStandardObservations
+        name = "ELTERStandardObservation"
+        fields = ("observation_code", "observation_name")
+
+
+class ELTERHabitatTypeSerializer(DynamicModelSerializer):
+    class Meta:
+        model = ELTERHabitatType
+        name = "ELTERHabitatType"
+        fields = ("habitat_code", "habitat_name", "habitat_description")
+
+
+class ELTERInformationSerializer(DynamicModelSerializer):
+    class Meta:
+        model = ELTERInformation
+        name = "ELTERInformation"
+        fields = ("standard_observation", "habitats", "deims_id")
+
+    standard_observation = DynamicRelationField(ELTERStandardObservationSerializer, embed=True, many=False)
+    habitats = DynamicRelationField(ELTERHabitatTypeSerializer, embed=True, many=False)
 
 
 class SimpleResourceSerializer(DynamicModelSerializer):
@@ -663,7 +690,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     resource_provider = ContactRoleField(Roles.RESOURCE_PROVIDER.name, required=False)
     originator = ContactRoleField(Roles.ORIGINATOR.name, required=False)
     principal_investigator = ContactRoleField(Roles.PRINCIPAL_INVESTIGATOR.name, required=False)
-    
+
     data_collector = ContactRoleField(Roles.DATA_COLLECTOR.name, required=False)
     data_curator = ContactRoleField(Roles.DATA_CURATOR.name, required=False)
     editor = ContactRoleField(Roles.EDITOR.name, required=False)
@@ -683,7 +710,6 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     supervisor = ContactRoleField(Roles.SUPERVISOR.name, required=False)
     work_package_leader = ContactRoleField(Roles.WORK_PACKAGE_LEADER.name, required=False)
 
-    
     title = serializers.CharField(required=False)
     abstract = serializers.CharField(required=False)
 
@@ -701,6 +727,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     fundings = FundingsDynamicRelationField(FundingSerializer, embed=True, many=True)
 
     related_projects = ComplexDynamicRelationField(SimpleRelatedProjectSerializer, embed=True, many=True)
+    eLTER_information = ComplexDynamicRelationField(ELTERInformationSerializer, embed=True, many=True)
     conformity_results = serializers.CharField(required=False)
     conformity_explanation = serializers.CharField(required=False)
     date_available = serializers.DateField(required=False)
@@ -804,7 +831,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "resource_user",
             "resource_provider",
             "originator",
-            "principal_investigator",            
+            "principal_investigator",
             "data_collector",
             "data_curator",
             "editor",
@@ -823,7 +850,6 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "sponsor",
             "supervisor",
             "work_package_leader",
-            
             "keywords",
             "tkeywords",
             "regions",
@@ -889,6 +915,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "raw_supplemental_information",
             "raw_data_quality_statement",
             "related_projects",
+            "eLTER_information",
             "license",
             "metadata_license",
             "data_lineage",

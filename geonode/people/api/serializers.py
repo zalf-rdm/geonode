@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 
 class UserSerializer(base_serializers.DynamicModelSerializer):
-
     link = base_serializers.AutoLinkField(read_only=True)
 
     class Meta:

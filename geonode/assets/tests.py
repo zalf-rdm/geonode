@@ -42,7 +42,6 @@ THREE_JSON = os.path.join(os.path.dirname(__file__), "tests/data/three.json")
 
 
 class AssetsTests(APITestCase):
-
     def test_handler_registry(self):
         # Test registry
         self.assertIsNotNone(asset_handler_registry)
@@ -215,7 +214,6 @@ class AssetsTests(APITestCase):
 
 
 class AssetsDownloadTests(APITestCase):
-
     fixtures = ["initial_data.json", "group_test_data.json", "default_oauth_apps.json"]
 
     def _get_streaming_content(self, response):
