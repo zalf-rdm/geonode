@@ -1071,7 +1071,7 @@ msgid "About"
 msgstr ""
 
 #: geonode/base/templates/base/_resourcebase_contact_snippet.html:5
-msgid "Responsible, Point of Contact, Metadata Author"
+msgid "Responsible, Point of Contact, Author"
 msgstr ""
 
 #: geonode/base/templates/base/_resourcebase_contact_snippet.html:10
@@ -1104,7 +1104,7 @@ msgstr ""
 #: geonode/layers/templates/datasets/dataset_metadata.html:50
 #: geonode/layers/templates/datasets/dataset_metadata_advanced.html:61
 #: geonode/templates/metadata_detail.html:584
-msgid "Metadata Author"
+msgid "Author"
 msgstr ""
 
 #: geonode/base/templates/base/_resourcebase_info_panel.html:15

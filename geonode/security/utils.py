@@ -247,24 +247,24 @@ def get_user_visible_groups(user, include_public_invite: bool = False):
     """
     from geonode.groups.models import GroupProfile
 
-    metadata_author_groups = []
+    author_groups = []
     if user.is_superuser or user.is_staff:
-        metadata_author_groups = GroupProfile.objects.all()
+        author_groups = GroupProfile.objects.all()
     else:
         if include_public_invite:
             group_profile_queryset = GroupProfile.objects.exclude(access="private")
         else:
             group_profile_queryset = GroupProfile.objects.exclude(access="private").exclude(access="public-invite")
         try:
-            all_metadata_author_groups = chain(user.group_list_all(), group_profile_queryset)
+            all_author_groups = chain(user.group_list_all(), group_profile_queryset)
         except Exception:
-            all_metadata_author_groups = group_profile_queryset
+            all_author_groups = group_profile_queryset
         [
-            metadata_author_groups.append(item)
-            for item in all_metadata_author_groups
-            if item not in metadata_author_groups
+            author_groups.append(item)
+            for item in all_author_groups
+            if item not in author_groups
         ]
-    return metadata_author_groups
+    return author_groups
 
 
 AdminViewPermissionsSet = collections.namedtuple("AdminViewPermissionsSet", ["admin_perms", "view_perms"])

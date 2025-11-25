@@ -1405,8 +1405,8 @@ msgid "About"
 msgstr "A proposito"
 
 #: geonode/base/templates/base/_resourcebase_contact_snippet.html:5
-msgid "Responsible, Point of Contact, Metadata Author"
-msgstr "Responsabile, Punto di contatto, Autore di metadati"
+msgid "Responsible, Point of Contact, Author"
+msgstr "Responsabile, Punto di contatto, Autore"
 
 #: geonode/base/templates/base/_resourcebase_contact_snippet.html:10
 #: geonode/base/templates/base/_resourcebase_info_panel.html:133

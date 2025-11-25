@@ -1230,7 +1230,7 @@ msgid "About"
 msgstr "حول"
 
 #: geonode/base/templates/base/_resourcebase_contact_snippet.html:5
-msgid "Responsible, Point of Contact, Metadata Author"
+msgid "Responsible, Point of Contact, Author"
 msgstr "المالك، نقطة الاتصال، ‫مؤلف البيانات الوصفية"
 
 #: geonode/base/templates/base/_resourcebase_contact_snippet.html:10
@@ -1263,7 +1263,7 @@ msgstr "جهة الاتصال"
 #: geonode/layers/templates/datasets/dataset_metadata.html:50
 #: geonode/layers/templates/datasets/dataset_metadata_advanced.html:61
 #: geonode/templates/metadata_detail.html:584
-msgid "Metadata Author"
+msgid "Author"
 msgstr "مؤلف البيانات الوصفية"
 
 #: geonode/base/templates/base/_resourcebase_info_panel.html:15

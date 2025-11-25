@@ -256,8 +256,8 @@ def dataset_metadata(
 
     topic_thesaurus = layer.tkeywords.all()
 
-    # Add metadata_author or poc if missing
-    layer.add_missing_metadata_author_or_poc()
+    # Add author or poc if missing
+    layer.add_missing_author_or_poc()
 
     # assert False, str(dataset_bbox)
     config = layer.attribute_config()
@@ -623,7 +623,7 @@ def dataset_metadata(
         role_form.hidden = True
         contact_role_forms_context[f"{role}_form"] = role_form
 
-    metadata_author_groups = get_user_visible_groups(request.user)
+    author_groups = get_user_visible_groups(request.user)
 
     register_event(request, "view_metadata", layer)
     return render(
@@ -646,7 +646,7 @@ def dataset_metadata(
             "crs": getattr(settings, "DEFAULT_MAP_CRS", "EPSG:3857"),
             "metadataxsl": getattr(settings, "GEONODE_CATALOGUE_METADATA_XSL", True),
             "freetext_readonly": getattr(settings, "FREETEXT_KEYWORDS_READONLY", False),
-            "metadata_author_groups": metadata_author_groups,
+            "author_groups": author_groups,
             "TOPICCATEGORY_MANDATORY": getattr(settings, "TOPICCATEGORY_MANDATORY", False),
             "GROUP_MANDATORY_RESOURCES": getattr(settings, "GROUP_MANDATORY_RESOURCES", False),
             "UI_MANDATORY_FIELDS": list(

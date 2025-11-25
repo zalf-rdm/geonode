@@ -267,19 +267,19 @@
         {% endif %}
 
       </div>
-      <h3 class="fw-medium">{% trans "Metadata Author" %}</h3><hr>
-        {% if resource.metadata_author %}
-          {% for metadata_author in resource.metadata_author %}
+      <h3 class="fw-medium">{% trans "Author" %}</h3><hr>
+        {% if resource.author %}
+          {% for author in resource.author %}
             <div class="metadata-block p-3 mb-3">
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Name' %}</div><div class="col-sm-9">{{ metadata_author.name_long|default:"-" }}</div></div>
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Email' %}</div><div class="col-sm-9">{{ metadata_author.email|default:"-" }}</div></div>
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Position' %}</div><div class="col-sm-9">{{ metadata_author.position|default:"-" }}</div></div>
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Organization' %}</div><div class="col-sm-9">{{ metadata_author.organization|default:"-" }}</div></div>
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Location' %}</div><div class="col-sm-9">{{ metadata_author.location|default:"-" }}</div></div>
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Voice' %}</div><div class="col-sm-9">{{ metadata_author.voice|default:"-" }}</div></div>
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Fax' %}</div><div class="col-sm-9">{{ metadata_author.fax|default:"-" }}</div></div>
-              {% if metadata_author.keyword_list %}
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Keywords' %}</div><div class="col-sm-9">{% for keyword in metadata_author.keyword_list %}{{ keyword }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Name' %}</div><div class="col-sm-9">{{ author.name_long|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Email' %}</div><div class="col-sm-9">{{ author.email|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Position' %}</div><div class="col-sm-9">{{ author.position|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Organization' %}</div><div class="col-sm-9">{{ author.organization|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Location' %}</div><div class="col-sm-9">{{ author.location|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Voice' %}</div><div class="col-sm-9">{{ author.voice|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Fax' %}</div><div class="col-sm-9">{{ author.fax|default:"-" }}</div></div>
+              {% if author.keyword_list %}
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Keywords' %}</div><div class="col-sm-9">{% for keyword in author.keyword_list %}{{ keyword }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>
               {% endif %}
             </div>
           {% endfor %}

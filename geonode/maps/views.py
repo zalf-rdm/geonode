@@ -96,8 +96,8 @@ def map_metadata(
     if not map_obj:
         raise Http404(MSG_NOT_FOUND)
 
-    # Add metadata_author or poc if missing
-    map_obj.add_missing_metadata_author_or_poc()
+    # Add author or poc if missing
+    map_obj.add_missing_author_or_poc()
 
     FundingFormset = modelformset_factory(
         Funding,
@@ -342,7 +342,7 @@ def map_metadata(
         contact_role_forms_context[f"{role}_form"] = role_form
 
     layers = MapLayer.objects.filter(map=map_obj.id)
-    metadata_author_groups = get_user_visible_groups(request.user)
+    author_groups = get_user_visible_groups(request.user)
 
     if not request.user.can_publish(map_obj):
         map_form.fields["is_published"].widget.attrs.update({"disabled": "true"})
@@ -368,7 +368,7 @@ def map_metadata(
             "layers": layers,
             "preview": getattr(settings, "GEONODE_CLIENT_LAYER_PREVIEW_LIBRARY", "mapstore"),
             "crs": getattr(settings, "DEFAULT_MAP_CRS", "EPSG:3857"),
-            "metadata_author_groups": metadata_author_groups,
+            "author_groups": author_groups,
             "TOPICCATEGORY_MANDATORY": getattr(settings, "TOPICCATEGORY_MANDATORY", False),
             "GROUP_MANDATORY_RESOURCES": getattr(settings, "GROUP_MANDATORY_RESOURCES", False),
             "UI_MANDATORY_FIELDS": list(

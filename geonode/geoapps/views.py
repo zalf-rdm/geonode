@@ -203,8 +203,8 @@ def geoapp_metadata(
     if not geoapp_obj:
         raise Http404(_("Not found"))
 
-    # Add metadata_author or poc if missing
-    geoapp_obj.add_missing_metadata_author_or_poc()
+    # Add author or poc if missing
+    geoapp_obj.add_missing_author_or_poc()
     resource_type = geoapp_obj.resource_type
 
     FundingFormset = modelformset_factory(
@@ -453,7 +453,7 @@ def geoapp_metadata(
         role_form.hidden = True
         contact_role_forms_context[f"{role}_form"] = role_form
 
-    metadata_author_groups = get_user_visible_groups(request.user)
+    author_groups = get_user_visible_groups(request.user)
 
     if not request.user.can_publish(geoapp_obj):
         geoapp_form.fields["is_published"].widget.attrs.update({"disabled": "true"})
@@ -475,7 +475,7 @@ def geoapp_metadata(
             "related_identifier_form": related_identifier_form,
             "category_form": category_form,
             "tkeywords_form": tkeywords_form,
-            "metadata_author_groups": metadata_author_groups,
+            "author_groups": author_groups,
             "TOPICCATEGORY_MANDATORY": getattr(settings, "TOPICCATEGORY_MANDATORY", False),
             "GROUP_MANDATORY_RESOURCES": getattr(settings, "GROUP_MANDATORY_RESOURCES", False),
             "UI_MANDATORY_FIELDS": list(

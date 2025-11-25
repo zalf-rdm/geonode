@@ -306,7 +306,7 @@ class DatasetsApiTests(APITestCase):
             )
         )
 
-    def test_patch_metadata_author(self):
+    def test_patch_author(self):
         layer = Dataset.objects.first()
         url = urljoin(f"{reverse('datasets-list')}/", f"{layer.id}")
         self.client.login(username="admin", password="admin")
@@ -314,28 +314,28 @@ class DatasetsApiTests(APITestCase):
         get_user_model().objects.get_or_create(username="turtle")
         users = get_user_model().objects.exclude(pk=-1)
         user_ids = [user.pk for user in users]
-        patch_data = {"metadata_author": [{"pk": uid} for uid in user_ids]}
+        patch_data = {"author": [{"pk": uid} for uid in user_ids]}
         response = self.client.patch(url, data=patch_data, format="json")
         self.assertEqual(200, response.status_code)
         self.assertTrue(
             all(
                 user_id
                 in [
-                    metadata_author.get("pk")
-                    for metadata_author in response.json().get("dataset").get("metadata_author")
+                    author.get("pk")
+                    for author in response.json().get("dataset").get("author")
                 ]
                 for user_id in user_ids
             )
         )
-        # Resetting all metadata authors
-        response = self.client.patch(url, data={"metadata_author": []}, format="json")
+        # Resetting all authors
+        response = self.client.patch(url, data={"author": []}, format="json")
         self.assertEqual(200, response.status_code)
         self.assertTrue(
             all(
                 user_id
                 not in [
-                    metadata_author.get("pk")
-                    for metadata_author in response.json().get("dataset").get("metadata_author")
+                    author.get("pk")
+                    for author in response.json().get("dataset").get("author")
                 ]
                 for user_id in user_ids
             )

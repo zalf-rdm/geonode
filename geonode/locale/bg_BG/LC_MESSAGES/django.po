@@ -1252,9 +1252,9 @@ msgstr "Относно"
 
 #: geonode/base/templates/base/_resourcebase_contact_snippet.html:5
 #, fuzzy
-#| msgid "Owner, Point of Contact, Metadata Author"
-msgid "Responsible, Point of Contact, Metadata Author"
-msgstr "Собственик, Контакт, Автор на метаданни"
+#| msgid "Owner, Point of Contact, Author"
+msgid "Responsible, Point of Contact, Author"
+msgstr "Собственик, Контакт, Автор"
 
 #: geonode/base/templates/base/_resourcebase_contact_snippet.html:10
 #: geonode/base/templates/base/_resourcebase_info_panel.html:133

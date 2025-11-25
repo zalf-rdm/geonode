@@ -372,7 +372,7 @@ span.grippy::after {
                                             class="selectpicker form-control"
                                             >
                                             <option {% if not group %} selected="selected" {% endif %} value="">---</option>
-                                            {% for group in metadata_author_groups %}
+                                            {% for group in author_groups %}
                                             <option
                                                 value="{{ group.group.id }}"
                                                 {% if resource.group == group.group %} selected="selected" {% endif %}

@@ -1258,8 +1258,8 @@ msgstr "Oor"
 
 #: geonode/base/templates/base/_resourcebase_contact_snippet.html:5
 #, fuzzy
-#| msgid "Owner, Point of Contact, Metadata Author"
-msgid "Responsible, Point of Contact, Metadata Author"
+#| msgid "Owner, Point of Contact, Author"
+msgid "Responsible, Point of Contact, Author"
 msgstr "Eienaar, Point of Contact, Metadata outeur"
 
 #: geonode/base/templates/base/_resourcebase_contact_snippet.html:10
@@ -1292,8 +1292,8 @@ msgstr "Punt van kontak"
 #: geonode/layers/templates/datasets/dataset_metadata.html:50
 #: geonode/layers/templates/datasets/dataset_metadata_advanced.html:61
 #: geonode/templates/metadata_detail.html:584
-msgid "Metadata Author"
-msgstr "Metadata outeur"
+msgid "Author"
+msgstr "outeur"
 
 #: geonode/base/templates/base/_resourcebase_info_panel.html:15
 #: geonode/base/templates/base/_resourcebase_info_panel.html:180

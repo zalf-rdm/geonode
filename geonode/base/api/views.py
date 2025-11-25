@@ -153,10 +153,10 @@ class GroupViewSet(DynamicModelViewSet):
         """
         Filters the public groups and private ones the current user is member of.
         """
-        metadata_author_groups = get_user_visible_groups(self.request.user, include_public_invite=True)
-        if not isinstance(metadata_author_groups, list):
-            metadata_author_groups = list(metadata_author_groups.all())
-        queryset = GroupProfile.objects.filter(id__in=[_g.id for _g in metadata_author_groups])
+        author_groups = get_user_visible_groups(self.request.user, include_public_invite=True)
+        if not isinstance(author_groups, list):
+            author_groups = list(author_groups.all())
+        queryset = GroupProfile.objects.filter(id__in=[_g.id for _g in author_groups])
         return queryset.order_by("title")
 
     @extend_schema(

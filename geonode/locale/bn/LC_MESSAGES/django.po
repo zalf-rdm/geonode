@@ -1255,8 +1255,8 @@ msgstr "প্রায়"
 
 #: geonode/base/templates/base/_resourcebase_contact_snippet.html:5
 #, fuzzy
-#| msgid "Owner, Point of Contact, Metadata Author"
-msgid "Responsible, Point of Contact, Metadata Author"
+#| msgid "Owner, Point of Contact, Author"
+msgid "Responsible, Point of Contact, Author"
 msgstr "মালিক, যোগাযোগ এর পয়েন্ট, মিটাডাটা লেখক"
 
 #: geonode/base/templates/base/_resourcebase_contact_snippet.html:10

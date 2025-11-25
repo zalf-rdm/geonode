@@ -366,7 +366,7 @@ class GeonodeCurrentHarvester(base.BaseHarvesterWorker):
             language=resource["language"],
             # TODO issue#10290
             point_of_contact=self._get_contact_descriptor("pointOfContact", resource["poc"]),
-            author=self._get_contact_descriptor("author", resource["metadata_author"]),
+            author=self._get_contact_descriptor("author", resource["author"]),
             date_stamp=resource_datestamp,
             reference_systems=[resource["srid"]],
             data_quality=resource.get("raw_data_quality_statement"),

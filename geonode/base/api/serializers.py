@@ -653,7 +653,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     resource_type = serializers.CharField(required=False)
     polymorphic_ctype_id = serializers.CharField(read_only=True)
     owner = DynamicRelationField(user_serializer(), embed=True, read_only=True)
-    metadata_author = ContactRoleField(Roles.METADATA_AUTHOR.name, required=False)
+    author = ContactRoleField(Roles.AUTHOR.name, required=False)
     processor = ContactRoleField(Roles.PROCESSOR.name, required=False)
     publisher = ContactRoleField(Roles.PUBLISHER.name, required=False)
     custodian = ContactRoleField(Roles.CUSTODIAN.name, required=False)
@@ -796,7 +796,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "perms",
             "owner",
             "poc",
-            "metadata_author",
+            "author",
             "processor",
             "publisher",
             "custodian",

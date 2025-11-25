@@ -156,16 +156,16 @@ class TestThumbnailUrl(GeoNodeBaseTestSupport):
 
 
 class TestCreationOfMissingMetadataAuthorsOrPOC(ThumbnailTests):
-    def test_add_missing_metadata_author_or_poc(self):
+    def test_add_missing_author_or_poc(self):
         """
-        Test that calling add_missing_metadata_author_or_poc resource method sets
-        a missing metadata_author and/or point of contact (poc) to resource owner
+        Test that calling add_missing_author_or_poc resource method sets
+        a missing author and/or point of contact (poc) to resource owner
         """
         user, _ = get_user_model().objects.get_or_create(username="zlatan_i")
 
         self.rb.owner = user
-        self.rb.add_missing_metadata_author_or_poc()
-        self.assertTrue("zlatan_i" in [author.username for author in self.rb.metadata_author])
+        self.rb.add_missing_author_or_poc()
+        self.assertTrue("zlatan_i" in [author.username for author in self.rb.author])
         self.assertTrue("zlatan_i" in [author.username for author in self.rb.poc])
 
 
@@ -178,7 +178,7 @@ class TestCreationOfContactRolesByDifferentInputTypes(ThumbnailTests):
         user, _ = get_user_model().objects.get_or_create(username="zlatan_i")
 
         self.rb.owner = user
-        self.rb.metadata_author = user
+        self.rb.author = user
         self.rb.poc = user
         self.rb.publisher = user
         self.rb.custodian = user
@@ -189,7 +189,7 @@ class TestCreationOfContactRolesByDifferentInputTypes(ThumbnailTests):
         self.rb.principal_investigator = user
         self.rb.processor = user
 
-        self.assertTrue("zlatan_i" in [cr.username for cr in self.rb.metadata_author])
+        self.assertTrue("zlatan_i" in [cr.username for cr in self.rb.author])
         self.assertTrue("zlatan_i" in [cr.username for cr in self.rb.poc])
         self.assertTrue("zlatan_i" in [cr.username for cr in self.rb.publisher])
         self.assertTrue("zlatan_i" in [cr.username for cr in self.rb.custodian])
@@ -211,7 +211,7 @@ class TestCreationOfContactRolesByDifferentInputTypes(ThumbnailTests):
         profile_list = [user, user2]
 
         self.rb.owner = user
-        self.rb.metadata_author = profile_list
+        self.rb.author = profile_list
         self.rb.poc = profile_list
         self.rb.publisher = profile_list
         self.rb.custodian = profile_list
@@ -222,7 +222,7 @@ class TestCreationOfContactRolesByDifferentInputTypes(ThumbnailTests):
         self.rb.principal_investigator = profile_list
         self.rb.processor = profile_list
 
-        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.metadata_author])
+        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.author])
         self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.poc])
         self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.publisher])
         self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.custodian])
@@ -244,7 +244,7 @@ class TestCreationOfContactRolesByDifferentInputTypes(ThumbnailTests):
         query = get_user_model().objects.filter(username__in=["zlatan_i", "sven_z"])
 
         self.rb.owner = user
-        self.rb.metadata_author = query
+        self.rb.author = query
         self.rb.poc = query
         self.rb.publisher = query
         self.rb.custodian = query
@@ -255,7 +255,7 @@ class TestCreationOfContactRolesByDifferentInputTypes(ThumbnailTests):
         self.rb.principal_investigator = query
         self.rb.processor = query
 
-        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.metadata_author])
+        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.author])
         self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.poc])
         self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.publisher])
         self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.custodian])

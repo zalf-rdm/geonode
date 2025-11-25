@@ -815,7 +815,7 @@
         }
     });
 
-    $('#id_resource-metadata_author').change(function(){
+    $('#id_resource-author').change(function(){
       if($(this).val() === ''){
         $('#metadata_form').modal();
       }
@@ -897,7 +897,7 @@
                     const resource_group = $('#id_resource-group');
                     resource_group.empty();
                     resource_group.append('<option value="">-----</option>');
-                    {% for group in metadata_author_groups %}
+                    {% for group in author_groups %}
                         {% if resource.group == group.group %}
                             resource_group.append(
                                 '<option value="{{ group.group.id }}" selected="selected">{{ group.group.name }}</option>'

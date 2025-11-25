@@ -1086,7 +1086,7 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     group = models.ForeignKey(Group, null=True, blank=True, on_delete=models.SET_NULL)
 
     # Section 9
-    # see metadata_author property definition below
+    # see author property definition below
 
     # Save bbox values in the database.
     # This is useful for spatial searches and for generating thumbnail images
@@ -1960,8 +1960,8 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         if user:
             if len(self.poc) == 0:
                 self.poc = [user]
-            if len(self.metadata_author) == 0:
-                self.metadata_author = [user]
+            if len(self.author) == 0:
+                self.author = [user]
 
         from guardian.models import UserObjectPermission
 
@@ -1982,12 +1982,12 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         return [v for v in enumerations.ALL_LANGUAGES if v[0] == self.language][0][1].title()
 
     # Contact Roles
-    def add_missing_metadata_author_or_poc(self):
+    def add_missing_author_or_poc(self):
         """
-        Set metadata_author and/or point of contact (poc) to a resource when any of them is missing
+        Set author and/or point of contact (poc) to a resource when any of them is missing
         """
-        if len(self.metadata_author) == 0:
-            self.metadata_author = [self.owner]
+        if len(self.author) == 0:
+            self.author = [self.owner]
         if len(self.poc) == 0:
             self.poc = [self.owner]
 
@@ -2134,18 +2134,18 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     def poc_csv(self):
         return ",".join(p.get_full_name() or p.username for p in self.poc)
 
-    # Contact Role: metadata_author
-    def _get_metadata_author(self):
+    # Contact Role: author
+    def _get_author(self):
         return self.__get_contact_role_elements__(role="author")
 
-    def _set_metadata_author(self, user_profile):
+    def _set_author(self, user_profile):
         return self.__set_contact_role_element__(user_profile=user_profile, role="author")
 
-    metadata_author = property(_get_metadata_author, _set_metadata_author)
+    author = property(_get_author, _set_author)
 
     @property
-    def metadata_author_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.metadata_author)
+    def author_csv(self):
+        return ",".join(p.get_full_name() or p.username for p in self.author)
 
     # Contact Role: PROCESSOR
     def _get_processor(self):
