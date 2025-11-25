@@ -616,7 +616,7 @@ def dataset_metadata(
         dataset_form.fields["is_approved"].widget.attrs.update({"disabled": "true"})
 
     # define contact role forms
-    contact_role_forms_context = {}
+    contact_role_forms_context = {} 
     for role in layer.get_multivalue_role_property_names():
         dataset_form.fields[role].initial = [p.username for p in layer.__getattribute__(role)]
         role_form = ProfileForm(prefix=role)

@@ -592,7 +592,7 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
         widget=ResourceBaseDateTimePicker(options={"format": "YYYY-MM-DD HH:mm a"}),
     )
 
-    metadata = ContactRoleMultipleChoiceField(
+    author = ContactRoleMultipleChoiceField(
         label=_(Roles.AUTHOR.label),
         required=Roles.AUTHOR.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
