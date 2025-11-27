@@ -222,7 +222,7 @@ class TestCreationOfContactRolesByDifferentInputTypes(ThumbnailTests):
         self.rb.principal_investigator = profile_list
         self.rb.processor = profile_list
 
-        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.author])
+        self.assertTrue({"zlatan_i", "sven_z"}.issubset({cr.username for cr in self.rb.author}))
         self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.poc])
         self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.publisher])
         self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.custodian])
