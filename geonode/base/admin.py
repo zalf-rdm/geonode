@@ -34,6 +34,9 @@ from treebeard.forms import movenodeform_factory
 from modeltranslation.admin import TabbedTranslationAdmin
 
 from geonode.base.models import (
+    ELTERHabitatType,
+    ELTERInformation,
+    ELTERStandardObservations,
     TopicCategory,
     SpatialRepresentationType,
     Region,
@@ -242,6 +245,32 @@ class FundingAdmin(admin.ModelAdmin):
     form = forms.modelform_factory(Funding, fields="__all__")
 
 
+class ELTERStandardObservationsAdmin(admin.ModelAdmin):
+    model = ELTERInformation
+    list_display = ("so_id", "short_name", "long_name")
+    ordering = ("so_id",)
+
+    form = forms.modelform_factory(ELTERInformation, fields="__all__")
+
+
+class ELTERHabitatTypeAdmin(admin.ModelAdmin):
+    model = ELTERHabitatType
+    list_display = ("habitat_code", "habitat_name", "habitat_description")
+    search_fields = ("habitat_code", "habitat_name")
+    ordering = ("habitat_code",)
+
+    form = forms.modelform_factory(ELTERHabitatType, fields="__all__")
+
+
+class ELTERInformationAdmin(admin.ModelAdmin):
+    model = ELTERInformation
+    list_display = ("standard_observation", "habitats", "deims_id")
+    # list_display_links = ("standard_observation","habitats","deims_id")
+    # list_filter = ("standard_observation",)
+
+    form = forms.modelform_factory(ELTERInformation, fields="__all__")
+
+
 class RelatedProjectAdmin(admin.ModelAdmin):
     model = RelatedProject
     list_display = ("label", "display_name", "description")
@@ -379,6 +408,9 @@ class ThesaurusKeywordLabelAdmin(admin.ModelAdmin):
     keyword_id.admin_order_field = "keyword__alt_label"
 
 
+admin.site.register(ELTERInformation, ELTERInformationAdmin)
+admin.site.register(ELTERHabitatType, ELTERHabitatTypeAdmin)
+admin.site.register(ELTERStandardObservations, ELTERStandardObservationsAdmin)
 admin.site.register(TopicCategory, TopicCategoryAdmin)
 admin.site.register(Region, RegionAdmin)
 admin.site.register(SpatialRepresentationType, SpatialRepresentationTypeAdmin)

@@ -776,6 +776,85 @@ class RelatedProject(models.Model):
         return f"{self.display_name}"
 
 
+class ELTERStandardObservations(models.Model):
+    short_name_help_text = _("Short name of the eLTER Standard Observation")
+    long_name_help_text = _("Long name of the eLTER Standard Observation")
+    so_id_help_text = _("eLTER Standard Observation ID")
+
+    so_id = models.CharField(_("SO ID"), max_length=32, help_text=so_id_help_text, unique=True)
+
+    short_name = models.CharField(
+        _("Short Name"),
+        max_length=255,
+        help_text=short_name_help_text,
+        unique=True,
+    )
+
+    long_name = models.CharField(
+        _("Long Name"),
+        max_length=1024,
+        help_text=long_name_help_text,
+        unique=True,
+    )
+
+    def __str__(self):
+        return f"{self.short_name}"
+
+
+class ELTERHabitatType(models.Model):
+    habitat_code_help_text = _("eLTER Habitat Type code")
+    habitat_name_help_text = _("eLTER Habitat Type name")
+    habitat_description_help_text = (_("Description of the eLTER Habitat Type"),)
+
+    habitat_code = models.CharField(
+        _("eLTER Habitat Code"), max_length=32, help_text=habitat_code_help_text, unique=True
+    )
+
+    habitat_name = models.CharField(
+        _("eLTER Habitat Name"),
+        max_length=255,
+        help_text=habitat_name_help_text,
+        unique=True,
+    )
+
+    habitat_description = models.TextField(
+        _("eLTER Habitat Description"),
+        help_text=habitat_description_help_text,
+        blank=False,
+        null=False,
+    )
+
+    def __str__(self):
+        return f"{self.habitat_name}"
+
+
+class ELTERInformation(models.Model):
+    standard_observation_help_text = _("eLTER Standard Observation associated with this resource")
+    standard_observation = models.ForeignKey(
+        ELTERStandardObservations,
+        help_text=standard_observation_help_text,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+    )
+
+    habitats_help_text = _("eLTER Habitat Types associated with this resource")
+    habitats = models.ForeignKey(
+        ELTERHabitatType, help_text=habitats_help_text, blank=True, null=True, on_delete=models.PROTECT
+    )
+
+    deims_id_help_text = _(
+        "eLTER DEIMS identifier for the research infrastructure or site associated with this resource"
+    )
+    deims_id = models.CharField(
+        _("DEIMS ID"),
+        blank=True,
+        null=True,
+        max_length=255,
+        help_text=deims_id_help_text,
+    )
+
+
 class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     """
     Base Resource Object loosely based on ISO 19115:2003
@@ -868,6 +947,7 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     related_identifer_help_text = _("Identifiers of related resources. These must be globally unique identifiers.")
     fundings_help_text = _("List of funders, funded dataset creators")
     related_projects_help_text = _("Name of the hierarchy levels for which the metadata is provided. (e.g. SIGNAL)")
+    eLTER_information_help_text = _("eLTER specific metadata information, https://elter-ri.eu/")
     conformity_results_help_text = _(
         "This is the degree of conformity of the dataset to the implementing rules the BonaRes Schema."
     )
@@ -1040,7 +1120,9 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         help_text=metadata_license_help_text,
         on_delete=models.SET_NULL,
     )
-    metadata_lineage = models.TextField(_("Metadata Lineage"), max_length=2048, blank=True, help_text=metadata_lineage_help_text)
+    metadata_lineage = models.TextField(
+        _("Metadata Lineage"), max_length=2048, blank=True, help_text=metadata_lineage_help_text
+    )
 
     language = models.CharField(
         _("Language"), max_length=3, choices=enumerations.ALL_LANGUAGES, default="eng", help_text=language_help_text
@@ -1205,9 +1287,11 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         blank=True,
         help_text=related_identifer_help_text,
     )
+
     fundings = models.ManyToManyField(
         Funding, verbose_name=_("Fundings"), null=True, blank=True, help_text=fundings_help_text
     )
+
     related_projects = models.ManyToManyField(
         RelatedProject,
         verbose_name=_("Related Project"),
@@ -1215,6 +1299,15 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         blank=True,
         help_text=related_projects_help_text,
         related_name="related_projects",
+    )
+
+    eLTER_information = models.ManyToManyField(
+        ELTERInformation,
+        verbose_name=_("eLTER Information"),
+        null=True,
+        blank=True,
+        help_text=eLTER_information_help_text,
+        related_name="eLTER_information",
     )
 
     objects = ResourceBaseManager()
@@ -1231,7 +1324,6 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         )
 
     def __init__(self, *args, **kwargs):
-
         # Provide legacy support for bbox fields
         try:
             bbox = [kwargs.pop(key, None) for key in ("bbox_x0", "bbox_y0", "bbox_x1", "bbox_y1")]
