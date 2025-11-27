@@ -65,6 +65,7 @@ from geonode.documents.models import Document
 from geonode.layers.models import Dataset
 from geonode.base.utils import validate_extra_metadata, remove_country_from_languagecode
 from geonode.people import Roles
+from geonode.people.utils import get_user_display_name
 
 logger = logging.getLogger(__name__)
 
@@ -384,18 +385,21 @@ class ContactRoleMultipleChoiceField(forms.ModelMultipleChoiceField):
         normalized_ids = []
         normalized_usernames = []
         for item in value:
+            if item is None:
+                continue
+
             if hasattr(item, "pk"):
                 normalized_ids.append(item.pk)
-            elif isinstance(item, str):
-                if item.isdigit():
-                    normalized_ids.append(int(item))
-                elif item:
-                    normalized_usernames.append(item)
-            elif item is not None:
-                try:
-                    normalized_ids.append(int(item))
-                except (TypeError, ValueError):
-                    normalized_usernames.append(str(item))
+                continue
+            try:
+                # Try to treat it as an ID (integer).
+                # This will work for integers and numeric strings.
+                normalized_ids.append(int(item))
+            except (ValueError, TypeError):
+                # If it's not an integer, treat it as a username.
+                username = str(item)
+                if username:  # Avoid empty usernames
+                    normalized_usernames.append(username)
 
         try:
             user_model = get_user_model()
@@ -415,12 +419,7 @@ class ContactRoleMultipleChoiceField(forms.ModelMultipleChoiceField):
         return users
 
     def label_from_instance(self, obj):
-        """Return the display label for a user instance."""
-        first_name = getattr(obj, "first_name", "") or ""
-        last_name = getattr(obj, "last_name", "") or ""
-        if first_name or last_name:
-            return f"{first_name} {last_name}".strip()
-        return getattr(obj, "username", str(obj))
+        return get_user_display_name(obj)
 
 
 class LinkedResourceForm(forms.ModelForm):
@@ -862,6 +861,7 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
         self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
         self.fields["regions"].choices = get_tree_data()
+        self.fields["owner"].label_from_instance = get_user_display_name
         self.can_change_perms = self.user and self.user.has_perm(
             "change_resourcebase_permissions", self.instance.get_self_resource()
         )
