@@ -167,3 +167,19 @@ class ProfileAutocomplete(autocomplete.Select2QuerySetView):
             )
 
         return qs
+
+    def get_result_label(self, result):
+        """Display first name and last name instead of username."""
+        first_name = result.first_name or ""
+        last_name = result.last_name or ""
+
+        if first_name or last_name:
+            full_name = f"{first_name} {last_name}".strip()
+            return full_name
+
+        # Fallback to username if no first/last name
+        return result.username
+
+    def get_selected_result_label(self, result):
+        """Display first name and last name for selected items."""
+        return self.get_result_label(result)
