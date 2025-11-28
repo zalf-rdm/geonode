@@ -34,7 +34,7 @@ class Roles(enum.Enum):
     """Roles with their `label`, `is_required`, `is_multivalue`, `is_toggled_in_metadata_editor"""
 
     OWNER = Role("Owner", True, False, False)
-    METADATA_AUTHOR = Role("Metadata Author", True, True, True)
+    METADATA_AUTHOR = Role("Author", True, True, True)
     PROCESSOR = Role("Processor", False, True, True)
     PUBLISHER = Role("Publisher", False, True, True)
     CUSTODIAN = Role("Custodian", False, True, True)
