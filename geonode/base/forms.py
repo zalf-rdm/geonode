@@ -59,12 +59,13 @@ from geonode.base.models import (
     TopicCategory,
     RelatedProject,
 )
-from geonode.base.widgets import TaggitSelect2Custom, TaggitProfileSelect2Custom
+from geonode.base.widgets import TaggitSelect2Custom
 from geonode.base.fields import MultiThesauriField
 from geonode.documents.models import Document
 from geonode.layers.models import Dataset
 from geonode.base.utils import validate_extra_metadata, remove_country_from_languagecode
 from geonode.people import Roles
+from geonode.people.utils import get_user_display_name
 
 logger = logging.getLogger(__name__)
 
@@ -367,13 +368,58 @@ class ThesaurusAvailableForm(forms.Form):
 
 
 class ContactRoleMultipleChoiceField(forms.ModelMultipleChoiceField):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("to_field_name", "username")
+        super().__init__(*args, **kwargs)
+
     def clean(self, value) -> QuerySet:
+        if isinstance(value, QuerySet):
+            return value
+
+        if value is None:
+            return self.queryset.none()
+
+        if not isinstance(value, (list, tuple)):
+            value = [value]
+
+        normalized_ids = []
+        normalized_usernames = []
+        for item in value:
+            if item is None:
+                continue
+
+            if hasattr(item, "pk"):
+                normalized_ids.append(item.pk)
+                continue
+            try:
+                # Try to treat it as an ID (integer).
+                # This will work for integers and numeric strings.
+                normalized_ids.append(int(item))
+            except (ValueError, TypeError):
+                # If it's not an integer, treat it as a username.
+                username = str(item)
+                if username:  # Avoid empty usernames
+                    normalized_usernames.append(username)
+
         try:
-            users = get_user_model().objects.filter(username__in=value)
-        except TypeError:
+            user_model = get_user_model()
+            query = Q()
+            if normalized_ids:
+                query |= Q(pk__in=normalized_ids)
+            if normalized_usernames:
+                query |= Q(username__in=normalized_usernames)
+
+            if query:
+                users = user_model.objects.filter(query)
+            else:
+                users = user_model.objects.none()
+        except (TypeError, ValueError):
             # value of not supported type ...
             raise forms.ValidationError(_("Something went wrong in finding the profile(s) in a contact role form ..."))
         return users
+
+    def label_from_instance(self, obj):
+        return get_user_display_name(obj)
 
 
 class LinkedResourceForm(forms.ModelForm):
@@ -596,196 +642,196 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
         label=_(Roles.METADATA_AUTHOR.label),
         required=Roles.METADATA_AUTHOR.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     processor = ContactRoleMultipleChoiceField(
         label=_(Roles.PROCESSOR.label),
         required=Roles.PROCESSOR.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     publisher = ContactRoleMultipleChoiceField(
         label=_(Roles.PUBLISHER.label),
         required=Roles.PUBLISHER.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     custodian = ContactRoleMultipleChoiceField(
         label=_(Roles.CUSTODIAN.label),
         required=Roles.CUSTODIAN.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     poc = ContactRoleMultipleChoiceField(
         label=_(Roles.POC.label),
         required=Roles.POC.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     distributor = ContactRoleMultipleChoiceField(
         label=_(Roles.DISTRIBUTOR.label),
         required=Roles.DISTRIBUTOR.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     resource_user = ContactRoleMultipleChoiceField(
         label=_(Roles.RESOURCE_USER.label),
         required=Roles.RESOURCE_USER.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     resource_provider = ContactRoleMultipleChoiceField(
         label=_(Roles.RESOURCE_PROVIDER.label),
         required=Roles.RESOURCE_PROVIDER.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     originator = ContactRoleMultipleChoiceField(
         label=_(Roles.ORIGINATOR.label),
         required=Roles.ORIGINATOR.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     principal_investigator = ContactRoleMultipleChoiceField(
         label=_(Roles.PRINCIPAL_INVESTIGATOR.label),
         required=Roles.PRINCIPAL_INVESTIGATOR.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     data_collector = ContactRoleMultipleChoiceField(
         label=_(Roles.DATA_COLLECTOR.label),
         required=Roles.DATA_COLLECTOR.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     data_curator = ContactRoleMultipleChoiceField(
         label=_(Roles.DATA_CURATOR.label),
         required=Roles.DATA_CURATOR.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     editor = ContactRoleMultipleChoiceField(
         label=_(Roles.EDITOR.label),
         required=Roles.EDITOR.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     hosting_institution = ContactRoleMultipleChoiceField(
         label=_(Roles.HOSTING_INSTITUTION.label),
         required=Roles.HOSTING_INSTITUTION.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     other = ContactRoleMultipleChoiceField(
         label=_(Roles.OTHER.label),
         required=Roles.OTHER.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )    
 
     producer = ContactRoleMultipleChoiceField(
         label=_(Roles.PRODUCER.label),
         required=Roles.PRODUCER.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     project_leader = ContactRoleMultipleChoiceField(
         label=_(Roles.PROJECT_LEADER.label),
         required=Roles.PROJECT_LEADER.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     project_manager = ContactRoleMultipleChoiceField(
         label=_(Roles.PROJECT_MANAGER.label),
         required=Roles.PROJECT_MANAGER.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     project_member = ContactRoleMultipleChoiceField(
         label=_(Roles.PROJECT_MEMBER.label),
         required=Roles.PROJECT_MEMBER.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     registration_agency = ContactRoleMultipleChoiceField(
         label=_(Roles.REGISTRATION_AGENCY.label),
         required=Roles.REGISTRATION_AGENCY.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     registration_authority = ContactRoleMultipleChoiceField(
         label=_(Roles.REGISTRATION_AUTHORITY.label),
         required=Roles.REGISTRATION_AUTHORITY.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     related_person = ContactRoleMultipleChoiceField(
         label=_(Roles.RELATED_PERSON.label),
         required=Roles.RELATED_PERSON.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     research_group = ContactRoleMultipleChoiceField(
         label=_(Roles.RESEARCH_GROUP.label),
         required=Roles.RESEARCH_GROUP.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     researcher = ContactRoleMultipleChoiceField(
         label=_(Roles.RESEARCHER.label),
         required=Roles.RESEARCHER.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     rights_holder = ContactRoleMultipleChoiceField(
         label=_(Roles.RIGHTS_HOLDER.label),
         required=Roles.RIGHTS_HOLDER.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     sponsor = ContactRoleMultipleChoiceField(
         label=_(Roles.SPONSOR.label),
         required=Roles.SPONSOR.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     supervisor = ContactRoleMultipleChoiceField(
         label=_(Roles.SUPERVISOR.label),
         required=Roles.SUPERVISOR.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     work_package_leader = ContactRoleMultipleChoiceField(
         label=_(Roles.WORK_PACKAGE_LEADER.label),
         required=Roles.WORK_PACKAGE_LEADER.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=TaggitProfileSelect2Custom(url="autocomplete_profile"),
+        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     keywords = TagField(
@@ -815,6 +861,7 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
         self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
         self.fields["regions"].choices = get_tree_data()
+        self.fields["owner"].label_from_instance = get_user_display_name
         self.can_change_perms = self.user and self.user.has_perm(
             "change_resourcebase_permissions", self.instance.get_self_resource()
         )
