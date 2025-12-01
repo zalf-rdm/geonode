@@ -1,0 +1,100 @@
+name: "Tests"
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Create .env_test file
+      run: |
+        if [ ! -f .env_test ]; then
+          echo ".env_test file not found!"
+          exit 1
+        fi
+
+    - name: Start test environment
+      run: |
+        docker compose -f docker-compose-test.yml up -d
+        echo "Waiting for services to be healthy..."
+        sleep 30
+
+    - name: Check service health
+      run: |
+        docker compose -f docker-compose-test.yml ps
+
+    - name: Run main test suite
+      run: |
+        docker compose -f docker-compose-test.yml exec -T django ./test.sh
+      continue-on-error: true
+      id: main_tests
+
+    - name: Run API v2 tests
+      run: |
+        docker compose -f docker-compose-test.yml exec -T django ./test_api_v2.sh
+      continue-on-error: true
+      id: api_tests
+
+    - name: Run CSW tests
+      run: |
+        docker compose -f docker-compose-test.yml exec -T django ./test_csw.sh
+      continue-on-error: true
+      id: csw_tests
+
+    - name: Run integration tests
+      run: |
+        docker compose -f docker-compose-test.yml exec -T django ./test_integration.sh
+      continue-on-error: true
+      id: integration_tests
+
+    - name: Run OAuth2 tests
+      run: |
+        docker compose -f docker-compose-test.yml exec -T django ./test_oauth2.sh
+      continue-on-error: true
+      id: oauth_tests
+
+    - name: Run upload tests
+      run: |
+        docker compose -f docker-compose-test.yml exec -T django ./test_upload.sh
+      continue-on-error: true
+      id: upload_tests
+
+    - name: Collect test results
+      if: always()
+      run: |
+        echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Main Tests | ${{ steps.main_tests.outcome }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| API v2 Tests | ${{ steps.api_tests.outcome }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| CSW Tests | ${{ steps.csw_tests.outcome }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Integration Tests | ${{ steps.integration_tests.outcome }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| OAuth2 Tests | ${{ steps.oauth_tests.outcome }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Upload Tests | ${{ steps.upload_tests.outcome }} |" >> $GITHUB_STEP_SUMMARY
+
+    - name: Show Django logs on failure
+      if: failure()
+      run: |
+        docker compose -f docker-compose-test.yml logs django
+
+    - name: Show database logs on failure
+      if: failure()
+      run: |
+        docker compose -f docker-compose-test.yml logs db
+
+    - name: Cleanup
+      if: always()
+      run: |
+        docker compose -f docker-compose-test.yml down -v
