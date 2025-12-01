@@ -1,0 +1,137 @@
+name: "Tests"
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Create .env_test file
+      run: |
+        if [ ! -f .env_test ]; then
+          echo ".env_test file not found!"
+          exit 1
+        fi
+
+    - name: Start test environment
+      run: |
+        docker compose -f docker-compose-test.yml up -d
+        echo "Waiting for services to be healthy..."
+        sleep 60
+
+    - name: Check service health
+      run: |
+        docker compose -f docker-compose-test.yml ps
+
+    - name: Grant superuser to geonode database user
+      run: |
+        # Grant SUPERUSER privilege to geonode user so it can create PostGIS extension
+        docker compose -f docker-compose-test.yml exec -T db psql -U postgres -c "ALTER USER geonode WITH SUPERUSER;"
+        docker compose -f docker-compose-test.yml exec -T db psql -U postgres -c "ALTER USER geonode_data WITH SUPERUSER;"
+
+
+    - name: Run main test suite
+      run: |
+        docker compose -f docker-compose-test.yml exec -T django ./test.sh || echo "MAIN_TESTS_FAILED=true" >> $GITHUB_ENV
+      id: main_tests
+
+    - name: Run API v2 tests
+      run: |
+        docker compose -f docker-compose-test.yml exec -T django ./test_api_v2.sh || echo "API_TESTS_FAILED=true" >> $GITHUB_ENV
+      id: api_tests
+
+    - name: Run CSW tests
+      run: |
+        docker compose -f docker-compose-test.yml exec -T django ./test_csw.sh || echo "CSW_TESTS_FAILED=true" >> $GITHUB_ENV
+      id: csw_tests
+
+    - name: Run integration tests
+      run: |
+        docker compose -f docker-compose-test.yml exec -T django ./test_integration.sh || echo "INTEGRATION_TESTS_FAILED=true" >> $GITHUB_ENV
+      id: integration_tests
+
+    - name: Run OAuth2 tests
+      run: |
+        docker compose -f docker-compose-test.yml exec -T django ./test_oauth2.sh || echo "OAUTH_TESTS_FAILED=true" >> $GITHUB_ENV
+      id: oauth_tests
+
+    - name: Run upload tests
+      run: |
+        docker compose -f docker-compose-test.yml exec -T django ./test_upload.sh || echo "UPLOAD_TESTS_FAILED=true" >> $GITHUB_ENV
+      id: upload_tests
+
+    - name: Collect test results
+      if: always()
+      run: |
+        echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "$MAIN_TESTS_FAILED" = "true" ]; then
+          echo "| Main Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| Main Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "$API_TESTS_FAILED" = "true" ]; then
+          echo "| API v2 Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| API v2 Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "$CSW_TESTS_FAILED" = "true" ]; then
+          echo "| CSW Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| CSW Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "$INTEGRATION_TESTS_FAILED" = "true" ]; then
+          echo "| Integration Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| Integration Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "$OAUTH_TESTS_FAILED" = "true" ]; then
+          echo "| OAuth2 Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| OAuth2 Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "$UPLOAD_TESTS_FAILED" = "true" ]; then
+          echo "| Upload Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| Upload Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Check test results
+      if: always()
+      run: |
+        if [ "$MAIN_TESTS_FAILED" = "true" ] || [ "$API_TESTS_FAILED" = "true" ] || [ "$CSW_TESTS_FAILED" = "true" ] || [ "$INTEGRATION_TESTS_FAILED" = "true" ] || [ "$OAUTH_TESTS_FAILED" = "true" ] || [ "$UPLOAD_TESTS_FAILED" = "true" ]; then
+          echo "One or more test suites failed"
+          exit 1
+        fi
+
+    - name: Show Django logs on failure
+      if: failure()
+      run: |
+        docker compose -f docker-compose-test.yml logs django
+
+    - name: Show database logs on failure
+      if: failure()
+      run: |
+        docker compose -f docker-compose-test.yml logs db
+
+    - name: Cleanup
+      if: always()
+      run: |
+        docker compose -f docker-compose-test.yml down -v

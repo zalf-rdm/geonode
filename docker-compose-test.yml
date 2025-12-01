@@ -131,7 +131,7 @@ services:
   db:
     # use geonode official postgis 15 image
     image: geonode/postgis:15.3-latest
-    command: postgres -c "max_connections=${POSTGRESQL_MAX_CONNECTIONS}"
+    command: postgres -c "max_connections=${POSTGRESQL_MAX_CONNECTIONS:-200}"
     container_name: db4${COMPOSE_PROJECT_NAME}
     env_file:
       - .env_test
