@@ -43,38 +43,32 @@ jobs:
 
     - name: Run main test suite
       run: |
-        docker compose -f docker-compose-test.yml exec -T django ./test.sh
-      continue-on-error: true
+        docker compose -f docker-compose-test.yml exec -T django ./test.sh || echo "MAIN_TESTS_FAILED=true" >> $GITHUB_ENV
       id: main_tests
 
     - name: Run API v2 tests
       run: |
-        docker compose -f docker-compose-test.yml exec -T django ./test_api_v2.sh
-      continue-on-error: true
+        docker compose -f docker-compose-test.yml exec -T django ./test_api_v2.sh || echo "API_TESTS_FAILED=true" >> $GITHUB_ENV
       id: api_tests
 
     - name: Run CSW tests
       run: |
-        docker compose -f docker-compose-test.yml exec -T django ./test_csw.sh
-      continue-on-error: true
+        docker compose -f docker-compose-test.yml exec -T django ./test_csw.sh || echo "CSW_TESTS_FAILED=true" >> $GITHUB_ENV
       id: csw_tests
 
     - name: Run integration tests
       run: |
-        docker compose -f docker-compose-test.yml exec -T django ./test_integration.sh
-      continue-on-error: true
+        docker compose -f docker-compose-test.yml exec -T django ./test_integration.sh || echo "INTEGRATION_TESTS_FAILED=true" >> $GITHUB_ENV
       id: integration_tests
 
     - name: Run OAuth2 tests
       run: |
-        docker compose -f docker-compose-test.yml exec -T django ./test_oauth2.sh
-      continue-on-error: true
+        docker compose -f docker-compose-test.yml exec -T django ./test_oauth2.sh || echo "OAUTH_TESTS_FAILED=true" >> $GITHUB_ENV
       id: oauth_tests
 
     - name: Run upload tests
       run: |
-        docker compose -f docker-compose-test.yml exec -T django ./test_upload.sh
-      continue-on-error: true
+        docker compose -f docker-compose-test.yml exec -T django ./test_upload.sh || echo "UPLOAD_TESTS_FAILED=true" >> $GITHUB_ENV
       id: upload_tests
 
     - name: Collect test results
@@ -84,12 +78,50 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
         echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
-        echo "| Main Tests | ${{ steps.main_tests.outcome }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| API v2 Tests | ${{ steps.api_tests.outcome }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| CSW Tests | ${{ steps.csw_tests.outcome }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| Integration Tests | ${{ steps.integration_tests.outcome }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| OAuth2 Tests | ${{ steps.oauth_tests.outcome }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| Upload Tests | ${{ steps.upload_tests.outcome }} |" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "$MAIN_TESTS_FAILED" = "true" ]; then
+          echo "| Main Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| Main Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "$API_TESTS_FAILED" = "true" ]; then
+          echo "| API v2 Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| API v2 Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "$CSW_TESTS_FAILED" = "true" ]; then
+          echo "| CSW Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| CSW Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "$INTEGRATION_TESTS_FAILED" = "true" ]; then
+          echo "| Integration Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| Integration Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "$OAUTH_TESTS_FAILED" = "true" ]; then
+          echo "| OAuth2 Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| OAuth2 Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "$UPLOAD_TESTS_FAILED" = "true" ]; then
+          echo "| Upload Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| Upload Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Check test results
+      if: always()
+      run: |
+        if [ "$MAIN_TESTS_FAILED" = "true" ] || [ "$API_TESTS_FAILED" = "true" ] || [ "$CSW_TESTS_FAILED" = "true" ] || [ "$INTEGRATION_TESTS_FAILED" = "true" ] || [ "$OAUTH_TESTS_FAILED" = "true" ] || [ "$UPLOAD_TESTS_FAILED" = "true" ]; then
+          echo "One or more test suites failed"
+          exit 1
+        fi
 
     - name: Show Django logs on failure
       if: failure()
