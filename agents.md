@@ -244,7 +244,31 @@ docker compose exec django python manage.py shell
 docker compose exec django python -c "from django.conf import settings; print(settings.DATABASES)"
 ```
 
-## Resources
+# Check settings
+docker compose exec django python -c "from django.conf import settings; print(settings.DATABASES)"
+```
+
+### Common Fixes
+
+**1. Source Code Sync**
+If local changes aren't reflecting in the container, ensure the volume is mounted:
+```yaml
+volumes:
+  - .:/usr/src/geonode
+```
+
+**2. Upload Size Limits**
+If tests fail with "Total upload size exceeds 1 byte", update the `UploadSizeLimit` in the DB:
+```bash
+docker compose -f docker-compose-test.yml exec django python -c "from geonode.upload.models import UploadSizeLimit; UploadSizeLimit.objects.update(max_size=104857600)"
+```
+
+**3. Missing Dependencies**
+If modules are missing (e.g., `importer_datapackage`), check `requirements.txt` and install manually if needed:
+```bash
+docker compose -f docker-compose-test.yml exec django pip install -r requirements.txt
+```
+
 
 - **Documentation**: https://docs.geonode.org/
 - **GitHub**: https://github.com/GeoNode/geonode

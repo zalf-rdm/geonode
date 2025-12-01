@@ -734,7 +734,7 @@ def test_integration(options):
     settings = options.get("settings", "")
     success = False
     try:
-        call_task("setup", options={"settings": settings, "force_exec": True})
+        call_task("setup", options={"settings": settings})
 
         if not settings:
             settings = "REUSE_DB=1 DJANGO_SETTINGS_MODULE=geonode.settings"
