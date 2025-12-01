@@ -115,6 +115,19 @@ docker compose -f docker-compose-test.yml restart django
 docker compose -f docker-compose-test.yml exec django ./test.sh
 ```
 
+## Known Issues
+
+### Integration Test Script
+The `test_integration.sh` script uses `paver run_tests` which has different test discovery than the standard `manage.py test`. This is expected behavior and not a configuration error.
+
+### Test Failures
+Some tests may fail due to:
+- Missing test data
+- Service timing issues
+- Environment-specific configurations
+
+These failures are being tracked in separate issues and will be addressed in future PRs.
+
 ## Troubleshooting
 
 ### Database Connection Issues
