@@ -31,7 +31,7 @@ from django.views import View
 
 from geonode.tasks.tasks import send_email
 from geonode.people.forms import ProfileForm
-from geonode.people.utils import get_available_users
+from geonode.people.utils import get_available_users, get_user_display_name
 from geonode.base.auth import get_or_create_token
 from geonode.people.forms import ForgotUsernameForm
 from geonode.base.views import user_and_group_permission
@@ -167,3 +167,11 @@ class ProfileAutocomplete(autocomplete.Select2QuerySetView):
             )
 
         return qs
+       
+    def get_result_label(self, result):
+        """Return display name for dropdown results."""
+        return get_user_display_name(result)
+
+    def get_selected_result_label(self, result):
+        """Display first name and last name for selected items."""
+        return get_user_display_name(result)
