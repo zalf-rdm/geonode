@@ -28,15 +28,18 @@ jobs:
       run: |
         docker compose -f docker-compose-test.yml up -d
         echo "Waiting for services to be healthy..."
-        sleep 30
+        sleep 60
 
     - name: Check service health
       run: |
         docker compose -f docker-compose-test.yml ps
 
-    - name: Initialize database
+    - name: Wait for database initialization
       run: |
-        # Grant postgres user permissions on geonode database
+        # Wait for Django to initialize the database (migrations run on startup)
+        echo "Waiting for Django to initialize database..."
+        sleep 30
+        # Now grant postgres user permissions on all tables created by migrations
         docker compose -f docker-compose-test.yml exec -T db psql -U postgres -d geonode -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
         docker compose -f docker-compose-test.yml exec -T db psql -U postgres -d geonode -c "GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres;"
         docker compose -f docker-compose-test.yml exec -T db psql -U postgres -d geonode -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO postgres;"
