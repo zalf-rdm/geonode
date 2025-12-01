@@ -34,16 +34,11 @@ jobs:
       run: |
         docker compose -f docker-compose-test.yml ps
 
-    - name: Wait for database initialization
+    - name: Grant superuser to geonode database user
       run: |
-        # Wait for Django to initialize the database (migrations run on startup)
-        echo "Waiting for Django to initialize database..."
-        sleep 30
-        # Now grant postgres user permissions on all tables created by migrations
-        docker compose -f docker-compose-test.yml exec -T db psql -U postgres -d geonode -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
-        docker compose -f docker-compose-test.yml exec -T db psql -U postgres -d geonode -c "GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres;"
-        docker compose -f docker-compose-test.yml exec -T db psql -U postgres -d geonode -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO postgres;"
-        docker compose -f docker-compose-test.yml exec -T db psql -U postgres -d geonode -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO postgres;"
+        # Grant SUPERUSER privilege to geonode user so it can create PostGIS extension
+        docker compose -f docker-compose-test.yml exec -T db psql -U postgres -c "ALTER USER geonode WITH SUPERUSER;"
+        docker compose -f docker-compose-test.yml exec -T db psql -U postgres -c "ALTER USER geonode_data WITH SUPERUSER;"
 
 
     - name: Run main test suite
