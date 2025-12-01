@@ -19,7 +19,13 @@ The recommended way to run tests is using Docker Compose, which provides a compl
 docker compose -f docker-compose-test.yml up -d
 ```
 
-This will start all required services in the background.
+This will start all required services in the background. **Important:** Wait for all services to be healthy before running tests. You can check the status with:
+
+```bash
+docker compose -f docker-compose-test.yml ps
+```
+
+Wait until all services show as "healthy" or "running".
 
 #### 2. Run Tests
 
