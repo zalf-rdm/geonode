@@ -34,6 +34,15 @@ jobs:
       run: |
         docker compose -f docker-compose-test.yml ps
 
+    - name: Initialize database
+      run: |
+        # Grant postgres user permissions on geonode database
+        docker compose -f docker-compose-test.yml exec -T db psql -U postgres -d geonode -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
+        docker compose -f docker-compose-test.yml exec -T db psql -U postgres -d geonode -c "GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres;"
+        docker compose -f docker-compose-test.yml exec -T db psql -U postgres -d geonode -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO postgres;"
+        docker compose -f docker-compose-test.yml exec -T db psql -U postgres -d geonode -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO postgres;"
+
+
     - name: Run main test suite
       run: |
         docker compose -f docker-compose-test.yml exec -T django ./test.sh
