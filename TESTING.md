@@ -100,6 +100,21 @@ See [`.github/workflows/tests.yml`](.github/workflows/tests.yml) for the complet
 - **pytest configuration:** [`pytest.ini`](pytest.ini)
 - **Docker test setup:** [`docker-compose-test.yml`](docker-compose-test.yml)
 
+### Cleaning Stale Test Databases
+
+If you encounter `permission denied to create extension "postgis"` errors, you may have stale test databases from previous runs with different user permissions. To fix this:
+
+```bash
+# Drop test databases
+docker compose -f docker-compose-test.yml exec -T db sh -c "psql -U postgres -c 'DROP DATABASE IF EXISTS test_geonode;' && psql -U postgres -c 'DROP DATABASE IF EXISTS test_geonode_data;'"
+
+# Restart Django container
+docker compose -f docker-compose-test.yml restart django
+
+# Run tests again
+docker compose -f docker-compose-test.yml exec django ./test.sh
+```
+
 ## Troubleshooting
 
 ### Database Connection Issues
