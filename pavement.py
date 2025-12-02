@@ -898,12 +898,22 @@ def setup_data(options):
         info("media root not available, creating...")
         os.makedirs(geonode_settings.MEDIA_ROOT, exist_ok=True)
 
-    # Start uwsgi in background so importlayers can connect to the API
-    info("Starting uwsgi for importlayers...")
-    sh("uwsgi --ini /usr/src/geonode/uwsgi.ini &", ignore_error=True)
-    sh("sleep 5")  # Give uwsgi time to start
+    # Start Django development server in background so importlayers can connect to the API
+    info("Starting Django server for importlayers...")
+    import subprocess
+    server_process = subprocess.Popen(
+        [sys.executable, "manage.py", "runserver", "0.0.0.0:8000"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL
+    )
+    sh("sleep 10")  # Give Django time to start
 
-    sh(f"{settings} python -W ignore manage.py importlayers -v2 -hh {geonode_settings.SITEURL} {data_dir}")
+    try:
+        sh(f"{settings} python -W ignore manage.py importlayers -v2 -hh {geonode_settings.SITEURL} {data_dir}")
+    finally:
+        # Stop the Django server
+        server_process.terminate()
+        server_process.wait()
 
 
 @needs(["package"])
