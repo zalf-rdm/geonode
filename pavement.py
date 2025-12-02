@@ -900,17 +900,42 @@ def setup_data(options):
 
     # Start Django development server in background so importlayers can connect to the API
     info("Starting Django server for importlayers...")
-    sh("python manage.py runserver 0.0.0.0:8000 > /tmp/django_runserver.log 2>&1 &", ignore_error=True)
-    sh("sleep 10")  # Give Django time to start
+    import subprocess
+    import time
+    import socket
 
-    # Check if server started
-    sh("cat /tmp/django_runserver.log", ignore_error=True)
+    log_file = open('/tmp/django_runserver.log', 'w')
+    server_process = subprocess.Popen(
+        [sys.executable, "manage.py", "runserver", "0.0.0.0:8000"],
+        stdout=log_file,
+        stderr=subprocess.STDOUT
+    )
+    
+    # Wait for server to start by checking port 8000
+    server_started = False
+    for i in range(30):
+        try:
+            with socket.create_connection(("localhost", 8000), timeout=1):
+                server_started = True
+                break
+        except (socket.timeout, ConnectionRefusedError):
+            time.sleep(1)
+    
+    if not server_started:
+        info("Django server failed to start within 30 seconds. Checking logs:")
+        sh("cat /tmp/django_runserver.log", ignore_error=True)
+        server_process.terminate()
+        return
+
+    info("Django server started successfully!")
 
     try:
         sh(f"{settings} python -W ignore manage.py importlayers -v2 -hh {geonode_settings.SITEURL} {data_dir}")
     finally:
         # Stop the Django server
-        sh("pkill -f runserver", ignore_error=True)
+        server_process.terminate()
+        server_process.wait()
+        log_file.close()
 
 
 @needs(["package"])
