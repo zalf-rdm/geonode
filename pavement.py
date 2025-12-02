@@ -900,20 +900,17 @@ def setup_data(options):
 
     # Start Django development server in background so importlayers can connect to the API
     info("Starting Django server for importlayers...")
-    import subprocess
-    server_process = subprocess.Popen(
-        [sys.executable, "manage.py", "runserver", "0.0.0.0:8000"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL
-    )
+    sh("python manage.py runserver 0.0.0.0:8000 > /tmp/django_runserver.log 2>&1 &", ignore_error=True)
     sh("sleep 10")  # Give Django time to start
+
+    # Check if server started
+    sh("cat /tmp/django_runserver.log", ignore_error=True)
 
     try:
         sh(f"{settings} python -W ignore manage.py importlayers -v2 -hh {geonode_settings.SITEURL} {data_dir}")
     finally:
         # Stop the Django server
-        server_process.terminate()
-        server_process.wait()
+        sh("pkill -f runserver", ignore_error=True)
 
 
 @needs(["package"])
