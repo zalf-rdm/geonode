@@ -8,8 +8,44 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 from django.conf import settings
 import geonode.base.api.serializers as base_serializers
+from dynamic_rest.fields.fields import DynamicRelationField
+from geonode.base.models import Organization
 
 logger = logging.getLogger(__name__)
+
+
+class OrganizationRelationField(DynamicRelationField):
+    """Allow linking organizations by ROR identifier when creating users."""
+
+    def to_internal_value_single(self, data, serializer):
+        lookup = {} 
+        if isinstance(data, dict):
+            ror = data.get("ror")
+            name = data.get("organization") or data.get("name")
+            if ror:
+                lookup["ror"] = ror
+            elif name:
+                lookup["organization__iexact"] = name
+            else:
+                raise serializers.ValidationError(
+                    "organization payload requires 'ror' or 'organization'/'name' keys"
+                )
+        elif isinstance(data, str):
+            if data.isdigit():
+                return super().to_internal_value_single(data, serializer)
+            lookup["organization__iexact"] = data
+
+        if lookup:
+            try:
+                organization = Organization.objects.get(**lookup)
+            except Organization.DoesNotExist as exc:
+                raise serializers.ValidationError("organization not found for provided identifier") from exc
+            except Organization.MultipleObjectsReturned as exc:
+                raise serializers.ValidationError(
+                    "multiple organizations match provided identifier; please use a unique ror"
+                ) from exc
+            data = organization.pk
+        return super().to_internal_value_single(data, serializer)
 
 
 class UserSerializer(base_serializers.DynamicModelSerializer):
@@ -26,13 +62,19 @@ class UserSerializer(base_serializers.DynamicModelSerializer):
             "username",
             "first_name",
             "last_name",
+            "department",
             "avatar",
+            "organization",
             "perms",
             "is_superuser",
             "is_staff",
             "email",
             "link",
         )
+        extra_kwargs = {
+            "username": {"validators": []},
+            "email": {"validators": []},
+        }
 
     @staticmethod
     def password_validation(password_payload):
@@ -45,6 +87,8 @@ class UserSerializer(base_serializers.DynamicModelSerializer):
     def validate(self, data):
         request = self.context["request"]
         user = request.user
+        user_model = get_user_model()
+        instance = getattr(self, "instance", None)
         # only admins/staff can edit these permissions
         if not (user.is_superuser or user.is_staff):
             data.pop("is_superuser", None)
@@ -56,9 +100,29 @@ class UserSerializer(base_serializers.DynamicModelSerializer):
         # Email is required on post
         if request.method in ("POST") and settings.ACCOUNT_EMAIL_REQUIRED and not email:
             raise serializers.ValidationError(detail="email missing from payload")
+        # enforce username uniqueness on create
+        if request.method == "POST":
+            username = data.get("username")
+            if username and user_model.objects.filter(username__iexact=username).exists():
+                raise serializers.ValidationError(
+                    {
+                        "detail": f"A user with username '{username}' already exists.",
+                        "username": ["A user is already registered with that username."],
+                    }
+                )
+
         # email should be unique
-        if get_user_model().objects.filter(email=email).exists():
-            raise serializers.ValidationError("A user is already registered with that email")
+        if email:
+            email_conflict = user_model.objects.filter(email__iexact=email)
+            if instance:
+                email_conflict = email_conflict.exclude(pk=instance.pk)
+            if email_conflict.exists():
+                raise serializers.ValidationError(
+                    {
+                        "detail": f"A user with email '{email}' already exists.",
+                        "email": ["A user is already registered with that email."],
+                    }
+                )
         # password validation
         password = request.data.get("password")
         if password:
@@ -85,3 +149,4 @@ class UserSerializer(base_serializers.DynamicModelSerializer):
         return data
 
     avatar = base_serializers.AvatarUrlField(240, read_only=True)
+    organization = OrganizationRelationField(base_serializers.OrganizationSerializer, embed=True, many=False)
