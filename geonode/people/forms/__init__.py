@@ -47,7 +47,7 @@ class ForgotUsernameForm(forms.Form):
 
 class ProfileForm(forms.ModelForm):
     organization = forms.ModelChoiceField(
-        queryset=Organization.objects.all(),
+        queryset=Organization.objects.values_list("organization", flat=True),
         required=False,
     )
     keywords = taggit.forms.TagField(
@@ -81,18 +81,17 @@ class ProfileForm(forms.ModelForm):
         self.fields["organization"].widget.attrs.setdefault("list", "organization-options")
         organization = getattr(self.instance, "organization", None)
         if organization:
-            self.fields["organization"].initial = organization
+            self.fields["organization"].initial = str(organization)
 
     def clean_organization(self):
         value = self.cleaned_data.get("organization")
         if not value:
             return None
-        if isinstance(value, Organization):
-            return value
         name = value.strip()
         if not name:
             return None
-        organization = Organization.objects.filter(organization__iexact=name).first()
-        if organization:
-            return organization
-        return Organization.objects.create(organization=name)
+        organization, _ = Organization.objects.get_or_create(
+            organization__iexact=name,
+            defaults={"organization": name}
+        )
+        return organization
