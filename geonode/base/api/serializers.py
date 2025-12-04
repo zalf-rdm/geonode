@@ -489,7 +489,7 @@ class ContactRoleField(DynamicComputedField):
                 pks_of_users_to_set.append(pk)
             elif "username" in val:
                 username = val["username"]
-                username_user = get_user_model().objects.get(username=[username])
+                username_user = get_user_model().objects.get(username=username)
                 pks_of_users_to_set.append(username_user.pk)
             elif "pk" in val:
                 pks_of_users_to_set.append(val["pk"])

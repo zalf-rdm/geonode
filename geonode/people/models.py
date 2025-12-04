@@ -60,12 +60,14 @@ class ProfileUserManager(UserManager):
 
 class Profile(AbstractUser):
     """Fully featured Geonode user"""
-    organization = models.CharField(
-        _("Organization Name"),
-        max_length=255,
+    organization = models.ForeignKey(
+        Organization,
+        verbose_name=_("Organization Name"),
         blank=True,
         null=True,
+        on_delete=models.SET_NULL,
         help_text=_("name of the responsible organization"),
+        related_name="profiles",
     )
 
     profile = models.TextField(_("Profile"), null=True, blank=True, help_text=_("introduce yourself"))
