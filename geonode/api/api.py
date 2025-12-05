@@ -524,6 +524,12 @@ class ProfileResource(TypeFilteredResource):
             kwargs={"content_type_id": ContentType.objects.get_for_model(bundle.obj).pk, "object_id": bundle.obj.pk},
         )
 
+    def dehydrate_organization(self, bundle):
+        organization = getattr(bundle.obj, "organization", None)
+        if not organization:
+            return ""
+        return getattr(organization, "organization", str(organization))
+
     def dehydrate(self, bundle):
         """
         Protects user's personal information from non staff

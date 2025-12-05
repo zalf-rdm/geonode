@@ -719,7 +719,7 @@ class Organization(models.Model):
     )
 
     def __str__(self):
-        return f"{self.organization}"
+        return str(self.organization or "")
 
 
 class Funding(models.Model):
@@ -1427,7 +1427,9 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
 
     @property
     def organizationname(self):
-        return self.owner.organization
+        if self.owner.organization:
+            return str(self.owner.organization)
+        return None
 
     @property
     def restriction_code(self):
