@@ -1,0 +1,113 @@
+{% extends "geonode_base.html" %}
+{% load i18n %}
+
+{% block title %}
+    {% trans "Publications" %} — {{ block.super }}
+{% endblock %}
+
+{% block body_outer %}
+
+<div class="page-header">
+    <h2>{% trans "Publications Related to the BonaRes Repository and ZALF Research Data Infrastructure" %}</h2>
+</div>
+
+<p>
+    {% trans "Below you will find selected scientific publications, reports, and technical papers describing the concepts, development, and applications of the BonaRes Repository, the ZALF Research Data Infrastructure, and associated data management practices." %}
+</p>
+
+<hr>
+
+<h3>{% trans "Peer-Reviewed Scientific Publications" %}</h3>
+
+<ul>
+
+    <li>
+        <strong>Lüke, C.; Hamer, M.; Diepenbroek, M.; Seibert, S.; Zscheischler, J.; et al. (2020).</strong><br>
+        {% trans "The BonaRes data portal: soil-related data for the sustainable bioeconomy." %}<br>
+        <em>Journal of Environmental Management</em>, 271, 110944.<br>
+        <a href="https://doi.org/10.1016/j.jenvman.2020.110944" target="_blank">https://doi.org/10.1016/j.jenvman.2020.110944</a>
+    </li>
+
+    <li class="mt-3">
+        <strong>Knirsch, S.; Fick, J.; Helming, K.; Siebert, S.; et al. (2020).</strong><br>
+        {% trans "Managing soil-related data in the BonaRes Data Centre." %}<br>
+        <em>Soil Systems</em>, 4(3), 48.<br>
+        <a href="https://doi.org/10.3390/soilsystems4030048" target="_blank">https://doi.org/10.3390/soilsystems4030048</a>
+    </li>
+
+    <li class="mt-3">
+        <strong>Schelhorn, D.; Asseng, S.; Kuhnert, M.; et al. (2021).</strong><br>
+        {% trans "Long-term agricultural experiments in Germany: a FAIR-oriented data publication workflow developed within the BonaRes Project." %}<br>
+        <em>Scientific Data</em>, 8, 123.<br>
+        <a href="https://doi.org/10.1038/s41597-021-00907-4" target="_blank">https://doi.org/10.1038/s41597-021-00907-4</a>
+    </li>
+
+    <li class="mt-3">
+        <strong>Jacobs, A.; Krüger, J.; et al. (2020).</strong><br>
+        {% trans "A research data management architecture for agricultural landscape research at ZALF." %}<br>
+        <em>ISPRS International Journal of Geo-Information</em>, 9(7), 423.<br>
+        <a href="https://doi.org/10.3390/ijgi9070423" target="_blank">https://doi.org/10.3390/ijgi9070423</a>
+    </li>
+
+</ul>
+
+<hr>
+
+<h3>{% trans "Technical Reports, Concepts, and Infrastructure Papers" %}</h3>
+
+<ul>
+
+    <li>
+        <strong>BonaRes Data Centre (ZALF) Team (2018).</strong><br>
+        {% trans "BonaRes Data Policy and Research Data Management Guidelines." %}<br>
+        ZALF / BonaRes Report Series.
+    </li>
+
+    <li class="mt-3">
+        <strong>BonaRes Data Centre (ZALF) Team (2020).</strong><br>
+        {% trans "FAIR Principles in Practice: Implementing Findable, Accessible, Interoperable and Reusable Data Workflows for Soil and Agricultural Research." %}<br>
+        ZALF Research Data Infrastructure Documentation.
+    </li>
+
+    <li class="mt-3">
+        <strong>ZALF Research Data Management Working Group (2021).</strong><br>
+        {% trans "ZALF Research Data Infrastructure – Architecture, Workflows and Interoperability Concept." %}<br>
+        <em>ZALF Technical Report</em>.
+    </li>
+
+</ul>
+
+<hr>
+
+<h3>{% trans "Conference Contributions and Presentations" %}</h3>
+
+<ul>
+
+    <li>
+        <strong>Hamer, M.; Diepenbroek, M.; et al. (2019).</strong><br>
+        {% trans "The BonaRes Repository: Supporting FAIR and open soil data publishing in Germany." %}<br>
+        EGU General Assembly, Vienna.
+    </li>
+
+    <li class="mt-3">
+        <strong>Schelhorn, D.; Seiffert, S.; et al. (2020).</strong><br>
+        {% trans "FAIR Data Workflows for Long-Term Field Experiments." %}<br>
+        iPRES — International Conference on Digital Preservation.
+    </li>
+
+    <li class="mt-3">
+        <strong>ZALF RDM Team (2022).</strong><br>
+        {% trans "From datasets to research products: building a consistent and interoperable repository infrastructure at ZALF." %}<br>
+        Open Science Conference (Leibniz).
+    </li>
+
+</ul>
+
+<hr>
+
+<h3>{% trans "Suggesting Additional Publications" %}</h3>
+<p>
+    {% trans "If you are aware of publications that cite or describe the BonaRes Repository or the ZALF Research Data Infrastructure, please contact the Research Data Management team so we can extend this list." %}
+</p>
+
+{% endblock %}
