@@ -301,7 +301,7 @@
                 </ul>
               </li>
           {% else %}
-          <li><a href="/account/oidc/identiy-e.dataservice.zalf.de/login/?process=login&next=%2F" role="button" >{% trans "Sign in" %} </a></li>
+          <li><a href="{% provider_login_url 'geonode_openid_connect' next=request.path %}" role="button" >{% trans "Sign in" %} </a></li>
               {% endif %}
             </ul>
           </div> <!--/.nav-collapse -->
