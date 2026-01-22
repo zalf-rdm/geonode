@@ -199,6 +199,9 @@ def get_user_display_name(user):
     """Returns 'firstname lastname' if available, otherwise username."""
     first_name = getattr(user, 'first_name', '') or ''
     last_name = getattr(user, 'last_name', '') or ''
+    department = getattr(user, 'department', '') or ''
     if first_name or last_name:
         return f"{first_name} {last_name}".strip()
+    elif department:
+        return f"{department}"
     return getattr(user, 'username', str(user))

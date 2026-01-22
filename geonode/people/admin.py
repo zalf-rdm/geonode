@@ -59,6 +59,7 @@ class ProfileAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     "organization",
+                    "department",
                     "profile",
                     "position",
                     "voice",
@@ -78,8 +79,8 @@ class ProfileAdmin(admin.ModelAdmin):
     form = ProfileChangeForm
     add_form = ProfileCreationForm
     change_password_form = AdminPasswordChangeForm
-    list_display = ("id", "username", "organization", "email", "first_name", "last_name", "is_staff", "is_active")
-    list_filter = ("is_staff", "is_superuser", "is_active", "groups")
+    list_display = ("id", "username", "organization", "department", "email", "first_name", "last_name", "is_staff", "is_active")
+    list_filter = ("is_staff", "is_superuser", "is_active", "groups", "organization",)
     search_fields = ("username", "organization", "profile", "first_name", "last_name", "email")
     # readonly_fields = ("groups", )
     ordering = ("username",)
