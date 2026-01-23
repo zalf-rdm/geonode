@@ -73,7 +73,6 @@ from geonode.base.models import (
     TopicCategory,
     ThesaurusKeyword,
     ExtraMetadata,
-    RestrictionCodeType,
     License,
     Group,
     LinkedResource,
@@ -3415,7 +3414,6 @@ pycsw_settings_all["FILTER"] = {"resource_type__in": ["dataset", "resourcebase"]
 
 
 class TestBaseResourceBase(GeoNodeBaseTestSupport):
-
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
