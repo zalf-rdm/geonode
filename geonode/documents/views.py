@@ -22,6 +22,7 @@ import shutil
 import logging
 import warnings
 import traceback
+import re
 
 from django.urls import reverse
 from django.conf import settings
