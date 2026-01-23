@@ -887,7 +887,8 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     )
     date_issued_help_text = _("The date that the resource is published or distributed e.g. to a data centre.")
     date_submitted_help_text = _(
-        "The date the creator submits the resource to the publisher. This could be different from Accepted if the publisher the applies a selection process. To indicate the start of an embargo period. "
+        "The date the creator submits the resource to the publisher. This could be different from Accepted if "
+        "the publisher the applies a selection process. To indicate the start of an embargo period. "
     )
     date_updated_help_text = _(
         "The date of the last update (last revision) to the dataset, when the dataset is being added to."
@@ -1040,7 +1041,9 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         help_text=metadata_license_help_text,
         on_delete=models.SET_NULL,
     )
-    metadata_lineage = models.TextField(_("Metadata Lineage"), max_length=2048, blank=True, help_text=metadata_lineage_help_text)
+    metadata_lineage = models.TextField(
+        _("Metadata Lineage"), max_length=2048, blank=True, help_text=metadata_lineage_help_text
+    )
 
     language = models.CharField(
         _("Language"), max_length=3, choices=enumerations.ALL_LANGUAGES, default="eng", help_text=language_help_text
@@ -1231,7 +1234,6 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         )
 
     def __init__(self, *args, **kwargs):
-
         # Provide legacy support for bbox fields
         try:
             bbox = [kwargs.pop(key, None) for key in ("bbox_x0", "bbox_y0", "bbox_x1", "bbox_y1")]

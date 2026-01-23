@@ -35,7 +35,6 @@ class IndexLocalLinkUrlHandler:
 
 
 class LocalAssetHandler(AssetHandlerInterface):
-
     link_url_handlers = {"3dtiles": IndexLocalLinkUrlHandler()}
 
     @staticmethod
@@ -219,7 +218,6 @@ class LocalAssetHandler(AssetHandlerInterface):
 
 
 class LocalAssetDownloadHandler(AssetDownloadHandlerInterface):
-
     def create_response(
         self, asset: LocalAsset, attachment: bool = False, basename: str = None, path: str = None
     ) -> HttpResponse:

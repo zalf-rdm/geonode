@@ -96,7 +96,6 @@ def create_asset_and_link(
     mime=None,
     clone_files: bool = True,
 ) -> tuple[Asset, Link]:
-
     asset_handler = handler or asset_handler_registry.get_default_handler()
     asset = link = None
     try:
