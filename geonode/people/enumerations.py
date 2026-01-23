@@ -127,7 +127,8 @@ ROLE_VALUES = (
         "workPackageLeader",
         _(
             "A Work Package is a recognized data product, not all of which is included in publication. The pack-age, \
-            instead, may include notes, discarded documents, etc. The Work Package Leader is responsi-ble for ensuring the comprehen-sive contents, versioning, and availability of the Work Package during the development of the resource."
+            instead, may include notes, discarded documents, etc. The Work Package Leader is responsi-ble for ensuring the comprehen-sive contents, \
+            versioning, and availability of the Work Package during the development of the resource."
         ),
     ),
 )
