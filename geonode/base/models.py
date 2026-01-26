@@ -102,9 +102,11 @@ class ContactRole(models.Model):
     role = models.CharField(
         choices=ROLE_VALUES, max_length=255, help_text=_("function performed by the responsible " "party")
     )
+    position = models.IntegerField(default=0, help_text=_("Order position for this contact role"))
 
     class Meta:
         unique_together = (("contact", "resource", "role"),)
+        ordering = ["position", "id"]
 
 
 class TopicCategory(models.Model):
@@ -2070,25 +2072,28 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         """
 
         def __create_role__(
-            resource, role: str, user_profile: settings.AUTH_USER_MODEL
+            resource, role: str, user_profile: settings.AUTH_USER_MODEL, position: int = 0
         ) -> List[settings.AUTH_USER_MODEL]:
-            return ContactRole.objects.create(role=role, resource=resource, contact=user_profile)
+            return ContactRole.objects.create(role=role, resource=resource, contact=user_profile, position=position)
 
         if isinstance(user_profile, QuerySet):
             ContactRole.objects.filter(role=role, resource=self).delete()
-            return [__create_role__(self, role, user) for user in user_profile]
+            return [__create_role__(self, role, user, idx) for idx, user in enumerate(user_profile)]
 
         elif isinstance(user_profile, get_user_model()):
             ContactRole.objects.filter(role=role, resource=self).delete()
-            return __create_role__(self, role, user_profile)
+            return __create_role__(self, role, user_profile, 0)
 
         elif isinstance(user_profile, list) and all(
             get_user_model().objects.filter(username=x).exists() for x in user_profile
         ):
             ContactRole.objects.filter(role=role, resource=self).delete()
-            return [
-                __create_role__(self, role, user) for user in get_user_model().objects.filter(username__in=user_profile)
-            ]
+            # Preserve order from the list
+            result = []
+            for idx, username in enumerate(user_profile):
+                user = get_user_model().objects.get(username=username)
+                result.append(__create_role__(self, role, user, idx))
+            return result
 
         elif user_profile is None:
             ContactRole.objects.filter(role=role, resource=self).delete()
