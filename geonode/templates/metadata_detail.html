@@ -271,6 +271,7 @@
         {% if resource.metadata_author %}
           {% for metadata_author in resource.metadata_author %}
             <div class="metadata-block p-3 mb-3">
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Author Nr.' %}</div><div class="col-sm-9"><strong>{{ forloop.counter|stringformat:"02d" }}</strong></div></div>
               <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Name' %}</div><div class="col-sm-9">{{ metadata_author.name_long|default:"-" }}</div></div>
               <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Email' %}</div><div class="col-sm-9">{{ metadata_author.email|default:"-" }}</div></div>
               <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Position' %}</div><div class="col-sm-9">{{ metadata_author.position|default:"-" }}</div></div>
