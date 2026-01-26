@@ -821,7 +821,116 @@
       }
     });
 
+    // Initialize Tom Select + SortableJS for metadata_author field
+    function initTomSelectSortable(selector) {
+      const selectElement = document.querySelector(selector);
+      
+      if (!selectElement) {
+        console.log('Select element not found:', selector);
+        return;
+      }
+      
+      // Check if already initialized
+      if (selectElement.tomselect) {
+        console.log('Tom Select already initialized for', selector);
+        return;
+      }
+      
+      // Get autocomplete URL from data attribute
+      const autocompleteUrl = selectElement.dataset.autocompleteUrl || selectElement.dataset.autocompleteLightUrl;
+      
+      // Get existing options from select
+      const existingOptions = [];
+      selectElement.querySelectorAll('option').forEach(opt => {
+        if (opt.value) {
+          existingOptions.push({
+            value: opt.value,
+            text: opt.textContent || opt.value
+          });
+        }
+      });
+      
+      console.log('Autocomplete URL:', autocompleteUrl);
+      console.log('Existing options:', existingOptions);
+      
+      // Initialize Tom Select with drag_drop plugin
+      const tomSelect = new TomSelect(selector, {
+        plugins: {
+          'remove_button': {
+            title: 'Remover'
+          },
+          'drag_drop': {}
+        },
+        valueField: 'value',
+        labelField: 'text',
+        searchField: ['text'],
+        create: false,
+        maxItems: null,
+        options: existingOptions,
+        render: {
+          item: function(data, escape) {
+            // Get the current position/index of this item (starting from 1)
+            const items = this.items;
+            const index = items.indexOf(data.value);
+            const displayNumber = index >= 0 ? index + 1 : this.items.length;
+            return '<div><span class="item-number" style="background: #3875d7; color: white; padding: 2px 6px; border-radius: 3px; margin-right: 5px; font-size: 11px; font-weight: bold;">' + 
+                   displayNumber + '</span>' + escape(data.text) + '</div>';
+          }
+        },
+        onItemAdd: function() {
+          // Re-render all items to update numbering
+          this.refreshItems();
+        },
+        onItemRemove: function() {
+          // Re-render all items to update numbering
+          this.refreshItems();
+        },
+        load: function(query, callback) {
+          if (!autocompleteUrl) {
+            console.warn('No autocomplete URL configured');
+            return callback();
+          }
+          
+          if (!query.length) return callback();
+          
+          const url = autocompleteUrl + '?q=' + encodeURIComponent(query);
+          console.log('Fetching:', url);
+          
+          fetch(url)
+            .then(response => {
+              if (!response.ok) throw new Error('Network error');
+              return response.json();
+            })
+            .then(json => {
+              console.log('Autocomplete response:', json);
+              // Convert autocomplete-light format to Tom Select format
+              const results = json.results ? json.results.map(item => ({
+                value: item.id,
+                text: item.text
+              })) : [];
+              callback(results);
+            })
+            .catch(err => {
+              console.error('Autocomplete error:', err);
+              callback();
+            });
+        },
+        onInitialize: function() {
+          console.log('✓ Tom Select initialized for', selector);
+          console.log('✓ Drag & drop enabled - você pode arrastar os itens para reordenar!');
+          console.log('Dica: Clique no campo e digite para buscar usuários');
+        }
+      });
+      
+      return tomSelect;
+    }
+
     $(document).ready(function() {
+      // Initialize Tom Select for metadata_author field
+      setTimeout(function() {
+        initTomSelectSortable('#id_resource-metadata_author');
+      }, 100);
+      
       {% if layer.metadata_uploaded_preserve %}
         $('#metadata_update :input').attr('readonly','readonly');
       {% endif %}

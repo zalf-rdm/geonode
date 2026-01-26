@@ -14,6 +14,13 @@
   <script type="text/javascript" src={% static "tinymce/tinymce.min.js" %}></script>
   <script type="text/javascript" src={% static "django_tinymce/init_tinymce.js" %}></script>
   <link rel="stylesheet" type="text/css" id="mce-u0" href= {% static "tinymce/skins/ui/oxide/skin.min.css" %}>
+  
+  <!-- Tom Select for better multi-select -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap4.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+  
+  <!-- SortableJS for drag-and-drop reordering -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
     <style>
         .xxs-font-size{
@@ -115,6 +122,25 @@
         }
         .form_item_spacing {
           margin-bottom: 25px
+        }
+        
+        /* Tom Select + Sortable Styles */
+        .ts-wrapper.plugin-drag_drop .ts-control > .item {
+          cursor: move;
+          cursor: grab;
+        }
+        
+        .ts-wrapper.plugin-drag_drop .ts-control > .item:active {
+          cursor: grabbing;
+        }
+        
+        .ts-wrapper .ts-control .item.sortable-ghost {
+          opacity: 0.4;
+        }
+        
+        .ts-wrapper .ts-control .item.sortable-chosen {
+          background-color: #3875d7 !important;
+          color: white !important;
         }
     </style>
 {{ block.super }}
