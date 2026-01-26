@@ -70,6 +70,29 @@ from geonode.people.utils import get_user_display_name
 logger = logging.getLogger(__name__)
 
 
+class OrderedModelSelect2Multiple(autocomplete.ModelSelect2Multiple):
+    """
+    Custom widget that preserves the order of selected items
+    """
+    def build_attrs(self, base_attrs, extra_attrs=None):
+        """Add data attribute with ordered values"""
+        attrs = super().build_attrs(base_attrs, extra_attrs)
+        
+        # Add ordered values as data attribute for Tom Select
+        if hasattr(self, '_ordered_value') and self._ordered_value:
+            # Convert to JSON string for data attribute
+            import json
+            attrs['data-ordered-values'] = json.dumps([str(v) for v in self._ordered_value])
+        
+        return attrs
+    
+    def format_value(self, value):
+        """Store the ordered value for rendering"""
+        if value:
+            self._ordered_value = value if isinstance(value, (list, tuple)) else [value]
+        return super().format_value(value)
+
+
 def get_tree_data():
     def rectree(parent, path):
         children_list_of_tuples = list()
@@ -371,6 +394,22 @@ class ContactRoleMultipleChoiceField(forms.ModelMultipleChoiceField):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("to_field_name", "username")
         super().__init__(*args, **kwargs)
+    
+    def prepare_value(self, value):
+        """
+        Override to preserve order of selected items
+        """
+        if hasattr(value, '__iter__') and not isinstance(value, str):
+            # Store the original order
+            self._value_order = []
+            for v in value:
+                if hasattr(v, 'pk'):
+                    self._value_order.append(v.pk)
+                elif hasattr(v, self.to_field_name or 'pk'):
+                    self._value_order.append(getattr(v, self.to_field_name or 'pk'))
+                else:
+                    self._value_order.append(v)
+        return super().prepare_value(value)
 
     def clean(self, value):
         if isinstance(value, QuerySet):
@@ -405,7 +444,7 @@ class ContactRoleMultipleChoiceField(forms.ModelMultipleChoiceField):
             # Fetch all users
             ids = [val for type_, val in ordered_items if type_ == "id"]
             usernames = [val for type_, val in ordered_items if type_ == "username"]
-            
+
             query = Q()
             if ids:
                 query |= Q(pk__in=ids)
@@ -413,11 +452,13 @@ class ContactRoleMultipleChoiceField(forms.ModelMultipleChoiceField):
                 query |= Q(username__in=usernames)
 
             if query:
-                users_dict = {u.pk: u for u in user_model.objects.filter(query)}
-                # Also index by username
-                for u in users_dict.values():
+                users_list = list(user_model.objects.filter(query))
+                # Index by both pk and username
+                users_dict = {}
+                for u in users_list:
+                    users_dict[u.pk] = u
                     users_dict[u.username] = u
-                
+
                 # Return list in original order
                 ordered_users = []
                 for type_, val in ordered_items:
@@ -655,7 +696,7 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
         label=_(Roles.METADATA_AUTHOR.label),
         required=Roles.METADATA_AUTHOR.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
+        widget=OrderedModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     processor = ContactRoleMultipleChoiceField(
