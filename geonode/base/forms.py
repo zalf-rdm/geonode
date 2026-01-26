@@ -74,18 +74,20 @@ class OrderedModelSelect2Multiple(autocomplete.ModelSelect2Multiple):
     """
     Custom widget that preserves the order of selected items
     """
+
     def build_attrs(self, base_attrs, extra_attrs=None):
         """Add data attribute with ordered values"""
         attrs = super().build_attrs(base_attrs, extra_attrs)
-        
+
         # Add ordered values as data attribute for Tom Select
-        if hasattr(self, '_ordered_value') and self._ordered_value:
+        if hasattr(self, "_ordered_value") and self._ordered_value:
             # Convert to JSON string for data attribute
             import json
-            attrs['data-ordered-values'] = json.dumps([str(v) for v in self._ordered_value])
-        
+
+            attrs["data-ordered-values"] = json.dumps([str(v) for v in self._ordered_value])
+
         return attrs
-    
+
     def format_value(self, value):
         """Store the ordered value for rendering"""
         if value:
@@ -394,19 +396,19 @@ class ContactRoleMultipleChoiceField(forms.ModelMultipleChoiceField):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("to_field_name", "username")
         super().__init__(*args, **kwargs)
-    
+
     def prepare_value(self, value):
         """
         Override to preserve order of selected items
         """
-        if hasattr(value, '__iter__') and not isinstance(value, str):
+        if hasattr(value, "__iter__") and not isinstance(value, str):
             # Store the original order
             self._value_order = []
             for v in value:
-                if hasattr(v, 'pk'):
+                if hasattr(v, "pk"):
                     self._value_order.append(v.pk)
-                elif hasattr(v, self.to_field_name or 'pk'):
-                    self._value_order.append(getattr(v, self.to_field_name or 'pk'))
+                elif hasattr(v, self.to_field_name or "pk"):
+                    self._value_order.append(getattr(v, self.to_field_name or "pk"))
                 else:
                     self._value_order.append(v)
         return super().prepare_value(value)
