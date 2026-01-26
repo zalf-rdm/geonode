@@ -821,18 +821,21 @@
       }
     });
 
+    // Debug mode flag (set to false in production)
+    const DEBUG_TOM_SELECT = {{ settings.DEBUG|yesno:"true,false" }};
+
     // Initialize Tom Select + SortableJS for metadata_author field
     function initTomSelectSortable(selector) {
       const selectElement = document.querySelector(selector);
       
       if (!selectElement) {
-        console.log('Select element not found:', selector);
+        if (DEBUG_TOM_SELECT) console.log('Select element not found:', selector);
         return;
       }
       
       // Check if already initialized
       if (selectElement.tomselect) {
-        console.log('Tom Select already initialized for', selector);
+        if (DEBUG_TOM_SELECT) console.log('Tom Select already initialized for', selector);
         return;
       }
       
@@ -847,9 +850,9 @@
       if (selectElement.dataset.orderedValues) {
         try {
           selectedValues = JSON.parse(selectElement.dataset.orderedValues);
-          console.log('Using ordered values from data attribute:', selectedValues);
+          if (DEBUG_TOM_SELECT) console.log('Using ordered values from data attribute:', selectedValues);
         } catch(e) {
-          console.warn('Failed to parse ordered values:', e);
+          if (DEBUG_TOM_SELECT) console.warn('Failed to parse ordered values:', e);
         }
       }
       
@@ -872,9 +875,11 @@
         }
       });
       
-      console.log('Autocomplete URL:', autocompleteUrl);
-      console.log('Existing options:', existingOptions);
-      console.log('Selected values (in order):', selectedValues);
+      if (DEBUG_TOM_SELECT) {
+        console.log('Autocomplete URL:', autocompleteUrl);
+        console.log('Existing options:', existingOptions);
+        console.log('Selected values (in order):', selectedValues);
+      }
       
       // Initialize Tom Select with drag_drop plugin
       const tomSelect = new TomSelect(selector, {
@@ -897,7 +902,7 @@
             const items = this.items;
             const index = items.indexOf(data.value);
             const displayNumber = index >= 0 ? index + 1 : this.items.length;
-            return '<div><span class="item-number" style="background: #3875d7; color: white; padding: 2px 6px; border-radius: 3px; margin-right: 5px; font-size: 11px; font-weight: bold;">' + 
+            return '<div><span class="item-number">' + 
                    displayNumber + '</span>' + escape(data.text) + '</div>';
           }
         },
@@ -911,14 +916,14 @@
         },
         load: function(query, callback) {
           if (!autocompleteUrl) {
-            console.warn('No autocomplete URL configured');
+            if (DEBUG_TOM_SELECT) console.warn('No autocomplete URL configured');
             return callback();
           }
           
           if (!query.length) return callback();
           
           const url = autocompleteUrl + '?q=' + encodeURIComponent(query);
-          console.log('Fetching:', url);
+          if (DEBUG_TOM_SELECT) console.log('Fetching:', url);
           
           fetch(url)
             .then(response => {
@@ -926,7 +931,7 @@
               return response.json();
             })
             .then(json => {
-              console.log('Autocomplete response:', json);
+              if (DEBUG_TOM_SELECT) console.log('Autocomplete response:', json);
               // Convert autocomplete-light format to Tom Select format
               const results = json.results ? json.results.map(item => ({
                 value: item.id,
@@ -935,14 +940,17 @@
               callback(results);
             })
             .catch(err => {
+              // Always log errors, but could be sent to error tracking service
               console.error('Autocomplete error:', err);
               callback();
             });
         },
         onInitialize: function() {
-          console.log('✓ Tom Select initialized for', selector);
-          console.log('✓ Drag & drop enabled - você pode arrastar os itens para reordenar!');
-          console.log('Dica: Clique no campo e digite para buscar usuários');
+          if (DEBUG_TOM_SELECT) {
+            console.log('✓ Tom Select initialized for', selector);
+            console.log('✓ Drag & drop enabled - você pode arrastar os itens para reordenar!');
+            console.log('Dica: Clique no campo e digite para buscar usuários');
+          }
         }
       });
       

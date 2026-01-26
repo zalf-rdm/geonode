@@ -1,0 +1,25 @@
+/* Tom Select with Drag & Drop Sortable Styles */
+
+.ts-wrapper.plugin-drag_drop .ts-control>.item {
+    cursor: grab;
+}
+
+.ts-wrapper.plugin-drag_drop .ts-control>.item:active {
+    cursor: grabbing;
+}
+
+.ts-wrapper.plugin-drag_drop .ts-control>.item.dragging {
+    opacity: 0.5;
+}
+
+/* Numbered item badges */
+.ts-wrapper .item-number {
+    background: #3875d7;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-right: 5px;
+    font-size: 11px;
+    font-weight: bold;
+    display: inline-block;
+}

@@ -16,11 +16,17 @@
   <link rel="stylesheet" type="text/css" id="mce-u0" href= {% static "tinymce/skins/ui/oxide/skin.min.css" %}>
   
   <!-- Tom Select for better multi-select -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap4.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap4.min.css" 
+        integrity="sha384-/CC1lvWi28rgfFKKRt7JSNH8kN/93IQZU7O+T4O2cVJHBkAjPMJ3HLJj0xqIQR8a" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js" 
+          integrity="sha384-gCYJKH7KfrJBW0RZvCLLYYgGUm5QAKw1gzSjWk9YIPM3z5kA+z3pBxABCB1fmGGj" crossorigin="anonymous"></script>
   
   <!-- SortableJS for drag-and-drop reordering -->
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js" 
+          integrity="sha384-iHezH5KzLjZn5eKbXCX6X4gS2+wbAHPGMGg8LwI3nPNKbMUYCj0xKqFTgNJPpTbr" crossorigin="anonymous"></script>
+  
+  <!-- Tom Select Sortable Custom Styles -->
+  <link rel="stylesheet" href="{% static 'geonode/css/tom-select-sortable.css' %}">
 
     <style>
         .xxs-font-size{
@@ -122,25 +128,6 @@
         }
         .form_item_spacing {
           margin-bottom: 25px
-        }
-        
-        /* Tom Select + Sortable Styles */
-        .ts-wrapper.plugin-drag_drop .ts-control > .item {
-          cursor: move;
-          cursor: grab;
-        }
-        
-        .ts-wrapper.plugin-drag_drop .ts-control > .item:active {
-          cursor: grabbing;
-        }
-        
-        .ts-wrapper .ts-control .item.sortable-ghost {
-          opacity: 0.4;
-        }
-        
-        .ts-wrapper .ts-control .item.sortable-chosen {
-          background-color: #3875d7 !important;
-          color: white !important;
         }
     </style>
 {{ block.super }}
