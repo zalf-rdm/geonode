@@ -372,7 +372,7 @@ class ContactRoleMultipleChoiceField(forms.ModelMultipleChoiceField):
         kwargs.setdefault("to_field_name", "username")
         super().__init__(*args, **kwargs)
 
-    def clean(self, value) -> QuerySet:
+    def clean(self, value):
         if isinstance(value, QuerySet):
             return value
 
@@ -382,41 +382,54 @@ class ContactRoleMultipleChoiceField(forms.ModelMultipleChoiceField):
         if not isinstance(value, (list, tuple)):
             value = [value]
 
-        normalized_ids = []
-        normalized_usernames = []
+        # Preserve order by tracking original input order
+        ordered_items = []
         for item in value:
             if item is None:
                 continue
 
             if hasattr(item, "pk"):
-                normalized_ids.append(item.pk)
+                ordered_items.append(("id", item.pk))
                 continue
             try:
                 # Try to treat it as an ID (integer).
-                # This will work for integers and numeric strings.
-                normalized_ids.append(int(item))
+                ordered_items.append(("id", int(item)))
             except (ValueError, TypeError):
                 # If it's not an integer, treat it as a username.
                 username = str(item)
                 if username:  # Avoid empty usernames
-                    normalized_usernames.append(username)
+                    ordered_items.append(("username", username))
 
         try:
             user_model = get_user_model()
+            # Fetch all users
+            ids = [val for type_, val in ordered_items if type_ == "id"]
+            usernames = [val for type_, val in ordered_items if type_ == "username"]
+            
             query = Q()
-            if normalized_ids:
-                query |= Q(pk__in=normalized_ids)
-            if normalized_usernames:
-                query |= Q(username__in=normalized_usernames)
+            if ids:
+                query |= Q(pk__in=ids)
+            if usernames:
+                query |= Q(username__in=usernames)
 
             if query:
-                users = user_model.objects.filter(query)
+                users_dict = {u.pk: u for u in user_model.objects.filter(query)}
+                # Also index by username
+                for u in users_dict.values():
+                    users_dict[u.username] = u
+                
+                # Return list in original order
+                ordered_users = []
+                for type_, val in ordered_items:
+                    if val in users_dict:
+                        user = users_dict[val]
+                        if user not in ordered_users:  # Avoid duplicates
+                            ordered_users.append(user)
+                return ordered_users
             else:
-                users = user_model.objects.none()
+                return []
         except (TypeError, ValueError):
-            # value of not supported type ...
             raise forms.ValidationError(_("Something went wrong in finding the profile(s) in a contact role form ..."))
-        return users
 
     def label_from_instance(self, obj):
         return get_user_display_name(obj)
