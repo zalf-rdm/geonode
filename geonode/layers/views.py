@@ -618,9 +618,7 @@ def dataset_metadata(
     # define contact role forms
     contact_role_forms_context = {}
     for role in layer.get_multivalue_role_property_names():
-        dataset_form.fields[role].initial = ContactRole.objects.filter(resource=layer, role=role) 
-        #.values_list("contact", flat=True)
-        #dataset_form.fields[role].initial = [p.username for p in layer.__getattribute__(role)]
+        dataset_form.fields[role].initial = ContactRole.objects.filter(resource=layer, role=role).values_list("contact", flat=True)
         role_form = ProfileForm(prefix=role)
         role_form.hidden = True
         contact_role_forms_context[f"{role}_form"] = role_form

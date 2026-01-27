@@ -52,7 +52,7 @@ from geonode.resource.manager import resource_manager
 from geonode.decorators import check_keyword_write_perms
 from geonode.security.utils import get_user_visible_groups
 from geonode.base.forms import CategoryForm, TKeywordForm, ThesaurusAvailableForm, RelatedProjectForm
-from geonode.base.models import Thesaurus, TopicCategory, Funding, RelatedIdentifier, RelatedProject
+from geonode.base.models import ContactRole, Thesaurus, TopicCategory, Funding, RelatedIdentifier, RelatedProject
 from geonode.base import enumerations
 
 from pathlib import Path
@@ -559,7 +559,7 @@ def document_metadata(
     # define contact role forms
     contact_role_forms_context = {}
     for role in document.get_multivalue_role_property_names():
-        document_form.fields[role].initial = [p.username for p in document.__getattribute__(role)]
+        document_form.fields[role].initial = ContactRole.objects.filter(resource=document, role=role).values_list("contact", flat=True)
         role_form = ProfileForm(prefix=role)
         role_form.hidden = True
         contact_role_forms_context[f"{role}_form"] = role_form

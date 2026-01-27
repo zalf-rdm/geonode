@@ -369,11 +369,10 @@ class ThesaurusAvailableForm(forms.Form):
 
 class ContactRoleMultipleChoiceField(forms.ModelMultipleChoiceField):
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault("to_field_name", "username")
+        #kwargs.setdefault("to_field_name", "username")
         super().__init__(*args, **kwargs)
 
     def clean(self, value) -> QuerySet:
-        breakpoint()
         if isinstance(value, QuerySet):
             return value
 
