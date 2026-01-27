@@ -27,7 +27,7 @@ from deprecated import deprecated
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.forms.models import inlineformset_factory, modelformset_factory
+from django.forms.models import modelformset_factory
 from django.http import Http404, HttpResponse, HttpResponseNotAllowed, HttpResponseRedirect, HttpResponseServerError
 from django.shortcuts import render
 from django.urls import reverse

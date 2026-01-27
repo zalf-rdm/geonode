@@ -672,37 +672,36 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     resource_type = serializers.CharField(required=False)
     polymorphic_ctype_id = serializers.CharField(read_only=True)
     owner = DynamicRelationField(user_serializer(), embed=True, read_only=True)
-    author = ContactRoleField(Roles.METADATA_AUTHOR.role_value, required=False)
-    processor = ContactRoleField(Roles.PROCESSOR.role_value, required=False)
-    publisher = ContactRoleField(Roles.PUBLISHER.role_value, required=False)
-    custodian = ContactRoleField(Roles.CUSTODIAN.role_value, required=False)
-    poc = ContactRoleField(Roles.POC.role_value, required=False)
-    distributor = ContactRoleField(Roles.DISTRIBUTOR.role_value, required=False)
-    resource_user = ContactRoleField(Roles.RESOURCE_USER.role_value, required=False)
-    resource_provider = ContactRoleField(Roles.RESOURCE_PROVIDER.role_value, required=False)
-    originator = ContactRoleField(Roles.ORIGINATOR.role_value, required=False)
-    principal_investigator = ContactRoleField(Roles.PRINCIPAL_INVESTIGATOR.role_value, required=False)
-    
-    data_collector = ContactRoleField(Roles.DATA_COLLECTOR.role_value, required=False)
-    data_curator = ContactRoleField(Roles.DATA_CURATOR.role_value, required=False)
-    editor = ContactRoleField(Roles.EDITOR.role_value, required=False)
-    host_institution = ContactRoleField(Roles.HOSTING_INSTITUTION.role_value, required=False)
-    other = ContactRoleField(Roles.OTHER.role_value, required=False)
-    producer = ContactRoleField(Roles.PRODUCER.role_value, required=False)
-    project_leader = ContactRoleField(Roles.PROJECT_LEADER.role_value, required=False)
-    project_manager = ContactRoleField(Roles.PROJECT_MANAGER.role_value, required=False)
-    project_member = ContactRoleField(Roles.PROJECT_MEMBER.role_value, required=False)
-    registration_agency = ContactRoleField(Roles.REGISTRATION_AGENCY.role_value, required=False)
-    registration_authority = ContactRoleField(Roles.REGISTRATION_AUTHORITY.role_value, required=False)
-    related_person = ContactRoleField(Roles.RELATED_PERSON.role_value, required=False)
-    research_group = ContactRoleField(Roles.RESEARCH_GROUP.role_value, required=False)
-    researcher = ContactRoleField(Roles.RESEARCHER.role_value, required=False)
-    rights_holder = ContactRoleField(Roles.RIGHTS_HOLDER.role_value, required=False)
-    sponsor = ContactRoleField(Roles.SPONSOR.role_value, required=False)
-    supervisor = ContactRoleField(Roles.SUPERVISOR.role_value, required=False)
-    work_package_leader = ContactRoleField(Roles.WORK_PACKAGE_LEADER.role_value, required=False)
+    author = ContactRoleField(Roles.METADATA_AUTHOR.name, required=False, source="metadata_author")
+    processor = ContactRoleField(Roles.PROCESSOR.name, required=False)
+    publisher = ContactRoleField(Roles.PUBLISHER.name, required=False)
+    custodian = ContactRoleField(Roles.CUSTODIAN.name, required=False)
+    poc = ContactRoleField(Roles.POC.name, required=False)
+    distributor = ContactRoleField(Roles.DISTRIBUTOR.name, required=False)
+    resource_user = ContactRoleField(Roles.RESOURCE_USER.name, required=False)
+    resource_provider = ContactRoleField(Roles.RESOURCE_PROVIDER.name, required=False)
+    originator = ContactRoleField(Roles.ORIGINATOR.name, required=False)
+    principal_investigator = ContactRoleField(Roles.PRINCIPAL_INVESTIGATOR.name, required=False)
 
-    
+    data_collector = ContactRoleField(Roles.DATA_COLLECTOR.name, required=False)
+    data_curator = ContactRoleField(Roles.DATA_CURATOR.name, required=False)
+    editor = ContactRoleField(Roles.EDITOR.name, required=False)
+    host_institution = ContactRoleField(Roles.HOSTING_INSTITUTION.name, required=False)
+    other = ContactRoleField(Roles.OTHER.name, required=False)
+    producer = ContactRoleField(Roles.PRODUCER.name, required=False)
+    project_leader = ContactRoleField(Roles.PROJECT_LEADER.name, required=False)
+    project_manager = ContactRoleField(Roles.PROJECT_MANAGER.name, required=False)
+    project_member = ContactRoleField(Roles.PROJECT_MEMBER.name, required=False)
+    registration_agency = ContactRoleField(Roles.REGISTRATION_AGENCY.name, required=False)
+    registration_authority = ContactRoleField(Roles.REGISTRATION_AUTHORITY.name, required=False)
+    related_person = ContactRoleField(Roles.RELATED_PERSON.name, required=False)
+    research_group = ContactRoleField(Roles.RESEARCH_GROUP.name, required=False)
+    researcher = ContactRoleField(Roles.RESEARCHER.name, required=False)
+    rights_holder = ContactRoleField(Roles.RIGHTS_HOLDER.name, required=False)
+    sponsor = ContactRoleField(Roles.SPONSOR.name, required=False)
+    supervisor = ContactRoleField(Roles.SUPERVISOR.name, required=False)
+    work_package_leader = ContactRoleField(Roles.WORK_PACKAGE_LEADER.name, required=False)
+
     title = serializers.CharField(required=False)
     abstract = serializers.CharField(required=False)
 
@@ -823,7 +822,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "resource_user",
             "resource_provider",
             "originator",
-            "principal_investigator",            
+            "principal_investigator",
             "data_collector",
             "data_curator",
             "editor",
@@ -842,7 +841,6 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "sponsor",
             "supervisor",
             "work_package_leader",
-            
             "keywords",
             "tkeywords",
             "regions",
