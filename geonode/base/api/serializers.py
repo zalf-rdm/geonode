@@ -46,6 +46,7 @@ from geonode.base.api.exceptions import InvalidResourceException
 
 from geonode.favorite.models import Favorite
 from geonode.base.models import (
+    ContactRole,
     Link,
     ResourceBase,
     HierarchicalKeyword,
@@ -468,14 +469,29 @@ class ContactRoleField(DynamicComputedField):
         super().__init__(**kwargs)
 
     def get_attribute(self, instance):
-        return getattr(instance, self.contact_type)
+        from geonode.base.models import ContactRole
+        contacts = ContactRole.objects.filter(resource=instance, role=self.contact_type).order_by("order")
+
+        return contacts
 
     def to_representation(self, value):
-        return [user_serializer()(embed=True, many=False).to_representation(v) for v in value]
+        sorted_pks_of_users = []
 
-    def get_pks_of_users_to_set(self, value):
-        pks_of_users_to_set = []
+        for contact in value:
+            d = user_serializer()(embed=True, many=False).to_representation(contact.contact)
+            d['order'] = contact.order
+            sorted_pks_of_users.append(d)
+        return sorted_pks_of_users
+
+    def to_internal_value(self, value):
+        # access dataset
+        self.context['contact_role'] = self.contact_type
+        contact_roles = []
+        
+        ContactRole.objects.filter(role=self.contact_type, resource=self.parent.instance).delete()
         for val in value:
+            val_pk = None
+            val_order = 0
             # make it possible to set contact roles via username or pk through API
             if "username" in val and "pk" in val:
                 pk = val["pk"]
@@ -486,18 +502,21 @@ class ContactRoleField(DynamicComputedField):
                     raise ParseError(
                         detail=f"user with pk: {pk} and username: {username} is not the same ... ", code=403
                     )
-                pks_of_users_to_set.append(pk)
+                val_pk = pk
             elif "username" in val:
                 username = val["username"]
                 username_user = get_user_model().objects.get(username=username)
-                pks_of_users_to_set.append(username_user.pk)
+                val_pk = username_user.pk
             elif "pk" in val:
-                pks_of_users_to_set.append(val["pk"])
-        return pks_of_users_to_set
-
-    def to_internal_value(self, value):
-        return get_user_model().objects.filter(pk__in=self.get_pks_of_users_to_set(value))
-
+                val_pk = val["pk"]
+            
+            if "order" in val:
+                val_order = val["order"]
+            user = get_user_model().objects.get(pk=val_pk)
+            if not user:
+                raise ParseError(detail=f"user with pk: {val_pk} does not exist", code=404)
+            contact_roles.append(ContactRole.objects.get_or_create(role=self.contact_type, resource=self.parent.instance, contact=user, order=val_order))
+        return contact_roles
 
 class ExtentBboxField(DynamicComputedField):
     def get_attribute(self, instance):
@@ -653,35 +672,35 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     resource_type = serializers.CharField(required=False)
     polymorphic_ctype_id = serializers.CharField(read_only=True)
     owner = DynamicRelationField(user_serializer(), embed=True, read_only=True)
-    author = ContactRoleField(Roles.METADATA_AUTHOR.name, required=False, source="metadata_author")
-    processor = ContactRoleField(Roles.PROCESSOR.name, required=False)
-    publisher = ContactRoleField(Roles.PUBLISHER.name, required=False)
-    custodian = ContactRoleField(Roles.CUSTODIAN.name, required=False)
-    poc = ContactRoleField(Roles.POC.name, required=False)
-    distributor = ContactRoleField(Roles.DISTRIBUTOR.name, required=False)
-    resource_user = ContactRoleField(Roles.RESOURCE_USER.name, required=False)
-    resource_provider = ContactRoleField(Roles.RESOURCE_PROVIDER.name, required=False)
-    originator = ContactRoleField(Roles.ORIGINATOR.name, required=False)
-    principal_investigator = ContactRoleField(Roles.PRINCIPAL_INVESTIGATOR.name, required=False)
+    author = ContactRoleField(Roles.METADATA_AUTHOR.role_value, required=False)
+    processor = ContactRoleField(Roles.PROCESSOR.role_value, required=False)
+    publisher = ContactRoleField(Roles.PUBLISHER.role_value, required=False)
+    custodian = ContactRoleField(Roles.CUSTODIAN.role_value, required=False)
+    poc = ContactRoleField(Roles.POC.role_value, required=False)
+    distributor = ContactRoleField(Roles.DISTRIBUTOR.role_value, required=False)
+    resource_user = ContactRoleField(Roles.RESOURCE_USER.role_value, required=False)
+    resource_provider = ContactRoleField(Roles.RESOURCE_PROVIDER.role_value, required=False)
+    originator = ContactRoleField(Roles.ORIGINATOR.role_value, required=False)
+    principal_investigator = ContactRoleField(Roles.PRINCIPAL_INVESTIGATOR.role_value, required=False)
     
-    data_collector = ContactRoleField(Roles.DATA_COLLECTOR.name, required=False)
-    data_curator = ContactRoleField(Roles.DATA_CURATOR.name, required=False)
-    editor = ContactRoleField(Roles.EDITOR.name, required=False)
-    host_institution = ContactRoleField(Roles.HOSTING_INSTITUTION.name, required=False)
-    other = ContactRoleField(Roles.OTHER.name, required=False)
-    producer = ContactRoleField(Roles.PRODUCER.name, required=False)
-    project_leader = ContactRoleField(Roles.PROJECT_LEADER.name, required=False)
-    project_manager = ContactRoleField(Roles.PROJECT_MANAGER.name, required=False)
-    project_member = ContactRoleField(Roles.PROJECT_MEMBER.name, required=False)
-    registration_agency = ContactRoleField(Roles.REGISTRATION_AGENCY.name, required=False)
-    registration_authority = ContactRoleField(Roles.REGISTRATION_AUTHORITY.name, required=False)
-    related_person = ContactRoleField(Roles.RELATED_PERSON.name, required=False)
-    research_group = ContactRoleField(Roles.RESEARCH_GROUP.name, required=False)
-    researcher = ContactRoleField(Roles.RESEARCHER.name, required=False)
-    rights_holder = ContactRoleField(Roles.RIGHTS_HOLDER.name, required=False)
-    sponsor = ContactRoleField(Roles.SPONSOR.name, required=False)
-    supervisor = ContactRoleField(Roles.SUPERVISOR.name, required=False)
-    work_package_leader = ContactRoleField(Roles.WORK_PACKAGE_LEADER.name, required=False)
+    data_collector = ContactRoleField(Roles.DATA_COLLECTOR.role_value, required=False)
+    data_curator = ContactRoleField(Roles.DATA_CURATOR.role_value, required=False)
+    editor = ContactRoleField(Roles.EDITOR.role_value, required=False)
+    host_institution = ContactRoleField(Roles.HOSTING_INSTITUTION.role_value, required=False)
+    other = ContactRoleField(Roles.OTHER.role_value, required=False)
+    producer = ContactRoleField(Roles.PRODUCER.role_value, required=False)
+    project_leader = ContactRoleField(Roles.PROJECT_LEADER.role_value, required=False)
+    project_manager = ContactRoleField(Roles.PROJECT_MANAGER.role_value, required=False)
+    project_member = ContactRoleField(Roles.PROJECT_MEMBER.role_value, required=False)
+    registration_agency = ContactRoleField(Roles.REGISTRATION_AGENCY.role_value, required=False)
+    registration_authority = ContactRoleField(Roles.REGISTRATION_AUTHORITY.role_value, required=False)
+    related_person = ContactRoleField(Roles.RELATED_PERSON.role_value, required=False)
+    research_group = ContactRoleField(Roles.RESEARCH_GROUP.role_value, required=False)
+    researcher = ContactRoleField(Roles.RESEARCHER.role_value, required=False)
+    rights_holder = ContactRoleField(Roles.RIGHTS_HOLDER.role_value, required=False)
+    sponsor = ContactRoleField(Roles.SPONSOR.role_value, required=False)
+    supervisor = ContactRoleField(Roles.SUPERVISOR.role_value, required=False)
+    work_package_leader = ContactRoleField(Roles.WORK_PACKAGE_LEADER.role_value, required=False)
 
     
     title = serializers.CharField(required=False)

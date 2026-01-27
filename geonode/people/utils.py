@@ -197,8 +197,8 @@ def check_user_deletion_rules(profile) -> None:
 
 def get_user_display_name(user):
     """Returns 'firstname lastname' if available, otherwise username."""
-    first_name = getattr(user, 'first_name', '') or ''
-    last_name = getattr(user, 'last_name', '') or ''
+    first_name = user.first_name() or ''
+    last_name = user.last_name() or ''
     if first_name or last_name:
         return f"{first_name} {last_name}".strip()
     return getattr(user, 'username', str(user))

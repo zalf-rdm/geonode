@@ -47,7 +47,7 @@ from geonode.resource.manager import resource_manager
 from geonode.base.auth import get_or_create_token
 from geonode.base.forms import CategoryForm, TKeywordForm, ThesaurusAvailableForm, RelatedProjectForm
 from geonode.base.views import batch_modify
-from geonode.base.models import Thesaurus, TopicCategory, Funding, RelatedIdentifier, RelatedProject
+from geonode.base.models import ContactRole, Thesaurus, TopicCategory, Funding, RelatedIdentifier, RelatedProject
 from geonode.decorators import check_keyword_write_perms
 from geonode.layers.forms import DatasetForm, DatasetTimeSerieForm, LayerAttributeForm
 from geonode.layers.models import Dataset, Attribute
@@ -618,11 +618,13 @@ def dataset_metadata(
     # define contact role forms
     contact_role_forms_context = {}
     for role in layer.get_multivalue_role_property_names():
-        dataset_form.fields[role].initial = [p.username for p in layer.__getattribute__(role)]
+        dataset_form.fields[role].initial = ContactRole.objects.filter(resource=layer, role=role) 
+        #.values_list("contact", flat=True)
+        #dataset_form.fields[role].initial = [p.username for p in layer.__getattribute__(role)]
         role_form = ProfileForm(prefix=role)
         role_form.hidden = True
         contact_role_forms_context[f"{role}_form"] = role_form
-
+    
     metadata_author_groups = get_user_visible_groups(request.user)
 
     register_event(request, "view_metadata", layer)

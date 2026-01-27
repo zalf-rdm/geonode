@@ -32,6 +32,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.module_loading import import_string
 
 from geonode.assets.utils import get_default_asset
+from geonode.layers.templatetags import contact_roles
 from geonode.utils import OGC_Servers_Handler
 
 from ..base import enumerations
@@ -44,6 +45,7 @@ from ..base.models import (
     ThesaurusKeyword,
     HierarchicalKeyword,
     SpatialRepresentationType,
+    ContactRole,
 )
 from geonode.maps.models import Map
 from ..layers.models import Dataset
@@ -180,10 +182,12 @@ def update_resource(
             else:
                 defaults[key] = value
 
-    contact_roles = {
-        contact_role.name: defaults.pop(contact_role.name, getattr(instance, contact_role.name))
-        for contact_role in Roles.get_multivalue_ones()
-    }
+    # TODO
+    # contact_roles = {
+
+    #     contact_role.name: defaults.pop(contact_role.name, getattr(instance, contact_role.name))
+    #     for contact_role in Roles.get_multivalue_ones()
+    # }
 
     to_update = {}
     for _key in ("name",):
@@ -240,10 +244,10 @@ def update_resource(
         to_update["ows_url"] = defaults.pop("ows_url", getattr(instance, "ows_url", None)) or _default_ows_url
 
     # update contact roles in instance
-    [
-        instance.__setattr__(contact_role_name, contact_role_value)
-        for contact_role_name, contact_role_value in contact_roles.items()
-    ]
+    # [
+    #     instance.__setattr__(contact_role_name, contact_role_value)
+    #     for contact_role_name, contact_role_value in contact_roles.items()
+    # ]
 
     to_update.update(defaults)
     resource_dict = {  # TODO: cleanup params and dicts

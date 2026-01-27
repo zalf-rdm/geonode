@@ -180,8 +180,8 @@ class RestrictionCodeTypeAdmin(TabbedTranslationAdmin):
 class ContactRoleAdmin(admin.ModelAdmin):
     model = ContactRole
     list_display_links = ("id",)
-    list_display = ("id", "contact", "resource", "role")
-    list_editable = ("contact", "resource", "role")
+    list_display = ("id", "contact", "resource", "role", "order")
+    list_editable = ("contact", "resource", "role", "order")
     form = forms.modelform_factory(ContactRole, fields="__all__")
 
 

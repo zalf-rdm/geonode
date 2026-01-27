@@ -373,6 +373,7 @@ class ContactRoleMultipleChoiceField(forms.ModelMultipleChoiceField):
         super().__init__(*args, **kwargs)
 
     def clean(self, value) -> QuerySet:
+        breakpoint()
         if isinstance(value, QuerySet):
             return value
 

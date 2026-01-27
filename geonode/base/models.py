@@ -64,6 +64,7 @@ from guardian.shortcuts import get_anonymous_user, get_objects_for_user
 from treebeard.mp_tree import MP_Node, MP_NodeQuerySet, MP_NodeManager
 from geonode import GeoNodeException
 
+from geonode.api.views import users
 from geonode.base import enumerations
 from geonode.singleton import SingletonModel
 from geonode.groups.conf import settings as groups_settings
@@ -102,8 +103,10 @@ class ContactRole(models.Model):
     role = models.CharField(
         choices=ROLE_VALUES, max_length=255, help_text=_("function performed by the responsible " "party")
     )
+    order = models.IntegerField(default=0, null=True, blank=True)
 
     class Meta:
+        ordering = ("order", "id")
         unique_together = (("contact", "resource", "role"),)
 
 
@@ -1959,11 +1962,10 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
             except Exception:
                 pass
 
-        if user:
-            if len(self.poc) == 0:
-                self.poc = [user]
-            if len(self.metadata_author) == 0:
-                self.metadata_author = [user]
+        if len(ContactRole.objects.filter(resource=self,role=Roles.POC.name)) == 0:
+            ContactRole.objects.create(resource=self, role=Roles.POC.name, contact=user)
+        if len(ContactRole.objects.filter(resource=self,role=Roles.METADATA_AUTHOR.name)) == 0:
+            ContactRole.objects.create(resource=self, role=Roles.METADATA_AUTHOR.name, contact=user)
 
         from guardian.models import UserObjectPermission
 
@@ -1988,10 +1990,10 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         """
         Set metadata_author and/or point of contact (poc) to a resource when any of them is missing
         """
-        if len(self.metadata_author) == 0:
-            self.metadata_author = [self.owner]
-        if len(self.poc) == 0:
-            self.poc = [self.owner]
+        if len(ContactRole.objects.filter(resource=self,role=Roles.METADATA_AUTHOR.name)) == 0:
+            ContactRole.objects.create(role=Roles.METADATA_AUTHOR.name, contact=self.owner)
+        if len(ContactRole.objects.filter(resource=self,role=Roles.POC.name)) == 0:
+            ContactRole.objects.create(role=Roles.POC.name, contact=self.owner)
 
     @staticmethod
     def get_multivalue_role_property_names() -> List[str]:
@@ -2004,15 +2006,15 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         """
         return [role.name for role in Roles.get_multivalue_ones()]
 
-    @staticmethod
-    def get_multivalue_required_role_property_names() -> List[str]:
-        """returns list of property names for all contact roles that are required
+    # @staticmethod
+    # def get_multivalue_required_role_property_names() -> List[str]:
+    #     """returns list of property names for all contact roles that are required
 
-        Returns:
-            _type_: List(str)
-            _description: list of names
-        """
-        return [role.name for role in (set(Roles.get_multivalue_ones()) & set(Roles.get_required_ones()))]
+    #     Returns:
+    #         _type_: List(str)
+    #         _description: list of names
+    #     """
+    #     return [role.name for role in (set(Roles.get_multivalue_ones()) & set(Roles.get_required_ones()))]
 
     @staticmethod
     def get_ui_toggled_role_property_names() -> List[str]:
@@ -2061,39 +2063,41 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     # types allowed as input for Contact role properties
     CONTACT_ROLE_USER_PROFILES_ALLOWED_TYPES = Union[settings.AUTH_USER_MODEL, QuerySet, List[settings.AUTH_USER_MODEL]]
 
-    def __set_contact_role_element__(self, user_profile: CONTACT_ROLE_USER_PROFILES_ALLOWED_TYPES, role: str):
-        """general setter for all contact roles except owner in resource base
+    # def __set_contact_role_element__(self, user_profile: CONTACT_ROLE_USER_PROFILES_ALLOWED_TYPES, role: str):
+    #     """general setter for all contact roles except owner in resource base
 
-        Args:
-            user_profile (CONTACT_ROLE_USER_PROFILES_ALLOWED_TYPES): _description_
-            role (str): tring coresponding to ROLE_VALUES in geonode/people/enumarations, defining which propery is to set
-        """
+    #     Args:
+    #         user_profile (CONTACT_ROLE_USER_PROFILES_ALLOWED_TYPES): _description_
+    #         role (str): tring coresponding to ROLE_VALUES in geonode/people/enumarations, defining which propery is to set
+    #     """
 
-        def __create_role__(
-            resource, role: str, user_profile: settings.AUTH_USER_MODEL
-        ) -> List[settings.AUTH_USER_MODEL]:
-            return ContactRole.objects.create(role=role, resource=resource, contact=user_profile)
+    #     def __create_role__(
+    #         resource, role: str, user_profile: settings.AUTH_USER_MODEL, order=0
+    #     ) -> List[settings.AUTH_USER_MODEL]:
+    #         return ContactRole.objects.create(role=role, resource=resource, contact=user_profile, order=order)
 
-        if isinstance(user_profile, QuerySet):
-            ContactRole.objects.filter(role=role, resource=self).delete()
-            return [__create_role__(self, role, user) for user in user_profile]
+    #     if isinstance(user_profile, QuerySet):
+    #         ContactRole.objects.filter(role=role, resource=self).delete()
+    #         return [__create_role__(self, role, user, i) for i, user in enumerate(user_profile)]
 
-        elif isinstance(user_profile, get_user_model()):
-            ContactRole.objects.filter(role=role, resource=self).delete()
-            return __create_role__(self, role, user_profile)
+    #     elif isinstance(user_profile, get_user_model()):
+    #         ContactRole.objects.filter(role=role, resource=self).delete()
+    #         return __create_role__(self, role, user_profile)
 
-        elif isinstance(user_profile, list) and all(
-            get_user_model().objects.filter(username=x).exists() for x in user_profile
-        ):
-            ContactRole.objects.filter(role=role, resource=self).delete()
-            return [
-                __create_role__(self, role, user) for user in get_user_model().objects.filter(username__in=user_profile)
-            ]
+    #     elif isinstance(user_profile, list):
+    #         ContactRole.objects.filter(role=role, resource=self).delete()
+    #         _users = []
+    #         for _u in user_profile:
+    #             if isinstance(_u, str) and get_user_model().objects.filter(username=_u).exists():
+    #                 _users.append(get_user_model().objects.get(username=_u))
+    #             elif isinstance(_u, get_user_model()):
+    #                 _users.append(_u)
+    #         return [__create_role__(self, role, user, i) for i, user in enumerate(_users)]
 
-        elif user_profile is None:
-            ContactRole.objects.filter(role=role, resource=self).delete()
-        else:
-            logger.error(f"Bad profile format for role: {role} ...")
+    #     elif user_profile is None:
+    #         ContactRole.objects.filter(role=role, resource=self).delete()
+    #     else:
+    #         logger.error(f"Bad profile format for role: {role} ...")
 
     def get_defined_multivalue_contact_roles(self) -> List[Tuple[List[settings.AUTH_USER_MODEL], str]]:
         """Returns all set contact roles of the ressource with additional ROLE_VALUES from geonode.people.enumarations.ROLE_VALUES. Mainly used to generate output xml more easy.
@@ -2102,390 +2106,396 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
               _type_: List[Tuple[List[people object], roles_label_name]]
               _description: list tuples including two elements: 1. list of people have a certain role. 2. role label
         """
-        return {
-            role.label: self.__getattribute__(role.name)
-            for role in Roles.get_multivalue_ones()
-            if self.__getattribute__(role.name)
-        }
+        ret = {}
+        l = []
+        for role in Roles.get_multivalue_ones():
+            contact_role = ContactRole.objects.filter(resource=self, role=role.name)
+            if contact_role:
+                l = []
+                for cr in contact_role:
+                    l.append(cr.contact)
+                ret[role.label] = l
+        return ret
+   
 
-    def get_first_contact_of_role(self, role: str) -> Optional[ContactRole]:
-        """
-        Get the first contact from the specified role.
+    # def get_first_contact_of_role(self, role: str) -> Optional[ContactRole]:
+    #     """
+    #     Get the first contact from the specified role.
 
-        Parameters:
-            role (str): The role of the contact.
+    #     Parameters:
+    #         role (str): The role of the contact.
 
-        Returns:
-            ContactRole or None: The first contact with the specified role, or None if not found.
-        """
-        if contact := self.__get_contact_role_elements__(role):
-            return contact[0]
-        else:
-            return None
+    #     Returns:
+    #         ContactRole or None: The first contact with the specified role, or None if not found.
+    #     """
+    #     if contact := self.__get_contact_role_elements__(role):
+    #         return contact[0]
+    #     else:
+    #         return None
 
-    # Contact Role: POC (pointOfContact)
-    def __get_poc__(self) -> List[settings.AUTH_USER_MODEL]:
-        return self.__get_contact_role_elements__(role="pointOfContact")
+    # # Contact Role: POC (pointOfContact)
+    # def __get_poc__(self) -> List[settings.AUTH_USER_MODEL]:
+    #     return self.__get_contact_role_elements__(role="pointOfContact")
 
-    def __set_poc__(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role="pointOfContact")
+    # def __set_poc__(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role="pointOfContact")
 
-    poc = property(__get_poc__, __set_poc__)
+    # poc = property(__get_poc__, __set_poc__)
 
-    @property
-    def poc_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.poc)
+    # @property
+    # def poc_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.poc)
 
-    # Contact Role: metadata_author
-    def _get_metadata_author(self):
-        return self.__get_contact_role_elements__(role="author")
+    # # Contact Role: metadata_author
+    # def _get_metadata_author(self):
+    #     return self.__get_contact_role_elements__(role="author")
 
-    def _set_metadata_author(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role="author")
+    # def _set_metadata_author(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role="author")
 
-    metadata_author = property(_get_metadata_author, _set_metadata_author)
+    # metadata_author = property(_get_metadata_author, _set_metadata_author)
 
-    @property
-    def metadata_author_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.metadata_author)
+    # @property
+    # def metadata_author_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.metadata_author)
 
-    # Contact Role: PROCESSOR
-    def _get_processor(self):
-        return self.__get_contact_role_elements__(role=Roles.PROCESSOR.name)
+    # # Contact Role: PROCESSOR
+    # def _get_processor(self):
+    #     return self.__get_contact_role_elements__(role=Roles.PROCESSOR.name)
 
-    def _set_processor(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.PROCESSOR.name)
+    # def _set_processor(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.PROCESSOR.name)
 
-    processor = property(_get_processor, _set_processor)
+    # processor = property(_get_processor, _set_processor)
 
-    @property
-    def processor_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.processor)
+    # @property
+    # def processor_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.processor)
 
-    # Contact Role: PUBLISHER
-    def _get_publisher(self):
-        return self.__get_contact_role_elements__(role=Roles.PUBLISHER.name)
+    # # Contact Role: PUBLISHER
+    # def _get_publisher(self):
+    #     return self.__get_contact_role_elements__(role=Roles.PUBLISHER.name)
 
-    def _set_publisher(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.PUBLISHER.name)
+    # def _set_publisher(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.PUBLISHER.name)
 
-    publisher = property(_get_publisher, _set_publisher)
+    # publisher = property(_get_publisher, _set_publisher)
 
-    @property
-    def publisher_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.publisher)
+    # @property
+    # def publisher_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.publisher)
 
-    # Contact Role: CUSTODIAN
-    def _get_custodian(self):
-        return self.__get_contact_role_elements__(role=Roles.CUSTODIAN.name)
+    # # Contact Role: CUSTODIAN
+    # def _get_custodian(self):
+    #     return self.__get_contact_role_elements__(role=Roles.CUSTODIAN.name)
 
-    def _set_custodian(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.CUSTODIAN.name)
+    # def _set_custodian(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.CUSTODIAN.name)
 
-    custodian = property(_get_custodian, _set_custodian)
+    # custodian = property(_get_custodian, _set_custodian)
 
-    @property
-    def custodian_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.custodian)
+    # @property
+    # def custodian_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.custodian)
 
-    # Contact Role: DISTRIBUTOR
-    def _get_distributor(self):
-        return self.__get_contact_role_elements__(role=Roles.DISTRIBUTOR.name)
+    # # Contact Role: DISTRIBUTOR
+    # def _get_distributor(self):
+    #     return self.__get_contact_role_elements__(role=Roles.DISTRIBUTOR.name)
 
-    def _set_distributor(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.DISTRIBUTOR.name)
+    # def _set_distributor(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.DISTRIBUTOR.name)
 
-    distributor = property(_get_distributor, _set_distributor)
+    # distributor = property(_get_distributor, _set_distributor)
 
-    @property
-    def distributor_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.distributor)
+    # @property
+    # def distributor_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.distributor)
 
-    # Contact Role: RESOURCE_USER
-    def _get_resource_user(self):
-        return self.__get_contact_role_elements__(role=Roles.RESOURCE_USER.name)
+    # # Contact Role: RESOURCE_USER
+    # def _get_resource_user(self):
+    #     return self.__get_contact_role_elements__(role=Roles.RESOURCE_USER.name)
 
-    def _set_resource_user(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.RESOURCE_USER.name)
+    # def _set_resource_user(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.RESOURCE_USER.name)
 
-    resource_user = property(_get_resource_user, _set_resource_user)
+    # resource_user = property(_get_resource_user, _set_resource_user)
 
-    @property
-    def resource_user_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.resource_user)
+    # @property
+    # def resource_user_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.resource_user)
 
-    # Contact Role: RESOURCE_PROVIDER
-    def _get_resource_provider(self):
-        return self.__get_contact_role_elements__(role=Roles.RESOURCE_PROVIDER.name)
+    # # Contact Role: RESOURCE_PROVIDER
+    # def _get_resource_provider(self):
+    #     return self.__get_contact_role_elements__(role=Roles.RESOURCE_PROVIDER.name)
 
-    def _set_resource_provider(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.RESOURCE_PROVIDER.name)
+    # def _set_resource_provider(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.RESOURCE_PROVIDER.name)
 
-    resource_provider = property(_get_resource_provider, _set_resource_provider)
+    # resource_provider = property(_get_resource_provider, _set_resource_provider)
 
-    @property
-    def resource_provider_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.resource_provider)
+    # @property
+    # def resource_provider_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.resource_provider)
 
-    # Contact Role: ORIGINATOR
-    def _get_originator(self):
-        return self.__get_contact_role_elements__(role=Roles.ORIGINATOR.name)
+    # # Contact Role: ORIGINATOR
+    # def _get_originator(self):
+    #     return self.__get_contact_role_elements__(role=Roles.ORIGINATOR.name)
 
-    def _set_originator(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.ORIGINATOR.name)
+    # def _set_originator(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.ORIGINATOR.name)
 
-    originator = property(_get_originator, _set_originator)
+    # originator = property(_get_originator, _set_originator)
 
-    @property
-    def originator_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.originator)
+    # @property
+    # def originator_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.originator)
 
-    # Contact Role: PRINCIPAL_INVESTIGATOR
-    def _get_principal_investigator(self):
-        return self.__get_contact_role_elements__(role=Roles.PRINCIPAL_INVESTIGATOR.name)
+    # # Contact Role: PRINCIPAL_INVESTIGATOR
+    # def _get_principal_investigator(self):
+    #     return self.__get_contact_role_elements__(role=Roles.PRINCIPAL_INVESTIGATOR.name)
 
-    def _set_principal_investigator(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.PRINCIPAL_INVESTIGATOR.name)
+    # def _set_principal_investigator(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.PRINCIPAL_INVESTIGATOR.name)
 
-    principal_investigator = property(_get_principal_investigator, _set_principal_investigator)
+    # principal_investigator = property(_get_principal_investigator, _set_principal_investigator)
 
-    @property
-    def principal_investigator_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.principal_investigator)
+    # @property
+    # def principal_investigator_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.principal_investigator)
 
-    # Contact Role: data_collector
-    def _get_data_collector(self):
-        return self.__get_contact_role_elements__(role=Roles.DATA_COLLECTOR.name)
+    # # Contact Role: data_collector
+    # def _get_data_collector(self):
+    #     return self.__get_contact_role_elements__(role=Roles.DATA_COLLECTOR.name)
 
-    def _set_data_collector(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.DATA_COLLECTOR.name)
+    # def _set_data_collector(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.DATA_COLLECTOR.name)
 
-    data_collector = property(_get_data_collector, _set_data_collector)
+    # data_collector = property(_get_data_collector, _set_data_collector)
 
-    @property
-    def data_collector_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.data_collector)
+    # @property
+    # def data_collector_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.data_collector)
 
-    # Contact Role: Data Curator
-    def _get_data_curator(self):
-        return self.__get_contact_role_elements__(role=Roles.DATA_CURATOR.name)
+    # # Contact Role: Data Curator
+    # def _get_data_curator(self):
+    #     return self.__get_contact_role_elements__(role=Roles.DATA_CURATOR.name)
 
-    def _set_data_curator(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.DATA_CURATOR.name)
+    # def _set_data_curator(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.DATA_CURATOR.name)
 
-    data_curator = property(_get_data_curator, _set_data_curator)
+    # data_curator = property(_get_data_curator, _set_data_curator)
 
-    @property
-    def data_curator_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.data_curator)
+    # @property
+    # def data_curator_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.data_curator)
 
-    # Contact Role: Editor
-    def _get_editor(self):
-        return self.__get_contact_role_elements__(role=Roles.EDITOR.name)
+    # # Contact Role: Editor
+    # def _get_editor(self):
+    #     return self.__get_contact_role_elements__(role=Roles.EDITOR.name)
 
-    def _set_editor(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.EDITOR.name)
+    # def _set_editor(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.EDITOR.name)
 
-    editor = property(_get_editor, _set_editor)
+    # editor = property(_get_editor, _set_editor)
 
-    @property
-    def editor_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.editor)
+    # @property
+    # def editor_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.editor)
 
-    # Contact Role: Hosting Institution
-    def _get_hosting_institution(self):
-        return self.__get_contact_role_elements__(role=Roles.HOSTING_INSTITUTION.name)
+    # # Contact Role: Hosting Institution
+    # def _get_hosting_institution(self):
+    #     return self.__get_contact_role_elements__(role=Roles.HOSTING_INSTITUTION.name)
 
-    def _set_hosting_institution(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.HOSTING_INSTITUTION.name)
+    # def _set_hosting_institution(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.HOSTING_INSTITUTION.name)
 
-    hosting_institution = property(_get_hosting_institution, _set_hosting_institution)
+    # hosting_institution = property(_get_hosting_institution, _set_hosting_institution)
 
-    @property
-    def hosting_institution_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.hosting_institution)
+    # @property
+    # def hosting_institution_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.hosting_institution)
 
-    # Contact Role: Other
-    def _get_other(self):
-        return self.__get_contact_role_elements__(role=Roles.OTHER.name)
+    # # Contact Role: Other
+    # def _get_other(self):
+    #     return self.__get_contact_role_elements__(role=Roles.OTHER.name)
 
-    def _set_other(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.OTHER.name)
+    # def _set_other(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.OTHER.name)
 
-    other = property(_get_other, _set_other)
+    # other = property(_get_other, _set_other)
 
-    @property
-    def other_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.other)
+    # @property
+    # def other_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.other)
 
-    # Contact Role: Producer
-    def _get_producer(self):
-        return self.__get_contact_role_elements__(role=Roles.PRODUCER.name)
+    # # Contact Role: Producer
+    # def _get_producer(self):
+    #     return self.__get_contact_role_elements__(role=Roles.PRODUCER.name)
 
-    def _set_producer(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.PRODUCER.name)
+    # def _set_producer(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.PRODUCER.name)
 
-    producer = property(_get_producer, _set_producer)
+    # producer = property(_get_producer, _set_producer)
 
-    @property
-    def producer_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.producer)
+    # @property
+    # def producer_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.producer)
 
-    # Contact Role: Project Leader
-    def _get_project_leader(self):
-        return self.__get_contact_role_elements__(role=Roles.PROJECT_LEADER.name)
+    # # Contact Role: Project Leader
+    # def _get_project_leader(self):
+    #     return self.__get_contact_role_elements__(role=Roles.PROJECT_LEADER.name)
 
-    def _set_project_leader(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.PROJECT_LEADER.name)
+    # def _set_project_leader(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.PROJECT_LEADER.name)
 
-    project_leader = property(_get_project_leader, _set_project_leader)
+    # project_leader = property(_get_project_leader, _set_project_leader)
 
-    @property
-    def project_leader_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.project_leader)
+    # @property
+    # def project_leader_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.project_leader)
 
-    # Contact Role: Project Manager
-    def _get_project_manager(self):
-        return self.__get_contact_role_elements__(role=Roles.PROJECT_MANAGER.name)
+    # # Contact Role: Project Manager
+    # def _get_project_manager(self):
+    #     return self.__get_contact_role_elements__(role=Roles.PROJECT_MANAGER.name)
 
-    def _set_project_manager(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.PROJECT_MANAGER.name)
+    # def _set_project_manager(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.PROJECT_MANAGER.name)
 
-    project_manager = property(_get_project_manager, _set_project_manager)
+    # project_manager = property(_get_project_manager, _set_project_manager)
 
-    @property
-    def project_manager_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.project_manager)
+    # @property
+    # def project_manager_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.project_manager)
 
-    # Contact Role: Project Member
-    def _get_project_member(self):
-        return self.__get_contact_role_elements__(role=Roles.PROJECT_MEMBER.name)
+    # # Contact Role: Project Member
+    # def _get_project_member(self):
+    #     return self.__get_contact_role_elements__(role=Roles.PROJECT_MEMBER.name)
 
-    def _set_project_member(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.PROJECT_MEMBER.name)
+    # def _set_project_member(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.PROJECT_MEMBER.name)
 
-    project_member = property(_get_project_member, _set_project_member)
+    # project_member = property(_get_project_member, _set_project_member)
 
-    @property
-    def project_member_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.project_member)
+    # @property
+    # def project_member_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.project_member)
 
-    # Contact Role: Registration Agency
-    def _get_registration_agency(self):
-        return self.__get_contact_role_elements__(role=Roles.REGISTRATION_AGENCY.name)
+    # # Contact Role: Registration Agency
+    # def _get_registration_agency(self):
+    #     return self.__get_contact_role_elements__(role=Roles.REGISTRATION_AGENCY.name)
 
-    def _set_registration_agency(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.REGISTRATION_AGENCY.name)
+    # def _set_registration_agency(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.REGISTRATION_AGENCY.name)
 
-    registration_agency = property(_get_registration_agency, _set_registration_agency)
+    # registration_agency = property(_get_registration_agency, _set_registration_agency)
 
-    @property
-    def registration_agency_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.registration_agency)
+    # @property
+    # def registration_agency_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.registration_agency)
 
-    # Contact Role: Registration Authority
-    def _get_registration_authority(self):
-        return self.__get_contact_role_elements__(role=Roles.REGISTRATION_AUTHORITY.name)
+    # # Contact Role: Registration Authority
+    # def _get_registration_authority(self):
+    #     return self.__get_contact_role_elements__(role=Roles.REGISTRATION_AUTHORITY.name)
 
-    def _set_registration_authority(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.REGISTRATION_AUTHORITY.name)
+    # def _set_registration_authority(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.REGISTRATION_AUTHORITY.name)
 
-    registration_authority = property(_get_registration_authority, _set_registration_authority)
+    # registration_authority = property(_get_registration_authority, _set_registration_authority)
 
-    @property
-    def registration_authority_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.registration_authority)
+    # @property
+    # def registration_authority_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.registration_authority)
 
-    # Contact Role: Related Person
-    def _get_related_person(self):
-        return self.__get_contact_role_elements__(role=Roles.RELATED_PERSON.name)
+    # # Contact Role: Related Person
+    # def _get_related_person(self):
+    #     return self.__get_contact_role_elements__(role=Roles.RELATED_PERSON.name)
 
-    def _set_related_person(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.RELATED_PERSON.name)
+    # def _set_related_person(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.RELATED_PERSON.name)
 
-    related_person = property(_get_related_person, _set_related_person)
+    # related_person = property(_get_related_person, _set_related_person)
 
-    @property
-    def related_person_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.related_person)
+    # @property
+    # def related_person_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.related_person)
 
-    # Contact Role: Research Group
-    def _get_research_group(self):
-        return self.__get_contact_role_elements__(role=Roles.RESEARCH_GROUP.name)
+    # # Contact Role: Research Group
+    # def _get_research_group(self):
+    #     return self.__get_contact_role_elements__(role=Roles.RESEARCH_GROUP.name)
 
-    def _set_research_group(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.RESEARCH_GROUP.name)
+    # def _set_research_group(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.RESEARCH_GROUP.name)
 
-    research_group = property(_get_research_group, _set_research_group)
+    # research_group = property(_get_research_group, _set_research_group)
 
-    @property
-    def research_group_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.research_group)
+    # @property
+    # def research_group_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.research_group)
 
-    # Contact Role: Researcher
-    def _get_researcher(self):
-        return self.__get_contact_role_elements__(role=Roles.RESEARCHER.name)
+    # # Contact Role: Researcher
+    # def _get_researcher(self):
+    #     return self.__get_contact_role_elements__(role=Roles.RESEARCHER.name)
 
-    def _set_researcher(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.RESEARCHER.name)
+    # def _set_researcher(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.RESEARCHER.name)
 
-    researcher = property(_get_researcher, _set_researcher)
+    # researcher = property(_get_researcher, _set_researcher)
 
-    @property
-    def researcher_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.researcher)
+    # @property
+    # def researcher_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.researcher)
 
-    # Contact Role: Rights Holder
-    def _get_rights_holder(self):
-        return self.__get_contact_role_elements__(role=Roles.RIGHTS_HOLDER.name)
+    # # Contact Role: Rights Holder
+    # def _get_rights_holder(self):
+    #     return self.__get_contact_role_elements__(role=Roles.RIGHTS_HOLDER.name)
 
-    def _set_rights_holder(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.RIGHTS_HOLDER.name)
+    # def _set_rights_holder(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.RIGHTS_HOLDER.name)
 
-    rights_holder = property(_get_rights_holder, _set_rights_holder)
+    # rights_holder = property(_get_rights_holder, _set_rights_holder)
 
-    @property
-    def rights_holder_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.rights_holder)
+    # @property
+    # def rights_holder_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.rights_holder)
 
-    # Contact Role: Sponsor
-    def _get_sponsor(self):
-        return self.__get_contact_role_elements__(role=Roles.SPONSOR.name)
+    # # Contact Role: Sponsor
+    # def _get_sponsor(self):
+    #     return self.__get_contact_role_elements__(role=Roles.SPONSOR.name)
 
-    def _set_sponsor(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.SPONSOR.name)
+    # def _set_sponsor(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.SPONSOR.name)
 
-    sponsor = property(_get_sponsor, _set_sponsor)
+    # sponsor = property(_get_sponsor, _set_sponsor)
 
-    @property
-    def sponsor_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.sponsor)
+    # @property
+    # def sponsor_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.sponsor)
 
-    # Contact Role: Supervisor
-    def _get_supervisor(self):
-        return self.__get_contact_role_elements__(role=Roles.SUPERVISOR.name)
+    # # Contact Role: Supervisor
+    # def _get_supervisor(self):
+    #     return self.__get_contact_role_elements__(role=Roles.SUPERVISOR.name)
 
-    def _set_supervisor(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.SUPERVISOR.name)
+    # def _set_supervisor(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.SUPERVISOR.name)
 
-    supervisor = property(_get_supervisor, _set_supervisor)
+    # supervisor = property(_get_supervisor, _set_supervisor)
 
-    @property
-    def supervisor_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.supervisor)
+    # @property
+    # def supervisor_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.supervisor)
 
-    # Contact Role: Work Package Leader
-    def _get_work_package_leader(self):
-        return self.__get_contact_role_elements__(role=Roles.WORK_PACKAGE_LEADER.name)
+    # # Contact Role: Work Package Leader
+    # def _get_work_package_leader(self):
+    #     return self.__get_contact_role_elements__(role=Roles.WORK_PACKAGE_LEADER.name)
 
-    def _set_work_package_leader(self, user_profile):
-        return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.WORK_PACKAGE_LEADER.name)
+    # def _set_work_package_leader(self, user_profile):
+    #     return self.__set_contact_role_element__(user_profile=user_profile, role=Roles.WORK_PACKAGE_LEADER.name)
 
-    work_package_leader = property(_get_work_package_leader, _set_work_package_leader)
+    # work_package_leader = property(_get_work_package_leader, _set_work_package_leader)
 
-    @property
-    def work_package_leader_csv(self):
-        return ",".join(p.get_full_name() or p.username for p in self.work_package_leader)
+    # @property
+    # def work_package_leader_csv(self):
+    #     return ",".join(p.get_full_name() or p.username for p in self.work_package_leader)
 
     def get_linked_resources(self, as_target: bool = False):
         """
