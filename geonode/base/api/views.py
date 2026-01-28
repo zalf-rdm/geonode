@@ -295,7 +295,8 @@ class LicenseViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin
     queryset = License.objects.all()
     serializer_class = FullLicenseSerializer
     pagination_class = GeoNodeApiPagination
-    
+
+
 class RestrictionCodeTypeViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
     """
     API endpoint that lists RestrictCodeType.

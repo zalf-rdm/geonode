@@ -2,10 +2,10 @@ name: "Code formatting"
 
 on:
   push:
-    branches: [ master, 4.* ]
+    branches: [ main, 4.* ]
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: [ master, 4.* ]
+    branches: [ main, 4.* ]
 
 jobs:
   validate:
@@ -19,10 +19,10 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Set up Python ${{matrix.python-version}}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: ${{matrix.python-version}}
 

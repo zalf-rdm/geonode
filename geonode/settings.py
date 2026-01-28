@@ -2378,15 +2378,18 @@ ASSET_HANDLERS = [
 INSTALLED_APPS += ("geonode.assets",)
 GEONODE_APPS += ("geonode.assets",)
 
+
 # Django-Avatar - Change default templates to Geonode based
 AVATAR_ADD_TEMPLATE = "people/avatar/add.html"
 AVATAR_CHANGE_TEMPLATE = "people/avatar/change.html"
 AVATAR_DELETE_TEMPLATE = "people/avatar/confirm_delete.html"
 
+
 # disable certain fields from advanded metadata editor
 ADVANCED_EDIT_EXCLUDE_FIELD = [  # base
-    "fundings",
+    "fundings",  # inserted differently, therefore removed here, but still in editor
     "metadata_only",
+    "Region",
     "metadata",
     "resource_type",
     "spatial_representation_type",

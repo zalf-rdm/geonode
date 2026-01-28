@@ -489,7 +489,7 @@ class ContactRoleField(DynamicComputedField):
                 pks_of_users_to_set.append(pk)
             elif "username" in val:
                 username = val["username"]
-                username_user = get_user_model().objects.get(username=[username])
+                username_user = get_user_model().objects.get(username=username)
                 pks_of_users_to_set.append(username_user.pk)
             elif "pk" in val:
                 pks_of_users_to_set.append(val["pk"])
@@ -653,7 +653,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     resource_type = serializers.CharField(required=False)
     polymorphic_ctype_id = serializers.CharField(read_only=True)
     owner = DynamicRelationField(user_serializer(), embed=True, read_only=True)
-    metadata_author = ContactRoleField(Roles.METADATA_AUTHOR.name, required=False)
+    author = ContactRoleField(Roles.METADATA_AUTHOR.name, required=False, source="metadata_author")
     processor = ContactRoleField(Roles.PROCESSOR.name, required=False)
     publisher = ContactRoleField(Roles.PUBLISHER.name, required=False)
     custodian = ContactRoleField(Roles.CUSTODIAN.name, required=False)
@@ -663,7 +663,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     resource_provider = ContactRoleField(Roles.RESOURCE_PROVIDER.name, required=False)
     originator = ContactRoleField(Roles.ORIGINATOR.name, required=False)
     principal_investigator = ContactRoleField(Roles.PRINCIPAL_INVESTIGATOR.name, required=False)
-    
+
     data_collector = ContactRoleField(Roles.DATA_COLLECTOR.name, required=False)
     data_curator = ContactRoleField(Roles.DATA_CURATOR.name, required=False)
     editor = ContactRoleField(Roles.EDITOR.name, required=False)
@@ -683,7 +683,6 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     supervisor = ContactRoleField(Roles.SUPERVISOR.name, required=False)
     work_package_leader = ContactRoleField(Roles.WORK_PACKAGE_LEADER.name, required=False)
 
-    
     title = serializers.CharField(required=False)
     abstract = serializers.CharField(required=False)
 
@@ -703,13 +702,11 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     related_projects = ComplexDynamicRelationField(SimpleRelatedProjectSerializer, embed=True, many=True)
     conformity_results = serializers.CharField(required=False)
     conformity_explanation = serializers.CharField(required=False)
-    parent_identifier = ComplexDynamicRelationField(SimpleResourceSerializer, embed=True, many=False, required=False)
     date_available = serializers.DateField(required=False)
     date_updated = serializers.DateField(required=False)
     date_created = serializers.DateField(required=False)
     date_issued = serializers.DateField(required=False)
     date_accepted = serializers.DateField(required=False)
-    date_collected = serializers.DateField(required=False)
     date_copyrighted = serializers.DateField(required=False)
     date_submitted = serializers.DateField(required=False)
     date_valid = serializers.DateField(required=False)
@@ -733,7 +730,8 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     license = ComplexDynamicRelationField(LicenseSerializer, embed=True)
     metadata_license = ComplexDynamicRelationField(LicenseSerializer, embed=True, many=False)
     use_constrains = serializers.CharField(read_only=True)
-
+    data_lineage = serializers.CharField(required=False)
+    metadata_lineage = serializers.CharField(required=False)
     language = serializers.CharField(required=False)
     supplemental_information = serializers.CharField(required=False)
     data_quality_statement = serializers.CharField(required=False)
@@ -742,9 +740,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     extent = ExtentBboxField(required=False)
     srid = serializers.CharField(required=False)
     group = ComplexDynamicRelationField(GroupSerializer, embed=True)
-    popular_count = serializers.CharField(required=False)
     share_count = serializers.CharField(required=False)
-    rating = serializers.CharField(required=False)
     featured = ResourceManagementField(required=False)
     advertised = serializers.BooleanField(required=False)
     is_published = ResourceManagementField(required=False)
@@ -799,7 +795,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "perms",
             "owner",
             "poc",
-            "metadata_author",
+            "author",
             "processor",
             "publisher",
             "custodian",
@@ -808,7 +804,6 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "resource_provider",
             "originator",
             "principal_investigator",
-            
             "data_collector",
             "data_curator",
             "editor",
@@ -827,7 +822,6 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "sponsor",
             "supervisor",
             "work_package_leader",
-            
             "keywords",
             "tkeywords",
             "regions",
@@ -848,10 +842,8 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "fundings",
             "conformity_results",
             "conformity_explanation",
-            "parent_identifier",
             "date_accepted",
             "date_available",
-            "date_collected",
             "date_copyrighted",
             "date_created",
             "date_issued",
@@ -873,7 +865,6 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "use_constrains",
             "constraints_other",
             "restriction_other",
-            "license",
             "language",
             "spatial_representation_type",
             "temporal_extent_start",
@@ -881,9 +872,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "supplemental_information",
             "data_quality_statement",
             "group",
-            "popular_count",
             "share_count",
-            "rating",
             "featured",
             "advertised",
             "is_published",
@@ -898,7 +887,10 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "raw_supplemental_information",
             "raw_data_quality_statement",
             "related_projects",
+            "license",
             "metadata_license",
+            "data_lineage",
+            "metadata_lineage",
             "metadata_only",
             "processed",
             "state",

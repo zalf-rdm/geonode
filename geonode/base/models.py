@@ -719,7 +719,7 @@ class Organization(models.Model):
     )
 
     def __str__(self):
-        return f"{self.organization}"
+        return str(self.organization or "")
 
 
 class Funding(models.Model):
@@ -874,15 +874,11 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     conformity_explanation_help_text = _(
         "Give an Explanation about the conformity check. (e.g. See the referenced specification.)"
     )
-    parent_identifier_help_text = _(
-        "A file identifier of the metadata to which this metadata is a subset (child). (e.g. 73c0f49f-1502-48ee-b038-052563f36527)"
-    )
 
     date_accepted_help_text = _("The date that the publisher accepted the resource into their system.")
     date_available_help_text = _(
         "The date the resource is made publicly available. To indicate the end of an embargo period."
     )
-    date_collected_help_text = _("The date or date range in which the dataset content was collected")
     date_copyrighted_help_text = _(
         "The specific, documented date at which the dataset receives a copyrighted status, if applicable."
     )
@@ -891,7 +887,8 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     )
     date_issued_help_text = _("The date that the resource is published or distributed e.g. to a data centre.")
     date_submitted_help_text = _(
-        "The date the creator submits the resource to the publisher. This could be different from Accepted if the publisher the applies a selection process. To indicate the start of an embargo period. "
+        "The date the creator submits the resource to the publisher. This could be different from Accepted if "
+        "the publisher the applies a selection process. To indicate the start of an embargo period. "
     )
     date_updated_help_text = _(
         "The date of the last update (last revision) to the dataset, when the dataset is being added to."
@@ -950,14 +947,7 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     conformity_explanation = models.CharField(
         _("Conformity Explanation"), max_length=4000, blank=True, help_text=conformity_explanation_help_text
     )
-    parent_identifier = models.ForeignKey(
-        "self",
-        verbose_name=_("Parent Identifier"),
-        null=True,
-        blank=True,
-        help_text=parent_identifier_help_text,
-        on_delete=models.SET_NULL,
-    )
+
     date_available = models.DateField(
         _("Date Available"), default=datetime.date.today, help_text=date_available_help_text
     )
@@ -966,7 +956,6 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     date_updated = models.DateField(_("Date Updated"), default=datetime.date.today, help_text=date_updated_help_text)
 
     date_accepted = models.DateField(_("Date Accepted"), blank=True, null=True, help_text=date_accepted_help_text)
-    date_collected = models.DateField(_("Date Collected"), blank=True, null=True, help_text=date_collected_help_text)
     date_copyrighted = models.DateField(
         _("Date Copyrighted"), blank=True, null=True, help_text=date_copyrighted_help_text
     )
@@ -1042,7 +1031,7 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         help_text=license_help_text,
         on_delete=models.SET_NULL,
     )
-    data_lineage = models.TextField(_("Data Lineage"), max_length=1024, blank=True, help_text=data_lineage_help_text)
+    data_lineage = models.TextField(_("Data Lineage"), max_length=2048, blank=True, help_text=data_lineage_help_text)
     metadata_license = models.ForeignKey(
         License,
         null=True,
@@ -1053,7 +1042,7 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         on_delete=models.SET_NULL,
     )
     metadata_lineage = models.TextField(
-        _("Metadata Lineage"), null=True, blank=True, help_text=metadata_lineage_help_text
+        _("Metadata Lineage"), max_length=2048, blank=True, help_text=metadata_lineage_help_text
     )
 
     language = models.CharField(
@@ -1245,7 +1234,6 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         )
 
     def __init__(self, *args, **kwargs):
-
         # Provide legacy support for bbox fields
         try:
             bbox = [kwargs.pop(key, None) for key in ("bbox_x0", "bbox_y0", "bbox_x1", "bbox_y1")]
@@ -1441,7 +1429,9 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
 
     @property
     def organizationname(self):
-        return self.owner.organization
+        if self.owner.organization:
+            return str(self.owner.organization)
+        return None
 
     @property
     def restriction_code(self):
