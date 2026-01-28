@@ -949,6 +949,8 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
             "state",
             "blob",
             "files",
+            "is_approved",
+            "is_published",
             "was_approved",
             "was_published",
             "funding",

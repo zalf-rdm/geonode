@@ -38,6 +38,8 @@ from drf_spectacular.utils import extend_schema
 from dynamic_rest.viewsets import DynamicModelViewSet, WithDynamicViewSetMixin
 from dynamic_rest.filters import DynamicFilterBackend, DynamicSortingFilter
 
+from django_filters.rest_framework import DjangoFilterBackend
+
 from oauth2_provider.contrib.rest_framework import OAuth2Authentication
 
 from rest_framework import status
@@ -469,6 +471,7 @@ class ResourceBaseViewSet(ApiPresetsInitializer, DynamicModelViewSet, Advertised
         DynamicFilterBackend,
         DynamicSortingFilter,
         DynamicSearchFilter,
+        DjangoFilterBackend,
         ExtentFilter,
         ResourceBasePermissionsFilter,
         FavoriteFilter,
@@ -476,6 +479,7 @@ class ResourceBaseViewSet(ApiPresetsInitializer, DynamicModelViewSet, Advertised
     queryset = ResourceBase.objects.all().order_by("-created")
     serializer_class = ResourceBaseSerializer
     pagination_class = GeoNodeApiPagination
+    filterset_fields = { 'id': ['in', 'exact'] }
 
     def _filtered(self, request, filter):
         paginator = GeoNodeApiPagination()

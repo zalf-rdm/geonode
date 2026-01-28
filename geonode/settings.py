@@ -697,7 +697,7 @@ LOGGING = {
     },
     "filters": {"require_debug_false": {"()": "django.utils.log.RequireDebugFalse"}},
     "handlers": {
-        "console": {"level": "ERROR", "class": "logging.StreamHandler", "formatter": "simple"},
+        "console": {"level": "DEBUG", "class": "logging.StreamHandler", "formatter": "simple"},
         "mail_admins": {
             "level": "ERROR",
             "filters": ["require_debug_false"],
@@ -2414,3 +2414,11 @@ ADVANCED_EDIT_EXCLUDE_FIELD = [  # base
     "featuredurl",
     "extra_metadata",
 ]
+
+CSRF_TRUSTED_ORIGINS=os.getenv("CSRF_TRUSTED_ORIGINS", "").split()
+INSTALLED_APPS += ("geonode.zalf",)
+
+ZALF_DATACITE_BASE_URL=os.getenv("ZALF_DATACITE_BASE_URL", "https://api.datacite.org/")
+ZALF_DATACITE_AGENT=os.getenv("ZALF_DATACITE_AGENT", "BonaRes Repository (https://repository.zalf.de; mailto:dataservice@zalf.de)")
+ZALF_DATACITE_USERNAME=os.getenv("ZALF_DATACITE_USERNAME")
+ZALF_DATACITE_PASSWORD=os.getenv("ZALF_DATACITE_PASSWORD")
