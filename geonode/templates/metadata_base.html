@@ -16,14 +16,11 @@
   <link rel="stylesheet" type="text/css" id="mce-u0" href= {% static "tinymce/skins/ui/oxide/skin.min.css" %}>
   
   <!-- Tom Select for better multi-select -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap4.min.css" 
-        integrity="sha384-/CC1lvWi28rgfFKKRt7JSNH8kN/93IQZU7O+T4O2cVJHBkAjPMJ3HLJj0xqIQR8a" crossorigin="anonymous">
-  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js" 
-          integrity="sha384-gCYJKH7KfrJBW0RZvCLLYYgGUm5QAKw1gzSjWk9YIPM3z5kA+z3pBxABCB1fmGGj" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="{% static 'lib/tom-select/tom-select.bootstrap4.min.css' %}">
+  <script src="{% static 'lib/tom-select/tom-select.complete.min.js' %}"></script>
   
   <!-- SortableJS for drag-and-drop reordering -->
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js" 
-          integrity="sha384-iHezH5KzLjZn5eKbXCX6X4gS2+wbAHPGMGg8LwI3nPNKbMUYCj0xKqFTgNJPpTbr" crossorigin="anonymous"></script>
+  <script src="{% static 'lib/sortablejs/Sortable.min.js' %}"></script>
   
   <!-- Tom Select Sortable Custom Styles -->
   <link rel="stylesheet" href="{% static 'geonode/css/tom-select-sortable.css' %}">
