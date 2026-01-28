@@ -1993,9 +1993,9 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         Set metadata_author and/or point of contact (poc) to a resource when any of them is missing
         """
         if len(ContactRole.objects.filter(resource=self,role=Roles.METADATA_AUTHOR.name)) == 0:
-            ContactRole.objects.create(role=Roles.METADATA_AUTHOR.name, contact=self.owner)
+            ContactRole.objects.create(resource=self, role=Roles.METADATA_AUTHOR.name, contact=self.owner)
         if len(ContactRole.objects.filter(resource=self,role=Roles.POC.name)) == 0:
-            ContactRole.objects.create(role=Roles.POC.name, contact=self.owner)
+            ContactRole.objects.create(resource=self, role=Roles.POC.name, contact=self.owner)
 
     @staticmethod
     def get_multivalue_role_property_names() -> List[str]:
