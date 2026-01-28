@@ -1,0 +1,35 @@
+/* Select2 Sortable Styles */
+
+/* Make select2 selection items draggable */
+.select2-selection__rendered {
+    cursor: move;
+}
+
+.select2-selection__choice {
+    cursor: grab;
+    user-select: none;
+}
+
+.select2-selection__choice:active {
+    cursor: grabbing;
+}
+
+/* Placeholder while dragging */
+.sortable-placeholder {
+    background-color: #f0f0f0;
+    border: 2px dashed #cccccc;
+    height: 32px;
+    margin-bottom: 5px;
+}
+
+/* Hover effect for draggable items */
+.select2-selection__rendered.ui-sortable .select2-selection__choice:hover {
+    background-color: #e8f4f8;
+    transition: background-color 0.2s ease;
+}
+
+/* During drag */
+.select2-selection__rendered.ui-sortable-helper {
+    opacity: 0.7;
+    background-color: #d0e8f2;
+}

@@ -820,153 +820,84 @@
         $('#metadata_form').modal();
       }
     });
-
-    // Debug mode flag (set to false in production)
-    const DEBUG_TOM_SELECT = {{ settings.DEBUG|yesno:"true,false" }};
-
-    // Initialize Tom Select + SortableJS for metadata_author field
-    function initTomSelectSortable(selector) {
-      const selectElement = document.querySelector(selector);
+    
+    // Initialize Select2 for metadata_author field
+    console.log('=== Initializing Select2 for metadata_author ===');
+    setTimeout(function() {
+      var $authorField = $('#id_resource-metadata_author');
       
-      if (!selectElement) {
-        if (DEBUG_TOM_SELECT) console.log('Select element not found:', selector);
+      if ($authorField.length === 0) {
+        console.log('Author field not found in DOM');
         return;
       }
       
-      // Check if already initialized
-      if (selectElement.tomselect) {
-        if (DEBUG_TOM_SELECT) console.log('Tom Select already initialized for', selector);
+      console.log('Author field found, Select2 available:', typeof $.fn.select2 !== 'undefined');
+      
+      // If already initialized by django-autocomplete-light, skip
+      if ($authorField.data('select2')) {
+        console.log('✓ Select2 already initialized');
         return;
       }
       
-      // Get autocomplete URL from data attribute
-      const autocompleteUrl = selectElement.dataset.autocompleteUrl || selectElement.dataset.autocompleteLightUrl;
-      
-      // Get existing options from select - preserve order
-      const existingOptions = [];
-      let selectedValues = [];
-      
-      // Check if there's an ordered-values data attribute (from Django widget)
-      if (selectElement.dataset.orderedValues) {
-        try {
-          selectedValues = JSON.parse(selectElement.dataset.orderedValues);
-          if (DEBUG_TOM_SELECT) console.log('Using ordered values from data attribute:', selectedValues);
-        } catch(e) {
-          if (DEBUG_TOM_SELECT) console.warn('Failed to parse ordered values:', e);
-        }
+      // Initialize Select2 manually
+      var autocompleteUrl = $authorField.data('autocomplete-light-url');
+      if (!autocompleteUrl) {
+        console.warn('No autocomplete URL found');
+        return;
       }
       
-      // If no data attribute, fall back to DOM order
-      if (selectedValues.length === 0) {
-        selectElement.querySelectorAll('option').forEach(opt => {
-          if (opt.selected && opt.value) {
-            selectedValues.push(opt.value);
+      try {
+        $authorField.select2({
+          width: '100%',
+          multiple: true,
+          allowClear: false,
+          ajax: {
+            url: autocompleteUrl,
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+              return { q: params.term };
+            },
+            processResults: function (data) {
+              if (data.results) {
+                return {
+                  results: data.results.map(function(item) {
+                    return { id: item.id, text: item.text };
+                  })
+                };
+              }
+              return { results: [] };
+            }
           }
         });
+        
+        console.log('✓ Select2 initialized successfully');
+        
+        // Try to add sortable capability
+        setTimeout(function() {
+          if (typeof $.fn.sortable === 'function') {
+            var $container = $authorField.data('select2').$container;
+            var $selection = $container.find('.select2-selection__rendered');
+            if ($selection.length) {
+              $selection.sortable({
+                placeholder: 'sortable-placeholder',
+                axis: 'y',
+                containment: 'parent'
+              }).disableSelection();
+              console.log('✓ Sortable enabled on Select2');
+            }
+          }
+        }, 500);
+        
+      } catch(e) {
+        console.error('Error initializing Select2:', e);
       }
-      
-      // Build all available options
-      selectElement.querySelectorAll('option').forEach(opt => {
-        if (opt.value) {
-          existingOptions.push({
-            value: opt.value,
-            text: opt.textContent || opt.value
-          });
-        }
-      });
-      
-      if (DEBUG_TOM_SELECT) {
-        console.log('Autocomplete URL:', autocompleteUrl);
-        console.log('Existing options:', existingOptions);
-        console.log('Selected values (in order):', selectedValues);
-      }
-      
-      // Initialize Tom Select with drag_drop plugin
-      const tomSelect = new TomSelect(selector, {
-        plugins: {
-          'remove_button': {
-            title: 'Remover'
-          },
-          'drag_drop': {}
-        },
-        valueField: 'value',
-        labelField: 'text',
-        searchField: ['text'],
-        create: false,
-        maxItems: null,
-        options: existingOptions,
-        items: selectedValues,  // Set items in the order they appear in HTML
-        render: {
-          item: function(data, escape) {
-            // Get the current position/index of this item (starting from 1)
-            const items = this.items;
-            const index = items.indexOf(data.value);
-            const displayNumber = index >= 0 ? index + 1 : this.items.length;
-            return '<div><span class="item-number">' + 
-                   displayNumber + '</span>' + escape(data.text) + '</div>';
-          }
-        },
-        onItemAdd: function() {
-          // Re-render all items to update numbering
-          this.refreshItems();
-        },
-        onItemRemove: function() {
-          // Re-render all items to update numbering
-          this.refreshItems();
-        },
-        load: function(query, callback) {
-          if (!autocompleteUrl) {
-            if (DEBUG_TOM_SELECT) console.warn('No autocomplete URL configured');
-            return callback();
-          }
-          
-          if (!query.length) return callback();
-          
-          const url = autocompleteUrl + '?q=' + encodeURIComponent(query);
-          if (DEBUG_TOM_SELECT) console.log('Fetching:', url);
-          
-          fetch(url)
-            .then(response => {
-              if (!response.ok) throw new Error('Network error');
-              return response.json();
-            })
-            .then(json => {
-              if (DEBUG_TOM_SELECT) console.log('Autocomplete response:', json);
-              // Convert autocomplete-light format to Tom Select format
-              const results = json.results ? json.results.map(item => ({
-                value: item.id,
-                text: item.text
-              })) : [];
-              callback(results);
-            })
-            .catch(err => {
-              // Always log errors, but could be sent to error tracking service
-              console.error('Autocomplete error:', err);
-              callback();
-            });
-        },
-        onInitialize: function() {
-          if (DEBUG_TOM_SELECT) {
-            console.log('✓ Tom Select initialized for', selector);
-            console.log('✓ Drag & drop enabled - você pode arrastar os itens para reordenar!');
-            console.log('Dica: Clique no campo e digite para buscar usuários');
-          }
-        }
-      });
-      
-      return tomSelect;
-    }
-
-    $(document).ready(function() {
-      // Initialize Tom Select for metadata_author field
-      setTimeout(function() {
-        initTomSelectSortable('#id_resource-metadata_author');
-      }, 100);
-      
-      {% if layer.metadata_uploaded_preserve %}
-        $('#metadata_update :input').attr('readonly','readonly');
-      {% endif %}
-        $('.has-popover').popover({'trigger':'hover'});
+    }, 1500);
+    
+    {% if layer.metadata_uploaded_preserve %}
+      $('#metadata_update :input').attr('readonly','readonly');
+    {% endif %}
+    $('.has-popover').popover({'trigger':'hover'});
 
         /** 
         NOTE: This is commented as it needs updating to work with select2 and autocomlete light.
