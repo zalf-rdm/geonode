@@ -72,16 +72,27 @@ logger = logging.getLogger(__name__)
 
 class OrderedModelSelect2Multiple(autocomplete.ModelSelect2Multiple):
     """
-    Custom widget that uses Select2 with sortable drag-drop capability.
-    The sorting is handled client-side by Select2 with a custom initialization.
+    Custom widget that preserves the order of selected items
     """
 
     def build_attrs(self, base_attrs, extra_attrs=None):
-        """Add data attribute to enable sortable functionality"""
+        """Add data attribute with ordered values"""
         attrs = super().build_attrs(base_attrs, extra_attrs)
-        # Add data attribute to mark this field as sortable with Select2
-        attrs["data-sortable-select2"] = "true"
+
+        # Add ordered values as data attribute for Tom Select
+        if hasattr(self, "_ordered_value") and self._ordered_value:
+            # Convert to JSON string for data attribute
+            import json
+
+            attrs["data-ordered-values"] = json.dumps([str(v) for v in self._ordered_value])
+
         return attrs
+
+    def format_value(self, value):
+        """Store the ordered value for rendering"""
+        if value:
+            self._ordered_value = value if isinstance(value, (list, tuple)) else [value]
+        return super().format_value(value)
 
 
 def get_tree_data():
