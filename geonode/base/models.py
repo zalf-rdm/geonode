@@ -64,7 +64,6 @@ from guardian.shortcuts import get_anonymous_user, get_objects_for_user
 from treebeard.mp_tree import MP_Node, MP_NodeQuerySet, MP_NodeManager
 from geonode import GeoNodeException
 
-from geonode.api.views import users
 from geonode.base import enumerations
 from geonode.singleton import SingletonModel
 from geonode.groups.conf import settings as groups_settings
