@@ -797,9 +797,9 @@ def resourcebase_metadata(
     # - POST Request Ends here -
 
     # define contact role forms
+    # some leftovers could be removed if metadata_detail.html is refactored to use only these forms
     contact_role_forms_context = {}
     for role in resourcebase_obj.get_multivalue_role_property_names():
-        resourcebase_form.fields[role].initial = ContactRole.objects.filter(resource=resourcebase_obj, role=role).order_by('order', 'id')
         role_form = ProfileForm(prefix=role)
         role_form.hidden = True
         contact_role_forms_context[f"{role}_form"] = role_form

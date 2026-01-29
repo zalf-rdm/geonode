@@ -616,9 +616,9 @@ def dataset_metadata(
         dataset_form.fields["is_approved"].widget.attrs.update({"disabled": "true"})
 
     # define contact role forms
+    # some leftovers could be removed if metadata_detail.html is refactored to use only these forms
     contact_role_forms_context = {}
     for role in layer.get_multivalue_role_property_names():
-        dataset_form.fields[role].initial = ContactRole.objects.filter(resource=layer, role=role).order_by('order', 'id')
         role_form = ProfileForm(prefix=role)
         role_form.hidden = True
         contact_role_forms_context[f"{role}_form"] = role_form

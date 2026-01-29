@@ -555,11 +555,10 @@ def document_metadata(
         return HttpResponse(json.dumps(out), content_type="application/json", status=400)
     # - POST Request Ends here -
 
-    # Request.GET
     # define contact role forms
+    # some leftovers could be removed if metadata_detail.html is refactored to use only these forms
     contact_role_forms_context = {}
     for role in document.get_multivalue_role_property_names():
-        document_form.fields[role].initial = ContactRole.objects.filter(resource=document, role=role).order_by('order', 'id')
         role_form = ProfileForm(prefix=role)
         role_form.hidden = True
         contact_role_forms_context[f"{role}_form"] = role_form
