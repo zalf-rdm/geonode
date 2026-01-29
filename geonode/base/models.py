@@ -1990,9 +1990,9 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
             except Exception:
                 pass
 
-        if len(ContactRole.objects.filter(resource=self,role=Roles.POC.role_value)) == 0:
+        if not ContactRole.objects.filter(resource=self,role=Roles.POC.role_value).exists():
             ContactRole.objects.create(resource=self, role=Roles.POC.role_value, contact=user)
-        if len(ContactRole.objects.filter(resource=self,role=Roles.METADATA_AUTHOR.role_value)) == 0:
+        if not ContactRole.objects.filter(resource=self,role=Roles.METADATA_AUTHOR.role_value).exists():
             ContactRole.objects.create(resource=self, role=Roles.METADATA_AUTHOR.role_value, contact=user)
         return user
         
