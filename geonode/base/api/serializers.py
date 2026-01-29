@@ -521,7 +521,7 @@ class ContactRoleField(DynamicComputedField):
             if not val_pk:
                 continue
                 
-            user = get_user_model().objects.get(pk=val_pk)
+            user = get_user_model().objects.filter(pk=val_pk).first()
             if not user:
                 raise ParseError(detail=f"user with pk: {val_pk} does not exist", code=404)
             
