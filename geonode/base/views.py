@@ -799,10 +799,11 @@ def resourcebase_metadata(
     # define contact role forms
     contact_role_forms_context = {}
     for role in resourcebase_obj.get_multivalue_role_property_names():
-        resourcebase_form.fields[role].initial = ContactRole.objects.filter(resource=resourcebase_obj, role=role).values_list("contact", flat=True)
+        resourcebase_form.fields[role].initial = ContactRole.objects.filter(resource=resourcebase_obj, role=role).order_by('order', 'id')
         role_form = ProfileForm(prefix=role)
         role_form.hidden = True
         contact_role_forms_context[f"{role}_form"] = role_form
+    
 
     metadata_author_groups = get_user_visible_groups(request.user)
 

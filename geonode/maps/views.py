@@ -336,7 +336,7 @@ def map_metadata(
     # define contact role forms
     contact_role_forms_context = {}
     for role in map_obj.get_multivalue_role_property_names():
-        map_form.fields[role].initial = ContactRole.objects.filter(resource=map_obj, role=role).values_list("contact", flat=True)
+        map_form.fields[role].initial = ContactRole.objects.filter(resource=map_obj, role=role).order_by('order', 'id')
         role_form = ProfileForm(prefix=role)
         role_form.hidden = True
         contact_role_forms_context[f"{role}_form"] = role_form

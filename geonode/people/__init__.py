@@ -32,7 +32,7 @@ class Role:
 
 
 class Roles(enum.Enum):
-    """Roles with their `label`, `name` like in people.enumarations, `is_required`, `is_multivalue`, `is_toggled_in_metadata_editor"""
+    """Roles with their `label`, `role_value` like in people.enumarations, `is_required`, `is_multivalue`, `is_toggled_in_metadata_editor"""
 
     OWNER = Role("Owner", "owner", True, False, False)
     METADATA_AUTHOR = Role("Author", "author", True, True, True)
@@ -45,7 +45,6 @@ class Roles(enum.Enum):
     RESOURCE_PROVIDER = Role("Resource Provider", "resourceProvider", False, True, True)
     ORIGINATOR = Role("Originator", "originator", False, True, True)
     PRINCIPAL_INVESTIGATOR = Role("Principal Investigator", "principalInvestigator", False, True, True)
-
     DATA_COLLECTOR = Role("Data Collector", "dataCollector", False, True, True)
     DATA_CURATOR = Role("Data Curator", "dataCurator", False, True, True)
     EDITOR = Role("Editor", "editor", False, True, True)
@@ -64,6 +63,7 @@ class Roles(enum.Enum):
     SPONSOR = Role("Sponsor", "sponsor", False, True, True)
     SUPERVISOR = Role("Supervisor", "supervisor", False, True, True)
     WORK_PACKAGE_LEADER = Role("Work Package Leader", "workPackageLeader", False, True, True)
+    
     @property
     def name(self):
         return super().name.lower()

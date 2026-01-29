@@ -559,10 +559,11 @@ def document_metadata(
     # define contact role forms
     contact_role_forms_context = {}
     for role in document.get_multivalue_role_property_names():
-        document_form.fields[role].initial = ContactRole.objects.filter(resource=document, role=role).values_list("contact", flat=True)
+        document_form.fields[role].initial = ContactRole.objects.filter(resource=document, role=role).order_by('order', 'id')
         role_form = ProfileForm(prefix=role)
         role_form.hidden = True
         contact_role_forms_context[f"{role}_form"] = role_form
+    
 
     metadata_author_groups = get_user_visible_groups(request.user)
     if not request.user.can_publish(document):
