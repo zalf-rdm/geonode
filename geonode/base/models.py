@@ -103,7 +103,7 @@ class ContactRole(models.Model):
     role = models.CharField(
         choices=ROLE_VALUES, max_length=255, help_text=_("function performed by the responsible " "party")
     )
-    order = models.IntegerField(default=0, null=True, blank=True)
+    order = models.IntegerField(default=0, null=False, blank=False)
 
     class Meta:
         ordering = ("order", "id")

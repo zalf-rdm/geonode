@@ -43,7 +43,6 @@ from dynamic_rest.fields.fields import DynamicRelationField, DynamicComputedFiel
 from avatar.templatetags.avatar_tags import avatar_url
 from geonode.utils import bbox_swap
 from geonode.base.api.exceptions import InvalidResourceException
-
 from geonode.favorite.models import Favorite
 from geonode.base.models import (
     ContactRole,
@@ -469,9 +468,7 @@ class ContactRoleField(DynamicComputedField):
         super().__init__(**kwargs)
 
     def get_attribute(self, instance):
-        from geonode.base.models import ContactRole
         contacts = ContactRole.objects.filter(resource=instance, role=self.contact_type).order_by("order")
-
         return contacts
 
     def to_representation(self, value):
