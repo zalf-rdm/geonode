@@ -3,6 +3,12 @@
 from django.db import migrations, models
 
 
+def set_initial_order(apps, schema_editor):
+    """Set order=1 for all existing ContactRole entries."""
+    ContactRole = apps.get_model("base", "ContactRole")
+    ContactRole.objects.all().update(order=1)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -19,4 +25,5 @@ class Migration(migrations.Migration):
             name="order",
             field=models.IntegerField(default=0),
         ),
+        migrations.RunPython(set_initial_order, reverse_code=migrations.RunPython.noop),
     ]
