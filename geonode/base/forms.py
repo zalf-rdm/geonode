@@ -369,14 +369,16 @@ class ThesaurusAvailableForm(forms.Form):
 
 
 class ContactRoleMultipleChoiceField(forms.ModelMultipleChoiceField):
-    
+
     def clean(self, value) -> QuerySet:
         try:
             return get_user_model().objects.filter(pk__in=value)
 
         except ValueError as VE:
             # value of not supported type ...
-            raise forms.ValidationError(_("Something went wrong in finding the profile(s) in a contact role form ...\n", VE))
+            raise forms.ValidationError(
+                _("Something went wrong in finding the profile(s) in a contact role form ...\n", VE)
+            )
 
     def label_from_instance(self, obj):
         return get_user_display_name(obj)
@@ -822,10 +824,14 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
         if self.instance and self.instance.id:
             for role in Roles.get_multivalue_ones():
                 # Query ContactRole table for users with this role, ordered by 'order' field
-                contact_roles = ContactRole.objects.filter(
-                    resource=self.instance,
-                    role=role.role_value,
-                ).order_by('order', 'id').select_related('contact')
+                contact_roles = (
+                    ContactRole.objects.filter(
+                        resource=self.instance,
+                        role=role.role_value,
+                    )
+                    .order_by("order", "id")
+                    .select_related("contact")
+                )
 
                 # For unbound forms (GET requests), set the initial value
                 if not self.is_bound:

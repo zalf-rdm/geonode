@@ -240,7 +240,6 @@ def update_resource(
         _default_ows_url = urljoin(ogc_settings.PUBLIC_LOCATION, "ows")
         to_update["ows_url"] = defaults.pop("ows_url", getattr(instance, "ows_url", None)) or _default_ows_url
 
-
     to_update.update(defaults)
     resource_dict = {  # TODO: cleanup params and dicts
         k: v for k, v in to_update.items() if k not in ("data_title", "data_type", "description", "files", "link_type")

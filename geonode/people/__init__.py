@@ -63,7 +63,7 @@ class Roles(enum.Enum):
     SPONSOR = Role("Sponsor", "sponsor", False, True, True)
     SUPERVISOR = Role("Supervisor", "supervisor", False, True, True)
     WORK_PACKAGE_LEADER = Role("Work Package Leader", "workPackageLeader", False, True, True)
-    
+
     @property
     def name(self):
         return super().name.lower()

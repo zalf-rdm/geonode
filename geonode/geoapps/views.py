@@ -449,7 +449,6 @@ def geoapp_metadata(
         role_form = ProfileForm(prefix=role)
         role_form.hidden = True
         contact_role_forms_context[f"{role}_form"] = role_form
-    
 
     metadata_author_groups = get_user_visible_groups(request.user)
 

@@ -1955,7 +1955,6 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         but hard to enforce technically via signals or save overriding.
         """
 
-    
         user = self.add_missing_metadata_author_or_poc()
 
         from guardian.models import UserObjectPermission
@@ -1965,7 +1964,7 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         no_custom_permissions = UserObjectPermission.objects.filter(
             content_type=ContentType.objects.get_for_model(self.get_self_resource()), object_pk=str(self.pk)
         ).exists()
-        
+
         if not no_custom_permissions:
             logger.debug("There are no permissions for this object, setting default perms.")
             self.set_default_permissions(owner=user)
@@ -1990,12 +1989,12 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
             except Exception:
                 pass
 
-        if not ContactRole.objects.filter(resource=self,role=Roles.POC.role_value).exists():
+        if not ContactRole.objects.filter(resource=self, role=Roles.POC.role_value).exists():
             ContactRole.objects.create(resource=self, role=Roles.POC.role_value, contact=user)
-        if not ContactRole.objects.filter(resource=self,role=Roles.METADATA_AUTHOR.role_value).exists():
+        if not ContactRole.objects.filter(resource=self, role=Roles.METADATA_AUTHOR.role_value).exists():
             ContactRole.objects.create(resource=self, role=Roles.METADATA_AUTHOR.role_value, contact=user)
         return user
-        
+
     @staticmethod
     def get_multivalue_role_property_names() -> List[str]:
         """returns list of property names for all contact roles able to
@@ -2007,7 +2006,6 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         """
         return [role.name for role in Roles.get_multivalue_ones()]
 
-
     @staticmethod
     def get_ui_toggled_role_property_names() -> List[str]:
         """returns list of property names for all contact roles that are toggled of in metadata_editor
@@ -2017,7 +2015,6 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
             _description: list of names
         """
         return [role.name for role in (set(Roles.get_toggled_ones()) & set(Roles.get_toggled_ones()))]
-
 
     # typing not possible due to: from geonode.base.forms import ResourceBaseForm; unable due to circular ...
     def set_contact_roles_from_metadata_edit(self, resource_base_form) -> bool:
@@ -2034,23 +2031,23 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
             try:
                 # Get the new list of contacts from the form (already ordered by user)
                 selected_contacts = resource_base_form.cleaned_data.get(role.name, [])
-                
+
                 # Get existing ContactRole entries for this role
                 existing_contact_roles = list(
-                    ContactRole.objects.filter(resource=self, role=role.role_value).order_by('order', 'id')
+                    ContactRole.objects.filter(resource=self, role=role.role_value).order_by("order", "id")
                 )
-                
+
                 # Build a map of existing contacts
                 existing_contacts_map = {cr.contact.pk: cr for cr in existing_contact_roles}
-                
+
                 # Track which contacts are in the new selection
                 new_contact_pks = [contact.pk for contact in selected_contacts]
-                
+
                 # Delete ContactRoles that are no longer selected
                 for cr in existing_contact_roles:
                     if cr.contact.pk not in new_contact_pks:
                         cr.delete()
-                
+
                 # Update or create ContactRoles in the correct order
                 for order, contact in enumerate(selected_contacts):
                     if contact.pk in existing_contacts_map:
@@ -2058,21 +2055,15 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
                         cr = existing_contacts_map[contact.pk]
                         if cr.order != order:
                             cr.order = order
-                            cr.save(update_fields=['order'])
+                            cr.save(update_fields=["order"])
                     else:
                         # Create new ContactRole with correct order
-                        ContactRole.objects.create(
-                            resource=self,
-                            role=role.role_value,
-                            contact=contact,
-                            order=order
-                        )
-                        
+                        ContactRole.objects.create(resource=self, role=role.role_value, contact=contact, order=order)
+
             except (AttributeError, KeyError):
                 logger.warning(f"unable to set contact role {role.role_value} for {self} ...")
                 failed = True
         return failed
-
 
     def get_defined_multivalue_contact_roles(self) -> List[Tuple[List[settings.AUTH_USER_MODEL], str]]:
         """Returns all set contact roles of the ressource with additional ROLE_VALUES from geonode.people.enumarations.ROLE_VALUES. Mainly used to generate output xml more easy.
@@ -2084,14 +2075,13 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         ret = {}
         l = []
         for role in Roles.get_multivalue_ones():
-            contact_role = ContactRole.objects.filter(resource=self, role=role.role_value).order_by('order', 'id')
+            contact_role = ContactRole.objects.filter(resource=self, role=role.role_value).order_by("order", "id")
             if contact_role:
                 l = []
                 for cr in contact_role:
                     l.append(cr.contact)
                 ret[role.label] = l
         return ret
-   
 
     def get_linked_resources(self, as_target: bool = False):
         """
