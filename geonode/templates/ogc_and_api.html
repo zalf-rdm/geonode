@@ -1,0 +1,187 @@
+{% extends "geonode_base.html" %}
+{% load i18n %}
+
+{% block title %}
+    {% trans "OGC Services and API" %} — {{ block.super }}
+{% endblock %}
+
+{% block body_outer %}
+
+<div class="page-header">
+    <h2>{% trans "OGC Services and API of the ZALF Repository" %}</h2>
+</div>
+
+<p>
+    {% trans "The ZALF Repository provides standardized access to geospatial data through OGC-compliant web services and modern Web APIs. These interfaces enable integration with GIS software, web applications, and automated workflows following FAIR and research data management principles." %}
+</p>
+
+<hr>
+
+<h3>{% trans "1. Overview" %}</h3>
+<p>
+    {% trans "All published geospatial layers in the ZALF Repository can be accessed through Open Geospatial Consortium (OGC) services. Depending on the dataset type, different service interfaces are available, such as WMS for visualization, WFS for vector data access, and OGC API for modern web-based access." %}
+</p>
+
+<ul>
+    <li>{% trans "Map visualization for web and desktop GIS (e.g. QGIS, WebGIS clients)." %}</li>
+    <li>{% trans "Download and filter of vector features and coverage data." %}</li>
+    <li>{% trans "Integration into external portals, dashboards, or analysis workflows." %}</li>
+</ul>
+
+<hr>
+
+<h3>{% trans "2. Classic OGC Web Services" %}</h3>
+<p>
+    {% trans "The repository exposes datasets via standard OGC Web Services. Typical endpoints include WMS, WFS, WCS and related capabilities documents." %}
+</p>
+
+<ul>
+    <li>
+        <strong>WMS (Web Map Service)</strong> – 
+        {% trans "for map visualization, styled raster and vector layers, and background maps." %}
+    </li>
+    <li>
+        <strong>WFS (Web Feature Service)</strong> – 
+        {% trans "for access to vector features (points, lines, polygons) in machine-readable formats such as GML or GeoJSON." %}
+    </li>
+    <li>
+        <strong>WCS (Web Coverage Service)</strong> – 
+        {% trans "for raster and coverage data, including gridded environmental variables or model outputs." %}
+    </li>
+    <li>
+        <strong>WMTS / Tiled Services</strong> – 
+        {% trans "for efficient, tiled map rendering in web applications." %}
+    </li>
+</ul>
+
+<p>
+    {% trans "The capabilities of each service describe the available layers, coordinate reference systems, and supported formats." %}
+</p>
+
+<hr>
+
+<h3>{% trans "3. OGC API – Modern Web APIs" %}</h3>
+<p>
+    {% trans "Where supported by the platform, the ZALF Repository also offers OGC API endpoints (e.g. OGC API - Features) that provide RESTful, JSON-based access to geospatial data." %}
+</p>
+
+<ul>
+    <li>{% trans "Simple HTTP/HTTPS requests with JSON responses." %}</li>
+    <li>{% trans "Filtering, paging, and querying of features via URL parameters." %}</li>
+    <li>{% trans "Easy integration into web applications, scripts, and data science workflows." %}</li>
+</ul>
+
+<p>
+    {% trans "OGC API services complement the classic WMS/WFS protocols and are particularly suitable for lightweight clients and programmatic access." %}
+</p>
+
+<hr>
+
+<h3>{% trans "4. Example Service Endpoints" %}</h3>
+<p>
+    {% blocktrans %}The exact URLs of the services may depend on the deployment, but commonly follow patterns like:{% endblocktrans %}
+</p>
+
+<ul>
+    <li>
+        <strong>WMS:</strong> 
+        <code>https://repository.zalf.de/geoserver/ows?service=WMS&amp;request=GetCapabilities</code>
+    </li>
+    <li>
+        <strong>WFS:</strong> 
+        <code>https://repository.zalf.de/geoserver/ows?service=WFS&amp;request=GetCapabilities</code>
+    </li>
+    <li>
+        <strong>WCS:</strong> 
+        <code>https://repository.zalf.de/geoserver/ows?service=WCS&amp;request=GetCapabilities</code>
+    </li>
+    <li>
+        <strong>OGC API - Features (example):</strong> 
+        <code>https://repository.zalf.de/oapi/collections/&lt;collection-id&gt;/items</code>
+    </li>
+</ul>
+
+<p>
+    {% trans "For each dataset, direct service links are typically available on the resource detail page within the repository interface (e.g. under “Download”, “Services” or “API”)." %}
+</p>
+
+<hr>
+
+<h3>{% trans "5. Using the Services in GIS Software" %}</h3>
+<p>
+    {% trans "You can connect to the ZALF Repository from standard GIS tools such as QGIS or ArcGIS by adding the corresponding OGC service URL." %}
+</p>
+
+<ul>
+    <li>{% trans "In QGIS: use ‘Add WMS/WMTS Layer’ or ‘Add WFS Layer’ and paste the service URL." %}</li>
+    <li>{% trans "Select the desired layer from the capabilities list and add it to your map." %}</li>
+    <li>{% trans "For OGC API, use the appropriate plugins or HTTP-based data connectors where available." %}</li>
+</ul>
+
+<p>
+    {% trans "Depending on the access rights of the dataset, authentication with your repository account may be required." %}
+</p>
+
+<hr>
+
+<h3>{% trans "6. Authentication and Access Control" %}</h3>
+<p>
+    {% trans "Some services and layers are publicly available, while others require authentication or are restricted to specific project partners." %}
+</p>
+
+<ul>
+    <li>{% trans "Public datasets: can be accessed without a login, depending on the license and visibility settings." %}</li>
+    <li>{% trans "Restricted datasets: may require login credentials or explicit authorization from the data owner." %}</li>
+    <li>{% trans "Internal datasets: are limited to ZALF or project-internal users and are not accessible externally." %}</li>
+</ul>
+
+<p>
+    {% trans "The access level is defined by the dataset owner during publication and follows the Data Policy of the ZALF Repository." %}
+</p>
+
+<hr>
+
+<h3>{% trans "7. Formats, CRS and Interoperability" %}</h3>
+<p>
+    {% trans "The ZALF Repository aims to support interoperable, standards-based formats and coordinate reference systems (CRS)." %}
+</p>
+
+<ul>
+    <li>{% trans "Common output formats include PNG, JPEG, GeoTIFF, GML, GeoJSON, and CSV (where applicable)." %}</li>
+    <li>{% trans "Typical coordinate reference systems include EPSG:4326 and national or project-specific CRSs where required." %}</li>
+    <li>{% trans "Metadata describe the spatial reference, resolution, and constraints for each dataset." %}</li>
+</ul>
+
+<hr>
+
+<h3>{% trans "8. Rate Limits and Good Practice" %}</h3>
+<p>
+    {% trans "To ensure stable operation for all users, please follow these guidelines when accessing OGC services and APIs:" %}
+</p>
+
+<ul>
+    <li>{% trans "Avoid extremely frequent automated requests without caching." %}</li>
+    <li>{% trans "Use spatial and temporal filters to limit the requested extent and data volume." %}</li>
+    <li>{% trans "Prefer downloading datasets for heavy analysis instead of repeatedly querying map services." %}</li>
+</ul>
+
+<p>
+    {% trans "If you plan to build large-scale or automated services based on the repository, please contact the support team in advance." %}
+</p>
+
+<hr>
+
+<h3>{% trans "9. Support and Contact" %}</h3>
+<p>
+    {% trans "For questions related to OGC services, API usage, or technical integration, please contact the ZALF research data management or repository support team." %}
+</p>
+
+<p>
+    {% trans "We can provide additional technical details, example configurations (e.g. for QGIS), and advice on integrating the repository services into your workflows." %}
+</p>
+
+{% endblock %}
+
+{% block footer %}
+    {% include "geonode-mapstore-client/snippets/footer.html" %}
+{% endblock %}

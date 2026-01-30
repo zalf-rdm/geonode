@@ -11,9 +11,7 @@ def forwards_func(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('base', '0033_auto_20200115_1145'),
+        ("base", "0033_auto_20200115_1145"),
     ]
 
-    operations = [
-        migrations.RunPython(forwards_func, migrations.RunPython.noop)
-    ]
+    operations = [migrations.RunPython(forwards_func, migrations.RunPython.noop)]

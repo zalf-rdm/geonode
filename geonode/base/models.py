@@ -106,6 +106,7 @@ class ContactRole(models.Model):
     class Meta:
         ordering = ("order", "id")
         unique_together = (("contact", "resource", "role"),)
+        ordering = ["position", "id"]
 
 
 class TopicCategory(models.Model):
