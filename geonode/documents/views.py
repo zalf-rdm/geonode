@@ -52,7 +52,7 @@ from geonode.resource.manager import resource_manager
 from geonode.decorators import check_keyword_write_perms
 from geonode.security.utils import get_user_visible_groups
 from geonode.base.forms import CategoryForm, TKeywordForm, ThesaurusAvailableForm, RelatedProjectForm
-from geonode.base.models import ContactRole, Thesaurus, TopicCategory, Funding, RelatedIdentifier, RelatedProject
+from geonode.base.models import Thesaurus, TopicCategory, Funding, RelatedIdentifier, RelatedProject
 from geonode.base import enumerations
 
 from pathlib import Path

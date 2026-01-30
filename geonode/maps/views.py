@@ -38,7 +38,6 @@ from geonode.base import register_event
 from geonode.base.auth import get_or_create_token
 from geonode.base.forms import CategoryForm, ThesaurusAvailableForm, TKeywordForm, RelatedProjectForm
 from geonode.base.models import (
-    ContactRole,
     ExtraMetadata,
     Thesaurus,
     TopicCategory,

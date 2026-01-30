@@ -26,7 +26,7 @@ import logging
 import traceback
 import datetime
 
-from typing import List, Optional, Union, Tuple
+from typing import List, Tuple
 from sequences.models import Sequence
 from sequences import get_next_value
 from PIL import Image
@@ -42,7 +42,6 @@ from django.db.utils import IntegrityError, OperationalError
 from django.contrib.auth.models import Group
 from django.core.files.base import ContentFile
 from django.contrib.auth import get_user_model
-from django.db.models.query import QuerySet
 from django.db.models.fields.json import JSONField
 from django.utils.functional import cached_property, classproperty
 from django.contrib.gis.geos import GEOSGeometry, Polygon, Point
@@ -2073,14 +2072,14 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
               _description: list tuples including two elements: 1. list of people have a certain role. 2. role label
         """
         ret = {}
-        l = []
+        list_of_contacts = []
         for role in Roles.get_multivalue_ones():
             contact_role = ContactRole.objects.filter(resource=self, role=role.role_value).order_by("order", "id")
             if contact_role:
-                l = []
+                list_of_contacts = []
                 for cr in contact_role:
-                    l.append(cr.contact)
-                ret[role.label] = l
+                    list_of_contacts.append(cr.contact)
+                ret[role.label] = list_of_contacts
         return ret
 
     def get_linked_resources(self, as_target: bool = False):

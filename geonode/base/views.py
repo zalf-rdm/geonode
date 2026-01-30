@@ -59,7 +59,6 @@ from geonode.base.forms import UserAndGroupPermissionsForm
 
 from geonode.base.forms import BatchEditForm, OwnerRightsRequestForm
 from geonode.base.models import (
-    ContactRole,
     Region,
     ResourceBase,
     HierarchicalKeyword,

@@ -46,7 +46,7 @@ from geonode.resource.manager import resource_manager
 from geonode.decorators import check_keyword_write_perms
 
 from geonode.base.forms import CategoryForm, TKeywordForm, ThesaurusAvailableForm, RelatedProjectForm
-from geonode.base.models import ContactRole, Thesaurus, TopicCategory, Funding, RelatedIdentifier, RelatedProject
+from geonode.base.models import Thesaurus, TopicCategory, Funding, RelatedIdentifier, RelatedProject
 from geonode.utils import resolve_object
 
 from .forms import GeoAppForm
