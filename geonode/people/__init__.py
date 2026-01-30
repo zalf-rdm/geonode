@@ -20,8 +20,9 @@ import enum
 
 
 class Role:
-    def __init__(self, label, is_required, is_multivalue, is_toggled_in_metadata_editor):
+    def __init__(self, label, role_value, is_required, is_multivalue, is_toggled_in_metadata_editor):
         self.label = label
+        self.role_value = role_value
         self.is_required = is_required
         self.is_multivalue = is_multivalue
         self.is_toggled_in_metadata_editor = is_toggled_in_metadata_editor
@@ -31,38 +32,37 @@ class Role:
 
 
 class Roles(enum.Enum):
-    """Roles with their `label`, `is_required`, `is_multivalue`, `is_toggled_in_metadata_editor"""
+    """Roles with their `label`, `role_value` like in people.enumarations, `is_required`, `is_multivalue`, `is_toggled_in_metadata_editor"""
 
-    OWNER = Role("Owner", True, False, False)
-    METADATA_AUTHOR = Role("Author", True, True, True)
-    PROCESSOR = Role("Processor", False, True, True)
-    PUBLISHER = Role("Publisher", False, True, True)
-    CUSTODIAN = Role("Custodian", False, True, True)
-    POC = Role("Point of Contact", True, True, False)
-    DISTRIBUTOR = Role("Distributor", False, True, True)
-    RESOURCE_USER = Role("Resource User", False, True, True)
-    RESOURCE_PROVIDER = Role("Resource Provider", False, True, True)
-    ORIGINATOR = Role("Originator", False, True, True)
-    PRINCIPAL_INVESTIGATOR = Role("Principal Investigator", False, True, True)
-
-    DATA_COLLECTOR = Role("Data Collector", False, True, True)
-    DATA_CURATOR = Role("Data Curator", False, True, True)
-    EDITOR = Role("Editor", False, True, True)
-    HOSTING_INSTITUTION = Role("Hosting Institution", False, True, True)
-    OTHER = Role("Other", False, True, True)
-    PRODUCER = Role("Producer", False, True, True)
-    PROJECT_LEADER = Role("Project Leader", False, True, True)
-    PROJECT_MANAGER = Role("Project Manager", False, True, True)
-    PROJECT_MEMBER = Role("Project Member", False, True, True)
-    REGISTRATION_AGENCY = Role("Registration Agency", False, True, True)
-    REGISTRATION_AUTHORITY = Role("Registration Authority", False, True, True)
-    RELATED_PERSON = Role("Related Person", False, True, True)
-    RESEARCH_GROUP = Role("Research Group", False, True, True)
-    RESEARCHER = Role("Researcher", False, True, True)
-    RIGHTS_HOLDER = Role("Rights Holder", False, True, True)
-    SPONSOR = Role("Sponsor", False, True, True)
-    SUPERVISOR = Role("Supervisor", False, True, True)
-    WORK_PACKAGE_LEADER = Role("Work Package Leader", False, True, True)
+    OWNER = Role("Owner", "owner", True, False, False)
+    METADATA_AUTHOR = Role("Author", "author", True, True, True)
+    PROCESSOR = Role("Processor", "processor", False, True, True)
+    PUBLISHER = Role("Publisher", "publisher", False, True, True)
+    CUSTODIAN = Role("Custodian", "custodian", False, True, True)
+    POC = Role("Point of Contact", "pointOfContact", True, True, False)
+    DISTRIBUTOR = Role("Distributor", "distributor", False, True, True)
+    RESOURCE_USER = Role("Resource User", "resourceUser", False, True, True)
+    RESOURCE_PROVIDER = Role("Resource Provider", "resourceProvider", False, True, True)
+    ORIGINATOR = Role("Originator", "originator", False, True, True)
+    PRINCIPAL_INVESTIGATOR = Role("Principal Investigator", "principalInvestigator", False, True, True)
+    DATA_COLLECTOR = Role("Data Collector", "dataCollector", False, True, True)
+    DATA_CURATOR = Role("Data Curator", "dataCurator", False, True, True)
+    EDITOR = Role("Editor", "editor", False, True, True)
+    HOSTING_INSTITUTION = Role("Hosting Institution", "hostingInstitution", False, True, True)
+    OTHER = Role("Other", "other", False, True, True)
+    PRODUCER = Role("Producer", "producer", False, True, True)
+    PROJECT_LEADER = Role("Project Leader", "projectLeader", False, True, True)
+    PROJECT_MANAGER = Role("Project Manager", "projectManager", False, True, True)
+    PROJECT_MEMBER = Role("Project Member", "projectMember", False, True, True)
+    REGISTRATION_AGENCY = Role("Registration Agency", "registrationAgency", False, True, True)
+    REGISTRATION_AUTHORITY = Role("Registration Authority", "registrationAuthority", False, True, True)
+    RELATED_PERSON = Role("Related Person", "relatedPerson", False, True, True)
+    RESEARCH_GROUP = Role("Research Group", "researchGroup", False, True, True)
+    RESEARCHER = Role("Researcher", "researcher", False, True, True)
+    RIGHTS_HOLDER = Role("Rights Holder", "rightsHolder", False, True, True)
+    SPONSOR = Role("Sponsor", "sponsor", False, True, True)
+    SUPERVISOR = Role("Supervisor", "supervisor", False, True, True)
+    WORK_PACKAGE_LEADER = Role("Work Package Leader", "workPackageLeader", False, True, True)
 
     @property
     def name(self):
@@ -71,6 +71,10 @@ class Roles(enum.Enum):
     @property
     def label(self):
         return self.value.label
+
+    @property
+    def role_value(self):
+        return self.value.role_value
 
     @property
     def is_required(self):
