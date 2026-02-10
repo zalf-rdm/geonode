@@ -222,7 +222,7 @@ class SimpleRelatedIdentifierSerializer(DynamicModelSerializer):
     class Meta:
         model = RelatedIdentifier
         name = "RelatedIdentifier"
-        fields = ("related_identifier", "related_identifier_type", "relation_type", "description")
+        fields = ("id", "related_identifier", "related_identifier_type", "relation_type", "description")
 
     related_identifier_type = DynamicRelationField(SimpleRelatedIdentifierType, embed=True, many=False)
     relation_type = DynamicRelationField(SimpleRelationType, embed=True, many=False)
@@ -239,7 +239,7 @@ class FundingSerializer(DynamicModelSerializer):
     class Meta:
         model = Funding
         name = "Funding"
-        fields = ("organization", "award_title", "award_uri", "award_number")
+        fields = ("id", "organization", "award_title", "award_uri", "award_number")
 
     organization = DynamicRelationField(OrganizationSerializer, embed=True, many=False)
 
