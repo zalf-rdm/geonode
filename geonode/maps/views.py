@@ -27,7 +27,7 @@ from deprecated import deprecated
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.forms.models import inlineformset_factory, modelformset_factory
+from django.forms.models import modelformset_factory
 from django.http import Http404, HttpResponse, HttpResponseNotAllowed, HttpResponseRedirect, HttpResponseServerError
 from django.shortcuts import render
 from django.urls import reverse
@@ -37,7 +37,14 @@ from geonode import geoserver
 from geonode.base import register_event
 from geonode.base.auth import get_or_create_token
 from geonode.base.forms import CategoryForm, ThesaurusAvailableForm, TKeywordForm, RelatedProjectForm
-from geonode.base.models import ExtraMetadata, Thesaurus, TopicCategory, Funding, RelatedIdentifier, RelatedProject
+from geonode.base.models import (
+    ExtraMetadata,
+    Thesaurus,
+    TopicCategory,
+    Funding,
+    RelatedIdentifier,
+    RelatedProject,
+)
 from geonode.base.views import batch_modify
 from geonode.client.hooks import hookset
 from geonode.resource.manager import resource_manager
@@ -332,11 +339,10 @@ def map_metadata(
         return HttpResponse(json.dumps(out), content_type="application/json", status=400)
     # - POST Request Ends here -
 
-    # Request.GET
     # define contact role forms
+    # some leftovers could be removed if metadata_detail.html is refactored to use only these forms
     contact_role_forms_context = {}
     for role in map_obj.get_multivalue_role_property_names():
-        map_form.fields[role].initial = [p.username for p in map_obj.__getattribute__(role)]
         role_form = ProfileForm(prefix=role)
         role_form.hidden = True
         contact_role_forms_context[f"{role}_form"] = role_form

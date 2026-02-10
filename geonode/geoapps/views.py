@@ -29,7 +29,7 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
-from django.forms.models import inlineformset_factory, modelformset_factory
+from django.forms.models import modelformset_factory
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from geonode.base.enumerations import SOURCE_TYPE_LOCAL
 
@@ -354,20 +354,17 @@ def geoapp_metadata(
 
         # update contact roles
         geoapp_obj.set_contact_roles_from_metadata_edit(geoapp_form)
-        
+
         funding_form.save()
         instance = funding_form.save(commit=False)
         geoapp_obj.fundings.add(*instance)
-        
+
         related_identifier_form.save()
         instance = related_identifier_form.save(commit=False)
         geoapp_obj.related_identifier.add(*instance)
 
-
         geoapp_obj.save()
-
         geoapp_form.cleaned_data.pop("ptype")
-
         # geoapp_obj = geoapp_form.instance
 
         vals = dict(category=new_category)
@@ -446,9 +443,9 @@ def geoapp_metadata(
     # - POST Request Ends here -
 
     # define contact role forms
+    # some leftovers could be removed if metadata_detail.html is refactored to use only these forms
     contact_role_forms_context = {}
     for role in geoapp_obj.get_multivalue_role_property_names():
-        geoapp_form.fields[role].initial = [p.username for p in geoapp_obj.__getattribute__(role)]
         role_form = ProfileForm(prefix=role)
         role_form.hidden = True
         contact_role_forms_context[f"{role}_form"] = role_form
