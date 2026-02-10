@@ -101,11 +101,16 @@ class ContactRole(models.Model):
     role = models.CharField(
         choices=ROLE_VALUES, max_length=255, help_text=_("function performed by the responsible " "party")
     )
+<<<<<<< HEAD
     order = models.IntegerField(default=0, null=False, blank=False)
+=======
+    position = models.IntegerField(default=0, help_text=_("Order position for this contact role"))
+>>>>>>> f5987f40e59882e2cc66757ee7a3cb60e3450a06
 
     class Meta:
         ordering = ("order", "id")
         unique_together = (("contact", "resource", "role"),)
+        ordering = ["position", "id"]
 
 
 class TopicCategory(models.Model):
