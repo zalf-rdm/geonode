@@ -106,6 +106,20 @@ class ContactRole(models.Model):
     class Meta:
         ordering = ("order", "id")
         unique_together = (("contact", "resource", "role"),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["resource", "role", "order"],
+                name="contactrole_unique_role_order",
+            )
+        ]
+
+    @property
+    def short_role_label(self):
+        """Return the human-friendly label defined in geonode.people.Roles"""
+        for enum_role in Roles:
+            if enum_role.role_value == self.role:
+                return enum_role.label
+        return self.get_role_display()
 
 
 class TopicCategory(models.Model):

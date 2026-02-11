@@ -35,6 +35,7 @@ from geonode.base.enumerations import SOURCE_TYPE_LOCAL
 
 from geonode.client.hooks import hookset
 from geonode.people.forms import ProfileForm
+from geonode.people.utils import get_user_display_name
 from geonode.base import register_event
 from geonode.groups.models import GroupProfile
 from geonode.monitoring.models import EventType
@@ -45,8 +46,14 @@ from geonode.geoapps.models import GeoApp
 from geonode.resource.manager import resource_manager
 from geonode.decorators import check_keyword_write_perms
 
-from geonode.base.forms import CategoryForm, TKeywordForm, ThesaurusAvailableForm, RelatedProjectForm
-from geonode.base.models import Thesaurus, TopicCategory, Funding, RelatedIdentifier, RelatedProject
+from geonode.base.forms import (
+    CategoryForm,
+    TKeywordForm,
+    ThesaurusAvailableForm,
+    RelatedProjectForm,
+    ContactRoleFormSet,
+)
+from geonode.base.models import Thesaurus, TopicCategory, Funding, RelatedIdentifier, RelatedProject, ContactRole
 from geonode.utils import resolve_object
 
 from .forms import GeoAppForm
@@ -253,6 +260,46 @@ def geoapp_metadata(
             prefix="form_related_identifier",
         )
 
+        contact_role_form = ContactRoleFormSet(
+            request.POST,
+            instance=geoapp_obj,
+            prefix="form_contact_role",
+        )
+
+        if not contact_role_form.is_valid():
+            logger.error(f"Contact Role formset is not valid: {contact_role_form.errors}")
+            error_list = []
+            role_choice_map = dict(ContactRoleFormSet.form.base_fields["role"].choices)
+            for idx, form in enumerate(contact_role_form.forms, start=1):
+                if not form.errors:
+                    continue
+                form_label = _("Contact role %(index)s") % {"index": idx}
+                for field_name, field_errors in form.errors.items():
+                    if field_name == "__all__":
+                        contact = form.cleaned_data.get("contact") if hasattr(form, "cleaned_data") else None
+                        role_value = form.cleaned_data.get("role") if hasattr(form, "cleaned_data") else None
+                        contact_label = get_user_display_name(contact) if contact else _("selected user")
+                        role_label = role_choice_map.get(role_value, role_value or _("selected role"))
+                        message = _(
+                            "%(form_label)s uses %(contact)s as %(role)s more than once. Each user can only appear once per role."
+                        ) % {
+                            "form_label": form_label,
+                            "contact": contact_label,
+                            "role": role_label,
+                        }
+                        error_list.append(message)
+                        continue
+
+                    field_label = form.fields.get(field_name).label if field_name in form.fields else field_name
+                    for field_error in field_errors:
+                        error_list.append(f"{form_label} - {field_label}: {field_error}")
+            for non_form_error in contact_role_form.non_form_errors():
+                error_list.append(str(non_form_error))
+            if not error_list:
+                error_list.append(_("Invalid contact role data."))
+            out = {"success": False, "errors": error_list}
+            return HttpResponse(json.dumps(out), content_type="application/json", status=400)
+
         category_form = CategoryForm(
             request.POST,
             prefix="category_choice_field",
@@ -287,6 +334,13 @@ def geoapp_metadata(
         related_identifier_intial_values = RelatedIdentifier.objects.all().filter(resourcebase=geoapp_obj)
         related_identifier_form = RelatedIdentifierFormset(
             prefix="form_related_identifier", queryset=related_identifier_intial_values
+        )
+
+        contact_role_initial_values = ContactRole.objects.filter(resource=geoapp_obj).order_by("order", "id")
+        contact_role_form = ContactRoleFormSet(
+            prefix="form_contact_role",
+            instance=geoapp_obj,
+            queryset=contact_role_initial_values,
         )
 
         category_form = CategoryForm(
@@ -333,6 +387,7 @@ def geoapp_metadata(
         and related_project_form.is_valid()
         and funding_form.is_valid()
         and related_identifier_form.is_valid()
+        and contact_role_form.is_valid()
         and category_form.is_valid()
         and tkeywords_form.is_valid()
     ):
@@ -352,8 +407,8 @@ def geoapp_metadata(
 
         geoapp_obj.related_projects.add(*instance)
 
-        # update contact roles
-        geoapp_obj.set_contact_roles_from_metadata_edit(geoapp_form)
+        # Save contact roles via dedicated formset
+        contact_role_form.save()
 
         funding_form.save()
         instance = funding_form.save(commit=False)
@@ -470,6 +525,7 @@ def geoapp_metadata(
             "related_project_form": related_project_form,
             "funding_form": funding_form,
             "related_identifier_form": related_identifier_form,
+            "contact_role_form": contact_role_form,
             "category_form": category_form,
             "tkeywords_form": tkeywords_form,
             "metadata_author_groups": metadata_author_groups,
