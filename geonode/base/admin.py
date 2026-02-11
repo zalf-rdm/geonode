@@ -235,7 +235,7 @@ class OrganizationAdmin(admin.ModelAdmin):
 
 class FundingAdmin(admin.ModelAdmin):
     model = Funding
-    list_display = ("organization", "award_number", "award_uri", "award_title")
+    list_display = ("id", "organization", "award_number", "award_uri", "award_title")
     list_display_links = ("organization",)
     list_filter = ("organization", "award_number", "award_uri", "award_title")
 
