@@ -467,6 +467,60 @@ class ContactRoleField(DynamicComputedField):
         self.contact_type = contact_type
         super().__init__(**kwargs)
 
+    @staticmethod
+    def validate_user(val):
+        # make it possible to set contact roles via username or pk through API
+        user = None
+        if "username" in val and "pk" in val:
+            user = get_user_model().objects.get(pk=val["pk"])
+            if user.pk != get_user_model().objects.get(username=val["username"]).pk:
+                raise ParseError(detail=f"username and pk do not match the same user ({val}) ...", code=403)
+
+        elif "username" in val:
+            user = get_user_model().objects.get(username=val["username"])
+
+        elif "pk" in val:
+            user = get_user_model().objects.get(pk=val["pk"])
+
+        if not user:
+            raise ParseError(detail=f"user {val} does not exist", code=404)
+        return user
+
+    @staticmethod
+    def validate_order(value):
+        # check for duplicate order ids and raise error if duplicates are found
+        incomming_order_values = []
+        for val in value:
+            if "order" in val:
+                if not isinstance(val["order"], int):
+                    raise ParseError(
+                        detail=f"Each contact role entry must have an integer 'order' field. Invalid entry: {val}",
+                        code=400,
+                    )
+                incomming_order_values.append(val["order"])
+
+        if len(incomming_order_values) != len(set(incomming_order_values)):
+            raise ParseError(
+                detail=f"Each contact role entry must have a unique integer 'order' field. Invalid entry: {val}",
+                code=400,
+            )
+
+    @staticmethod
+    def order_users(value):
+        # order all incomming users by given order ids and append the once without order at the end of the list
+        highest_order_id = 0
+        for val in value:
+            if "order" in val and val["order"] > highest_order_id:
+                highest_order_id = val["order"]
+
+        # set order for the once without order and for the once with invalid order (not int) starting after the highest given order id
+        for val in value:
+            if "order" not in val:
+                highest_order_id += 1
+                val["order"] = highest_order_id
+
+        return value
+
     def get_attribute(self, instance):
         contacts = ContactRole.objects.filter(resource=instance, role=self.contact_type).order_by("order")
         return contacts
@@ -490,65 +544,45 @@ class ContactRoleField(DynamicComputedField):
             ContactRole.objects.filter(role=self.contact_type, resource=self.parent.instance).order_by("order", "id")
         )
 
-        # Build a map of existing contacts
-        existing_contacts_map = {cr.contact.pk: cr for cr in existing_contact_roles}
+        # check input order for bad values and duplicates before doing any database updates
+        self.validate_order(value)
 
-        # Track which contact PKs are in the new selection
+        # make sure every user entry has an order and that the order is consistent with the
+        # given order ids (e.g. if order 0,2,3 is given, the one without order or with invalid order will get order 4 and so on)
+        value = self.order_users(value)
+
+        desired_entries = []
         new_contact_pks = []
 
-        for order, val in enumerate(value):
-            val_pk = None
-            val_order = val.get("order", order)  # Use provided order or enumerate index
+        # val represents a single contact role entry in the input list, which can be identified by username or pk
+        for user_entry in value:
+            user = self.validate_user(user_entry)
+            new_contact_pks.append(user.pk)
+            desired_entries.append((user, user_entry["order"]))
 
-            # make it possible to set contact roles via username or pk through API
-            if "username" in val and "pk" in val:
-                pk = val["pk"]
-                username = val["username"]
-                pk_user = get_user_model().objects.get(pk=pk)
-                username_user = get_user_model().objects.get(username=username)
-                if pk_user.pk != username_user.pk:
-                    raise ParseError(
-                        detail=f"user with pk: {pk} and username: {username} is not the same ... ", code=403
-                    )
-                val_pk = pk
-            elif "username" in val:
-                username = val["username"]
-                username_user = get_user_model().objects.get(username=username)
-                val_pk = username_user.pk
-            elif "pk" in val:
-                val_pk = val["pk"]
-
-            if not val_pk:
-                continue
-
-            user = get_user_model().objects.filter(pk=val_pk).first()
-            if not user:
-                raise ParseError(detail=f"user with pk: {val_pk} does not exist", code=404)
-
-            new_contact_pks.append(val_pk)
-
-            # Update or create ContactRole with correct order
-            if val_pk in existing_contacts_map:
-                # Update existing ContactRole's order
-                cr = existing_contacts_map[val_pk]
-                if cr.order != val_order:
-                    cr.order = val_order
-                    cr.save(update_fields=["order"])
-                contact_roles.append((cr, False))
-            else:
-                # Create new ContactRole with correct order
-                cr, created = ContactRole.objects.get_or_create(
-                    role=self.contact_type, resource=self.parent.instance, contact=user, defaults={"order": val_order}
-                )
-                if not created and cr.order != val_order:
-                    cr.order = val_order
-                    cr.save(update_fields=["order"])
-                contact_roles.append((cr, created))
-
-        # Delete ContactRoles that are no longer in the selection
+        # Remove contact roles absent from the payload before creating new rows to avoid unique constraint clashes
         for cr in existing_contact_roles:
             if cr.contact.pk not in new_contact_pks:
                 cr.delete()
+
+        # Build a map of the remaining contacts after deletions
+        existing_contacts_map = {cr.contact.pk: cr for cr in existing_contact_roles if cr.contact.pk in new_contact_pks}
+
+        for user, order in desired_entries:
+            # Update or create ContactRole
+            if user.pk in existing_contacts_map:
+                # Update existing ContactRole's order
+                cr = existing_contacts_map[user.pk]
+                if cr.order != order:
+                    cr.order = order
+                    cr.save(update_fields=["order"])
+                contact_roles.append((cr, False))
+            else:
+                # Create new ContactRole
+                cr = ContactRole.objects.create(
+                    role=self.contact_type, resource=self.parent.instance, contact=user, order=order
+                )
+                contact_roles.append((cr, True))
 
         return contact_roles
 
@@ -707,35 +741,35 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     resource_type = serializers.CharField(required=False)
     polymorphic_ctype_id = serializers.CharField(read_only=True)
     owner = DynamicRelationField(user_serializer(), embed=True, read_only=True)
-    author = ContactRoleField(Roles.METADATA_AUTHOR.name, required=False, source="metadata_author")
-    processor = ContactRoleField(Roles.PROCESSOR.name, required=False)
-    publisher = ContactRoleField(Roles.PUBLISHER.name, required=False)
-    custodian = ContactRoleField(Roles.CUSTODIAN.name, required=False)
-    poc = ContactRoleField(Roles.POC.name, required=False)
-    distributor = ContactRoleField(Roles.DISTRIBUTOR.name, required=False)
-    resource_user = ContactRoleField(Roles.RESOURCE_USER.name, required=False)
-    resource_provider = ContactRoleField(Roles.RESOURCE_PROVIDER.name, required=False)
-    originator = ContactRoleField(Roles.ORIGINATOR.name, required=False)
-    principal_investigator = ContactRoleField(Roles.PRINCIPAL_INVESTIGATOR.name, required=False)
+    author = ContactRoleField(Roles.METADATA_AUTHOR.role_value, required=False, source="metadata_author")
+    processor = ContactRoleField(Roles.PROCESSOR.role_value, required=False)
+    publisher = ContactRoleField(Roles.PUBLISHER.role_value, required=False)
+    custodian = ContactRoleField(Roles.CUSTODIAN.role_value, required=False)
+    poc = ContactRoleField(Roles.POC.role_value, required=False)
+    distributor = ContactRoleField(Roles.DISTRIBUTOR.role_value, required=False)
+    resource_user = ContactRoleField(Roles.RESOURCE_USER.role_value, required=False)
+    resource_provider = ContactRoleField(Roles.RESOURCE_PROVIDER.role_value, required=False)
+    originator = ContactRoleField(Roles.ORIGINATOR.role_value, required=False)
+    principal_investigator = ContactRoleField(Roles.PRINCIPAL_INVESTIGATOR.role_value, required=False)
 
-    data_collector = ContactRoleField(Roles.DATA_COLLECTOR.name, required=False)
-    data_curator = ContactRoleField(Roles.DATA_CURATOR.name, required=False)
-    editor = ContactRoleField(Roles.EDITOR.name, required=False)
-    host_institution = ContactRoleField(Roles.HOSTING_INSTITUTION.name, required=False)
-    other = ContactRoleField(Roles.OTHER.name, required=False)
-    producer = ContactRoleField(Roles.PRODUCER.name, required=False)
-    project_leader = ContactRoleField(Roles.PROJECT_LEADER.name, required=False)
-    project_manager = ContactRoleField(Roles.PROJECT_MANAGER.name, required=False)
-    project_member = ContactRoleField(Roles.PROJECT_MEMBER.name, required=False)
-    registration_agency = ContactRoleField(Roles.REGISTRATION_AGENCY.name, required=False)
-    registration_authority = ContactRoleField(Roles.REGISTRATION_AUTHORITY.name, required=False)
-    related_person = ContactRoleField(Roles.RELATED_PERSON.name, required=False)
-    research_group = ContactRoleField(Roles.RESEARCH_GROUP.name, required=False)
-    researcher = ContactRoleField(Roles.RESEARCHER.name, required=False)
-    rights_holder = ContactRoleField(Roles.RIGHTS_HOLDER.name, required=False)
-    sponsor = ContactRoleField(Roles.SPONSOR.name, required=False)
-    supervisor = ContactRoleField(Roles.SUPERVISOR.name, required=False)
-    work_package_leader = ContactRoleField(Roles.WORK_PACKAGE_LEADER.name, required=False)
+    data_collector = ContactRoleField(Roles.DATA_COLLECTOR.role_value, required=False)
+    data_curator = ContactRoleField(Roles.DATA_CURATOR.role_value, required=False)
+    editor = ContactRoleField(Roles.EDITOR.role_value, required=False)
+    host_institution = ContactRoleField(Roles.HOSTING_INSTITUTION.role_value, required=False)
+    other = ContactRoleField(Roles.OTHER.role_value, required=False)
+    producer = ContactRoleField(Roles.PRODUCER.role_value, required=False)
+    project_leader = ContactRoleField(Roles.PROJECT_LEADER.role_value, required=False)
+    project_manager = ContactRoleField(Roles.PROJECT_MANAGER.role_value, required=False)
+    project_member = ContactRoleField(Roles.PROJECT_MEMBER.role_value, required=False)
+    registration_agency = ContactRoleField(Roles.REGISTRATION_AGENCY.role_value, required=False)
+    registration_authority = ContactRoleField(Roles.REGISTRATION_AUTHORITY.role_value, required=False)
+    related_person = ContactRoleField(Roles.RELATED_PERSON.role_value, required=False)
+    research_group = ContactRoleField(Roles.RESEARCH_GROUP.role_value, required=False)
+    researcher = ContactRoleField(Roles.RESEARCHER.role_value, required=False)
+    rights_holder = ContactRoleField(Roles.RIGHTS_HOLDER.role_value, required=False)
+    sponsor = ContactRoleField(Roles.SPONSOR.role_value, required=False)
+    supervisor = ContactRoleField(Roles.SUPERVISOR.role_value, required=False)
+    work_package_leader = ContactRoleField(Roles.WORK_PACKAGE_LEADER.role_value, required=False)
 
     title = serializers.CharField(required=False)
     abstract = serializers.CharField(required=False)

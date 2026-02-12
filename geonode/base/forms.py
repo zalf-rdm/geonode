@@ -31,7 +31,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core import validators
 from django.db.models import Prefetch, Q
-from django.forms import models
+from django.forms import BaseInlineFormSet, models
 from django.forms.fields import ChoiceField, MultipleChoiceField
 from django.forms.utils import flatatt
 from django.utils.encoding import force_str
@@ -588,201 +588,7 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
         widget=ResourceBaseDateTimePicker(options={"format": "YYYY-MM-DD HH:mm a"}),
     )
 
-    metadata_author = ContactRoleMultipleChoiceField(
-        label=_(Roles.METADATA_AUTHOR.label),
-        required=Roles.METADATA_AUTHOR.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    processor = ContactRoleMultipleChoiceField(
-        label=_(Roles.PROCESSOR.label),
-        required=Roles.PROCESSOR.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    publisher = ContactRoleMultipleChoiceField(
-        label=_(Roles.PUBLISHER.label),
-        required=Roles.PUBLISHER.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    custodian = ContactRoleMultipleChoiceField(
-        label=_(Roles.CUSTODIAN.label),
-        required=Roles.CUSTODIAN.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    poc = ContactRoleMultipleChoiceField(
-        label=_(Roles.POC.label),
-        required=Roles.POC.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    distributor = ContactRoleMultipleChoiceField(
-        label=_(Roles.DISTRIBUTOR.label),
-        required=Roles.DISTRIBUTOR.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    resource_user = ContactRoleMultipleChoiceField(
-        label=_(Roles.RESOURCE_USER.label),
-        required=Roles.RESOURCE_USER.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    resource_provider = ContactRoleMultipleChoiceField(
-        label=_(Roles.RESOURCE_PROVIDER.label),
-        required=Roles.RESOURCE_PROVIDER.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    originator = ContactRoleMultipleChoiceField(
-        label=_(Roles.ORIGINATOR.label),
-        required=Roles.ORIGINATOR.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    principal_investigator = ContactRoleMultipleChoiceField(
-        label=_(Roles.PRINCIPAL_INVESTIGATOR.label),
-        required=Roles.PRINCIPAL_INVESTIGATOR.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    data_collector = ContactRoleMultipleChoiceField(
-        label=_(Roles.DATA_COLLECTOR.label),
-        required=Roles.DATA_COLLECTOR.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    data_curator = ContactRoleMultipleChoiceField(
-        label=_(Roles.DATA_CURATOR.label),
-        required=Roles.DATA_CURATOR.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    editor = ContactRoleMultipleChoiceField(
-        label=_(Roles.EDITOR.label),
-        required=Roles.EDITOR.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    hosting_institution = ContactRoleMultipleChoiceField(
-        label=_(Roles.HOSTING_INSTITUTION.label),
-        required=Roles.HOSTING_INSTITUTION.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    other = ContactRoleMultipleChoiceField(
-        label=_(Roles.OTHER.label),
-        required=Roles.OTHER.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    producer = ContactRoleMultipleChoiceField(
-        label=_(Roles.PRODUCER.label),
-        required=Roles.PRODUCER.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    project_leader = ContactRoleMultipleChoiceField(
-        label=_(Roles.PROJECT_LEADER.label),
-        required=Roles.PROJECT_LEADER.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    project_manager = ContactRoleMultipleChoiceField(
-        label=_(Roles.PROJECT_MANAGER.label),
-        required=Roles.PROJECT_MANAGER.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    project_member = ContactRoleMultipleChoiceField(
-        label=_(Roles.PROJECT_MEMBER.label),
-        required=Roles.PROJECT_MEMBER.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    registration_agency = ContactRoleMultipleChoiceField(
-        label=_(Roles.REGISTRATION_AGENCY.label),
-        required=Roles.REGISTRATION_AGENCY.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    registration_authority = ContactRoleMultipleChoiceField(
-        label=_(Roles.REGISTRATION_AUTHORITY.label),
-        required=Roles.REGISTRATION_AUTHORITY.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    related_person = ContactRoleMultipleChoiceField(
-        label=_(Roles.RELATED_PERSON.label),
-        required=Roles.RELATED_PERSON.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    research_group = ContactRoleMultipleChoiceField(
-        label=_(Roles.RESEARCH_GROUP.label),
-        required=Roles.RESEARCH_GROUP.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    researcher = ContactRoleMultipleChoiceField(
-        label=_(Roles.RESEARCHER.label),
-        required=Roles.RESEARCHER.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    rights_holder = ContactRoleMultipleChoiceField(
-        label=_(Roles.RIGHTS_HOLDER.label),
-        required=Roles.RIGHTS_HOLDER.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    sponsor = ContactRoleMultipleChoiceField(
-        label=_(Roles.SPONSOR.label),
-        required=Roles.SPONSOR.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    supervisor = ContactRoleMultipleChoiceField(
-        label=_(Roles.SUPERVISOR.label),
-        required=Roles.SUPERVISOR.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
-
-    work_package_leader = ContactRoleMultipleChoiceField(
-        label=_(Roles.WORK_PACKAGE_LEADER.label),
-        required=Roles.WORK_PACKAGE_LEADER.is_required,
-        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )
+    # Contact roles are now managed via ContactRoleFormSet instead of individual fields
 
     keywords = TagField(
         label=_("Free-text Keywords"),
@@ -818,25 +624,8 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
         if self.instance and self.instance.id and self.instance.metadata.exists():
             self.fields["extra_metadata"].initial = [x.metadata for x in self.instance.metadata.all()]
 
-        # Populate contact role fields from ContactRole database table
-        # IMPORTANT: This must happen AFTER super().__init__() but the values
-        # should not be in the 'data' dict to avoid being treated as bound data
-        if self.instance and self.instance.id:
-            for role in Roles.get_multivalue_ones():
-                # Query ContactRole table for users with this role, ordered by 'order' field
-                contact_roles = (
-                    ContactRole.objects.filter(
-                        resource=self.instance,
-                        role=role.role_value,
-                    )
-                    .order_by("order", "id")
-                    .select_related("contact")
-                )
-
-                # For unbound forms (GET requests), set the initial value
-                if not self.is_bound:
-                    # Set initial as list of PKs
-                    self.fields[role.name].initial = self.initial[role.name] = [cr.contact.pk for cr in contact_roles]
+        # Contact roles are now managed via ContactRoleFormSet
+        # Individual contact role fields have been removed from this form
 
         for field in self.fields:
             if field == "featured" and self.user and not self.user.is_superuser:
@@ -1029,3 +818,128 @@ class OwnerRightsRequestForm(forms.Form):
 
 class ThesaurusImportForm(forms.Form):
     rdf_file = forms.FileField()
+
+
+class ContactRoleForm(forms.ModelForm):
+    """Form for individual contact role entry (one contact, one role, one order)"""
+
+    contact = forms.ModelChoiceField(
+        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
+        label=_("User"),
+        widget=autocomplete.ModelSelect2(url="autocomplete_profile"),
+        required=False,
+    )
+
+    role = forms.ChoiceField(
+        choices=[(r.role_value, r.label) for r in Roles.get_multivalue_ones()],
+        label=_("Role"),
+        required=False,
+    )
+
+    order = forms.IntegerField(
+        label=_("Order"),
+        min_value=0,
+        required=False,
+        help_text=_("Lower numbers appear first"),
+    )
+
+    class Meta:
+        model = ContactRole
+        fields = ["contact", "role", "order"]
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get("DELETE"):
+            return cleaned_data
+
+        contact = cleaned_data.get("contact")
+        role = cleaned_data.get("role")
+        order = cleaned_data.get("order")
+
+        field_values = [contact, role, order]
+        is_empty = all(value in (None, "") for value in field_values)
+
+        if is_empty:
+            if self.instance and self.instance.pk:
+                raise forms.ValidationError(
+                    _("Existing contact roles must include user, role, and order or be removed."),
+                    code="empty_existing_contact_role",
+                )
+            return cleaned_data
+
+        if not contact:
+            self.add_error("contact", _("This field is required."))
+        if not role:
+            self.add_error("role", _("This field is required."))
+        if order in (None, ""):
+            self.add_error("order", _("This field is required."))
+
+        return cleaned_data
+
+
+class ContactRoleInlineFormSet(BaseInlineFormSet):
+    """Ensures each contact/role pair is unique within the resource"""
+
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+
+        seen_contact_role = set()
+        seen_role_order = set()
+        duplicate_contact_labels = []
+        duplicate_order_labels = []
+        role_choices = dict(ContactRoleForm.base_fields["role"].choices)
+
+        for form in self.forms:
+            if not hasattr(form, "cleaned_data"):
+                continue
+            if form.cleaned_data.get("DELETE"):
+                continue
+
+            contact = form.cleaned_data.get("contact")
+            role = form.cleaned_data.get("role")
+            if not contact or not role:
+                continue
+
+            key_contact_role = (contact.pk, role)
+            if key_contact_role in seen_contact_role:
+                duplicate_contact_labels.append(f"{get_user_display_name(contact)} / {role_choices.get(role, role)}")
+            else:
+                seen_contact_role.add(key_contact_role)
+
+            order_value = form.cleaned_data.get("order")
+            if order_value in (None, ""):
+                continue
+            key_role_order = (role, order_value)
+            if key_role_order in seen_role_order:
+                duplicate_order_labels.append(
+                    _("%(role)s (order %(order)s)") % {"role": role_choices.get(role, role), "order": order_value}
+                )
+            else:
+                seen_role_order.add(key_role_order)
+
+        error_messages = []
+        if duplicate_contact_labels:
+            error_messages.append(
+                _("Each user can only be assigned once per role. Please adjust these duplicates: %(duplicates)s")
+                % {"duplicates": ", ".join(duplicate_contact_labels)}
+            )
+        if duplicate_order_labels:
+            error_messages.append(
+                _("Each role can only use an order value once. Please adjust these duplicates: %(duplicates)s")
+                % {"duplicates": ", ".join(duplicate_order_labels)}
+            )
+
+        if error_messages:
+            raise forms.ValidationError(error_messages)
+
+
+ContactRoleFormSet = forms.inlineformset_factory(
+    ResourceBase,
+    ContactRole,
+    form=ContactRoleForm,
+    formset=ContactRoleInlineFormSet,
+    extra=0,
+    can_delete=True,
+)
