@@ -467,6 +467,54 @@ class ContactRoleField(DynamicComputedField):
         self.contact_type = contact_type
         super().__init__(**kwargs)
 
+    @staticmethod
+    def validate_user(val):
+        # make it possible to set contact roles via username or pk through API
+        user = None
+        if "username" in val and "pk" in val:
+            user = get_user_model().objects.get(pk=val["pk"])
+            if user.pk != get_user_model().objects.get(username=val["username"]).pk:
+                raise ParseError(detail=f"username and pk do not match the same user ({val}) ...", code=403)
+
+        elif "username" in val:
+            user = get_user_model().objects.get(username=val["username"])
+
+        elif "pk" in val:
+            user = get_user_model().objects.get(pk=val["pk"])
+
+        if not user:
+            raise ParseError(detail=f"user {val} does not exist", code=404)
+        return user
+
+    @staticmethod
+    def validate_order(value):
+        # check for duplicate order ids and raise error if duplicates are found
+        incomming_order_values = []
+        for val in value:
+            if "order" in val:
+                if not isinstance(val["order"], int):
+                    raise ParseError(detail=f"Each contact role entry must have an integer 'order' field. Invalid entry: {val}", code=400)
+                incomming_order_values.append(val["order"])
+                
+        if len(incomming_order_values) != len(set(incomming_order_values)):
+            raise ParseError(detail=f"Each contact role entry must have a unique integer 'order' field. Invalid entry: {val}", code=400)
+
+    @staticmethod
+    def order_users(value):
+        # order all incomming users by given order ids and append the once without order at the end of the list
+        highest_order_id = 0
+        for val in value:
+            if "order" in val and val["order"] > highest_order_id:
+                highest_order_id = val["order"]
+        
+        # set order for the once without order and for the once with invalid order (not int) starting after the highest given order id
+        for val in value:
+            if "order" not in val:
+                highest_order_id += 1
+                val["order"] = highest_order_id
+        
+        return value
+
     def get_attribute(self, instance):
         contacts = ContactRole.objects.filter(resource=instance, role=self.contact_type).order_by("order")
         return contacts
@@ -496,53 +544,32 @@ class ContactRoleField(DynamicComputedField):
         # Track which contact PKs are in the new selection
         new_contact_pks = []
 
-        for order, val in enumerate(value):
-            val_pk = None
-            val_order = val.get("order", order)  # Use provided order or enumerate index
+        # check input order for bad values and duplicates before doing any database updates
+        self.validate_order(value)
 
-            # make it possible to set contact roles via username or pk through API
-            if "username" in val and "pk" in val:
-                pk = val["pk"]
-                username = val["username"]
-                pk_user = get_user_model().objects.get(pk=pk)
-                username_user = get_user_model().objects.get(username=username)
-                if pk_user.pk != username_user.pk:
-                    raise ParseError(
-                        detail=f"user with pk: {pk} and username: {username} is not the same ... ", code=403
-                    )
-                val_pk = pk
-            elif "username" in val:
-                username = val["username"]
-                username_user = get_user_model().objects.get(username=username)
-                val_pk = username_user.pk
-            elif "pk" in val:
-                val_pk = val["pk"]
+        # make sure every user entry has an order and that the order is consistent with the 
+        # given order ids (e.g. if order 0,2,3 is given, the one without order or with invalid order will get order 4 and so on)
+        value = self.order_users(value)
+        
+        # val represents a single contact role entry in the input list, which can be identified by username or pk
+        for user_entry in value:
+            user = self.validate_user(user_entry)            
+            new_contact_pks.append(user.pk)
+            order = user_entry["order"]
 
-            if not val_pk:
-                continue
-
-            user = get_user_model().objects.filter(pk=val_pk).first()
-            if not user:
-                raise ParseError(detail=f"user with pk: {val_pk} does not exist", code=404)
-
-            new_contact_pks.append(val_pk)
-
-            # Update or create ContactRole with correct order
-            if val_pk in existing_contacts_map:
+            # Update or create ContactRole
+            if user.pk in existing_contacts_map:
                 # Update existing ContactRole's order
-                cr = existing_contacts_map[val_pk]
-                if cr.order != val_order:
-                    cr.order = val_order
+                cr = existing_contacts_map[user.pk]
+                if cr.order != order:
+                    cr.order = order
                     cr.save(update_fields=["order"])
                 contact_roles.append((cr, False))
             else:
-                # Create new ContactRole with correct order
+                # Create new ContactRole
                 cr, created = ContactRole.objects.get_or_create(
-                    role=self.contact_type, resource=self.parent.instance, contact=user, defaults={"order": val_order}
+                    role=self.contact_type, resource=self.parent.instance, contact=user, order=order
                 )
-                if not created and cr.order != val_order:
-                    cr.order = val_order
-                    cr.save(update_fields=["order"])
                 contact_roles.append((cr, created))
 
         # Delete ContactRoles that are no longer in the selection

@@ -5929,6 +5929,16 @@
       "abbreviation": ""
     }
   },
+  {
+    "model": "base.organization",
+    "pk": 70,
+    "fields": {
+      "organization": "Technische Informationsbibliothek (TIB)",
+      "ror": "https://ror.org/04aj4c181",
+      "abbreviation": "TIB"
+    }
+  },
+
 
   {
     "model": "base.relatedproject",
