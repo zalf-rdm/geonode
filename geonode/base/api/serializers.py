@@ -493,11 +493,17 @@ class ContactRoleField(DynamicComputedField):
         for val in value:
             if "order" in val:
                 if not isinstance(val["order"], int):
-                    raise ParseError(detail=f"Each contact role entry must have an integer 'order' field. Invalid entry: {val}", code=400)
+                    raise ParseError(
+                        detail=f"Each contact role entry must have an integer 'order' field. Invalid entry: {val}",
+                        code=400,
+                    )
                 incomming_order_values.append(val["order"])
-                
+
         if len(incomming_order_values) != len(set(incomming_order_values)):
-            raise ParseError(detail=f"Each contact role entry must have a unique integer 'order' field. Invalid entry: {val}", code=400)
+            raise ParseError(
+                detail=f"Each contact role entry must have a unique integer 'order' field. Invalid entry: {val}",
+                code=400,
+            )
 
     @staticmethod
     def order_users(value):
@@ -506,13 +512,13 @@ class ContactRoleField(DynamicComputedField):
         for val in value:
             if "order" in val and val["order"] > highest_order_id:
                 highest_order_id = val["order"]
-        
+
         # set order for the once without order and for the once with invalid order (not int) starting after the highest given order id
         for val in value:
             if "order" not in val:
                 highest_order_id += 1
                 val["order"] = highest_order_id
-        
+
         return value
 
     def get_attribute(self, instance):
@@ -541,7 +547,7 @@ class ContactRoleField(DynamicComputedField):
         # check input order for bad values and duplicates before doing any database updates
         self.validate_order(value)
 
-        # make sure every user entry has an order and that the order is consistent with the 
+        # make sure every user entry has an order and that the order is consistent with the
         # given order ids (e.g. if order 0,2,3 is given, the one without order or with invalid order will get order 4 and so on)
         value = self.order_users(value)
 
