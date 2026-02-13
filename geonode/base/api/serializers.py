@@ -505,28 +505,6 @@ class ContactRoleField(DynamicComputedField):
         self.validate_all_orders(entries)
         return self._resolve_contact_role_users(entries)
 
-        # self.validate_all_orders(value)
-
-        # desired_entries = []
-
-        # for user_entry in value:
-        #     user = None
-        #     try:
-        #         if "username" in user_entry and "pk" in user_entry:
-        #             user = get_user_model().objects.get(pk=user_entry["pk"])
-        #             if user.pk != get_user_model().objects.get(username=user_entry["username"]).pk:
-        #                 raise ParseError(detail=f"username and pk do not match the same user ({user_entry}) ...", code=403)
-        #         elif "username" in user_entry:
-        #             user = get_user_model().objects.get(username=user_entry["username"])
-
-        #         elif "pk" in user_entry:
-        #             user = get_user_model().objects.get(pk=user_entry["pk"])
-        #     except get_user_model().DoesNotExist:
-        #         raise ParseError(detail=f"User with provided username or pk does not exist ({user_entry}) ...", code=404)
-        #     order_value = self._coerce_order_value(user_entry.get("order"))
-        #     desired_entries.append((user, order_value))
-
-        # return desired_entries
 
     @staticmethod
     def _coerce_order_value(raw_value, entry_index):
