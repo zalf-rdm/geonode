@@ -487,7 +487,6 @@ class ContactRoleField(DynamicComputedField):
                 )
             seen_orders[order_value] = entry["index"]
 
-
     def get_attribute(self, instance):
         contacts = ContactRole.objects.filter(resource=instance, role=self.contact_type).order_by("order")
         return contacts
@@ -501,13 +500,11 @@ class ContactRoleField(DynamicComputedField):
             sorted_pks_of_users.append(d)
         return sorted_pks_of_users
 
-
     def to_internal_value(self, value):
         entries = self._prepare_contact_role_entries(value)
         self.validate_all_orders(entries)
         return self._resolve_contact_role_users(entries)
-    
-    
+
         # self.validate_all_orders(value)
 
         # desired_entries = []
@@ -528,7 +525,7 @@ class ContactRoleField(DynamicComputedField):
         #         raise ParseError(detail=f"User with provided username or pk does not exist ({user_entry}) ...", code=404)
         #     order_value = self._coerce_order_value(user_entry.get("order"))
         #     desired_entries.append((user, order_value))
-            
+
         # return desired_entries
 
     @staticmethod
@@ -621,6 +618,7 @@ class ContactRoleField(DynamicComputedField):
 
             desired_entries.append((user, entry["order"]))
         return desired_entries
+
 
 class ExtentBboxField(DynamicComputedField):
     def get_attribute(self, instance):
@@ -1049,7 +1047,6 @@ class ResourceBaseSerializer(DynamicModelSerializer):
         data = super(ResourceBaseSerializer, self).to_internal_value(data)
         return data
 
-
     def save(self, **kwargs):
         extent = self.validated_data.pop("extent", None)
         keywords = self.validated_data.pop("keywords", None)
@@ -1108,7 +1105,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
 
     @staticmethod
     def _persist_contact_roles(instance, role_value, entries):
-        
+
         # No payload means wipe the entire role collection
         qs = ContactRole.objects.filter(resource=instance, role=role_value)
         if not entries:
@@ -1120,7 +1117,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
 
         # Remove contacts the client dropped before reusing remaining rows
         for cr in existing_contact_roles:
-            if cr.contact_id not in desired_contact_ids:        
+            if cr.contact_id not in desired_contact_ids:
                 cr.delete()
 
         remaining_roles = ContactRole.objects.filter(resource=instance, role=role_value)
