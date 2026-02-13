@@ -468,20 +468,24 @@ class ContactRoleField(DynamicComputedField):
         super().__init__(**kwargs)
 
     @staticmethod
-    def validate_all_orders(value):
-        # check for duplicate order ids and raise error if duplicates are found
-        
-        print("Validating orders for contact role field...")
-        incomming_order_values = []
-        for val in value:
-            if "order" in val:
-                if not isinstance(val["order"], int):
-                    raise ParseError(
-                        detail=f"Each contact role entry must have an integer 'order' field. Invalid entry: {val}",
-                        code=400,
-                    )
-                incomming_order_values.append(val["order"])
-
+    def validate_all_orders(entries):
+        # ensure duplicate order ids are rejected after normalization
+        seen_orders = {}
+        for entry in entries:
+            order_value = entry.get("order")
+            if order_value is None:
+                continue
+            if order_value in seen_orders:
+                first_idx = seen_orders[order_value] + 1
+                current_idx = entry["index"] + 1
+                raise ParseError(
+                    detail=(
+                        "Each contact role entry must have a unique integer 'order' field. "
+                        f"Value '{order_value}' is duplicated between entries #{first_idx} and #{current_idx}."
+                    ),
+                    code=400,
+                )
+            seen_orders[order_value] = entry["index"]
 
 
     def get_attribute(self, instance):
@@ -499,29 +503,36 @@ class ContactRoleField(DynamicComputedField):
 
 
     def to_internal_value(self, value):
+        entries = self._prepare_contact_role_entries(value)
+        self.validate_all_orders(entries)
+        return self._resolve_contact_role_users(entries)
+    
+    
+        # self.validate_all_orders(value)
 
-        self.validate_all_orders(value)
+        # desired_entries = []
 
-        desired_entries = []
+        # for user_entry in value:
+        #     user = None
+        #     try:
+        #         if "username" in user_entry and "pk" in user_entry:
+        #             user = get_user_model().objects.get(pk=user_entry["pk"])
+        #             if user.pk != get_user_model().objects.get(username=user_entry["username"]).pk:
+        #                 raise ParseError(detail=f"username and pk do not match the same user ({user_entry}) ...", code=403)
+        #         elif "username" in user_entry:
+        #             user = get_user_model().objects.get(username=user_entry["username"])
 
-        for user_entry in value:
-            if "username" in user_entry and "pk" in user_entry:
-                user = get_user_model().objects.get(pk=user_entry["pk"])
-                if user.pk != get_user_model().objects.get(username=user_entry["username"]).pk:
-                    raise ParseError(detail=f"username and pk do not match the same user ({user_entry}) ...", code=403)
-            elif "username" in user_entry:
-                user = get_user_model().objects.get(username=user_entry["username"])
-
-            elif "pk" in user_entry:
-                user = get_user_model().objects.get(pk=user_entry["pk"])
+        #         elif "pk" in user_entry:
+        #             user = get_user_model().objects.get(pk=user_entry["pk"])
+        #     except get_user_model().DoesNotExist:
+        #         raise ParseError(detail=f"User with provided username or pk does not exist ({user_entry}) ...", code=404)
+        #     order_value = self._coerce_order_value(user_entry.get("order"))
+        #     desired_entries.append((user, order_value))
             
-            order_value = self._coerce_order_value(user_entry.get("order"))
-            desired_entries.append((user, order_value))
-            
-        return desired_entries
+        # return desired_entries
 
     @staticmethod
-    def _coerce_order_value(raw_value):
+    def _coerce_order_value(raw_value, entry_index):
         if raw_value is None:
             return None
         if isinstance(raw_value, int):
@@ -533,8 +544,83 @@ class ContactRoleField(DynamicComputedField):
         try:
             return int(raw_value)
         except (TypeError, ValueError):
-            return None
+            raise ParseError(
+                detail=(
+                    f"Contact role entry #{entry_index + 1} has an invalid 'order' value '{raw_value}'. "
+                    "Expected an integer."
+                ),
+                code=400,
+            )
 
+    def _prepare_contact_role_entries(self, value):
+        if not isinstance(value, list):
+            raise ParseError(detail="Contact role payload must be a list of objects.", code=400)
+
+        prepared = []
+        for index, user_entry in enumerate(value):
+            if not isinstance(user_entry, dict):
+                raise ParseError(
+                    detail=f"Contact role entry #{index + 1} must be an object with 'pk' and/or 'username'.",
+                    code=400,
+                )
+            pk = user_entry.get("pk")
+            username = user_entry.get("username")
+            if pk is None and not username:
+                raise ParseError(
+                    detail=f"Contact role entry #{index + 1} must include either 'pk' or 'username'.",
+                    code=400,
+                )
+            order_value = self._coerce_order_value(user_entry.get("order"), index)
+            # Track the original list position so downstream error messages can echo the client payload.
+            prepared.append({"index": index, "pk": pk, "username": username, "order": order_value})
+        return prepared
+
+    def _resolve_contact_role_users(self, entries):
+        if not entries:
+            return []
+
+        user_model = get_user_model()
+
+        # Prepare bulk lookup tables so we only hit the database twice regardless of payload size.
+        pk_values = {entry["pk"] for entry in entries if entry["pk"] is not None}
+        usernames_without_pk = {entry["username"] for entry in entries if entry["pk"] is None and entry["username"]}
+
+        pk_lookup = {user.pk: user for user in user_model.objects.filter(pk__in=pk_values)} if pk_values else {}
+        username_lookup = (
+            {user.username: user for user in user_model.objects.filter(username__in=usernames_without_pk)}
+            if usernames_without_pk
+            else {}
+        )
+
+        desired_entries = []
+        for entry in entries:
+            pk = entry["pk"]
+            username = entry["username"]
+
+            if pk is not None:
+                user = pk_lookup.get(pk)
+                if not user:
+                    raise ParseError(
+                        detail=f"Contact role entry #{entry['index'] + 1} references unknown user pk '{pk}'.",
+                        code=400,
+                    )
+                if username and str(user.username) != str(username):
+                    raise ParseError(
+                        detail=(
+                            f"Contact role entry #{entry['index'] + 1} pk '{pk}' does not match username '{username}'."
+                        ),
+                        code=400,
+                    )
+            else:
+                user = username_lookup.get(username)
+                if not user:
+                    raise ParseError(
+                        detail=f"Contact role entry #{entry['index'] + 1} references unknown username '{username}'.",
+                        code=400,
+                    )
+
+            desired_entries.append((user, entry["order"]))
+        return desired_entries
 
 class ExtentBboxField(DynamicComputedField):
     def get_attribute(self, instance):
@@ -963,22 +1049,6 @@ class ResourceBaseSerializer(DynamicModelSerializer):
         data = super(ResourceBaseSerializer, self).to_internal_value(data)
         return data
 
-
-    @staticmethod
-    def order_users_in_contact_role(value):
-        # order all incomming users by given order ids and append the once without order at the end of the list
-        highest_order_id = 0
-        for val in value:
-            if "order" in val and val["order"] > highest_order_id:
-                highest_order_id = val["order"]
-
-        # set order for the once without order and for the once with invalid order (not int) starting after the highest given order id
-        for val in value:
-            if "order" not in val:
-                highest_order_id += 1
-                val["order"] = highest_order_id
-
-        return value
 
     def save(self, **kwargs):
         extent = self.validated_data.pop("extent", None)
