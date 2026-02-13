@@ -468,27 +468,10 @@ class ContactRoleField(DynamicComputedField):
         super().__init__(**kwargs)
 
     @staticmethod
-    def validate_user(val):
-        # make it possible to set contact roles via username or pk through API
-        user = None
-        if "username" in val and "pk" in val:
-            user = get_user_model().objects.get(pk=val["pk"])
-            if user.pk != get_user_model().objects.get(username=val["username"]).pk:
-                raise ParseError(detail=f"username and pk do not match the same user ({val}) ...", code=403)
-
-        elif "username" in val:
-            user = get_user_model().objects.get(username=val["username"])
-
-        elif "pk" in val:
-            user = get_user_model().objects.get(pk=val["pk"])
-
-        if not user:
-            raise ParseError(detail=f"user {val} does not exist", code=404)
-        return user
-
-    @staticmethod
-    def validate_order(value):
+    def validate_all_orders(value):
         # check for duplicate order ids and raise error if duplicates are found
+        
+        print("Validating orders for contact role field...")
         incomming_order_values = []
         for val in value:
             if "order" in val:
@@ -499,27 +482,7 @@ class ContactRoleField(DynamicComputedField):
                     )
                 incomming_order_values.append(val["order"])
 
-        if len(incomming_order_values) != len(set(incomming_order_values)):
-            raise ParseError(
-                detail=f"Each contact role entry must have a unique integer 'order' field. Invalid entry: {val}",
-                code=400,
-            )
 
-    @staticmethod
-    def order_users(value):
-        # order all incomming users by given order ids and append the once without order at the end of the list
-        highest_order_id = 0
-        for val in value:
-            if "order" in val and val["order"] > highest_order_id:
-                highest_order_id = val["order"]
-
-        # set order for the once without order and for the once with invalid order (not int) starting after the highest given order id
-        for val in value:
-            if "order" not in val:
-                highest_order_id += 1
-                val["order"] = highest_order_id
-
-        return value
 
     def get_attribute(self, instance):
         contacts = ContactRole.objects.filter(resource=instance, role=self.contact_type).order_by("order")
@@ -534,57 +497,43 @@ class ContactRoleField(DynamicComputedField):
             sorted_pks_of_users.append(d)
         return sorted_pks_of_users
 
+
     def to_internal_value(self, value):
-        # access dataset
-        self.context["contact_role"] = self.contact_type
-        contact_roles = []
 
-        # Get existing ContactRole entries for this role
-        existing_contact_roles = list(
-            ContactRole.objects.filter(role=self.contact_type, resource=self.parent.instance).order_by("order", "id")
-        )
-
-        # check input order for bad values and duplicates before doing any database updates
-        self.validate_order(value)
-
-        # make sure every user entry has an order and that the order is consistent with the
-        # given order ids (e.g. if order 0,2,3 is given, the one without order or with invalid order will get order 4 and so on)
-        value = self.order_users(value)
+        self.validate_all_orders(value)
 
         desired_entries = []
-        new_contact_pks = []
 
-        # val represents a single contact role entry in the input list, which can be identified by username or pk
         for user_entry in value:
-            user = self.validate_user(user_entry)
-            new_contact_pks.append(user.pk)
-            desired_entries.append((user, user_entry["order"]))
+            if "username" in user_entry and "pk" in user_entry:
+                user = get_user_model().objects.get(pk=user_entry["pk"])
+                if user.pk != get_user_model().objects.get(username=user_entry["username"]).pk:
+                    raise ParseError(detail=f"username and pk do not match the same user ({user_entry}) ...", code=403)
+            elif "username" in user_entry:
+                user = get_user_model().objects.get(username=user_entry["username"])
 
-        # Remove contact roles absent from the payload before creating new rows to avoid unique constraint clashes
-        for cr in existing_contact_roles:
-            if cr.contact.pk not in new_contact_pks:
-                cr.delete()
+            elif "pk" in user_entry:
+                user = get_user_model().objects.get(pk=user_entry["pk"])
+            
+            order_value = self._coerce_order_value(user_entry.get("order"))
+            desired_entries.append((user, order_value))
+            
+        return desired_entries
 
-        # Build a map of the remaining contacts after deletions
-        existing_contacts_map = {cr.contact.pk: cr for cr in existing_contact_roles if cr.contact.pk in new_contact_pks}
-
-        for user, order in desired_entries:
-            # Update or create ContactRole
-            if user.pk in existing_contacts_map:
-                # Update existing ContactRole's order
-                cr = existing_contacts_map[user.pk]
-                if cr.order != order:
-                    cr.order = order
-                    cr.save(update_fields=["order"])
-                contact_roles.append((cr, False))
-            else:
-                # Create new ContactRole
-                cr = ContactRole.objects.create(
-                    role=self.contact_type, resource=self.parent.instance, contact=user, order=order
-                )
-                contact_roles.append((cr, True))
-
-        return contact_roles
+    @staticmethod
+    def _coerce_order_value(raw_value):
+        if raw_value is None:
+            return None
+        if isinstance(raw_value, int):
+            return raw_value
+        if isinstance(raw_value, str):
+            raw_value = raw_value.strip()
+            if raw_value == "":
+                return None
+        try:
+            return int(raw_value)
+        except (TypeError, ValueError):
+            return None
 
 
 class ExtentBboxField(DynamicComputedField):
@@ -1014,9 +963,27 @@ class ResourceBaseSerializer(DynamicModelSerializer):
         data = super(ResourceBaseSerializer, self).to_internal_value(data)
         return data
 
+
+    @staticmethod
+    def order_users_in_contact_role(value):
+        # order all incomming users by given order ids and append the once without order at the end of the list
+        highest_order_id = 0
+        for val in value:
+            if "order" in val and val["order"] > highest_order_id:
+                highest_order_id = val["order"]
+
+        # set order for the once without order and for the once with invalid order (not int) starting after the highest given order id
+        for val in value:
+            if "order" not in val:
+                highest_order_id += 1
+                val["order"] = highest_order_id
+
+        return value
+
     def save(self, **kwargs):
         extent = self.validated_data.pop("extent", None)
         keywords = self.validated_data.pop("keywords", None)
+        contact_role_payloads = self._pop_contact_role_payloads()
         instance = super().save(**kwargs)
         if keywords is not None:
             instance.keywords.clear()
@@ -1034,7 +1001,75 @@ class ResourceBaseSerializer(DynamicModelSerializer):
                 logger.exception(e)
                 raise InvalidResourceException("The standard bbox provided is invalid")
             instance.set_bbox_polygon(coords, srid)
+        self._save_contact_role_payloads(instance, contact_role_payloads)
         return instance
+
+    def _pop_contact_role_payloads(self):
+        payloads = {}
+        # Extract all ContactRoleField payloads so super().save() can run without custom objects
+        for field_name, field in self.fields.items():
+            if not isinstance(field, ContactRoleField):
+                continue
+            source = field.source if field.source not in (None, "*") else field_name
+            entries = self.validated_data.pop(source, None)
+            if entries is None:
+                continue
+            payloads[field.contact_type] = entries
+        return payloads
+
+    def _save_contact_role_payloads(self, instance, payloads):
+        # Persist each role separately to avoid order collisions between different role buckets
+        for role_value, entries in payloads.items():
+            normalized_entries = self._normalize_contact_role_entries(entries)
+            self._persist_contact_roles(instance, role_value, normalized_entries)
+
+    @staticmethod
+    def _normalize_contact_role_entries(entries):
+        if not entries:
+            return []
+        normalized = []
+        max_order = max((order for _, order in entries if order is not None), default=-1)
+        for user, order in entries:
+            if order is None:
+                max_order += 1
+                order = max_order
+            normalized.append((user, order))
+        return normalized
+
+    @staticmethod
+    def _persist_contact_roles(instance, role_value, entries):
+        
+        # No payload means wipe the entire role collection
+        qs = ContactRole.objects.filter(resource=instance, role=role_value)
+        if not entries:
+            qs.delete()
+            return
+
+        desired_contact_ids = [user.pk for user, _ in entries]
+        existing_contact_roles = list(qs)
+
+        # Remove contacts the client dropped before reusing remaining rows
+        for cr in existing_contact_roles:
+            if cr.contact_id not in desired_contact_ids:        
+                cr.delete()
+
+        remaining_roles = ContactRole.objects.filter(resource=instance, role=role_value)
+        existing_map = {cr.contact_id: cr for cr in remaining_roles}
+
+        for user, order in entries:
+            cr = existing_map.get(user.pk)
+            if cr:
+                if cr.order != order:
+                    # Update the order only when necessary to minimize writes
+                    cr.order = order
+                    cr.save(update_fields=["order"])
+                continue
+            existing_map[user.pk] = ContactRole.objects.create(
+                resource=instance,
+                role=role_value,
+                contact=user,
+                order=order,
+            )
 
 
 class FavoriteSerializer(DynamicModelSerializer):
