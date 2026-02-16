@@ -43,9 +43,9 @@ from dynamic_rest.fields.fields import DynamicRelationField, DynamicComputedFiel
 from avatar.templatetags.avatar_tags import avatar_url
 from geonode.utils import bbox_swap
 from geonode.base.api.exceptions import InvalidResourceException
-
 from geonode.favorite.models import Favorite
 from geonode.base.models import (
+    ContactRole,
     Link,
     ResourceBase,
     HierarchicalKeyword,
@@ -468,14 +468,38 @@ class ContactRoleField(DynamicComputedField):
         super().__init__(**kwargs)
 
     def get_attribute(self, instance):
-        return getattr(instance, self.contact_type)
+        contacts = ContactRole.objects.filter(resource=instance, role=self.contact_type).order_by("order")
+        return contacts
 
     def to_representation(self, value):
-        return [user_serializer()(embed=True, many=False).to_representation(v) for v in value]
+        sorted_pks_of_users = []
 
-    def get_pks_of_users_to_set(self, value):
-        pks_of_users_to_set = []
-        for val in value:
+        for contact in value:
+            d = user_serializer()(embed=True, many=False).to_representation(contact.contact)
+            d["order"] = contact.order
+            sorted_pks_of_users.append(d)
+        return sorted_pks_of_users
+
+    def to_internal_value(self, value):
+        # access dataset
+        self.context["contact_role"] = self.contact_type
+        contact_roles = []
+
+        # Get existing ContactRole entries for this role
+        existing_contact_roles = list(
+            ContactRole.objects.filter(role=self.contact_type, resource=self.parent.instance).order_by("order", "id")
+        )
+
+        # Build a map of existing contacts
+        existing_contacts_map = {cr.contact.pk: cr for cr in existing_contact_roles}
+
+        # Track which contact PKs are in the new selection
+        new_contact_pks = []
+
+        for order, val in enumerate(value):
+            val_pk = None
+            val_order = val.get("order", order)  # Use provided order or enumerate index
+
             # make it possible to set contact roles via username or pk through API
             if "username" in val and "pk" in val:
                 pk = val["pk"]
@@ -486,17 +510,47 @@ class ContactRoleField(DynamicComputedField):
                     raise ParseError(
                         detail=f"user with pk: {pk} and username: {username} is not the same ... ", code=403
                     )
-                pks_of_users_to_set.append(pk)
+                val_pk = pk
             elif "username" in val:
                 username = val["username"]
                 username_user = get_user_model().objects.get(username=username)
-                pks_of_users_to_set.append(username_user.pk)
+                val_pk = username_user.pk
             elif "pk" in val:
-                pks_of_users_to_set.append(val["pk"])
-        return pks_of_users_to_set
+                val_pk = val["pk"]
 
-    def to_internal_value(self, value):
-        return get_user_model().objects.filter(pk__in=self.get_pks_of_users_to_set(value))
+            if not val_pk:
+                continue
+
+            user = get_user_model().objects.filter(pk=val_pk).first()
+            if not user:
+                raise ParseError(detail=f"user with pk: {val_pk} does not exist", code=404)
+
+            new_contact_pks.append(val_pk)
+
+            # Update or create ContactRole with correct order
+            if val_pk in existing_contacts_map:
+                # Update existing ContactRole's order
+                cr = existing_contacts_map[val_pk]
+                if cr.order != val_order:
+                    cr.order = val_order
+                    cr.save(update_fields=["order"])
+                contact_roles.append((cr, False))
+            else:
+                # Create new ContactRole with correct order
+                cr, created = ContactRole.objects.get_or_create(
+                    role=self.contact_type, resource=self.parent.instance, contact=user, defaults={"order": val_order}
+                )
+                if not created and cr.order != val_order:
+                    cr.order = val_order
+                    cr.save(update_fields=["order"])
+                contact_roles.append((cr, created))
+
+        # Delete ContactRoles that are no longer in the selection
+        for cr in existing_contact_roles:
+            if cr.contact.pk not in new_contact_pks:
+                cr.delete()
+
+        return contact_roles
 
 
 class ExtentBboxField(DynamicComputedField):
@@ -663,7 +717,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     resource_provider = ContactRoleField(Roles.RESOURCE_PROVIDER.name, required=False)
     originator = ContactRoleField(Roles.ORIGINATOR.name, required=False)
     principal_investigator = ContactRoleField(Roles.PRINCIPAL_INVESTIGATOR.name, required=False)
-    
+
     data_collector = ContactRoleField(Roles.DATA_COLLECTOR.name, required=False)
     data_curator = ContactRoleField(Roles.DATA_CURATOR.name, required=False)
     editor = ContactRoleField(Roles.EDITOR.name, required=False)
@@ -683,7 +737,6 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     supervisor = ContactRoleField(Roles.SUPERVISOR.name, required=False)
     work_package_leader = ContactRoleField(Roles.WORK_PACKAGE_LEADER.name, required=False)
 
-    
     title = serializers.CharField(required=False)
     abstract = serializers.CharField(required=False)
 
@@ -804,7 +857,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "resource_user",
             "resource_provider",
             "originator",
-            "principal_investigator",            
+            "principal_investigator",
             "data_collector",
             "data_curator",
             "editor",
@@ -823,7 +876,6 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "sponsor",
             "supervisor",
             "work_package_leader",
-            
             "keywords",
             "tkeywords",
             "regions",

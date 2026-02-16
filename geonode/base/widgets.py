@@ -1,7 +1,4 @@
-from typing import List
-
 from dal_select2_taggit.widgets import TaggitSelect2
-from django.http.request import QueryDict
 
 
 class TaggitSelect2Custom(TaggitSelect2):
@@ -23,5 +20,3 @@ class TaggitSelect2Custom(TaggitSelect2):
             return value
         except TypeError:
             return ""
-
- 

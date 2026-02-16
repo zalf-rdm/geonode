@@ -46,6 +46,7 @@ from django.utils.translation import get_language
 
 from geonode.base.enumerations import ALL_LANGUAGES
 from geonode.base.models import (
+    ContactRole,
     HierarchicalKeyword,
     License,
     LinkedResource,
@@ -68,6 +69,31 @@ from geonode.people import Roles
 from geonode.people.utils import get_user_display_name
 
 logger = logging.getLogger(__name__)
+
+
+class OrderedModelSelect2Multiple(autocomplete.ModelSelect2Multiple):
+    """
+    Custom widget that preserves the order of selected items
+    """
+
+    def build_attrs(self, base_attrs, extra_attrs=None):
+        """Add data attribute with ordered values"""
+        attrs = super().build_attrs(base_attrs, extra_attrs)
+
+        # Add ordered values as data attribute for Tom Select
+        if hasattr(self, "_ordered_value") and self._ordered_value:
+            # Convert to JSON string for data attribute
+            import json
+
+            attrs["data-ordered-values"] = json.dumps([str(v) for v in self._ordered_value])
+
+        return attrs
+
+    def format_value(self, value):
+        """Store the ordered value for rendering"""
+        if value:
+            self._ordered_value = value if isinstance(value, (list, tuple)) else [value]
+        return super().format_value(value)
 
 
 def get_tree_data():
@@ -368,55 +394,16 @@ class ThesaurusAvailableForm(forms.Form):
 
 
 class ContactRoleMultipleChoiceField(forms.ModelMultipleChoiceField):
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault("to_field_name", "username")
-        super().__init__(*args, **kwargs)
 
     def clean(self, value) -> QuerySet:
-        if isinstance(value, QuerySet):
-            return value
-
-        if value is None:
-            return self.queryset.none()
-
-        if not isinstance(value, (list, tuple)):
-            value = [value]
-
-        normalized_ids = []
-        normalized_usernames = []
-        for item in value:
-            if item is None:
-                continue
-
-            if hasattr(item, "pk"):
-                normalized_ids.append(item.pk)
-                continue
-            try:
-                # Try to treat it as an ID (integer).
-                # This will work for integers and numeric strings.
-                normalized_ids.append(int(item))
-            except (ValueError, TypeError):
-                # If it's not an integer, treat it as a username.
-                username = str(item)
-                if username:  # Avoid empty usernames
-                    normalized_usernames.append(username)
-
         try:
-            user_model = get_user_model()
-            query = Q()
-            if normalized_ids:
-                query |= Q(pk__in=normalized_ids)
-            if normalized_usernames:
-                query |= Q(username__in=normalized_usernames)
+            return get_user_model().objects.filter(pk__in=value)
 
-            if query:
-                users = user_model.objects.filter(query)
-            else:
-                users = user_model.objects.none()
-        except (TypeError, ValueError):
+        except ValueError as VE:
             # value of not supported type ...
-            raise forms.ValidationError(_("Something went wrong in finding the profile(s) in a contact role form ..."))
-        return users
+            raise forms.ValidationError(
+                _("Something went wrong in finding the profile(s) in a contact role form ...\n", VE)
+            )
 
     def label_from_instance(self, obj):
         return get_user_display_name(obj)
@@ -477,22 +464,14 @@ class ResourceBaseDateTimePicker(DateTimePicker):
 class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
     """Base form for metadata, should be inherited by childres classes of ResourceBase"""
 
-    abstract = forms.CharField(
-        label=_("Abstract"),
-        required=False,
-        widget=TinyMCE()
-    )
+    abstract = forms.CharField(label=_("Abstract"), required=False, widget=TinyMCE())
     abstract_translated = forms.CharField(
         label=_("Abstract Translated"),
         required=False,
         widget=TinyMCE(),
     )
 
-    subtitle = forms.CharField(
-        label=_("Subtitle"),
-        required=False,
-        widget=TinyMCE()
-    )
+    subtitle = forms.CharField(label=_("Subtitle"), required=False, widget=TinyMCE())
 
     method_description = forms.CharField(
         label=_("Method Description"),
@@ -512,11 +491,7 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
         widget=TinyMCE(),
     )
 
-    technical_info = forms.CharField(
-        label=_("Technical Info"),
-        required=False,
-        widget=TinyMCE()
-    )
+    technical_info = forms.CharField(label=_("Technical Info"), required=False, widget=TinyMCE())
 
     other_description = forms.CharField(
         label=_("Other Description"),
@@ -642,7 +617,7 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
         label=_(Roles.METADATA_AUTHOR.label),
         required=Roles.METADATA_AUTHOR.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
-        widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
+        widget=OrderedModelSelect2Multiple(url="autocomplete_profile"),
     )
 
     processor = ContactRoleMultipleChoiceField(
@@ -741,7 +716,7 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
         required=Roles.OTHER.is_required,
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
         widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
-    )    
+    )
 
     producer = ContactRoleMultipleChoiceField(
         label=_(Roles.PRODUCER.label),
@@ -867,6 +842,26 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
         )
         if self.instance and self.instance.id and self.instance.metadata.exists():
             self.fields["extra_metadata"].initial = [x.metadata for x in self.instance.metadata.all()]
+
+        # Populate contact role fields from ContactRole database table
+        # IMPORTANT: This must happen AFTER super().__init__() but the values
+        # should not be in the 'data' dict to avoid being treated as bound data
+        if self.instance and self.instance.id:
+            for role in Roles.get_multivalue_ones():
+                # Query ContactRole table for users with this role, ordered by 'order' field
+                contact_roles = (
+                    ContactRole.objects.filter(
+                        resource=self.instance,
+                        role=role.role_value,
+                    )
+                    .order_by("order", "id")
+                    .select_related("contact")
+                )
+
+                # For unbound forms (GET requests), set the initial value
+                if not self.is_bound:
+                    # Set initial as list of PKs
+                    self.fields[role.name].initial = self.initial[role.name] = [cr.contact.pk for cr in contact_roles]
 
         for field in self.fields:
             if field == "featured" and self.user and not self.user.is_superuser:

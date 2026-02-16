@@ -84,13 +84,14 @@ class DatasetViewSet(ApiPresetsInitializer, DynamicModelViewSet, AdvertisedListM
 
     def partial_update(self, request, *args, **kwargs):
         dataset = self.get_object()
-        attribute_data = request.data.get('attribute', [])
+        attribute_data = request.data.get("attribute", [])
 
         for attr in attribute_data:
-            pk = attr.get('pk')
+            pk = attr.get("pk")
             try:
                 instance = dataset.attribute_set.get(pk=pk)
                 from .serializers import AttributeSerializer
+
                 serializer = AttributeSerializer(instance, data=attr, partial=True)
                 if serializer.is_valid():
                     serializer.save()
