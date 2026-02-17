@@ -931,6 +931,12 @@ def setup_data(options):
 
     try:
         sh(f"{settings} python -W ignore manage.py importlayers -v2 -hh {geonode_settings.SITEURL} {data_dir}")
+    except Exception:
+        info("importlayers failed. Dumping Django server logs:")
+        log_file.flush()
+        with open(log_file.name, "r") as f:
+            print(f.read())
+        raise
     finally:
         # Stop the Django server
         server_process.terminate()
