@@ -149,9 +149,6 @@ If you encounter database connection errors:
    docker compose -f docker-compose-test.yml restart db
    ```
 
-   docker compose -f docker-compose-test.yml restart db
-   ```
-
 ### Upload Size Limit Issues
 
 If you encounter `Total upload size exceeds 1 byte` errors:

@@ -1,7 +1,5 @@
 #!/bin/bash
 
-echo "DEBUG: SCRIPT UPDATED"
-
 export BACKEND=geonode.geoserver
 export DOCKER_COMPOSE_VERSION=1.19.0
 export GEOSERVER_SERVER_URL=http://localhost:8080/geoserver/
@@ -28,22 +26,25 @@ DB_HOST=${DATABASE_HOST:-db}
 DB_USER=${POSTGRES_USER:-postgres}
 
 # Drop databases
-psql -h $DB_HOST -U $DB_USER -c "DROP DATABASE IF EXISTS template_postgis;"
-psql -h $DB_HOST -U $DB_USER -c "DROP DATABASE IF EXISTS geonode;"
-psql -h $DB_HOST -U $DB_USER -c "DROP DATABASE IF EXISTS geonode_data;"
-psql -h $DB_HOST -U $DB_USER -c "DROP DATABASE IF EXISTS upload_test;"
-psql -h $DB_HOST -U $DB_USER -c "DROP DATABASE IF EXISTS test_upload_test;"
+DATABASES_TO_DROP="template_postgis geonode geonode_data upload_test test_upload_test"
+for db in $DATABASES_TO_DROP; do
+    psql -h "$DB_HOST" -U "$DB_USER" -c "DROP DATABASE IF EXISTS ${db};"
+done
 
 # Create template_postgis
-psql -h $DB_HOST -U $DB_USER -c "CREATE DATABASE template_postgis;"
-psql -h $DB_HOST -U $DB_USER -d template_postgis -c "CREATE EXTENSION IF NOT EXISTS postgis;"
-psql -h $DB_HOST -U $DB_USER -d template_postgis -c "GRANT ALL ON geometry_columns TO PUBLIC;"
-psql -h $DB_HOST -U $DB_USER -d template_postgis -c "GRANT ALL ON spatial_ref_sys TO PUBLIC;"
+psql -h "$DB_HOST" -U "$DB_USER" -c "CREATE DATABASE template_postgis;"
+psql -h "$DB_HOST" -U "$DB_USER" -d template_postgis -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+psql -h "$DB_HOST" -U "$DB_USER" -d template_postgis -c "GRANT ALL ON geometry_columns TO PUBLIC;"
+psql -h "$DB_HOST" -U "$DB_USER" -d template_postgis -c "GRANT ALL ON spatial_ref_sys TO PUBLIC;"
 
 # Create databases from template
-psql -h $DB_HOST -U $DB_USER -c "CREATE DATABASE geonode TEMPLATE template_postgis OWNER geonode;"
-psql -h $DB_HOST -U $DB_USER -c "CREATE DATABASE geonode_data TEMPLATE template_postgis OWNER geonode;"
-psql -h $DB_HOST -U $DB_USER -c "CREATE DATABASE upload_test TEMPLATE template_postgis OWNER geonode;"
+DATABASES_TO_CREATE="geonode geonode_data upload_test"
+for db in $DATABASES_TO_CREATE; do
+    psql -h "$DB_HOST" -U "$DB_USER" -c "CREATE DATABASE ${db} TEMPLATE template_postgis OWNER geonode;"
+done
 
+# Run Django migrations
+echo "Running Django migrations..."
+python -W ignore manage.py migrate --noinput
 
 paver run_tests --coverage --local false

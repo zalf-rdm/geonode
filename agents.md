@@ -244,10 +244,6 @@ docker compose exec django python manage.py shell
 docker compose exec django python -c "from django.conf import settings; print(settings.DATABASES)"
 ```
 
-# Check settings
-docker compose exec django python -c "from django.conf import settings; print(settings.DATABASES)"
-```
-
 ### Common Fixes
 
 **1. Source Code Sync**
