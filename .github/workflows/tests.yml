@@ -24,9 +24,11 @@ jobs:
 
     - name: Start test environment
       run: |
-        docker compose -f docker-compose-test.yml up -d
-        echo "Waiting for services to be healthy..."
-        sleep 60
+        docker compose -f docker-compose-test.yml up -d --build
+        echo "Waiting for services to be ready..."
+        timeout 120 bash -c 'until docker compose -f docker-compose-test.yml exec -T db pg_isready -U postgres 2>/dev/null; do sleep 5; done'
+        echo "Database ready. Waiting for Django container..."
+        sleep 30
 
     - name: Check service health
       run: |
@@ -38,6 +40,10 @@ jobs:
         docker compose -f docker-compose-test.yml exec -T db psql -U postgres -c "ALTER USER geonode WITH SUPERUSER;"
         docker compose -f docker-compose-test.yml exec -T db psql -U postgres -c "ALTER USER geonode_data WITH SUPERUSER;"
 
+    - name: Run migrations and setup
+      run: |
+        docker compose -f docker-compose-test.yml exec -T django bash -c "set -a && . ./.env_test && set +a && python manage.py migrate --noinput"
+        docker compose -f docker-compose-test.yml exec -T django bash -c "set -a && . ./.env_test && set +a && python manage.py loaddata initial_data"
 
     - name: Run main test suite
       run: |

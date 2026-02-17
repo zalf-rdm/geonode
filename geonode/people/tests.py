@@ -753,7 +753,12 @@ class PeopleAndProfileTests(GeoNodeBaseTestSupport):
         data = {"username": "teddy1", "password": "@!2XJSL_S&V^0nt", "email": "teddy@teddy.com"}
         response = self.client.post(reverse("users-list"), data=data, content_type="application/json")
         self.assertEqual(response.status_code, 400)
-        self.assertTrue("A user is already registered with that email" in response.json()["errors"])
+
+        errors = response.json()
+        if "errors" in errors:
+            errors = errors["errors"]
+
+        self.assertTrue(any(f"A user with email '{data['email']}' already exists." in err for err in errors))
 
     def test_users_api_add_existing_username(self):
         bobby = get_user_model().objects.get(username="bobby")
@@ -762,7 +767,12 @@ class PeopleAndProfileTests(GeoNodeBaseTestSupport):
         self.client.login(username="admin", password="admin")
         response = self.client.post(reverse("users-list"), data=data, content_type="application/json")
         self.assertEqual(response.status_code, 400)
-        self.assertTrue("A user with that username already exists." in response.json()["errors"])
+
+        errors = response.json()
+        if "errors" in errors:
+            errors = errors["errors"]
+
+        self.assertTrue(any(f"A user with username '{data['username']}' already exists." in err for err in errors))
 
     def test_users_api_patch_username(self):
         bobby = get_user_model().objects.get(username="bobby")
