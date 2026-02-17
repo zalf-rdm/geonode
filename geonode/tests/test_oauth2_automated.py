@@ -1,5 +1,3 @@
-import os
-import json
 import base64
 from django.contrib.auth import get_user_model
 from oauth2_provider.models import Application
@@ -46,16 +44,12 @@ class OAuth2Test(TestCase):
             reverse("userinfo"),
             HTTP_AUTHORIZATION=f"Bearer {token}",
         )
-        if response.status_code != 200:
-            print(f"Response content: {response.content}")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["preferred_username"], self.username)
 
         # Test DRF View
         response = self.client.get(
-            "/api/v2/users/",
+            reverse("users-list"),
             HTTP_AUTHORIZATION=f"Bearer {token}",
         )
-        if response.status_code != 200:
-            print(f"DRF Response content: {response.content}")
         self.assertEqual(response.status_code, 200)

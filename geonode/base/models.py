@@ -2078,6 +2078,102 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
                 failed = True
         return failed
 
+    def _get_role_users(self, role_value):
+        return [cr.contact for cr in ContactRole.objects.filter(resource=self, role=role_value).order_by("order")]
+
+    def _set_role_users(self, role_value, value):
+        users = []
+        if isinstance(value, get_user_model()):
+            users = [value]
+        elif hasattr(value, "__iter__") and not isinstance(value, str):
+            users = list(value)
+        elif value:
+            users = [value]
+
+        ContactRole.objects.filter(resource=self, role=role_value).delete()
+        for i, user in enumerate(users):
+            ContactRole.objects.create(resource=self, role=role_value, contact=user, order=i)
+
+    @property
+    def metadata_author(self):
+        return self._get_role_users(Roles.METADATA_AUTHOR.role_value)
+
+    @metadata_author.setter
+    def metadata_author(self, value):
+        self._set_role_users(Roles.METADATA_AUTHOR.role_value, value)
+
+    @property
+    def poc(self):
+        return self._get_role_users(Roles.POC.role_value)
+
+    @poc.setter
+    def poc(self, value):
+        self._set_role_users(Roles.POC.role_value, value)
+
+    @property
+    def publisher(self):
+        return self._get_role_users(Roles.PUBLISHER.role_value)
+
+    @publisher.setter
+    def publisher(self, value):
+        self._set_role_users(Roles.PUBLISHER.role_value, value)
+
+    @property
+    def custodian(self):
+        return self._get_role_users(Roles.CUSTODIAN.role_value)
+
+    @custodian.setter
+    def custodian(self, value):
+        self._set_role_users(Roles.CUSTODIAN.role_value, value)
+
+    @property
+    def distributor(self):
+        return self._get_role_users(Roles.DISTRIBUTOR.role_value)
+
+    @distributor.setter
+    def distributor(self, value):
+        self._set_role_users(Roles.DISTRIBUTOR.role_value, value)
+
+    @property
+    def resource_user(self):
+        return self._get_role_users(Roles.RESOURCE_USER.role_value)
+
+    @resource_user.setter
+    def resource_user(self, value):
+        self._set_role_users(Roles.RESOURCE_USER.role_value, value)
+
+    @property
+    def resource_provider(self):
+        return self._get_role_users(Roles.RESOURCE_PROVIDER.role_value)
+
+    @resource_provider.setter
+    def resource_provider(self, value):
+        self._set_role_users(Roles.RESOURCE_PROVIDER.role_value, value)
+
+    @property
+    def originator(self):
+        return self._get_role_users(Roles.ORIGINATOR.role_value)
+
+    @originator.setter
+    def originator(self, value):
+        self._set_role_users(Roles.ORIGINATOR.role_value, value)
+
+    @property
+    def principal_investigator(self):
+        return self._get_role_users(Roles.PRINCIPAL_INVESTIGATOR.role_value)
+
+    @principal_investigator.setter
+    def principal_investigator(self, value):
+        self._set_role_users(Roles.PRINCIPAL_INVESTIGATOR.role_value, value)
+
+    @property
+    def processor(self):
+        return self._get_role_users(Roles.PROCESSOR.role_value)
+
+    @processor.setter
+    def processor(self, value):
+        self._set_role_users(Roles.PROCESSOR.role_value, value)
+
     def get_defined_multivalue_contact_roles(self) -> List[Tuple[List[settings.AUTH_USER_MODEL], str]]:
         """Returns all set contact roles of the ressource with additional ROLE_VALUES from geonode.people.enumarations.ROLE_VALUES. Mainly used to generate output xml more easy.
 
