@@ -4,13 +4,12 @@ from oauth2_provider.models import Application
 from django.test import Client, TestCase
 from django.urls import reverse
 
+
 class OAuth2Test(TestCase):
     def setUp(self):
         self.username = "admin"
         self.password = "admin"
-        self.user = get_user_model().objects.create_superuser(
-            self.username, "admin@example.com", self.password
-        )
+        self.user = get_user_model().objects.create_superuser(self.username, "admin@example.com", self.password)
         self.application = Application.objects.create(
             name="Test App",
             user=self.user,

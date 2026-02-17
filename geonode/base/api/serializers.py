@@ -505,7 +505,6 @@ class ContactRoleField(DynamicComputedField):
         self.validate_all_orders(entries)
         return self._resolve_contact_role_users(entries)
 
-
     @staticmethod
     def _coerce_order_value(raw_value, entry_index):
         if raw_value is None:
