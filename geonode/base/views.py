@@ -58,7 +58,13 @@ from geonode.base.utils import OwnerRightsRequestViewUtils, remove_country_from_
 from geonode.base.forms import UserAndGroupPermissionsForm
 
 from geonode.base.forms import BatchEditForm, OwnerRightsRequestForm
-from geonode.base.models import Region, ResourceBase, HierarchicalKeyword, ThesaurusKeyword, ThesaurusKeywordLabel
+from geonode.base.models import (
+    Region,
+    ResourceBase,
+    HierarchicalKeyword,
+    ThesaurusKeyword,
+    ThesaurusKeywordLabel,
+)
 
 from geonode.base.enumerations import SOURCE_TYPE_LOCAL
 
@@ -797,9 +803,9 @@ def resourcebase_metadata(
     # - POST Request Ends here -
 
     # define contact role forms
+    # some leftovers could be removed if metadata_detail.html is refactored to use only these forms
     contact_role_forms_context = {}
     for role in resourcebase_obj.get_multivalue_role_property_names():
-        resourcebase_form.fields[role].initial = [p.username for p in resourcebase_obj.__getattribute__(role)]
         role_form = ProfileForm(prefix=role)
         role_form.hidden = True
         contact_role_forms_context[f"{role}_form"] = role_form

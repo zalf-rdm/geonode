@@ -55,14 +55,14 @@
           {% endblock metadata_uploaded_check %}
 
           {% block dataset_form_errors %}
-            {% if dataset_form.errors or attribute_form.errors or category_form.errors or metadata_author_form.errors or poc.errors %}
+            {% if dataset_form.errors or attribute_form.errors or category_form.errors or contact_role_form.non_form_errors or poc_form.errors %}
               <p class="bg-danger">
                 {% blocktrans %}Error updating metadata.  Please check the following fields: {% endblocktrans %}
               </p>
               <ul class="bg-danger">
-                {% if metadata_author_form.errors %}
-                  <li>{% trans "Metadata Author" %}</li>
-                  {{ metadata_author_form.errors }}
+                {% if contact_role_form.non_form_errors %}
+                  <li>{% trans "Contact Roles" %}</li>
+                  {{ contact_role_form.non_form_errors }}
                 {% endif %}
                 {% if poc_form.errors %}
                   <li>{% trans "Point of Contact" %}</li>
@@ -241,6 +241,110 @@
               </div>
             </div>
           {% endblock funding_form %}
+
+          {% block contact_role_form %}
+            <div class="row">
+              <div class="col-md-12">
+                <label class="control-label required-field">{% trans "Contact Roles" %}</label>
+                <div id="{{ contact_role_form.prefix }}" data-tab-label-field="role" data-tab-label-default="{% trans "Contact Role" %}">
+                  {{ contact_role_form.management_form }}
+                  {{ contact_role_form.non_form_errors }}
+                  <div class="panel">
+                    <div class="panel-heading panel-heading-nav">
+                      <ul class="nav nav-tabs allTabs">
+                        {% for form in contact_role_form %}
+                          {% with form.instance.short_role_label as role_label %}
+                          <li role="presentation" class="{% if forloop.first %}active{% endif %}">
+                            <a href="#{{ form.prefix }}" aria-controls="{{ form.prefix }}" role="tab" data-toggle="tab">
+                              <span class="tabTex">
+                                {% if role_label %}
+                                  {{ role_label }}
+                                {% else %}
+                                  {{ forloop.counter }}
+                                {% endif %}
+                              </span>
+                              <button type="button" class="nav-remove" onclick="confirmRemoveTab(this)">
+                                <i class="fa fa-minus-circle"></i>
+                              </button>
+                            </a>
+                          </li>
+                          {% endwith %}
+                        {% endfor %}
+                        <li role="presentation" class="nav-item enpt tab li-add">
+                          <button id="nav-add" class="btn-primary nav-add p-2 m-2" onclick="addNewTab(this)" type="button">
+                            <i class="fa fa-plus-circle"> new </i>
+                          </button>
+                        </li>
+                        <li role="presentation" class="nav-item enpt tab nav-empty templateTab hidden">
+                          <a href="" aria-controls="" role="tab" data-toggle="tab">
+                            <span class="newTabTex">{% trans "Contact Role" %}</span>
+                            <button type="button" class="nav-remove" onclick="confirmRemoveTab(this)">
+                              <i class="fa fa-minus-circle"></i>
+                            </button>
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div class="tab-content allContent">
+                      {% for form in contact_role_form %}
+                        <div class="tab-pane {% if forloop.first %}active{% endif %}" id="{{ form.prefix }}" role="tabpanel">
+                          <div>
+                            {% for field in form.visible_fields %}
+                              {% if field.name == "DELETE" %}
+                                <div class="hidden">
+                                  <label for="{{ field.id_for_label }}">{{ field.label|capfirst }}</label>
+                                  <div class="form-group">
+                                    {{ field }}
+                                    {{ field.errors.as_ul }}
+                                  </div>
+                                </div>
+                              {% else %}
+                                <label for="{{ field.id_for_label }}">{{ field.label|capfirst }}</label>
+                                <div id="{{ form.prefix }}-{{ field.name }}-group" class="form-group">
+                                  {{ field }}
+                                  {{ field.errors.as_ul }}
+                                </div>
+                              {% endif %}
+                            {% endfor %}
+                            {% for hidden in form.hidden_fields %}
+                              <div>{{ hidden }}</div>
+                            {% endfor %}
+                          </div>
+                        </div>
+                      {% endfor %}
+
+                      <div class="tab-pane hidden templateContent" id="templateContent" role="tabpanel">
+                        <div>
+                          {% for field in contact_role_form.empty_form.visible_fields %}
+                            {% if field.name == "DELETE" %}
+                              <div class="hidden">
+                                <label for="{{ field.id_for_label }}">{{ field.label|capfirst }}</label>
+                                <div class="form-group">
+                                  {{ field }}
+                                  {{ field.errors.as_ul }}
+                                </div>
+                              </div>
+                            {% else %}
+                              <label for="{{ field.id_for_label }}">{{ field.label|capfirst }}</label>
+                              <div id="{{ contact_role_form.empty_form.prefix }}-{{ field.name }}-group" class="form-group">
+                                {{ field }}
+                                {{ field.errors.as_ul }}
+                              </div>
+                            {% endif %}
+                          {% endfor %}
+                          {% for hidden in contact_role_form.empty_form.hidden_fields %}
+                            <div>{{ hidden }}</div>
+                          {% endfor %}
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endblock contact_role_form %}
 
           {% block related_identifier_form %}
             <div class="row">
@@ -498,9 +602,48 @@
     });
   </script>
   <script>
-    let formsetsInTabs = ["{{ funding_form.prefix }}", "{{ related_identifier_form.prefix }}"];
+    let formsetsInTabs = ["{{ funding_form.prefix }}", "{{ contact_role_form.prefix }}", "{{ related_identifier_form.prefix }}"];
   </script>
   <script type="text/javascript" src="{% static "geonode/js/utils/filter-multi-select-bundle.min.js" %}"></script>
   <script type="text/javascript" src="{% static "geonode/js/utils/formsetsInTabs.js" %}"></script>
+  <script type="text/javascript">
+    (function () {
+      var formSelector = "#{{ contact_role_form.prefix }}";
+      var defaultLabel = "{{ _('Contact Role') }}";
+
+      function updateContactRoleTabLabel(selectEl) {
+        if (!selectEl) {
+          return;
+        }
+        var $select = $(selectEl);
+        var $pane = $select.closest('.tab-pane');
+        if (!$pane.length) {
+          return;
+        }
+        var paneId = $pane.attr('id');
+        if (!paneId) {
+          return;
+        }
+        var labelText = ($select.find('option:selected').text() || '').trim();
+        if (!labelText) {
+          labelText = defaultLabel;
+        }
+        var $tabLink = $(formSelector + ' .allTabs a[href="#' + paneId + '"]');
+        if ($tabLink.length) {
+          $tabLink.find('.tabTex').text(labelText);
+        }
+      }
+
+      $(document).on('change', formSelector + " select[name$='-role']", function () {
+        updateContactRoleTabLabel(this);
+      });
+
+      $(function () {
+        $(formSelector + " select[name$='-role']").each(function () {
+          updateContactRoleTabLabel(this);
+        });
+      });
+    })();
+  </script>
   <script type="text/javascript" src="{% static "geonode/js/utils/focus.js" %}"></script>
 {% endblock %}

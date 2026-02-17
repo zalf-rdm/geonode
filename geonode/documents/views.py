@@ -22,6 +22,7 @@ import shutil
 import logging
 import warnings
 import traceback
+import re
 
 from django.urls import reverse
 from django.conf import settings
@@ -33,7 +34,7 @@ from django.template import loader
 from django.views.generic.edit import CreateView, UpdateView
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
-from django.forms.models import inlineformset_factory, modelformset_factory
+from django.forms.models import modelformset_factory
 
 from geonode.assets.handlers import asset_handler_registry
 from geonode.assets.utils import get_default_asset
@@ -42,6 +43,7 @@ from geonode.client.hooks import hookset
 from geonode.utils import mkdtemp, resolve_object
 from geonode.base.views import batch_modify
 from geonode.people.forms import ProfileForm
+from geonode.people.utils import get_user_display_name
 from geonode.base import register_event
 from geonode.base.bbox_utils import BBOXHelper
 from geonode.groups.models import GroupProfile
@@ -50,8 +52,14 @@ from geonode.storage.manager import storage_manager
 from geonode.resource.manager import resource_manager
 from geonode.decorators import check_keyword_write_perms
 from geonode.security.utils import get_user_visible_groups
-from geonode.base.forms import CategoryForm, TKeywordForm, ThesaurusAvailableForm, RelatedProjectForm
-from geonode.base.models import Thesaurus, TopicCategory, Funding, RelatedIdentifier, RelatedProject
+from geonode.base.forms import (
+    CategoryForm,
+    TKeywordForm,
+    ThesaurusAvailableForm,
+    RelatedProjectForm,
+    ContactRoleFormSet,
+)
+from geonode.base.models import Thesaurus, TopicCategory, Funding, RelatedIdentifier, RelatedProject, ContactRole
 from geonode.base import enumerations
 
 from pathlib import Path
@@ -378,6 +386,46 @@ def document_metadata(
             prefix="form_related_identifier",
         )
 
+        contact_role_form = ContactRoleFormSet(
+            request.POST,
+            instance=document,
+            prefix="form_contact_role",
+        )
+
+        if not contact_role_form.is_valid():
+            logger.error(f"Contact Role formset is not valid: {contact_role_form.errors}")
+            error_list = []
+            role_choice_map = dict(ContactRoleFormSet.form.base_fields["role"].choices)
+            for idx, form in enumerate(contact_role_form.forms, start=1):
+                if not form.errors:
+                    continue
+                form_label = _("Contact role %(index)s") % {"index": idx}
+                for field_name, field_errors in form.errors.items():
+                    if field_name == "__all__":
+                        contact = form.cleaned_data.get("contact") if hasattr(form, "cleaned_data") else None
+                        role_value = form.cleaned_data.get("role") if hasattr(form, "cleaned_data") else None
+                        contact_label = get_user_display_name(contact) if contact else _("selected user")
+                        role_label = role_choice_map.get(role_value, role_value or _("selected role"))
+                        message = _(
+                            "%(form_label)s uses %(contact)s as %(role)s more than once. Each user can only appear once per role."
+                        ) % {
+                            "form_label": form_label,
+                            "contact": contact_label,
+                            "role": role_label,
+                        }
+                        error_list.append(message)
+                        continue
+
+                    field_label = form.fields.get(field_name).label if field_name in form.fields else field_name
+                    for field_error in field_errors:
+                        error_list.append(f"{form_label} - {field_label}: {field_error}")
+            for non_form_error in contact_role_form.non_form_errors():
+                error_list.append(str(non_form_error))
+            if not error_list:
+                error_list.append(_("Invalid contact role data."))
+            out = {"success": False, "errors": error_list}
+            return HttpResponse(json.dumps(out), content_type="application/json", status=400)
+
         category_form = CategoryForm(
             request.POST,
             prefix="category_choice_field",
@@ -415,6 +463,13 @@ def document_metadata(
             prefix="category_choice_field", initial=topic_category.id if topic_category else None
         )
 
+        contact_role_initial_values = ContactRole.objects.filter(resource=document).order_by("order", "id")
+        contact_role_form = ContactRoleFormSet(
+            prefix="form_contact_role",
+            instance=document,
+            queryset=contact_role_initial_values,
+        )
+
         # Keywords from THESAURUS management
         doc_tkeywords = document.tkeywords.all()
         if hasattr(settings, "THESAURUS") and settings.THESAURUS:
@@ -450,7 +505,16 @@ def document_metadata(
                 values = [keyword.id for keyword in doc_tkeywords if int(tid) == keyword.thesaurus.id]
                 tkeywords_form.fields[tid].initial = values
 
-    if request.method == "POST" and document_form.is_valid() and related_project_form.is_valid() and funding_form.is_valid() and related_identifier_form.is_valid() and category_form.is_valid() and tkeywords_form.is_valid():
+    if (
+        request.method == "POST"
+        and document_form.is_valid()
+        and related_project_form.is_valid()
+        and funding_form.is_valid()
+        and related_identifier_form.is_valid()
+        and contact_role_form.is_valid()
+        and category_form.is_valid()
+        and tkeywords_form.is_valid()
+    ):
         new_keywords = current_keywords if request.keyword_readonly else document_form.cleaned_data["keywords"]
         new_regions = document_form.cleaned_data["regions"]
 
@@ -463,12 +527,11 @@ def document_metadata(
             new_category = TopicCategory.objects.get(id=int(category_form.cleaned_data["category_choice_field"]))
 
         if funding_form.is_valid() and related_project_form.is_valid() and related_identifier_form.is_valid():
-
             document.save()
 
             project = related_project_form.cleaned_data
             instance = project["display_name"]
-            
+
             funding_form.save()
             instance = funding_form.save(commit=False)
             document.fundings.add(*instance)
@@ -476,9 +539,9 @@ def document_metadata(
             related_identifier_form.save()
             instance = related_identifier_form.save(commit=False)
             document.related_identifier.add(*instance)
-            
-        # update contact roles
-        document.set_contact_roles_from_metadata_edit(document_form)
+
+        # Save contact roles via dedicated formset
+        contact_role_form.save()
         document.save()
 
         document = document_form.instance
@@ -547,11 +610,10 @@ def document_metadata(
         return HttpResponse(json.dumps(out), content_type="application/json", status=400)
     # - POST Request Ends here -
 
-    # Request.GET
     # define contact role forms
+    # some leftovers could be removed if metadata_detail.html is refactored to use only these forms
     contact_role_forms_context = {}
     for role in document.get_multivalue_role_property_names():
-        document_form.fields[role].initial = [p.username for p in document.__getattribute__(role)]
         role_form = ProfileForm(prefix=role)
         role_form.hidden = True
         contact_role_forms_context[f"{role}_form"] = role_form
@@ -575,6 +637,7 @@ def document_metadata(
             "related_project_form": related_project_form,
             "funding_form": funding_form,
             "related_identifier_form": related_identifier_form,
+            "contact_role_form": contact_role_form,
             "category_form": category_form,
             "tkeywords_form": tkeywords_form,
             "metadata_author_groups": metadata_author_groups,

@@ -156,12 +156,12 @@ class MapViewSet(ApiPresetsInitializer, DynamicModelViewSet, AdvertisedListMixin
 
         # incomming maplayer tabular check
         map_layers = serializer.validated_data.get("maplayers", [])
-        if len(map_layers) > 0:
-            tabular_collection = all(("tabular" in layer.dataset.subtype) for layer in map_layers)
-            instance = serializer.save(
-                subtype="tabular-collection" if tabular_collection else None,
-            )
-        instance = serializer.update(instance,serializer.validated_data)
+        save_kwargs = {}
+        if map_layers:
+            tabular_collection = all(layer.dataset and ("tabular" in layer.dataset.subtype) for layer in map_layers)
+            save_kwargs["subtype"] = "tabular-collection" if tabular_collection else None
+
+        instance = serializer.save(**save_kwargs)
 
         # thumbnail, events and resouce routines
         self._post_change_routines(

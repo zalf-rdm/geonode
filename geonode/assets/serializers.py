@@ -32,7 +32,6 @@ logger = logging.getLogger(__name__)
 
 
 class ClassTypeField(DynamicComputedField):
-
     def get_attribute(self, instance):
         return type(instance).__name__
 
@@ -59,7 +58,6 @@ class AssetSubclassField(DynamicComputedField):
 
 
 class AssetSerializer(DynamicModelSerializer):
-
     owner = SimpleUserSerializer(embed=False)
     asset_type = ClassTypeField()
     subinfo = AssetSubclassField()

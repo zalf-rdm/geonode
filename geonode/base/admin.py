@@ -180,8 +180,8 @@ class RestrictionCodeTypeAdmin(TabbedTranslationAdmin):
 class ContactRoleAdmin(admin.ModelAdmin):
     model = ContactRole
     list_display_links = ("id",)
-    list_display = ("id", "contact", "resource", "role")
-    list_editable = ("contact", "resource", "role")
+    list_display = ("id", "contact", "resource", "role", "order")
+    list_editable = ("contact", "resource", "role", "order")
     form = forms.modelform_factory(ContactRole, fields="__all__")
 
 
@@ -235,7 +235,7 @@ class OrganizationAdmin(admin.ModelAdmin):
 
 class FundingAdmin(admin.ModelAdmin):
     model = Funding
-    list_display = ("organization", "award_number", "award_uri", "award_title")
+    list_display = ("id", "organization", "award_number", "award_uri", "award_title")
     list_display_links = ("organization",)
     list_filter = ("organization", "award_number", "award_uri", "award_title")
 

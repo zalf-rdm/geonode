@@ -1306,10 +1306,8 @@ class TestRegions(GeoNodeBaseTestSupport):
 
 
 class TestMetadataStorer(GeoNodeBaseTestSupport):
-
     @patch("geonode.resource.utils.call_storers", _cache_less_call_storers)
     def test_create_passing_custom_to_post_save(self):
-
         with override_settings(METADATA_STORERS=["geonode.resource.metadata_storer.store_metadata"]):
             User = get_user_model()
             user = User.objects.create(username="test", email="test@test.com")
