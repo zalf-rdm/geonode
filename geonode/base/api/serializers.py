@@ -58,6 +58,7 @@ from geonode.base.models import (
     ThesaurusKeywordLabel,
     ExtraMetadata,
     RelatedIdentifierType,
+    ResourceTypeGeneral,
     RelationType,
     RelatedIdentifier,
     Organization,
@@ -218,14 +219,22 @@ class SimpleRelationType(DynamicModelSerializer):
         fields = ("label", "description")
 
 
+class SimpleResourceTypeGeneral(DynamicModelSerializer):
+    class Meta:
+        model = ResourceTypeGeneral
+        name = "ResourceTypeGeneral"
+        fields = ("label", "description")
+
+
 class SimpleRelatedIdentifierSerializer(DynamicModelSerializer):
     class Meta:
         model = RelatedIdentifier
         name = "RelatedIdentifier"
-        fields = ("id", "related_identifier", "related_identifier_type", "relation_type", "description")
+        fields = ("id", "related_identifier", "related_identifier_type", "relation_type", "resource_type_general", "description")
 
     related_identifier_type = DynamicRelationField(SimpleRelatedIdentifierType, embed=True, many=False)
     relation_type = DynamicRelationField(SimpleRelationType, embed=True, many=False)
+    resource_type_general = DynamicRelationField(SimpleResourceTypeGeneral, embed=True, many=False)
 
 
 class OrganizationSerializer(DynamicModelSerializer):
@@ -882,6 +891,20 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     )
     link = AutoLinkField(read_only=True)
 
+    def create(self, validated_data):
+        if "related_identifier" in validated_data:
+            for ri in validated_data["related_identifier"]:
+                if ri.pk is None:
+                    ri.save()
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        if "related_identifier" in validated_data:
+            for ri in validated_data["related_identifier"]:
+                if ri.pk is None:
+                    ri.save()
+        return super().update(instance, validated_data)
+
     class Meta:
         model = ResourceBase
         name = "resource"
@@ -1210,6 +1233,14 @@ class RelatedIdentifierSerializer(DynamicModelSerializer):
         name = "relatedidentifiers"
         model = RelatedIdentifier
         count_type = "relatedidentifier"
+        fields = "__all__"
+
+
+class ResourceTypeGeneralSerializer(DynamicModelSerializer):
+    class Meta:
+        name = "resourcetypegenerals"
+        model = ResourceTypeGeneral
+        count_type = "resourcetypegeneral"
         fields = "__all__"
 
 

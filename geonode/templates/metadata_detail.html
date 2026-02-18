@@ -155,6 +155,7 @@
                 <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Relation Identifier" %}</div><div class="col-sm-9">{{ rel.related_identifier }}</div></div>
                 <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Related Identifier Type" %}</div><div class="col-sm-9">{{ rel.related_identifier_type }}</div></div>
                 <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Relation Type" %}</div><div class="col-sm-9">{{ rel.relation_type }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Resource Type General" %}</div><div class="col-sm-9">{{ rel.resource_type_general|default:"-" }}</div></div>
                 <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Description" %}</div><div class="col-sm-9">{{ rel.description }}</div></div>
               </div>
             {% endfor %}
@@ -328,6 +329,7 @@
           <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Relation Identifier" %}</div><div class="col-sm-9">{{ rel.related_identifier }}</div></div>
           <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Related Identifier Type" %}</div><div class="col-sm-9">{{ rel.related_identifier_type }}</div></div>
           <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Relation Type" %}</div><div class="col-sm-9">{{ rel.relation_type }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Resource Type General" %}</div><div class="col-sm-9">{{ rel.resource_type_general|default:"-" }}</div></div>
           <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Description" %}</div><div class="col-sm-9">{{ rel.description }}</div></div>
         </div>
         {% endfor %}

@@ -26,6 +26,7 @@ from dynamic_rest.fields.fields import DynamicRelationField
 from geonode.base.models import (
     RelatedIdentifierType,
     RelationType,
+    ResourceTypeGeneral,
     RelatedIdentifier,
     Organization,
     Funding,
@@ -38,12 +39,18 @@ class RelatedIdentifierDynamicRelationField(DynamicRelationField):
         try:
             rit = RelatedIdentifierType.objects.get(**data["related_identifier_type"])
             rt = RelationType.objects.get(**data["relation_type"])
-            RelatedIdentifier.objects.get_or_create(
-                related_identifier=data["related_identifier"], related_identifier_type=rit, relation_type=rt
-            )[0].save()
-            r = RelatedIdentifier.objects.get(
-                related_identifier=data["related_identifier"], related_identifier_type=rit, relation_type=rt
-            )
+            rtg = None
+            if data.get("resource_type_general"):
+                rtg = ResourceTypeGeneral.objects.get(**data["resource_type_general"])
+            lookup = {
+                "related_identifier": data["related_identifier"],
+                "related_identifier_type": rit,
+                "relation_type": rt,
+                "resource_type_general": rtg,
+            }
+            r = RelatedIdentifier.objects.filter(**lookup).first()
+            if not r:
+                r = RelatedIdentifier(**lookup)
         except TypeError:
             raise ParseError(detail="Could not convert related_identifier to internal object ...", code=400)
         return r

@@ -224,7 +224,7 @@ def geoapp_metadata(
 
     RelatedIdentifierFormset = modelformset_factory(
         RelatedIdentifier,
-        fields=["related_identifier", "related_identifier_type", "relation_type", "description"],
+        fields=["related_identifier", "related_identifier_type", "relation_type", "resource_type_general", "description"],
         can_delete=True,
         extra=0,
         min_num=0,

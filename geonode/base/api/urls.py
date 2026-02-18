@@ -29,6 +29,7 @@ router.register(r"restrictioncodetype", views.RestrictionCodeTypeViewSet, "restr
 router.register(r"relationtypes", views.RelationTypeViewSet, "relationtypes")
 router.register(r"relatedidentifiertypes", views.RelatedIdentifierTypeViewSet, "relatedidentifiertypes")
 router.register(r"relatedidentifiers", views.RelatedIdentifierViewSet, "relatedidentifiers")
+router.register(r"resourcetypegenerals", views.ResourceTypeGeneralViewSet, "resourcetypegenerals")
 router.register(r"organizations", views.OrganizationViewSet, "organizations")
 router.register(r"fundings", views.FundingViewSet, "fundings")
 router.register(r"relatedprojects", views.RelatedProjectViewSet, "relatedprojects")
