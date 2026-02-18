@@ -58,6 +58,7 @@ from geonode.base.models import (
     ThesaurusKeywordLabel,
     ExtraMetadata,
     RelatedIdentifierType,
+    ResourceTypeGeneral,
     RelationType,
     RelatedIdentifier,
     Organization,
@@ -218,14 +219,29 @@ class SimpleRelationType(DynamicModelSerializer):
         fields = ("label", "description")
 
 
+class SimpleResourceTypeGeneral(DynamicModelSerializer):
+    class Meta:
+        model = ResourceTypeGeneral
+        name = "ResourceTypeGeneral"
+        fields = ("label", "description")
+
+
 class SimpleRelatedIdentifierSerializer(DynamicModelSerializer):
     class Meta:
         model = RelatedIdentifier
         name = "RelatedIdentifier"
-        fields = ("id", "related_identifier", "related_identifier_type", "relation_type", "description")
+        fields = (
+            "id",
+            "related_identifier",
+            "related_identifier_type",
+            "relation_type",
+            "resource_type_general",
+            "description",
+        )
 
     related_identifier_type = DynamicRelationField(SimpleRelatedIdentifierType, embed=True, many=False)
     relation_type = DynamicRelationField(SimpleRelationType, embed=True, many=False)
+    resource_type_general = DynamicRelationField(SimpleResourceTypeGeneral, embed=True, many=False)
 
 
 class OrganizationSerializer(DynamicModelSerializer):
@@ -504,7 +520,6 @@ class ContactRoleField(DynamicComputedField):
         entries = self._prepare_contact_role_entries(value)
         self.validate_all_orders(entries)
         return self._resolve_contact_role_users(entries)
-
 
     @staticmethod
     def _coerce_order_value(raw_value, entry_index):
@@ -882,6 +897,21 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     )
     link = AutoLinkField(read_only=True)
 
+    def _save_new_related_identifiers(self, validated_data):
+        """Saves unsaved RelatedIdentifier instances."""
+        if "related_identifier" in validated_data:
+            for ri in validated_data["related_identifier"]:
+                if ri.pk is None:
+                    ri.save()
+
+    def create(self, validated_data):
+        self._save_new_related_identifiers(validated_data)
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        self._save_new_related_identifiers(validated_data)
+        return super().update(instance, validated_data)
+
     class Meta:
         model = ResourceBase
         name = "resource"
@@ -1210,6 +1240,14 @@ class RelatedIdentifierSerializer(DynamicModelSerializer):
         name = "relatedidentifiers"
         model = RelatedIdentifier
         count_type = "relatedidentifier"
+        fields = "__all__"
+
+
+class ResourceTypeGeneralSerializer(DynamicModelSerializer):
+    class Meta:
+        name = "resourcetypegenerals"
+        model = ResourceTypeGeneral
+        count_type = "resourcetypegeneral"
         fields = "__all__"
 
 

@@ -42,6 +42,7 @@ from geonode.base.models import (
     Link,
     RelationType,
     RelatedIdentifierType,
+    ResourceTypeGeneral,
     Organization,
     RelatedIdentifier,
     Funding,
@@ -208,9 +209,22 @@ class RelationTypeAdmin(admin.ModelAdmin):
 
 class RelatedIdentifierAdmin(admin.ModelAdmin):
     model = RelatedIdentifier
-    list_display = ("id", "related_identifier", "related_identifier_type", "relation_type", "description")
-    list_display_links = ("related_identifier", "related_identifier_type", "relation_type", "description")
-    list_filter = ("related_identifier", "related_identifier_type", "relation_type")
+    list_display = (
+        "id",
+        "related_identifier",
+        "related_identifier_type",
+        "relation_type",
+        "resource_type_general",
+        "description",
+    )
+    list_display_links = (
+        "related_identifier",
+        "related_identifier_type",
+        "relation_type",
+        "resource_type_general",
+        "description",
+    )
+    list_filter = ("related_identifier", "related_identifier_type", "relation_type", "resource_type_general")
 
     form = forms.modelform_factory(RelatedIdentifier, fields="__all__")
 
@@ -222,6 +236,15 @@ class RelatedIdentifierTypeAdmin(admin.ModelAdmin):
     list_filter = ("label",)
 
     form = forms.modelform_factory(RelatedIdentifierType, fields="__all__")
+
+
+class ResourceTypeGeneralAdmin(admin.ModelAdmin):
+    model = ResourceTypeGeneral
+    list_display = ("label", "description")
+    list_display_links = ("label",)
+    list_filter = ("label",)
+
+    form = forms.modelform_factory(ResourceTypeGeneral, fields="__all__")
 
 
 class OrganizationAdmin(admin.ModelAdmin):
@@ -389,6 +412,7 @@ admin.site.register(License, LicenseAdmin)
 admin.site.register(RelationType, RelationTypeAdmin)
 admin.site.register(RelatedIdentifierType, RelatedIdentifierTypeAdmin)
 admin.site.register(RelatedIdentifier, RelatedIdentifierAdmin)
+admin.site.register(ResourceTypeGeneral, ResourceTypeGeneralAdmin)
 admin.site.register(Organization, OrganizationAdmin)
 admin.site.register(Funding, FundingAdmin)
 admin.site.register(RelatedProject, RelatedProjectAdmin)

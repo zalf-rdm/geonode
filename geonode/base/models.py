@@ -683,6 +683,23 @@ class RelationType(models.Model):
         return f"{self.label}"
 
 
+class ResourceTypeGeneral(models.Model):
+    label_help_text = _("DataCite resourceTypeGeneral controlled vocabulary")
+    description_help_text = _("Description of the general resource type")
+
+    label = models.CharField(
+        _("Label"),
+        max_length=255,
+        help_text=label_help_text,
+        unique=True,
+        primary_key=True,
+    )
+    description = models.CharField(_("Description"), max_length=255, help_text=description_help_text)
+
+    def __str__(self):
+        return f"{self.label}"
+
+
 class RelatedIdentifier(models.Model):
     related_identifer_help_text = _("Identifiers of related resources. These must be globally unique identifiers.")
     related_identifer_type_help_text = _(" ")
@@ -693,6 +710,13 @@ class RelatedIdentifier(models.Model):
     )
     related_identifier_type = models.ForeignKey(RelatedIdentifierType, null=True, blank=True, on_delete=models.CASCADE)
     relation_type = models.ForeignKey(RelationType, null=True, blank=True, on_delete=models.CASCADE)
+    resource_type_general = models.ForeignKey(
+        ResourceTypeGeneral,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        help_text=_("The general type of the related resource (DataCite controlled vocabulary)"),
+    )
     description = models.CharField(
         _("Related Identifier Description"),
         blank=True,
@@ -701,7 +725,7 @@ class RelatedIdentifier(models.Model):
     )
 
     def __str__(self):
-        return f"Related Identifier: {self.related_identifier}({self.relation_type}: {self.related_identifier_type})"
+        return f"Related Identifier: {self.related_identifier}({self.relation_type}: {self.related_identifier_type}, {self.resource_type_general})"
 
 
 class Organization(models.Model):

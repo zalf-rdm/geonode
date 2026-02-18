@@ -36,6 +36,7 @@ from django.template import Template, Context
 from django.contrib.auth import get_user_model
 from geonode.storage.manager import storage_manager
 from django.test import Client, TestCase, override_settings, SimpleTestCase
+from rest_framework.test import APITestCase
 from django.shortcuts import reverse
 from django.utils import translation
 from django.core.files import File
@@ -68,6 +69,10 @@ from geonode.base.models import (
     Thesaurus,
     ThesaurusKeyword,
     generate_thesaurus_reference,
+    RelatedIdentifier,
+    RelatedIdentifierType,
+    RelationType,
+    ResourceTypeGeneral,
 )
 from geonode.base.middleware import ReadOnlyMiddleware, MaintenanceMiddleware
 from geonode.base.templatetags.base_tags import get_visibile_resources, facets
@@ -1365,3 +1370,246 @@ class LinkedResourcesTest(GeoNodeBaseTestSupport):
         finally:
             for _ in d:
                 _.delete()
+
+
+class ResourceTypeGeneralModelTests(TestCase):
+    """Tests for the ResourceTypeGeneral model."""
+
+    def test_create_resource_type_general(self):
+        """Ensure a ResourceTypeGeneral instance can be created."""
+        rtg = ResourceTypeGeneral.objects.create(
+            label="Dataset",
+            description="Data encoded in a defined structure.",
+        )
+        self.assertEqual(rtg.label, "Dataset")
+        self.assertEqual(str(rtg), "Dataset")
+
+    def test_label_is_primary_key(self):
+        """Ensure the label field serves as the primary key."""
+        rtg = ResourceTypeGeneral.objects.create(
+            label="Software",
+            description="A computer program in either source code (text) or compiled form.",
+        )
+        self.assertEqual(rtg.pk, "Software")
+        fetched = ResourceTypeGeneral.objects.get(pk="Software")
+        self.assertEqual(fetched.description, rtg.description)
+
+    def test_label_is_unique(self):
+        """Ensure duplicate labels are rejected."""
+        ResourceTypeGeneral.objects.create(label="Text", description="A resource consisting primarily of words.")
+        with self.assertRaises(IntegrityError):
+            ResourceTypeGeneral.objects.create(label="Text", description="Duplicate label.")
+
+
+class RelatedIdentifierWithResourceTypeGeneralTests(TestCase):
+    """Tests for the resource_type_general FK on RelatedIdentifier."""
+
+    def setUp(self):
+        self.rit = RelatedIdentifierType.objects.create(label="DOI", description="Digital Object Identifier")
+        self.rt = RelationType.objects.create(label="Cites", description="Cites this resource")
+        self.rtg = ResourceTypeGeneral.objects.create(
+            label="Dataset", description="Data encoded in a defined structure."
+        )
+
+    def test_create_related_identifier_with_resource_type_general(self):
+        """Ensure RelatedIdentifier can be created with resource_type_general."""
+        ri = RelatedIdentifier.objects.create(
+            related_identifier="10.1234/test",
+            related_identifier_type=self.rit,
+            relation_type=self.rt,
+            resource_type_general=self.rtg,
+            description="Test identifier",
+        )
+        self.assertEqual(ri.resource_type_general, self.rtg)
+        self.assertIn("Dataset", str(ri))
+
+    def test_create_related_identifier_without_resource_type_general(self):
+        """Ensure RelatedIdentifier can be created without resource_type_general."""
+        ri, _ = RelatedIdentifier.objects.get_or_create(
+            related_identifier="10.1234/no-rtg",
+            related_identifier_type=self.rit,
+            relation_type=self.rt,
+            resource_type_general=None,
+        )
+        self.assertIsNone(ri.resource_type_general)
+
+    def test_cascade_delete(self):
+        """Ensure deleting a ResourceTypeGeneral cascades to RelatedIdentifier."""
+        ri = RelatedIdentifier.objects.create(
+            related_identifier="10.1234/cascade",
+            related_identifier_type=self.rit,
+            relation_type=self.rt,
+            resource_type_general=self.rtg,
+        )
+        ri_id = ri.id
+        self.rtg.delete()
+        self.assertFalse(RelatedIdentifier.objects.filter(id=ri_id).exists())
+
+
+class DataMigrationTests(TestCase):
+    """Tests that the data migration seeded the expected ResourceTypeGeneral values."""
+
+    def test_seed_data_exists(self):
+        """Ensure all 30 DataCite resourceTypeGeneral values are present."""
+        expected_labels = [
+            "Audiovisual",
+            "Book",
+            "BookChapter",
+            "Collection",
+            "ComputationalNotebook",
+            "ConferencePaper",
+            "ConferenceProceeding",
+            "DataPaper",
+            "Dataset",
+            "Dissertation",
+            "Event",
+            "Image",
+            "InteractiveResource",
+            "Instrument",
+            "Journal",
+            "JournalArticle",
+            "Model",
+            "OutputManagementPlan",
+            "PeerReview",
+            "PhysicalObject",
+            "Preprint",
+            "Report",
+            "Service",
+            "Software",
+            "Sound",
+            "Standard",
+            "StudyRegistration",
+            "Text",
+            "Workflow",
+            "Other",
+        ]
+        for label in expected_labels:
+            self.assertTrue(
+                ResourceTypeGeneral.objects.filter(label=label).exists(),
+                f"ResourceTypeGeneral '{label}' not found — data migration may not have run.",
+            )
+
+    def test_seed_count(self):
+        """Ensure exactly 30 values were seeded."""
+        self.assertEqual(ResourceTypeGeneral.objects.count(), 30)
+
+
+class ResourceTypeGeneralAPITests(APITestCase):
+    """Tests for the ResourceTypeGeneral API endpoints."""
+
+    fixtures = ["initial_data.json", "group_test_data.json", "default_oauth_apps.json"]
+
+    def test_list_resource_type_generals(self):
+        """Ensure the resourcetypegenerals list endpoint returns all values."""
+        url = reverse("resourcetypegenerals-list")
+        response = self.client.get(url, format="json")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["total"], 30)
+
+    def test_retrieve_resource_type_general(self):
+        """Ensure a single ResourceTypeGeneral can be retrieved by PK."""
+        url = reverse("resourcetypegenerals-detail", kwargs={"pk": "Dataset"})
+        response = self.client.get(url, format="json")
+        self.assertEqual(response.status_code, 200)
+        data = response.data["ResourceTypeGeneral"]
+        self.assertEqual(data["label"], "Dataset")
+        self.assertIn("description", data)
+
+    def test_related_identifier_serializer_includes_resource_type_general(self):
+        """Ensure the RelatedIdentifier API response includes resource_type_general."""
+        rit = RelatedIdentifierType.objects.create(label="DOI_API", description="DOI")
+        rt = RelationType.objects.create(label="Cites_API", description="Cites")
+        rtg = ResourceTypeGeneral.objects.get(label="Dataset")
+        ri = RelatedIdentifier.objects.create(
+            related_identifier="10.5678/api-test",
+            related_identifier_type=rit,
+            relation_type=rt,
+            resource_type_general=rtg,
+        )
+
+        url = reverse("relatedidentifiers-detail", kwargs={"pk": ri.pk})
+        response = self.client.get(url, format="json")
+        self.assertEqual(response.status_code, 200)
+
+    def test_resource_base_related_identifier_with_resource_type_general(self):
+        """Ensure resource_type_general appears in the resource's related_identifier field."""
+        resource = ResourceBase.objects.first()
+        if resource is None:
+            self.skipTest("No ResourceBase objects available")
+
+        rit = RelatedIdentifierType.objects.create(label="DOI_RB", description="DOI")
+        rt = RelationType.objects.create(label="References_RB", description="References")
+        rtg = ResourceTypeGeneral.objects.get(label="Software")
+        ri = RelatedIdentifier.objects.create(
+            related_identifier="10.9999/resource-test",
+            related_identifier_type=rit,
+            relation_type=rt,
+            resource_type_general=rtg,
+        )
+        resource.related_identifier.add(ri)
+
+        self.assertTrue(self.client.login(username="admin", password="admin"))
+        url = f"{reverse('base-resources-list')}/{resource.id}/"
+        response = self.client.get(url, format="json")
+        self.assertEqual(response.status_code, 200)
+
+        related_ids = response.data["resource"].get("related_identifier", [])
+        self.assertTrue(len(related_ids) > 0, "Expected at least one related identifier")
+        # Verify the resource_type_general field is present
+        found = any(ri_data.get("resource_type_general") is not None for ri_data in related_ids)
+        self.assertTrue(found, "resource_type_general field should be present in related_identifier response")
+
+    def test_write_resource_with_related_identifier_including_rtg(self):
+        """Ensure related identifiers with resource_type_general can be written via API."""
+        resource = ResourceBase.objects.filter(owner__username="bobby").first()
+        if resource is None:
+            self.skipTest("No ResourceBase with owner bobby available")
+
+        # Pre-create lookup values
+        RelatedIdentifierType.objects.get_or_create(label="URL_W", defaults={"description": "URL"})
+        RelationType.objects.get_or_create(label="IsSupplementTo_W", defaults={"description": "Is supplement to"})
+
+        self.assertTrue(self.client.login(username="bobby", password="bob"))
+        url = f"{reverse('base-resources-list')}/{resource.id}/"
+        data = {
+            "related_identifier": [
+                {
+                    "related_identifier": "https://example.com/supplement",
+                    "related_identifier_type": {"label": "URL_W"},
+                    "relation_type": {"label": "IsSupplementTo_W"},
+                    "resource_type_general": {"label": "Dataset"},
+                }
+            ]
+        }
+        response = self.client.patch(url, data=data, format="json")
+        self.assertEqual(response.status_code, 200, response.data)
+
+        # Verify it was saved
+        ri = RelatedIdentifier.objects.get(related_identifier="https://example.com/supplement")
+        self.assertEqual(ri.resource_type_general.label, "Dataset")
+
+    def test_write_resource_with_related_identifier_without_rtg(self):
+        """Ensure related identifiers without resource_type_general still work (backward compat)."""
+        resource = ResourceBase.objects.filter(owner__username="bobby").first()
+        if resource is None:
+            self.skipTest("No ResourceBase with owner bobby available")
+
+        RelatedIdentifierType.objects.get_or_create(label="URL_NR", defaults={"description": "URL"})
+        RelationType.objects.get_or_create(label="Cites_NR", defaults={"description": "Cites"})
+
+        self.assertTrue(self.client.login(username="bobby", password="bob"))
+        url = f"{reverse('base-resources-list')}/{resource.id}/"
+        data = {
+            "related_identifier": [
+                {
+                    "related_identifier": "https://example.com/no-rtg",
+                    "related_identifier_type": {"label": "URL_NR"},
+                    "relation_type": {"label": "Cites_NR"},
+                }
+            ]
+        }
+        response = self.client.patch(url, data=data, format="json")
+        self.assertEqual(response.status_code, 200, response.data)
+
+        ri = RelatedIdentifier.objects.get(related_identifier="https://example.com/no-rtg")
+        self.assertIsNone(ri.resource_type_general)

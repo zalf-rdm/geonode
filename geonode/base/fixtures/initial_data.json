@@ -1,5 +1,245 @@
 [
   {
+    "pk": "Audiovisual",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "Audiovisual",
+      "description": "A series of visual representations imparting an impression of motion when shown in succession. May or may not include sound."
+    }
+  },
+  {
+    "pk": "Book",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "Book",
+      "description": "A medium for recording information in the form of writing or images, typically composed of many pages bound together and protected by a cover."
+    }
+  },
+  {
+    "pk": "BookChapter",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "BookChapter",
+      "description": "A defined chapter or section of a book."
+    }
+  },
+  {
+    "pk": "Collection",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "Collection",
+      "description": "An aggregation of resources, which may encompass collections of one resourceTypeGeneral or a mix of resourceTypeGenerals."
+    }
+  },
+  {
+    "pk": "ComputationalNotebook",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "ComputationalNotebook",
+      "description": "A virtual notebook environment used for literate programming."
+    }
+  },
+  {
+    "pk": "ConferencePaper",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "ConferencePaper",
+      "description": "A paper submitted to a conference logic."
+    }
+  },
+  {
+    "pk": "ConferenceProceeding",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "ConferenceProceeding",
+      "description": "A collection of academic papers published in the context of an academic conference."
+    }
+  },
+  {
+    "pk": "DataPaper",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "DataPaper",
+      "description": "A factual and objective publication with a focused intent to identify and describe specific data, sets of data, or data collections to facilitate discoverability."
+    }
+  },
+  {
+    "pk": "Dataset",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "Dataset",
+      "description": "Data encoded in a defined structure."
+    }
+  },
+  {
+    "pk": "Dissertation",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "Dissertation",
+      "description": "A document submitted in support of candidature for an academic degree or professional qualification presenting the author's research and findings."
+    }
+  },
+  {
+    "pk": "Event",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "Event",
+      "description": "A non-persistent, time-based occurrence."
+    }
+  },
+  {
+    "pk": "Image",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "Image",
+      "description": "A visual representation other than text."
+    }
+  },
+  {
+    "pk": "InteractiveResource",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "InteractiveResource",
+      "description": "A resource requiring interaction from the user to be understood, executed, or experienced."
+    }
+  },
+  {
+    "pk": "Instrument",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "Instrument",
+      "description": "A device, tool or apparatus used to obtain, measure and/or analyze data."
+    }
+  },
+  {
+    "pk": "Journal",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "Journal",
+      "description": "A scholarly publication containing articles written by researchers, professors and other experts."
+    }
+  },
+  {
+    "pk": "JournalArticle",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "JournalArticle",
+      "description": "A written composition in prose, usually nonfiction, on a specific topic, forming an independent part of a book or other publication, as a newspaper or magazine."
+    }
+  },
+  {
+    "pk": "Model",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "Model",
+      "description": "An abstract, conceptual, graphical, mathematical or visualization model that represents empirical objects, phenomena, or physical processes."
+    }
+  },
+  {
+    "pk": "OutputManagementPlan",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "OutputManagementPlan",
+      "description": "A data management plan (DMP) or output management plan (OMP) is a formal document that outlines how data are to be handled both during a research project and after the project is completed."
+    }
+  },
+  {
+    "pk": "PeerReview",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "PeerReview",
+      "description": "A review of a resource (e.g. a journal article) by an expert or experts in the field."
+    }
+  },
+  {
+    "pk": "PhysicalObject",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "PhysicalObject",
+      "description": "An inanimate, three-dimensional object or substance."
+    }
+  },
+  {
+    "pk": "Preprint",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "Preprint",
+      "description": "A version of a scholarly or scientific paper that precedes formal peer review and publication in a peer-reviewed scholarly or scientific journal."
+    }
+  },
+  {
+    "pk": "Report",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "Report",
+      "description": "A document that presents information in an organized format for a specific audience and purpose."
+    }
+  },
+  {
+    "pk": "Service",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "Service",
+      "description": "An organized system of apparatus, appliances, staff and vehicles for supplying some accommodation or requirement."
+    }
+  },
+  {
+    "pk": "Software",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "Software",
+      "description": "A computer program in either source code (text) or compiled form."
+    }
+  },
+  {
+    "pk": "Sound",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "Sound",
+      "description": "A resource primarily intended to be heard."
+    }
+  },
+  {
+    "pk": "Standard",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "Standard",
+      "description": "A document establishing a requirement, specification, guideline, or characteristic."
+    }
+  },
+  {
+    "pk": "StudyRegistration",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "StudyRegistration",
+      "description": "A registration of a study design."
+    }
+  },
+  {
+    "pk": "Text",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "Text",
+      "description": "A resource consisting primarily of words for reading."
+    }
+  },
+  {
+    "pk": "Workflow",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "Workflow",
+      "description": "A structured series of steps to be followed."
+    }
+  },
+  {
+    "pk": "Other",
+    "model": "base.resourcetypegeneral",
+    "fields": {
+      "label": "Other",
+      "description": "If the resource type isn't fine grained enough to describe the resource."
+    }
+  },
+  {
     "pk": 1,
     "model": "base.topiccategory",
     "fields": {
@@ -399,7 +639,7 @@
       "license_text": ""
     }
   },
-    {
+  {
     "pk": 11,
     "model": "base.license",
     "fields": {
@@ -5306,8 +5546,6 @@
       "description": ""
     }
   },
-
-
   {
     "model": "base.organization",
     "pk": 1,
@@ -5388,7 +5626,7 @@
       "ror": "https://ror.org/00e0ttj68",
       "abbreviation": " BMZ"
     }
-  },  
+  },
   {
     "model": "base.organization",
     "pk": 10,
@@ -5397,7 +5635,7 @@
       "ror": "https://ror.org/04jw21793",
       "abbreviation": "BMEL"
     }
-  },  
+  },
   {
     "model": "base.organization",
     "pk": 11,
@@ -5406,7 +5644,7 @@
       "ror": "https://ror.org/01526pb12",
       "abbreviation": "BLE"
     }
-  },  
+  },
   {
     "model": "base.organization",
     "pk": 12,
@@ -5415,7 +5653,7 @@
       "ror": "https://ror.org/039djdh30",
       "abbreviation": "DAAD"
     }
-  },  
+  },
   {
     "model": "base.organization",
     "pk": 13,
@@ -5451,7 +5689,7 @@
       "ror": "",
       "abbreviation": "MINECO"
     }
-  },  
+  },
   {
     "model": "base.organization",
     "pk": 17,
@@ -5460,7 +5698,7 @@
       "ror": "https://ror.org/02hpadn98",
       "abbreviation": ""
     }
-  },  
+  },
   {
     "model": "base.organization",
     "pk": 18,
@@ -5469,7 +5707,7 @@
       "ror": "https://ror.org/046ak2485",
       "abbreviation": "FU"
     }
-  },  
+  },
   {
     "model": "base.organization",
     "pk": 19,
@@ -5595,7 +5833,7 @@
       "ror": "https://ror.org/01y9bpm73",
       "abbreviation": " GAU"
     }
-  },  
+  },
   {
     "model": "base.organization",
     "pk": 33,
@@ -5604,7 +5842,7 @@
       "ror": "https://ror.org/03v4gjf40",
       "abbreviation": "TU Berlin"
     }
-  },  
+  },
   {
     "model": "base.organization",
     "pk": 34,
@@ -5613,7 +5851,7 @@
       "ror": "https://ror.org/03n6nwv02",
       "abbreviation": "UPM"
     }
-  },  
+  },
   {
     "model": "base.organization",
     "pk": 35,
@@ -5622,7 +5860,7 @@
       "ror": "https://ror.org/04jr1s763",
       "abbreviation": " UniFI"
     }
-  },  
+  },
   {
     "model": "base.organization",
     "pk": 36,
@@ -5631,7 +5869,7 @@
       "ror": "https://ror.org/050c3cw24",
       "abbreviation": " UdL"
     }
-  },  
+  },
   {
     "model": "base.organization",
     "pk": 37,
@@ -5640,7 +5878,7 @@
       "ror": "https://ror.org/01ee9ar58",
       "abbreviation": ""
     }
-  },  
+  },
   {
     "model": "base.organization",
     "pk": 38,
@@ -5938,8 +6176,6 @@
       "abbreviation": "TIB"
     }
   },
-
-
   {
     "model": "base.relatedproject",
     "pk": 1,
