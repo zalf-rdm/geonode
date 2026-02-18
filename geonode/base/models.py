@@ -711,8 +711,11 @@ class RelatedIdentifier(models.Model):
     related_identifier_type = models.ForeignKey(RelatedIdentifierType, null=True, blank=True, on_delete=models.CASCADE)
     relation_type = models.ForeignKey(RelationType, null=True, blank=True, on_delete=models.CASCADE)
     resource_type_general = models.ForeignKey(
-        ResourceTypeGeneral, null=True, blank=True, on_delete=models.CASCADE,
-        help_text=_("The general type of the related resource (DataCite controlled vocabulary)")
+        ResourceTypeGeneral,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        help_text=_("The general type of the related resource (DataCite controlled vocabulary)"),
     )
     description = models.CharField(
         _("Related Identifier Description"),

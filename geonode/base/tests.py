@@ -68,7 +68,6 @@ from geonode.base.models import (
     TopicCategory,
     Thesaurus,
     ThesaurusKeyword,
-
     generate_thesaurus_reference,
     RelatedIdentifier,
     RelatedIdentifierType,
@@ -1372,6 +1371,7 @@ class LinkedResourcesTest(GeoNodeBaseTestSupport):
             for _ in d:
                 _.delete()
 
+
 class ResourceTypeGeneralModelTests(TestCase):
     """Tests for the ResourceTypeGeneral model."""
 
@@ -1452,12 +1452,36 @@ class DataMigrationTests(TestCase):
     def test_seed_data_exists(self):
         """Ensure all 30 DataCite resourceTypeGeneral values are present."""
         expected_labels = [
-            "Audiovisual", "Book", "BookChapter", "Collection", "ComputationalNotebook",
-            "ConferencePaper", "ConferenceProceeding", "DataPaper", "Dataset", "Dissertation",
-            "Event", "Image", "InteractiveResource", "Instrument", "Journal",
-            "JournalArticle", "Model", "OutputManagementPlan", "PeerReview", "PhysicalObject",
-            "Preprint", "Report", "Service", "Software", "Sound",
-            "Standard", "StudyRegistration", "Text", "Workflow", "Other",
+            "Audiovisual",
+            "Book",
+            "BookChapter",
+            "Collection",
+            "ComputationalNotebook",
+            "ConferencePaper",
+            "ConferenceProceeding",
+            "DataPaper",
+            "Dataset",
+            "Dissertation",
+            "Event",
+            "Image",
+            "InteractiveResource",
+            "Instrument",
+            "Journal",
+            "JournalArticle",
+            "Model",
+            "OutputManagementPlan",
+            "PeerReview",
+            "PhysicalObject",
+            "Preprint",
+            "Report",
+            "Service",
+            "Software",
+            "Sound",
+            "Standard",
+            "StudyRegistration",
+            "Text",
+            "Workflow",
+            "Other",
         ]
         for label in expected_labels:
             self.assertTrue(
@@ -1535,10 +1559,7 @@ class ResourceTypeGeneralAPITests(APITestCase):
         related_ids = response.data["resource"].get("related_identifier", [])
         self.assertTrue(len(related_ids) > 0, "Expected at least one related identifier")
         # Verify the resource_type_general field is present
-        found = any(
-            ri_data.get("resource_type_general") is not None
-            for ri_data in related_ids
-        )
+        found = any(ri_data.get("resource_type_general") is not None for ri_data in related_ids)
         self.assertTrue(found, "resource_type_general field should be present in related_identifier response")
 
     def test_write_resource_with_related_identifier_including_rtg(self):

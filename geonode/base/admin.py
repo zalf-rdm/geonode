@@ -209,8 +209,21 @@ class RelationTypeAdmin(admin.ModelAdmin):
 
 class RelatedIdentifierAdmin(admin.ModelAdmin):
     model = RelatedIdentifier
-    list_display = ("id", "related_identifier", "related_identifier_type", "relation_type", "resource_type_general", "description")
-    list_display_links = ("related_identifier", "related_identifier_type", "relation_type", "resource_type_general", "description")
+    list_display = (
+        "id",
+        "related_identifier",
+        "related_identifier_type",
+        "relation_type",
+        "resource_type_general",
+        "description",
+    )
+    list_display_links = (
+        "related_identifier",
+        "related_identifier_type",
+        "relation_type",
+        "resource_type_general",
+        "description",
+    )
     list_filter = ("related_identifier", "related_identifier_type", "relation_type", "resource_type_general")
 
     form = forms.modelform_factory(RelatedIdentifier, fields="__all__")
