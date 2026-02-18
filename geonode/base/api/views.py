@@ -354,8 +354,6 @@ class RelatedIdentifierViewSet(WithDynamicViewSetMixin, ListModelMixin, Retrieve
         AllowAny,
     ]
     filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter]
-    permission_classes = [IsAuthenticatedOrReadOnly, UserHasPerms]
-
     queryset = RelatedIdentifier.objects.all()
     serializer_class = RelatedIdentifierSerializer
     pagination_class = GeoNodeApiPagination
@@ -370,8 +368,6 @@ class ResourceTypeGeneralViewSet(WithDynamicViewSetMixin, ListModelMixin, Retrie
         AllowAny,
     ]
     filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter]
-    permission_classes = [IsAuthenticatedOrReadOnly, UserHasPerms]
-
     queryset = ResourceTypeGeneral.objects.all()
     serializer_class = ResourceTypeGeneralSerializer
     pagination_class = GeoNodeApiPagination
