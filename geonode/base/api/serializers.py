@@ -891,18 +891,19 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     )
     link = AutoLinkField(read_only=True)
 
-    def create(self, validated_data):
+    def _save_new_related_identifiers(self, validated_data):
+        """Saves unsaved RelatedIdentifier instances."""
         if "related_identifier" in validated_data:
             for ri in validated_data["related_identifier"]:
                 if ri.pk is None:
                     ri.save()
+
+    def create(self, validated_data):
+        self._save_new_related_identifiers(validated_data)
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
-        if "related_identifier" in validated_data:
-            for ri in validated_data["related_identifier"]:
-                if ri.pk is None:
-                    ri.save()
+        self._save_new_related_identifiers(validated_data)
         return super().update(instance, validated_data)
 
     class Meta:

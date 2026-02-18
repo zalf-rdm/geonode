@@ -1397,7 +1397,7 @@ class ResourceTypeGeneralModelTests(TestCase):
     def test_label_is_unique(self):
         """Ensure duplicate labels are rejected."""
         ResourceTypeGeneral.objects.create(label="Text", description="A resource consisting primarily of words.")
-        with self.assertRaises(Exception):
+        with self.assertRaises(IntegrityError):
             ResourceTypeGeneral.objects.create(label="Text", description="Duplicate label.")
 
 
