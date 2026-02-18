@@ -20,6 +20,7 @@
 from django.db.models import Q
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.utils.html import escape
 
 from geonode import GeoNodeException
 from geonode.base.models import ResourceBase
@@ -197,12 +198,15 @@ def check_user_deletion_rules(profile) -> None:
 
 
 def get_user_display_name(user):
-    """Returns 'firstname lastname' if available, otherwise username."""
-    first_name = user.first_name or ""
-    last_name = user.last_name or ""
-    department = user.department or ""
+    """Returns 'firstname lastname' if available, otherwise username.
+
+    All user-provided data is HTML-escaped to prevent XSS attacks.
+    """
+    first_name = escape(user.first_name or "")
+    last_name = escape(user.last_name or "")
+    department = escape(user.department or "")
     if first_name or last_name:
         return f"{first_name} {last_name}".strip()
     elif department:
         return f"{department}"
-    return user.username or str(user)
+    return escape(user.username or str(user))
