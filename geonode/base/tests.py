@@ -1499,9 +1499,6 @@ class ResourceTypeGeneralAPITests(APITestCase):
 
     fixtures = ["initial_data.json", "group_test_data.json", "default_oauth_apps.json"]
 
-    def setUp(self):
-        create_models(b"dataset")
-
     def test_list_resource_type_generals(self):
         """Ensure the resourcetypegenerals list endpoint returns all values."""
         url = reverse("resourcetypegenerals-list")
