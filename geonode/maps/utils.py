@@ -24,6 +24,8 @@ and its linked resources (datasets, documents, geoapps, maplayer datasets).
 
 import logging
 
+from django.core.exceptions import FieldDoesNotExist, ObjectDoesNotExist
+
 from geonode.base.models import (
     ContactRole,
     Funding,
@@ -139,7 +141,7 @@ def get_syncable_resources(map_obj):
             try:
                 ds = ml.dataset.get_real_instance()
                 resources.append(ds)
-            except Exception:
+            except (AttributeError, ObjectDoesNotExist):
                 logger.warning("Could not resolve dataset for MapLayer %s", ml.pk)
 
     return resources
@@ -168,7 +170,7 @@ def compare_metadata(map_obj, resource):
         try:
             field_obj = ResourceBase._meta.get_field(field_name)
             label = str(field_obj.verbose_name)
-        except Exception:
+        except FieldDoesNotExist:
             label = field_name.replace("_", " ").title()
 
         map_val = _field_display_value(map_obj, field_name)
@@ -188,7 +190,7 @@ def compare_metadata(map_obj, resource):
         try:
             field_obj = ResourceBase._meta.get_field(field_name)
             label = str(field_obj.verbose_name)
-        except Exception:
+        except FieldDoesNotExist:
             label = field_name.replace("_", " ").title()
 
         map_vals = _m2m_display_value(map_obj, field_name)
@@ -240,7 +242,7 @@ def sync_metadata(map_obj, resource):
         try:
             val = getattr(map_obj, field_name)
             setattr(resource, field_name, val)
-        except Exception:
+        except AttributeError:
             logger.warning("Could not sync field %s to resource %s", field_name, resource.pk)
 
     resource.save()
@@ -261,7 +263,7 @@ def sync_metadata(map_obj, resource):
                 dst_manager.set(list(src_manager.all()))
             else:
                 dst_manager.set(list(src_manager.all()))
-        except Exception:
+        except (AttributeError, TypeError):
             logger.warning("Could not sync M2M field %s to resource %s", field_name, resource.pk)
 
     # 3. Contact roles
@@ -282,5 +284,5 @@ def _sync_contact_roles(map_obj, resource):
                 role=cr.role,
                 order=cr.order,
             )
-    except Exception:
-        logger.exception("Could not sync contact roles to resource %s", resource.pk)
+    except (ObjectDoesNotExist, AttributeError) as exc:
+        logger.exception("Could not sync contact roles to resource %s: %s", resource.pk, exc)

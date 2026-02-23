@@ -188,7 +188,7 @@
 
             {% for item in comparison_data %}
             <div class="resource-section">
-                <div class="resource-header" onclick="toggleResource('resource-{{ item.resource.pk }}', this)">
+                <div class="resource-header" onclick="toggleResource('resource-{{ item.resource.pk }}')">
                     <input type="checkbox" name="resource_ids" value="{{ item.resource.pk }}" class="resource-check"
                         checked onclick="event.stopPropagation();">
                     <span class="toggle-icon" id="icon-resource-{{ item.resource.pk }}">▼</span>
@@ -245,7 +245,7 @@
 {{ block.super }}
 <script>
     // Toggle resource section expand/collapse
-    function toggleResource(id, header) {
+    function toggleResource(id) {
         var body = document.getElementById(id);
         var icon = document.getElementById('icon-' + id);
         if (body.classList.contains('collapsed')) {

@@ -25,6 +25,7 @@ from urllib.parse import urljoin
 
 from deprecated import deprecated
 from django.conf import settings
+from django.contrib import messages as django_messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.forms.models import modelformset_factory
@@ -74,6 +75,7 @@ from geonode.people.forms import ProfileForm
 from geonode.people.utils import get_user_display_name
 from geonode.security.utils import get_user_visible_groups
 from geonode.utils import check_ogc_backend, http_client, resolve_object
+from geonode.maps.utils import compare_metadata, get_syncable_resources, sync_metadata
 
 if check_ogc_backend(geoserver.BACKEND_PACKAGE):
     # FIXME: The post service providing the map_status object
@@ -738,9 +740,6 @@ def map_metadata_sync(request, mapid, template="maps/map_metadata_sync.html"):
     Admin tool to compare metadata between a map and its linked resources,
     and optionally sync (patch) the map's metadata to selected resources.
     """
-    from django.contrib import messages as django_messages
-
-    from geonode.maps.utils import compare_metadata, get_syncable_resources, sync_metadata
 
     if not request.user.is_superuser:
         return HttpResponse(MSG_NOT_ALLOWED, status=403)
