@@ -209,9 +209,8 @@
                         <thead>
                             <tr>
                                 <th style="width: 20%;">{% trans "Field" %}</th>
-                                <th class="value-cell" style="width: 35%;">{% trans "Map Value" %}</th>
-                                <th class="value-cell" style="width: 35%;">{% trans "Resource Value" %}</th>
-                                <th style="width: 10%;">{% trans "Status" %}</th>
+                                <th class="value-cell" style="width: 40%;">{% trans "Map Value" %}</th>
+                                <th class="value-cell" style="width: 40%;">{% trans "Resource Value" %}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -220,7 +219,6 @@
                                 <td><strong>{{ row.label }}</strong></td>
                                 <td class="value-cell">{{ row.map_value|default:"—"|truncatechars:300 }}</td>
                                 <td class="value-cell">{{ row.resource_value|default:"—"|truncatechars:300 }}</td>
-                                <td class="status-cell">{% if row.match %}✓{% else %}✗{% endif %}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
