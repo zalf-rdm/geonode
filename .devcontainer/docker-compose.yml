@@ -26,16 +26,19 @@ services:
 
     env_file:
       - .devcontainer/.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
     volumes:
       # Update this to wherever you want VS Code to mount the folder of your project
       - '.:/usr/src/geonode'
       - './.devcontainer/_vscode:/usr/src/geonode/.vscode'
+      - './.devcontainer/.env_orcid:/usr/src/geonode/.env'
       # Uncomment the next line to use Docker from inside the container. See https://aka.ms/vscode-remote/samples/docker-from-docker-compose for details.
       # - /var/run/docker.sock:/var/run/docker.sock
 
     ports:
-      - "8000:8000"
+      - "8010:8000"
       - "5678:5678"
 
 
@@ -53,7 +56,7 @@ services:
   celery:
     restart: "no"
     env_file:
-      - .devcontainer/.env
+      - .devcontainer/.env_orcid
 
     volumes:
       - '.:/usr/src/geonode'
