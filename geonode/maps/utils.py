@@ -173,14 +173,16 @@ def compare_metadata(map_obj, resource):
 
         map_val = _field_display_value(map_obj, field_name)
         res_val = _field_display_value(resource, field_name)
-        diffs.append({
-            "field": field_name,
-            "label": label,
-            "map_value": map_val,
-            "resource_value": res_val,
-            "match": map_val == res_val,
-            "is_m2m": False,
-        })
+        diffs.append(
+            {
+                "field": field_name,
+                "label": label,
+                "map_value": map_val,
+                "resource_value": res_val,
+                "match": map_val == res_val,
+                "is_m2m": False,
+            }
+        )
 
     for field_name in SYNC_M2M_FIELDS:
         try:
@@ -191,26 +193,30 @@ def compare_metadata(map_obj, resource):
 
         map_vals = _m2m_display_value(map_obj, field_name)
         res_vals = _m2m_display_value(resource, field_name)
-        diffs.append({
-            "field": field_name,
-            "label": label,
-            "map_value": ", ".join(map_vals) if map_vals else "—",
-            "resource_value": ", ".join(res_vals) if res_vals else "—",
-            "match": map_vals == res_vals,
-            "is_m2m": True,
-        })
+        diffs.append(
+            {
+                "field": field_name,
+                "label": label,
+                "map_value": ", ".join(map_vals) if map_vals else "—",
+                "resource_value": ", ".join(res_vals) if res_vals else "—",
+                "match": map_vals == res_vals,
+                "is_m2m": True,
+            }
+        )
 
     # Contact roles
     map_roles = _get_contact_roles_display(map_obj)
     res_roles = _get_contact_roles_display(resource)
-    diffs.append({
-        "field": "contact_roles",
-        "label": "Contact Roles",
-        "map_value": map_roles,
-        "resource_value": res_roles,
-        "match": map_roles == res_roles,
-        "is_m2m": True,
-    })
+    diffs.append(
+        {
+            "field": "contact_roles",
+            "label": "Contact Roles",
+            "map_value": map_roles,
+            "resource_value": res_roles,
+            "match": map_roles == res_roles,
+            "is_m2m": True,
+        }
+    )
 
     return diffs
 

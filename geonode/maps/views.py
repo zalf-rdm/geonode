@@ -759,7 +759,11 @@ def map_metadata_sync(request, mapid, template="maps/map_metadata_sync.html"):
     if request.method == "POST":
         selected_ids = request.POST.getlist("resource_ids")
         if selected_ids:
-            selected_ids = [int(rid) for rid in selected_ids]
+            try:
+                selected_ids = [int(rid) for rid in selected_ids]
+            except (ValueError, TypeError):
+                django_messages.error(request, "Invalid resource selection.")
+                return HttpResponseRedirect(reverse("map_metadata_sync", kwargs={"mapid": mapid}))
             synced_count = 0
             for res in resources:
                 if res.pk in selected_ids:
@@ -768,18 +772,14 @@ def map_metadata_sync(request, mapid, template="maps/map_metadata_sync.html"):
                         synced_count += 1
                     except Exception:
                         logger.exception("Failed to sync metadata to resource %s", res.pk)
-                        django_messages.error(
-                            request, f"Failed to sync metadata to: {res.title}"
-                        )
+                        django_messages.error(request, f"Failed to sync metadata to: {res.title}")
             django_messages.success(
                 request,
                 f"Successfully synced metadata to {synced_count} resource(s).",
             )
         else:
             django_messages.warning(request, "No resources were selected for sync.")
-        return HttpResponseRedirect(
-            reverse("map_metadata_sync", kwargs={"mapid": mapid})
-        )
+        return HttpResponseRedirect(reverse("map_metadata_sync", kwargs={"mapid": mapid}))
 
     # GET: build comparison data
     comparison_data = []
@@ -788,11 +788,13 @@ def map_metadata_sync(request, mapid, template="maps/map_metadata_sync.html"):
         diffs = compare_metadata(map_obj, res)
         diff_count = sum(1 for d in diffs if not d["match"])
         total_diffs += diff_count
-        comparison_data.append({
-            "resource": res,
-            "diffs": diffs,
-            "diff_count": diff_count,
-        })
+        comparison_data.append(
+            {
+                "resource": res,
+                "diffs": diffs,
+                "diff_count": diff_count,
+            }
+        )
 
     return render(
         request,
