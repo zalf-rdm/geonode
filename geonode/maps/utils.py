@@ -28,9 +28,7 @@ from django.core.exceptions import FieldDoesNotExist, ObjectDoesNotExist
 
 from geonode.base.models import (
     ContactRole,
-    Funding,
     LinkedResource,
-    RelatedIdentifier,
     ResourceBase,
 )
 
