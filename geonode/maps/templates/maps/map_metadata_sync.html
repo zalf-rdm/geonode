@@ -12,9 +12,134 @@
 {% block body_outer %}
 {{ block.super }}
 
-{% block extra_head %}
-<link href="{% static " geonode/css/map_metadata_sync.css" %}" rel="stylesheet" />
-{% endblock %}
+<style>
+    .sync-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+        font-size: 13px;
+    }
+
+    .sync-table th,
+    .sync-table td {
+        border: 1px solid #ddd;
+        padding: 6px 10px;
+        text-align: left;
+        vertical-align: top;
+    }
+
+    .sync-table th {
+        background: #f5f5f5;
+        font-weight: 600;
+    }
+
+    .sync-table tr.match td {
+        background: #f0fff0;
+    }
+
+    .sync-table tr.diff td {
+        background: #fff5f0;
+    }
+
+    .sync-table tr.diff td.status-cell {
+        color: #c00;
+        font-weight: bold;
+    }
+
+    .sync-table tr.match td.status-cell {
+        color: #0a0;
+    }
+
+    .resource-section {
+        margin-bottom: 30px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .resource-header {
+        background: #eee;
+        padding: 10px 15px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+    }
+
+    .resource-header h4 {
+        margin: 0;
+        flex: 1;
+    }
+
+    .resource-header .badge-diff {
+        background: #d9534f;
+        color: #fff;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 12px;
+        margin-left: 10px;
+    }
+
+    .resource-header .badge-ok {
+        background: #5cb85c;
+        color: #fff;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 12px;
+        margin-left: 10px;
+    }
+
+    .resource-body {
+        padding: 10px 15px;
+    }
+
+    .resource-body.collapsed {
+        display: none;
+    }
+
+    .sync-actions {
+        margin-bottom: 20px;
+    }
+
+    .value-cell {
+        max-width: 350px;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    .select-all-row {
+        margin-bottom: 10px;
+    }
+
+    .resource-check {
+        margin-right: 10px;
+    }
+
+    .alert-success {
+        background: #dff0d8;
+        border: 1px solid #d6e9c6;
+        color: #3c763d;
+        padding: 12px 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+
+    .alert-warning {
+        background: #fcf8e3;
+        border: 1px solid #faebcc;
+        color: #8a6d3b;
+        padding: 12px 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+
+    .toggle-icon {
+        margin-right: 8px;
+        transition: transform 0.2s;
+    }
+
+    .toggle-icon.collapsed {
+        transform: rotate(-90deg);
+    }
+</style>
 
 
 <div class="page-header">
