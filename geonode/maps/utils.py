@@ -26,6 +26,8 @@ import logging
 
 from django.core.exceptions import FieldDoesNotExist, ObjectDoesNotExist
 
+from django.utils.html import strip_tags
+
 from geonode.base.models import (
     ContactRole,
     LinkedResource,
@@ -95,14 +97,14 @@ SYNC_M2M_FIELDS = [
 
 
 def _field_display_value(obj, field_name):
-    """Return a human-readable display value for a field."""
+    """Return a human-readable display value for a field (with HTML stripped)."""
     val = getattr(obj, field_name, None)
     if val is None:
         return ""
     # FK fields – show str representation
     if hasattr(val, "pk"):
         return str(val)
-    return str(val)
+    return strip_tags(str(val))
 
 
 def _m2m_display_value(obj, field_name):
