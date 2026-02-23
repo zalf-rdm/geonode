@@ -68,7 +68,7 @@
         <a href="{% map_detail_url map %}" class="btn btn-primary">{% trans "Return to Map" %}</a>
         <input type="submit" id="btn_upd_md_up" class="btn btn-primary" value="{% trans "Update" %}"/>
         {% if user.is_superuser %}
-        <a href="{% url 'map_metadata_sync' map.pk %}" class="btn btn-default">
+        <a href="{% url 'map_metadata_sync' map.pk %}" class="btn btn-primary">
           <i class="fa fa-refresh"></i> {% trans "Metadata Sync" %}
         </a>
         {% endif %}
@@ -458,7 +458,7 @@
                 <a href="{% map_detail_url map %}" class="btn btn-primary">{% trans "Return to Map" %}</a>
                 <input type="submit" id="btn_upd_md_dwn" class="btn btn-primary" value="{% trans "Update" %}"/>
                 {% if user.is_superuser %}
-                <a href="{% url 'map_metadata_sync' map.pk %}" class="btn btn-default">
+                <a href="{% url 'map_metadata_sync' map.pk %}" class="btn btn-primary">
                   <i class="fa fa-refresh"></i> {% trans "Metadata Sync" %}
                 </a>
                 {% endif %}
