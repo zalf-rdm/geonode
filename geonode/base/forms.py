@@ -31,7 +31,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core import validators
 from django.db.models import Prefetch, Q
-from django.forms import models
+from django.forms import BaseInlineFormSet, models
 from django.forms.fields import ChoiceField, MultipleChoiceField
 from django.forms.utils import flatatt
 from django.utils.encoding import force_str
@@ -613,6 +613,7 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
         widget=ResourceBaseDateTimePicker(options={"format": "YYYY-MM-DD HH:mm a"}),
     )
 
+<<<<<<< HEAD
     metadata_author = ContactRoleMultipleChoiceField(
         label=_(Roles.METADATA_AUTHOR.label),
         required=Roles.METADATA_AUTHOR.is_required,
@@ -808,6 +809,9 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
         queryset=get_user_model().objects.exclude(username="AnonymousUser"),
         widget=autocomplete.ModelSelect2Multiple(url="autocomplete_profile"),
     )
+=======
+    # Contact roles are now managed via ContactRoleFormSet instead of individual fields
+>>>>>>> 7ba2e1d15a1381bf6f1bae84f64525b2eaf8bf13
 
     keywords = TagField(
         label=_("Free-text Keywords"),
@@ -843,25 +847,8 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
         if self.instance and self.instance.id and self.instance.metadata.exists():
             self.fields["extra_metadata"].initial = [x.metadata for x in self.instance.metadata.all()]
 
-        # Populate contact role fields from ContactRole database table
-        # IMPORTANT: This must happen AFTER super().__init__() but the values
-        # should not be in the 'data' dict to avoid being treated as bound data
-        if self.instance and self.instance.id:
-            for role in Roles.get_multivalue_ones():
-                # Query ContactRole table for users with this role, ordered by 'order' field
-                contact_roles = (
-                    ContactRole.objects.filter(
-                        resource=self.instance,
-                        role=role.role_value,
-                    )
-                    .order_by("order", "id")
-                    .select_related("contact")
-                )
-
-                # For unbound forms (GET requests), set the initial value
-                if not self.is_bound:
-                    # Set initial as list of PKs
-                    self.fields[role.name].initial = self.initial[role.name] = [cr.contact.pk for cr in contact_roles]
+        # Contact roles are now managed via ContactRoleFormSet
+        # Individual contact role fields have been removed from this form
 
         for field in self.fields:
             if field == "featured" and self.user and not self.user.is_superuser:
@@ -1054,3 +1041,132 @@ class OwnerRightsRequestForm(forms.Form):
 
 class ThesaurusImportForm(forms.Form):
     rdf_file = forms.FileField()
+
+
+class ContactRoleForm(forms.ModelForm):
+    """Form for individual contact role entry (one contact, one role, one order)"""
+
+    contact = forms.ModelChoiceField(
+        queryset=get_user_model().objects.exclude(username="AnonymousUser"),
+        label=_("User"),
+        widget=autocomplete.ModelSelect2(url="autocomplete_profile"),
+        required=False,
+    )
+
+    role = forms.ChoiceField(
+        choices=[(r.role_value, r.label) for r in Roles.get_multivalue_ones()],
+        label=_("Role"),
+        required=False,
+    )
+
+    order = forms.IntegerField(
+        label=_("Order"),
+        min_value=0,
+        required=False,
+        help_text=_("Lower numbers appear first"),
+    )
+
+    class Meta:
+        model = ContactRole
+        fields = ["contact", "role", "order"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["contact"].label_from_instance = get_user_display_name
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get("DELETE"):
+            return cleaned_data
+
+        contact = cleaned_data.get("contact")
+        role = cleaned_data.get("role")
+        order = cleaned_data.get("order")
+
+        field_values = [contact, role, order]
+        is_empty = all(value in (None, "") for value in field_values)
+
+        if is_empty:
+            if self.instance and self.instance.pk:
+                raise forms.ValidationError(
+                    _("Existing contact roles must include user, role, and order or be removed."),
+                    code="empty_existing_contact_role",
+                )
+            return cleaned_data
+
+        if not contact:
+            self.add_error("contact", _("This field is required."))
+        if not role:
+            self.add_error("role", _("This field is required."))
+        if order in (None, ""):
+            self.add_error("order", _("This field is required."))
+
+        return cleaned_data
+
+
+class ContactRoleInlineFormSet(BaseInlineFormSet):
+    """Ensures each contact/role pair is unique within the resource"""
+
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+
+        seen_contact_role = set()
+        seen_role_order = set()
+        duplicate_contact_labels = []
+        duplicate_order_labels = []
+        role_choices = dict(ContactRoleForm.base_fields["role"].choices)
+
+        for form in self.forms:
+            if not hasattr(form, "cleaned_data"):
+                continue
+            if form.cleaned_data.get("DELETE"):
+                continue
+
+            contact = form.cleaned_data.get("contact")
+            role = form.cleaned_data.get("role")
+            if not contact or not role:
+                continue
+
+            key_contact_role = (contact.pk, role)
+            if key_contact_role in seen_contact_role:
+                duplicate_contact_labels.append(f"{get_user_display_name(contact)} / {role_choices.get(role, role)}")
+            else:
+                seen_contact_role.add(key_contact_role)
+
+            order_value = form.cleaned_data.get("order")
+            if order_value in (None, ""):
+                continue
+            key_role_order = (role, order_value)
+            if key_role_order in seen_role_order:
+                duplicate_order_labels.append(
+                    _("%(role)s (order %(order)s)") % {"role": role_choices.get(role, role), "order": order_value}
+                )
+            else:
+                seen_role_order.add(key_role_order)
+
+        error_messages = []
+        if duplicate_contact_labels:
+            error_messages.append(
+                _("Each user can only be assigned once per role. Please adjust these duplicates: %(duplicates)s")
+                % {"duplicates": ", ".join(duplicate_contact_labels)}
+            )
+        if duplicate_order_labels:
+            error_messages.append(
+                _("Each role can only use an order value once. Please adjust these duplicates: %(duplicates)s")
+                % {"duplicates": ", ".join(duplicate_order_labels)}
+            )
+
+        if error_messages:
+            raise forms.ValidationError(error_messages)
+
+
+ContactRoleFormSet = forms.inlineformset_factory(
+    ResourceBase,
+    ContactRole,
+    form=ContactRoleForm,
+    formset=ContactRoleInlineFormSet,
+    extra=0,
+    can_delete=True,
+)

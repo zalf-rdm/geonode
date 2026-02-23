@@ -19,9 +19,13 @@
 
     var _area = $("#id_resource-extra_metadata").val()
     if (_area) {
-        var areaAsObj = (0, eval)('(' + _area + ')');
-        var _value = JSON.stringify(areaAsObj,null,2);
-        $("#id_resource-extra_metadata").val(_value);
+        try {
+            var areaAsObj = JSON.parse(_area);
+            var _value = JSON.stringify(areaAsObj,null,2);
+            $("#id_resource-extra_metadata").val(_value);
+        } catch (e) {
+            console.error("Failed to parse extra_metadata as JSON", e);
+        }
     }
 
     var metadata_uri = $(location).attr('pathname').split('/').pop();
@@ -763,22 +767,23 @@
                             if(xhr.responseJSON && xhr.responseJSON['errors']) {
                                 var errors = "<ul>";
                                 for(error in xhr.responseJSON['errors']) {
-                                    errors += "<li>" + error + ": " + xhr.responseJSON['errors'][error] + "</li>";
+                                    var safeError = $("<div>").text(xhr.responseJSON['errors'][error]).html();
+                                    errors += "<li>" + error + ": " + safeError + "</li>";
                                 }
                                 errors += "</ul>";
                                 $("#preview_errorDialog .modal-body").html(errors);
                             } else {
                                 if (xhr.responseText.indexOf('<!DOCTYPE html>') >= 0) {
-                                    $("#preview_errorDialog .modal-body").html("Unknown Error Occurred.");
+                                    $("#preview_errorDialog .modal-body").text("Unknown Error Occurred.");
                                 } else {
-                                    $("#preview_errorDialog .modal-body").html(xhr.responseText);
+                                    $("#preview_errorDialog .modal-body").text(xhr.responseText);
                                 }
                             }
                         } catch(err) {
                             if (xhr.responseText.indexOf('<!DOCTYPE html>') >= 0) {
-                                $("#preview_errorDialog .modal-body").html(err);
+                                $("#preview_errorDialog .modal-body").text(err);
                             } else {
-                                $("#preview_errorDialog .modal-body").html(xhr.responseText);
+                                $("#preview_errorDialog .modal-body").text(xhr.responseText);
                             }
                         }
                         $('#preview_errorDialog').modal();
@@ -786,7 +791,10 @@
                     }).always(function (a, textStatus, b) {
                           $('#preview_pleaseWaitDialog').modal('hide');
                           if(textStatus === 'success' && metadata_update_done && !metadata_preview) {
-                              if(new RegExp(".*/metadata$").test(e.target.action)) {
+                              if(is_advanced) {
+                                  // Stay on the advanced metadata editor after update
+                                  window.location.reload();
+                              } else if(new RegExp(".*/metadata$").test(e.target.action)) {
                                   $.ajax({
                                     type: "POST",
                                     url: "{% url 'metadata_update_redirect' %}",
