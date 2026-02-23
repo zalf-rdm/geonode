@@ -1,0 +1,270 @@
+{% extends "metadata_base.html" %}
+{% load i18n %}
+{% load static %}
+{% load base_tags %}
+{% load guardian_tags %}
+{% load client_lib_tags %}
+
+{% block title %}{% trans "Metadata Sync" %} — {{ map.title }}{% endblock %}
+
+{% block body_class %}data{% endblock %}
+
+{% block body_outer %}
+{{ block.super }}
+
+<style>
+    .sync-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+        font-size: 13px;
+    }
+
+    .sync-table th,
+    .sync-table td {
+        border: 1px solid #ddd;
+        padding: 6px 10px;
+        text-align: left;
+        vertical-align: top;
+    }
+
+    .sync-table th {
+        background: #f5f5f5;
+        font-weight: 600;
+    }
+
+    .sync-table tr.match td {
+        background: #f0fff0;
+    }
+
+    .sync-table tr.diff td {
+        background: #fff5f0;
+    }
+
+    .sync-table tr.diff td.status-cell {
+        color: #c00;
+        font-weight: bold;
+    }
+
+    .sync-table tr.match td.status-cell {
+        color: #0a0;
+    }
+
+    .resource-section {
+        margin-bottom: 30px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .resource-header {
+        background: #eee;
+        padding: 10px 15px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+    }
+
+    .resource-header h4 {
+        margin: 0;
+        flex: 1;
+    }
+
+    .resource-header .badge-diff {
+        background: #d9534f;
+        color: #fff;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 12px;
+        margin-left: 10px;
+    }
+
+    .resource-header .badge-ok {
+        background: #5cb85c;
+        color: #fff;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 12px;
+        margin-left: 10px;
+    }
+
+    .resource-body {
+        padding: 10px 15px;
+    }
+
+    .resource-body.collapsed {
+        display: none;
+    }
+
+    .sync-actions {
+        margin-bottom: 20px;
+    }
+
+    .value-cell {
+        max-width: 350px;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    .select-all-row {
+        margin-bottom: 10px;
+    }
+
+    .resource-check {
+        margin-right: 10px;
+    }
+
+    .alert-success {
+        background: #dff0d8;
+        border: 1px solid #d6e9c6;
+        color: #3c763d;
+        padding: 12px 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+
+    .alert-warning {
+        background: #fcf8e3;
+        border: 1px solid #faebcc;
+        color: #8a6d3b;
+        padding: 12px 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+
+    .toggle-icon {
+        margin-right: 8px;
+        transition: transform 0.2s;
+    }
+
+    .toggle-icon.collapsed {
+        transform: rotate(-90deg);
+    }
+</style>
+
+<div class="page-header">
+    <a href="{% map_list_url %}" class="btn btn-primary pull-right">{% trans "Explore Maps" %}</a>
+    <h2 class="page-title">{% trans "Metadata Sync" %}</h2>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <p class="lead">
+            {% blocktrans with map.title as map_title %}
+            Compare and sync metadata from map <strong>{{ map_title }}</strong> to linked resources
+            {% endblocktrans %}
+        </p>
+
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+
+        {% if not resources %}
+        <div class="alert-warning">
+            {% trans "This map has no linked resources or maplayer datasets to sync metadata with." %}
+        </div>
+        <a href="{% map_detail_url map %}" class="btn btn-primary">{% trans "Return to Map" %}</a>
+        {% else %}
+
+        <form method="POST" action="">
+            {% csrf_token %}
+            <div class="sync-actions">
+                <a href="{% map_detail_url map %}" class="btn btn-default">{% trans "Return to Map" %}</a>
+                <a href="{{ map.get_absolute_url }}/metadata" class="btn btn-default">{% trans "Edit Metadata" %}</a>
+                <button type="submit" class="btn btn-danger" onclick="return confirm('{% trans " This will overwrite
+                    metadata of all selected resources with the map metadata. Continue?" %}');">
+                    <i class="fa fa-refresh"></i> {% trans "Sync Selected Resources" %}
+                </button>
+            </div>
+
+            <div class="select-all-row">
+                <label>
+                    <input type="checkbox" id="select-all" checked>
+                    <strong>{% trans "Select / Deselect All" %}</strong>
+                </label>
+                <span class="text-muted"> — {% trans "Total differences:" %} <strong>{{ total_diffs }}</strong></span>
+            </div>
+
+            {% for item in comparison_data %}
+            <div class="resource-section">
+                <div class="resource-header" onclick="toggleResource('resource-{{ item.resource.pk }}', this)">
+                    <input type="checkbox" name="resource_ids" value="{{ item.resource.pk }}" class="resource-check"
+                        checked onclick="event.stopPropagation();">
+                    <span class="toggle-icon" id="icon-resource-{{ item.resource.pk }}">▼</span>
+                    <h4>
+                        {{ item.resource.title }}
+                        <small class="text-muted">({{ item.resource.resource_type }}{% if item.resource.alternate %} —
+                            {{ item.resource.alternate }}{% endif %})</small>
+                    </h4>
+                    {% if item.diff_count > 0 %}
+                    <span class="badge-diff">{{ item.diff_count }} {% trans "differences" %}</span>
+                    {% else %}
+                    <span class="badge-ok">{% trans "All match" %}</span>
+                    {% endif %}
+                </div>
+                <div class="resource-body {% if item.diff_count == 0 %}collapsed{% endif %}"
+                    id="resource-{{ item.resource.pk }}">
+                    <table class="sync-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 20%;">{% trans "Field" %}</th>
+                                <th class="value-cell" style="width: 35%;">{% trans "Map Value" %}</th>
+                                <th class="value-cell" style="width: 35%;">{% trans "Resource Value" %}</th>
+                                <th style="width: 10%;">{% trans "Status" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in item.diffs %}
+                            <tr class="{% if row.match %}match{% else %}diff{% endif %}">
+                                <td><strong>{{ row.label }}</strong></td>
+                                <td class="value-cell">{{ row.map_value|default:"—"|truncatechars:300 }}</td>
+                                <td class="value-cell">{{ row.resource_value|default:"—"|truncatechars:300 }}</td>
+                                <td class="status-cell">{% if row.match %}✓{% else %}✗{% endif %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="sync-actions">
+                <a href="{% map_detail_url map %}" class="btn btn-default">{% trans "Return to Map" %}</a>
+                <button type="submit" class="btn btn-danger" onclick="return confirm('{% trans " This will overwrite
+                    metadata of all selected resources with the map metadata. Continue?" %}');">
+                    <i class="fa fa-refresh"></i> {% trans "Sync Selected Resources" %}
+                </button>
+            </div>
+        </form>
+
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+{{ block.super }}
+<script>
+    // Toggle resource section expand/collapse
+    function toggleResource(id, header) {
+        var body = document.getElementById(id);
+        var icon = document.getElementById('icon-' + id);
+        if (body.classList.contains('collapsed')) {
+            body.classList.remove('collapsed');
+            icon.classList.remove('collapsed');
+        } else {
+            body.classList.add('collapsed');
+            icon.classList.add('collapsed');
+        }
+    }
+
+    // Select all / deselect all
+    document.getElementById('select-all').addEventListener('change', function () {
+        var checkboxes = document.querySelectorAll('input[name="resource_ids"]');
+        for (var i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].checked = this.checked;
+        }
+    });
+</script>
+{% endblock %}

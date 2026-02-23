@@ -67,6 +67,11 @@
       <div class="form-actions">
         <a href="{% map_detail_url map %}" class="btn btn-primary">{% trans "Return to Map" %}</a>
         <input type="submit" id="btn_upd_md_up" class="btn btn-primary" value="{% trans "Update" %}"/>
+        {% if user.is_superuser %}
+        <a href="{% url 'map_metadata_sync' map.pk %}" class="btn btn-default">
+          <i class="fa fa-refresh"></i> {% trans "Metadata Sync" %}
+        </a>
+        {% endif %}
       </div>
       {% csrf_token %}
       <!-- Added in the thesuarus field here since saving the form without it causes the thesuarus keywords to be removed. 
@@ -452,6 +457,11 @@
               <div class="form-actions">
                 <a href="{% map_detail_url map %}" class="btn btn-primary">{% trans "Return to Map" %}</a>
                 <input type="submit" id="btn_upd_md_dwn" class="btn btn-primary" value="{% trans "Update" %}"/>
+                {% if user.is_superuser %}
+                <a href="{% url 'map_metadata_sync' map.pk %}" class="btn btn-default">
+                  <i class="fa fa-refresh"></i> {% trans "Metadata Sync" %}
+                </a>
+                {% endif %}
               </div>
               {% endblock form_actions %}
 

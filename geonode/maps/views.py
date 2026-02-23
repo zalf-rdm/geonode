@@ -730,3 +730,78 @@ def map_metadata_detail(request, mapid, template="maps/map_metadata_detail.html"
 @login_required
 def map_batch_metadata(request):
     return batch_modify(request, "Map")
+
+
+@login_required
+def map_metadata_sync(request, mapid, template="maps/map_metadata_sync.html"):
+    """
+    Admin tool to compare metadata between a map and its linked resources,
+    and optionally sync (patch) the map's metadata to selected resources.
+    """
+    from django.contrib import messages as django_messages
+
+    from geonode.maps.utils import compare_metadata, get_syncable_resources, sync_metadata
+
+    if not request.user.is_superuser:
+        return HttpResponse(MSG_NOT_ALLOWED, status=403)
+
+    try:
+        map_obj = _resolve_map(request, mapid, "base.change_resourcebase", _PERMISSION_MSG_GENERIC)
+    except PermissionDenied:
+        return HttpResponse(MSG_NOT_ALLOWED, status=403)
+    except Exception:
+        raise Http404(MSG_NOT_FOUND)
+    if not map_obj:
+        raise Http404(MSG_NOT_FOUND)
+
+    resources = get_syncable_resources(map_obj)
+
+    if request.method == "POST":
+        selected_ids = request.POST.getlist("resource_ids")
+        if selected_ids:
+            selected_ids = [int(rid) for rid in selected_ids]
+            synced_count = 0
+            for res in resources:
+                if res.pk in selected_ids:
+                    try:
+                        sync_metadata(map_obj, res)
+                        synced_count += 1
+                    except Exception:
+                        logger.exception("Failed to sync metadata to resource %s", res.pk)
+                        django_messages.error(
+                            request, f"Failed to sync metadata to: {res.title}"
+                        )
+            django_messages.success(
+                request,
+                f"Successfully synced metadata to {synced_count} resource(s).",
+            )
+        else:
+            django_messages.warning(request, "No resources were selected for sync.")
+        return HttpResponseRedirect(
+            reverse("map_metadata_sync", kwargs={"mapid": mapid})
+        )
+
+    # GET: build comparison data
+    comparison_data = []
+    total_diffs = 0
+    for res in resources:
+        diffs = compare_metadata(map_obj, res)
+        diff_count = sum(1 for d in diffs if not d["match"])
+        total_diffs += diff_count
+        comparison_data.append({
+            "resource": res,
+            "diffs": diffs,
+            "diff_count": diff_count,
+        })
+
+    return render(
+        request,
+        template,
+        context={
+            "map": map_obj,
+            "resource": map_obj,
+            "resources": resources,
+            "comparison_data": comparison_data,
+            "total_diffs": total_diffs,
+        },
+    )
