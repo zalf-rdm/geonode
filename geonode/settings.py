@@ -697,7 +697,7 @@ LOGGING = {
     },
     "filters": {"require_debug_false": {"()": "django.utils.log.RequireDebugFalse"}},
     "handlers": {
-        "console": {"level": "ERROR", "class": "logging.StreamHandler", "formatter": "simple"},
+        "console": {"level": "DEBUG", "class": "logging.StreamHandler", "formatter": "verbose"},
         "mail_admins": {
             "level": "ERROR",
             "filters": ["require_debug_false"],
@@ -712,7 +712,7 @@ LOGGING = {
         },
         "geonode": {
             "handlers": ["console"],
-            "level": "INFO",
+            "level": "DEBUG",  # Changed from INFO to DEBUG to see more details
         },
         "geonode.br": {"level": "INFO", "handlers": ["br"], "propagate": False},
         "geoserver-restconfig.catalog": {
@@ -2416,13 +2416,8 @@ ADVANCED_EDIT_EXCLUDE_FIELD = [  # base
 # ORCID
 # =============================================================================
 # NOTE: This is a sample configuration for ORCID integration using django-allauth and a generic OIDC provider.
-# import logging
-# logger = logging.getLogger(__name__)
-# logger.error("SSL certificate verifikation disabled - ENABLE in production!!!")
-# logger.error("SSL certificate verifikation disabled - ENABLE in production!!!")
-# logger.error("SSL certificate verifikation disabled - ENABLE in production!!!")
-# logger.error("SSL certificate verifikation disabled - ENABLE in production!!!")
-# logger.error("SSL certificate verifikation disabled - ENABLE in production!!!")
+import logging
+logger = logging.getLogger("geonode")  # Use the configured geonode logger
 # logger.error("SSL certificate verifikation disabled - ENABLE in production!!!")
 
 # import requests
@@ -2460,13 +2455,13 @@ SOCIALACCOUNT_PROVIDER_ROOT = f"{SOCIALACCOUNT_PROVIDER_HOST}realms/{SOCIALACCOU
 #
 SOCIALACCOUNT_CLIENT_ID = os.environ.get("SOCIALACCOUNT_CLIENT_ID")
 if not SOCIALACCOUNT_CLIENT_ID:
-    logger.error("SOCIALACCOUNT_CLIENT_ID not set in environment")
+    logging.error("SOCIALACCOUNT_CLIENT_ID not set in environment")
 #
 #   client secret
 #
 SOCIALACCOUNT_CLIENT_SECRET = os.environ.get("SOCIALACCOUNT_CLIENT_SECRET")
 if not SOCIALACCOUNT_CLIENT_SECRET:
-    logger.error("SOCIALACCOUNT_CLIENT_SECRET not set in environment")
+    logging.error("SOCIALACCOUNT_CLIENT_SECRET not set in environment")
 
 SOCIALACCOUNT_PROVIDERS = {
     #
