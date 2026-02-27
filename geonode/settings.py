@@ -2415,29 +2415,25 @@ ADVANCED_EDIT_EXCLUDE_FIELD = [  # base
 # =============================================================================
 # ORCID
 # =============================================================================
-# FIXME: NOT FOR PRODUCTION!
-# FIXME: NOT FOR PRODUCTION!
-# FIXME: NOT FOR PRODUCTION!
-import logging
-logger = logging.getLogger(__name__)
-logger.error("SSL certificate verifikation disabled - ENABLE in production!!!")
-logger.error("SSL certificate verifikation disabled - ENABLE in production!!!")
-logger.error("SSL certificate verifikation disabled - ENABLE in production!!!")
-logger.error("SSL certificate verifikation disabled - ENABLE in production!!!")
-logger.error("SSL certificate verifikation disabled - ENABLE in production!!!")
-logger.error("SSL certificate verifikation disabled - ENABLE in production!!!")
+# NOTE: This is a sample configuration for ORCID integration using django-allauth and a generic OIDC provider.
+# import logging
+# logger = logging.getLogger(__name__)
+# logger.error("SSL certificate verifikation disabled - ENABLE in production!!!")
+# logger.error("SSL certificate verifikation disabled - ENABLE in production!!!")
+# logger.error("SSL certificate verifikation disabled - ENABLE in production!!!")
+# logger.error("SSL certificate verifikation disabled - ENABLE in production!!!")
+# logger.error("SSL certificate verifikation disabled - ENABLE in production!!!")
+# logger.error("SSL certificate verifikation disabled - ENABLE in production!!!")
 
-import requests
-old_session_init = requests.Session.__init__
+# import requests
+# old_session_init = requests.Session.__init__
 
-def no_ssl_verify_init(self, *k, **kw):
-    old_session_init(self, *k, **kw)
-    self.verify = False
+# def no_ssl_verify_init(self, *k, **kw):
+#     old_session_init(self, *k, **kw)
+#     self.verify = False
 
-requests.Session.__init__ = no_ssl_verify_init
-# # ^^^FIXME: NOT FOR PRODUCTION!
-# # ^^^FIXME: NOT FOR PRODUCTION!
-# # ^^^FIXME: NOT FOR PRODUCTION!
+# requests.Session.__init__ = no_ssl_verify_init
+
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_AUTHENTICATION_METHOD = "email"
 #
