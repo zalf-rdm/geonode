@@ -6,7 +6,6 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("base", "0111_contactrole_position"),
         ("base", "0113_resourcetypegeneral_relatedidentifier_resource_type_general"),
     ]
 
