@@ -790,22 +790,10 @@ def map_metadata_sync(request, mapid, template="maps/map_metadata_sync.html"):
         diff_count = sum(1 for d in diffs if not d["match"])
         total_diffs += diff_count
 
-        # Build a direct link to the resource's metadata edit page
-        try:
-            rtype = res.resource_type
-            if rtype == "dataset":
-                metadata_url = reverse("dataset_metadata", kwargs={"layername": res.alternate or res.pk})
-            elif rtype == "document":
-                metadata_url = reverse("document_metadata", kwargs={"docid": res.pk})
-            elif rtype == "geoapp":
-                metadata_url = reverse("geoapp_metadata", kwargs={"geoappid": res.pk})
-            elif rtype == "map":
-                metadata_url = reverse("map_metadata", kwargs={"mapid": res.pk})
-            else:
-                metadata_url = None
-        except Exception as e:
-            logger.warning("Could not reverse metadata URL for resource %s: %s", res.pk, e)
-            metadata_url = None
+        # Delegate URL generation to the model — each resource type knows its own edit URL.
+        metadata_url = res.get_metadata_edit_url()
+        if not metadata_url:
+            logger.debug("No metadata edit URL available for resource %s (%s)", res.pk, res.resource_type)
 
         comparison_data.append(
             {
