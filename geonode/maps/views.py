@@ -758,7 +758,7 @@ def map_metadata_sync(request, mapid, template="maps/map_metadata_sync.html"):
 
     if request.method == "POST":
         selected_ids = request.POST.getlist("resource_ids")
-        selected_field_names = request.POST.getlist("field_names") or None
+        selected_field_names = request.POST.getlist("field_names")
         if selected_ids:
             try:
                 selected_ids = [int(rid) for rid in selected_ids]
