@@ -22,6 +22,7 @@ Utility functions for comparing and syncing metadata between a Map
 and its linked resources (datasets, documents, geoapps, maplayer datasets).
 """
 
+import html
 import logging
 
 from django.core.exceptions import FieldDoesNotExist, ObjectDoesNotExist
@@ -143,7 +144,7 @@ def _field_display_value(obj, field_name):
     # FK fields – show str representation
     if hasattr(val, "pk"):
         return str(val)
-    return strip_tags(str(val)).strip()
+    return html.unescape(strip_tags(str(val))).strip()
 
 
 def _m2m_display_value(obj, field_name):

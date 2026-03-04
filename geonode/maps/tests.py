@@ -945,6 +945,23 @@ class MetadataSyncUtilsTest(GeoNodeBaseTestSupport):
         quality_diff = next(d for d in diffs if d["field"] == "data_quality_statement")
         self.assertTrue(quality_diff["match"], "Data quality statement wrapped in HTML should match plain text")
 
+    def test_compare_metadata_html_entity_unescape(self):
+        """
+        Tests that HTML entities (e.g. &auml;) compare as equal to their
+        unescaped text equivalents in the diff tool.
+        """
+        self.map_obj.abstract = "Der Datensatz enthält Daten über Böden."
+        self.map_obj.save()
+
+        target = Map.objects.create(
+            owner=self.admin,
+            title="Target Map",
+            abstract="Der Datensatz enth&auml;lt Daten &uuml;ber B&ouml;den.",
+        )
+        diffs = compare_metadata(self.map_obj, target)
+        abstract_diff = next(d for d in diffs if d["field"] == "abstract")
+        self.assertTrue(abstract_diff["match"], "HTML entities should match unescaped text")
+
 
 class MetadataSyncViewTest(GeoNodeBaseTestSupport):
     """Tests for the map_metadata_sync view."""
