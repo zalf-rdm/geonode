@@ -131,14 +131,19 @@ def get_all_syncable_fields():
 
 
 def _field_display_value(obj, field_name):
-    """Return a human-readable display value for a field (with HTML stripped)."""
+    """Return a human-readable display value for a field (with HTML stripped).
+
+    HTML tags and surrounding whitespace are normalised so that a plain-text
+    value and its TinyMCE-wrapped equivalent (e.g. ``<p>text</p>\\n``) compare
+    as equal.
+    """
     val = getattr(obj, field_name, None)
     if val is None:
         return ""
     # FK fields – show str representation
     if hasattr(val, "pk"):
         return str(val)
-    return strip_tags(str(val))
+    return strip_tags(str(val)).strip()
 
 
 def _m2m_display_value(obj, field_name):

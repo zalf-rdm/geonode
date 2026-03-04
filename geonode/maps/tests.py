@@ -916,6 +916,35 @@ class MetadataSyncUtilsTest(GeoNodeBaseTestSupport):
         target.refresh_from_db()
         self.assertEqual(target.abstract, "Original abstract", "Nothing should change with empty field_names")
 
+    def test_compare_metadata_html_whitespace_normalisation(self):
+        """
+        Tests that TinyMCE HTML-wrapped values (e.g. <p>text</p>\\n) compare
+        as equal to their plain-text equivalents in the diff tool.
+        """
+        # Set plain abstract on map
+        self.map_obj.abstract = "Some abstract text"
+        self.map_obj.save()
+
+        # Target gets the TinyMCE-wrapped version
+        target = Map.objects.create(
+            owner=self.admin,
+            title="Target Map",
+            abstract="<p>Some abstract text</p>\\r\\n",
+            data_quality_statement="<p>Quality OK</p>  \\n",
+        )
+        self.map_obj.data_quality_statement = "Quality OK"
+        self.map_obj.save()
+
+        diffs = compare_metadata(self.map_obj, target)
+
+        # abstract should match despite HTML and newlines
+        abstract_diff = next(d for d in diffs if d["field"] == "abstract")
+        self.assertTrue(abstract_diff["match"], "Abstract wrapped in HTML should match plain text")
+
+        # data_quality_statement should match
+        quality_diff = next(d for d in diffs if d["field"] == "data_quality_statement")
+        self.assertTrue(quality_diff["match"], "Data quality statement wrapped in HTML should match plain text")
+
 
 class MetadataSyncViewTest(GeoNodeBaseTestSupport):
     """Tests for the map_metadata_sync view."""
