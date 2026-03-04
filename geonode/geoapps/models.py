@@ -94,6 +94,14 @@ class GeoApp(ResourceBase):
     def get_absolute_url(self):
         return hookset.geoapp_detail_url(self)
 
+    def get_metadata_edit_url(self):
+        from django.urls import NoReverseMatch
+
+        try:
+            return reverse("geoapp_metadata", kwargs={"geoappid": self.pk})
+        except NoReverseMatch:
+            return None
+
     @property
     def embed_url(self):
         return reverse("geoapp_embed", kwargs={"geoappid": self.pk})
