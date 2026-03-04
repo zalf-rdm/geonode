@@ -192,8 +192,28 @@
         margin: 8px 0;
     }
 
+    /* ---- Field panel helpers ---- */
+    .clickable-label {
+        cursor: pointer;
+    }
+
+    .field-section-header {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: #888;
+        margin-bottom: 4px;
+    }
+
+    .field-label {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0;
+    }
+
     /* ====================================================
-       Row hiding is now handled by Javascript to prevent 
+       Row hiding is now handled by Javascript to prevent
        auto-formatters from breaking Django tags in CSS.
        ==================================================== */
 </style>
@@ -232,7 +252,7 @@
                 <div class="fields-panel-header">{% trans "Fields to sync" %}</div>
                 <div class="fields-panel-body">
                     <div class="select-all-row">
-                        <label for="select-all-fields" style="cursor:pointer;">
+                        <label for="select-all-fields" class="clickable-label">
                             <input type="checkbox" id="select-all-fields" checked>
                             <strong>{% trans "Select / Deselect all fields" %}</strong>
                         </label>
@@ -240,13 +260,10 @@
                     <hr class="divider">
 
                     {# Simple fields #}
-                    <div style="font-size:11px;text-transform:uppercase;color:#888;margin-bottom:4px;">
-                        {% trans "Simple fields" %}
-                    </div>
+                    <div class="field-section-header">{% trans "Simple fields" %}</div>
                     {% for f in all_fields %}{% if not f.is_m2m %}
                     <div class="field-check-item">
-                        <label for="field-chk-{{ f.field }}"
-                            style="cursor:pointer;display:flex;align-items:center;gap:6px;margin:0;">
+                        <label for="field-chk-{{ f.field }}" class="field-label">
                             <input type="checkbox" id="field-chk-{{ f.field }}" checked>
                             {{ f.label }}
                         </label>
@@ -256,12 +273,10 @@
                     <hr class="divider">
 
                     {# M2M fields #}
-                    <div style="font-size:11px;text-transform:uppercase;color:#888;margin-bottom:4px;">{% trans "List
-                        fields" %}</div>
+                    <div class="field-section-header">{% trans "List fields" %}</div>
                     {% for f in all_fields %}{% if f.is_m2m %}
                     <div class="field-check-item">
-                        <label for="field-chk-{{ f.field }}"
-                            style="cursor:pointer;display:flex;align-items:center;gap:6px;margin:0;">
+                        <label for="field-chk-{{ f.field }}" class="field-label">
                             <input type="checkbox" id="field-chk-{{ f.field }}" checked>
                             {{ f.label }}
                         </label>
