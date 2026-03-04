@@ -96,6 +96,44 @@ SYNC_M2M_FIELDS = [
 ]
 
 
+# Special field name used for contact roles (not a real model field).
+_CONTACT_ROLES_FIELD = "contact_roles"
+
+
+def get_all_syncable_fields():
+    """
+    Return a list of dicts describing every field that can be synced.
+    Each dict has:
+        {
+            "field": str,   # internal field name (matches compare_metadata output)
+            "label": str,   # human-readable label
+            "is_m2m": bool,
+        }
+    Useful for rendering a field-selection UI.
+    """
+    result = []
+
+    for field_name in SYNC_SIMPLE_FIELDS:
+        try:
+            field_obj = ResourceBase._meta.get_field(field_name)
+            label = str(field_obj.verbose_name).capitalize()
+        except FieldDoesNotExist:
+            label = field_name.replace("_", " ").title()
+        result.append({"field": field_name, "label": label, "is_m2m": False})
+
+    for field_name in SYNC_M2M_FIELDS:
+        try:
+            field_obj = ResourceBase._meta.get_field(field_name)
+            label = str(field_obj.verbose_name).capitalize()
+        except FieldDoesNotExist:
+            label = field_name.replace("_", " ").title()
+        result.append({"field": field_name, "label": label, "is_m2m": True})
+
+    result.append({"field": _CONTACT_ROLES_FIELD, "label": "Contact Roles", "is_m2m": True})
+
+    return result
+
+
 def _field_display_value(obj, field_name):
     """Return a human-readable display value for a field (with HTML stripped)."""
     val = getattr(obj, field_name, None)
@@ -232,23 +270,41 @@ def _get_contact_roles_display(resource):
     return "; ".join(parts) if parts else "—"
 
 
-def sync_metadata(map_obj, resource):
+def sync_metadata(map_obj, resource, field_names=None):
     """
-    Copy all syncable metadata from *map_obj* to *resource* and save.
+    Copy syncable metadata from *map_obj* to *resource* and save.
     title and title_translated are intentionally NOT synced.
+
+    Args:
+        map_obj:     Source Map instance.
+        resource:    Target ResourceBase instance.
+        field_names: Optional iterable of field names to sync.
+                     When None (default), all syncable fields are synced.
     """
+    # Resolve which fields to sync
+    if field_names is None:
+        simple_fields = SYNC_SIMPLE_FIELDS
+        m2m_fields = SYNC_M2M_FIELDS
+        sync_contact_roles = True
+    else:
+        field_set = set(field_names)
+        simple_fields = [f for f in SYNC_SIMPLE_FIELDS if f in field_set]
+        m2m_fields = [f for f in SYNC_M2M_FIELDS if f in field_set]
+        sync_contact_roles = _CONTACT_ROLES_FIELD in field_set
+
     # 1. Simple fields
-    for field_name in SYNC_SIMPLE_FIELDS:
+    for field_name in simple_fields:
         try:
             val = getattr(map_obj, field_name)
             setattr(resource, field_name, val)
         except AttributeError:
             logger.warning("Could not sync field %s to resource %s", field_name, resource.pk)
 
-    resource.save()
+    if simple_fields:
+        resource.save()
 
     # 2. M2M fields
-    for field_name in SYNC_M2M_FIELDS:
+    for field_name in m2m_fields:
         try:
             src_manager = getattr(map_obj, field_name)
             dst_manager = getattr(resource, field_name)
@@ -267,7 +323,8 @@ def sync_metadata(map_obj, resource):
             logger.warning("Could not sync M2M field %s to resource %s", field_name, resource.pk)
 
     # 3. Contact roles
-    _sync_contact_roles(map_obj, resource)
+    if sync_contact_roles:
+        _sync_contact_roles(map_obj, resource)
 
 
 def _sync_contact_roles(map_obj, resource):

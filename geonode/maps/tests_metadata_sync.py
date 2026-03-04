@@ -30,6 +30,7 @@ from geonode.base.populate_test_data import all_public, create_models, remove_mo
 
 from geonode.maps.utils import (
     compare_metadata,
+    get_all_syncable_fields,
     get_syncable_resources,
     sync_metadata,
     SYNC_SIMPLE_FIELDS,
@@ -234,6 +235,65 @@ class MetadataSyncUtilsTest(GeoNodeBaseTestSupport):
         for d in diffs:
             self.assertTrue(d["match"], f"Field {d['field']} should match after sync")
 
+    # ------------------------------------------------------------------ #
+    # get_all_syncable_fields
+    # ------------------------------------------------------------------ #
+    def test_get_all_syncable_fields_returns_all(self):
+        """get_all_syncable_fields returns entries for all simple, M2M, and contact_roles fields."""
+        fields = get_all_syncable_fields()
+        field_names = [f["field"] for f in fields]
+        for fname in SYNC_SIMPLE_FIELDS:
+            self.assertIn(fname, field_names, f"Simple field {fname} missing")
+        for fname in SYNC_M2M_FIELDS:
+            self.assertIn(fname, field_names, f"M2M field {fname} missing")
+        self.assertIn("contact_roles", field_names)
+
+    def test_get_all_syncable_fields_has_label_and_is_m2m(self):
+        """Every entry from get_all_syncable_fields has 'field', 'label', and 'is_m2m' keys."""
+        for f in get_all_syncable_fields():
+            self.assertIn("field", f)
+            self.assertIn("label", f)
+            self.assertIn("is_m2m", f)
+            self.assertIsInstance(f["label"], str)
+            self.assertTrue(len(f["label"]) > 0)
+
+    # ------------------------------------------------------------------ #
+    # sync_metadata with field_names
+    # ------------------------------------------------------------------ #
+    def test_sync_metadata_with_field_names_subset(self):
+        """sync_metadata only syncs the specified subset of fields."""
+        target = Map.objects.create(
+            owner=self.admin,
+            title="Target",
+            abstract="Old abstract",
+            purpose="Old purpose",
+        )
+        self.map_obj.abstract = "New abstract"
+        self.map_obj.purpose = "New purpose"
+        self.map_obj.save()
+
+        # Only sync abstract, not purpose
+        sync_metadata(self.map_obj, target, field_names=["abstract"])
+        target.refresh_from_db()
+
+        self.assertEqual(target.abstract, "New abstract", "abstract should have been synced")
+        self.assertEqual(target.purpose, "Old purpose", "purpose should NOT have been synced")
+
+    def test_sync_metadata_field_names_empty_list_syncs_nothing(self):
+        """sync_metadata with empty field_names syncs no fields."""
+        target = Map.objects.create(
+            owner=self.admin,
+            title="Target",
+            abstract="Original abstract",
+        )
+        self.map_obj.abstract = "Map abstract changed"
+        self.map_obj.save()
+
+        sync_metadata(self.map_obj, target, field_names=[])
+        target.refresh_from_db()
+
+        self.assertEqual(target.abstract, "Original abstract", "Nothing should change with empty field_names")
+
 
 class MetadataSyncViewTest(GeoNodeBaseTestSupport):
     """Tests for the map_metadata_sync view."""
@@ -361,3 +421,37 @@ class MetadataSyncViewTest(GeoNodeBaseTestSupport):
 
         dataset.refresh_from_db()
         self.assertEqual(dataset.title, original_title)
+
+    def test_post_with_field_names_only_syncs_selected_fields(self):
+        """POST with field_names should only sync the specified fields."""
+        dataset = Dataset.objects.all().first()
+        if dataset is None:
+            self.skipTest("No datasets available in test data")
+
+        original_purpose = dataset.purpose  # store original
+
+        self.map_obj.abstract = "Synced abstract via field selection"
+        self.map_obj.purpose = "Map purpose that should NOT be synced"
+        self.map_obj.save()
+
+        MapLayer.objects.create(
+            map=self.map_obj,
+            name=dataset.alternate or "test:layer",
+            ows_url="http://localhost:8080/geoserver/wms",
+            dataset=dataset,
+        )
+        self.client.login(username="admin", password="admin")
+        response = self.client.post(
+            self._url(),
+            data={
+                "resource_ids": [str(dataset.pk)],
+                "field_names": ["abstract"],  # only sync abstract
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+
+        dataset.refresh_from_db()
+        self.assertEqual(dataset.abstract, "Synced abstract via field selection",
+                         "abstract should have been synced")
+        self.assertEqual(dataset.purpose, original_purpose,
+                         "purpose must NOT be synced when not in field_names")

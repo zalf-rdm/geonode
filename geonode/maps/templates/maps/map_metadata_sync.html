@@ -13,10 +13,54 @@
 {{ block.super }}
 
 <style>
+    /* ---- Layout ---- */
+    .sync-layout {
+        display: flex;
+        gap: 20px;
+        align-items: flex-start;
+    }
+
+    .fields-panel {
+        flex: 0 0 260px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background: #fafafa;
+        position: sticky;
+        top: 10px;
+    }
+
+    .fields-panel-header {
+        background: #eee;
+        padding: 10px 15px;
+        font-weight: 600;
+        border-bottom: 1px solid #ccc;
+        border-radius: 4px 4px 0 0;
+    }
+
+    .fields-panel-body {
+        padding: 10px 15px;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .field-check-item {
+        display: flex;
+        align-items: center;
+        padding: 3px 0;
+        gap: 6px;
+        font-size: 13px;
+    }
+
+    .resources-panel {
+        flex: 1;
+        min-width: 0;
+    }
+
+    /* ---- Tables ---- */
     .sync-table {
         width: 100%;
         border-collapse: collapse;
-        margin-bottom: 20px;
+        margin-bottom: 4px;
         font-size: 13px;
     }
 
@@ -50,8 +94,9 @@
         color: #0a0;
     }
 
+    /* ---- Resource accordion ---- */
     .resource-section {
-        margin-bottom: 30px;
+        margin-bottom: 20px;
         border: 1px solid #ccc;
         border-radius: 4px;
     }
@@ -95,6 +140,7 @@
         display: none;
     }
 
+    /* ---- Misc ---- */
     .sync-actions {
         margin-bottom: 20px;
     }
@@ -139,6 +185,40 @@
     .toggle-icon.collapsed {
         transform: rotate(-90deg);
     }
+
+    .divider {
+        border: none;
+        border-top: 1px solid #ddd;
+        margin: 8px 0;
+    }
+
+    /* ====================================================
+       CSS :has() — hide field rows when checkbox unchecked.
+       One rule per field, generated from the field list.
+       ==================================================== */
+        {
+        % for f in all_fields %
+    }
+
+    body:has(#field-chk- {
+                {
+                f.field
+            }
+        }
+
+        :not(:checked)) .field-row- {
+            {
+            f.field
+        }
+    }
+
+        {
+        display: none;
+    }
+
+        {
+        % endfor %
+    }
 </style>
 
 
@@ -168,74 +248,139 @@
         <a href="{% map_detail_url map %}" class="btn btn-primary">{% trans "Return to Map" %}</a>
         {% else %}
 
-        <form method="POST" action="">
-            {% csrf_token %}
-            <div class="sync-actions">
-                <a href="{% map_detail_url map %}" class="btn btn-primary">{% trans "Return to Map" %}</a>
-                <a href="{% url 'map_metadata' map.pk %}" class="btn btn-primary">{% trans "Edit Metadata" %}</a>
-                <button type="submit" class="btn btn-danger" onclick="return confirm('{% trans " This will overwrite
-                    metadata of all selected resources with the map metadata. Continue?" %}');">
-                    <i class="fa fa-refresh"></i> {% trans "Sync Selected Resources" %}
-                </button>
-            </div>
+        <div class="sync-layout">
 
-            <div class="select-all-row">
-                <label>
-                    <input type="checkbox" id="select-all" checked>
-                    <strong>{% trans "Select / Deselect All" %}</strong>
-                </label>
-                <span class="text-muted"> — {% trans "Total differences:" %} <strong>{{ total_diffs }}</strong></span>
-            </div>
+            {# ===================== LEFT: field-selection panel ===================== #}
+            <div class="fields-panel">
+                <div class="fields-panel-header">{% trans "Fields to sync" %}</div>
+                <div class="fields-panel-body">
+                    <div class="select-all-row">
+                        <label for="select-all-fields" style="cursor:pointer;">
+                            <input type="checkbox" id="select-all-fields" checked>
+                            <strong>{% trans "Select / Deselect all fields" %}</strong>
+                        </label>
+                    </div>
+                    <hr class="divider">
 
-            {% for item in comparison_data %}
-            <div class="resource-section">
-                <div class="resource-header" onclick="toggleResource('resource-{{ item.resource.pk }}')">
-                    <input type="checkbox" name="resource_ids" value="{{ item.resource.pk }}" class="resource-check"
-                        checked onclick="event.stopPropagation();">
-                    <span class="toggle-icon" id="icon-resource-{{ item.resource.pk }}">▼</span>
-                    <h4>
-                        {{ item.resource.title }}
-                        <small class="text-muted">({{ item.resource.resource_type }}{% if item.resource.alternate %} —
-                            {{ item.resource.alternate }}{% endif %})</small>
-                    </h4>
-                    {% if item.diff_count > 0 %}
-                    <span class="badge-diff">{{ item.diff_count }} {% trans "differences" %}</span>
-                    {% else %}
-                    <span class="badge-ok">{% trans "All match" %}</span>
-                    {% endif %}
-                </div>
-                <div class="resource-body {% if item.diff_count == 0 %}collapsed{% endif %}"
-                    id="resource-{{ item.resource.pk }}">
-                    <table class="sync-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 20%;">{% trans "Field" %}</th>
-                                <th class="value-cell" style="width: 40%;">{% trans "Map Value" %}</th>
-                                <th class="value-cell" style="width: 40%;">{% trans "Resource Value" %}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for row in item.diffs %}
-                            <tr class="{% if row.match %}match{% else %}diff{% endif %}">
-                                <td><strong>{{ row.label }}</strong></td>
-                                <td class="value-cell">{{ row.map_value|default:"—"|truncatechars:300 }}</td>
-                                <td class="value-cell">{{ row.resource_value|default:"—"|truncatechars:300 }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                    {# Simple fields #}
+                    <div style="font-size:11px;text-transform:uppercase;color:#888;margin-bottom:4px;">
+                        {% trans "Simple fields" %}
+                    </div>
+                    {% for f in all_fields %}{% if not f.is_m2m %}
+                    <div class="field-check-item">
+                        <label for="field-chk-{{ f.field }}"
+                            style="cursor:pointer;display:flex;align-items:center;gap:6px;margin:0;">
+                            <input type="checkbox" id="field-chk-{{ f.field }}" checked>
+                            {{ f.label }}
+                        </label>
+                    </div>
+                    {% endif %}{% endfor %}
+
+                    <hr class="divider">
+
+                    {# M2M fields #}
+                    <div style="font-size:11px;text-transform:uppercase;color:#888;margin-bottom:4px;">{% trans "List
+                        fields" %}</div>
+                    {% for f in all_fields %}{% if f.is_m2m %}
+                    <div class="field-check-item">
+                        <label for="field-chk-{{ f.field }}"
+                            style="cursor:pointer;display:flex;align-items:center;gap:6px;margin:0;">
+                            <input type="checkbox" id="field-chk-{{ f.field }}" checked>
+                            {{ f.label }}
+                        </label>
+                    </div>
+                    {% endif %}{% endfor %}
                 </div>
             </div>
-            {% endfor %}
 
-            <div class="sync-actions">
-                <a href="{% map_detail_url map %}" class="btn btn-primary">{% trans "Return to Map" %}</a>
-                <button type="submit" class="btn btn-danger" onclick="return confirm('{% trans " This will overwrite
-                    metadata of all selected resources with the map metadata. Continue?" %}');">
-                    <i class="fa fa-refresh"></i> {% trans "Sync Selected Resources" %}
-                </button>
-            </div>
-        </form>
+            {# ===================== RIGHT: resource comparison + form ===================== #}
+            <div class="resources-panel">
+
+                <form method="POST" action="" id="sync-form" onsubmit="injectFieldNames()">
+                    {% csrf_token %}
+                    <div class="sync-actions">
+                        <a href="{% map_detail_url map %}" class="btn btn-primary">{% trans "Return to Map" %}</a>
+                        <a href="{% url 'map_metadata' map.pk %}" class="btn btn-primary">
+                            {% trans "Edit Metadata"%}
+                        </a>
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('{% trans " This will
+                            overwrite metadata of the selected resources with the map metadata for the selected fields.
+                            Continue?" %}');">
+                            <i class="fa fa-refresh"></i> {% trans "Sync Selected Resources" %}
+                        </button>
+                    </div>
+
+                    <div class="select-all-row">
+                        <label>
+                            <input type="checkbox" id="select-all-resources" checked>
+                            <strong>{% trans "Select / Deselect All Resources" %}</strong>
+                        </label>
+                        <span class="text-muted"> —
+                            {% trans "Total differences:" %}
+                            <strong>
+                                {{ total_diffs }}
+                            </strong>
+                        </span>
+                    </div>
+
+                    {% for item in comparison_data %}
+                    <div class="resource-section">
+                        <div class="resource-header" onclick="toggleResource('resource-{{ item.resource.pk }}')">
+                            <input type="checkbox" name="resource_ids" value="{{ item.resource.pk }}"
+                                class="resource-check" checked onclick="event.stopPropagation();">
+                            <span class="toggle-icon" id="icon-resource-{{ item.resource.pk }}">▼</span>
+                            <h4>
+                                {{ item.resource.title }}
+                                <small class="text-muted">({{ item.resource.resource_type }}
+                                    {% if item.resource.alternate %} —
+                                    {{ item.resource.alternate }}
+                                    {% endif %})
+                                </small>
+                            </h4>
+                            {% if item.diff_count > 0 %}
+                            <span class="badge-diff">{{ item.diff_count }} {% trans "differences" %}</span>
+                            {% else %}
+                            <span class="badge-ok">{% trans "All match" %}</span>
+                            {% endif %}
+                        </div>
+                        <div class="resource-body {% if item.diff_count == 0 %}collapsed{% endif %}"
+                            id="resource-{{ item.resource.pk }}">
+                            <table class="sync-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 20%;">{% trans "Field" %}</th>
+                                        <th class="value-cell" style="width: 40%;">{% trans "Map Value" %}</th>
+                                        <th class="value-cell" style="width: 40%;">{% trans "Resource Value" %}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in item.diffs %}
+                                    <tr
+                                        class="{% if row.match %}match{% else %}diff{% endif %} field-row-{{ row.field }}">
+                                        <td><strong>{{ row.label }}</strong></td>
+                                        <td class="value-cell">{{ row.map_value|default:"—"|truncatechars:300 }}</td>
+                                        <td class="value-cell">{{ row.resource_value|default:"—"|truncatechars:300 }}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    <div class="sync-actions">
+                        <a href="{% map_detail_url map %}" class="btn btn-primary">{% trans "Return to Map" %}</a>
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('{% trans " This will
+                            overwrite metadata of the selected resources with the map metadata for the selected fields.
+                            Continue?" %}');">
+                            <i class="fa fa-refresh"></i> {% trans "Sync Selected Resources" %}
+                        </button>
+                    </div>
+                </form>
+
+            </div>{# /resources-panel #}
+        </div>{# /sync-layout #}
 
         {% endif %}
     </div>
@@ -258,12 +403,40 @@
         }
     }
 
-    // Select all / deselect all
-    document.getElementById('select-all').addEventListener('change', function () {
-        var checkboxes = document.querySelectorAll('input[name="resource_ids"]');
-        for (var i = 0; i < checkboxes.length; i++) {
-            checkboxes[i].checked = this.checked;
-        }
+    // Select all / deselect all resources
+    document.getElementById('select-all-resources').addEventListener('change', function () {
+        document.querySelectorAll('input[name="resource_ids"]').forEach(function (cb) {
+            cb.checked = this.checked;
+        }, this);
     });
+
+    // Select all / deselect all fields — drives the hidden checkboxes via their <label>
+    document.getElementById('select-all-fields').addEventListener('change', function () {
+        // The visible checkboxes share the same id as the hidden ones (labels point to them)
+        {% for f in all_fields %}
+        document.getElementById('field-chk-{{ f.field }}').checked = this.checked;
+        {% endfor %}
+    });
+
+    /**
+     * Called onsubmit: collect all currently-checked field checkbox ids and inject
+     * hidden <input name="field_names"> into the form so the server receives them.
+     * This is the ONLY JavaScript that touches the sync logic.
+     */
+    function injectFieldNames() {
+        var form = document.getElementById('sync-form');
+        // Remove any previously injected field_names inputs
+        form.querySelectorAll('input[name="field_names"]').forEach(function (el) { el.remove(); });
+        {% for f in all_fields %}
+        if (document.getElementById('field-chk-{{ f.field }}').checked) {
+            var inp = document.createElement('input');
+            inp.type = 'hidden';
+            inp.name = 'field_names';
+            inp.value = '{{ f.field }}';
+            form.appendChild(inp);
+        }
+        {% endfor %}
+        return true; // allow form to submit
+    }
 </script>
 {% endblock %}
