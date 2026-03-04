@@ -114,22 +114,19 @@ def get_all_syncable_fields():
     Useful for rendering a field-selection UI.
     """
     result = []
+    fields_to_process = (
+        (SYNC_SIMPLE_FIELDS, False),
+        (SYNC_M2M_FIELDS, True)
+    )
 
-    for field_name in SYNC_SIMPLE_FIELDS:
-        try:
-            field_obj = ResourceBase._meta.get_field(field_name)
-            label = str(field_obj.verbose_name).capitalize()
-        except FieldDoesNotExist:
-            label = field_name.replace("_", " ").title()
-        result.append({"field": field_name, "label": label, "is_m2m": False})
-
-    for field_name in SYNC_M2M_FIELDS:
-        try:
-            field_obj = ResourceBase._meta.get_field(field_name)
-            label = str(field_obj.verbose_name).capitalize()
-        except FieldDoesNotExist:
-            label = field_name.replace("_", " ").title()
-        result.append({"field": field_name, "label": label, "is_m2m": True})
+    for field_list, is_m2m in fields_to_process:
+        for field_name in field_list:
+            try:
+                field_obj = ResourceBase._meta.get_field(field_name)
+                label = str(field_obj.verbose_name).capitalize()
+            except FieldDoesNotExist:
+                label = field_name.replace("_", " ").title()
+            result.append({"field": field_name, "label": label, "is_m2m": is_m2m})
 
     result.append({"field": _CONTACT_ROLES_FIELD, "label": "Contact Roles", "is_m2m": True})
 
