@@ -929,8 +929,8 @@ class MetadataSyncUtilsTest(GeoNodeBaseTestSupport):
         target = Map.objects.create(
             owner=self.admin,
             title="Target Map",
-            abstract="<p>Some abstract text</p>\\r\\n",
-            data_quality_statement="<p>Quality OK</p>  \\n",
+            abstract="<p>Some abstract text</p>\r\n",
+            data_quality_statement="<p>Quality OK</p>  \n",
         )
         self.map_obj.data_quality_statement = "Quality OK"
         self.map_obj.save()
