@@ -114,10 +114,7 @@ def get_all_syncable_fields():
     Useful for rendering a field-selection UI.
     """
     result = []
-    fields_to_process = (
-        (SYNC_SIMPLE_FIELDS, False),
-        (SYNC_M2M_FIELDS, True)
-    )
+    fields_to_process = ((SYNC_SIMPLE_FIELDS, False), (SYNC_M2M_FIELDS, True))
 
     for field_list, is_m2m in fields_to_process:
         for field_name in field_list:

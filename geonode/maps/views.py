@@ -815,7 +815,6 @@ def map_metadata_sync(request, mapid, template="maps/map_metadata_sync.html"):
             }
         )
 
-
     return render(
         request,
         template,

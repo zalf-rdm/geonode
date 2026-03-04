@@ -703,6 +703,7 @@ class TestMapForm(GeoNodeBaseTestSupport):
 # Metadata Sync tests (moved from tests_metadata_sync.py)
 # ---------------------------------------------------------------------------
 
+
 class MetadataSyncUtilsTest(GeoNodeBaseTestSupport):
     """Tests for geonode.maps.utils metadata sync functions."""
 
@@ -1047,7 +1048,5 @@ class MetadataSyncViewTest(GeoNodeBaseTestSupport):
         )
         self.assertEqual(response.status_code, 302)
         dataset.refresh_from_db()
-        self.assertEqual(dataset.abstract, "Synced abstract via field selection",
-                         "abstract should have been synced")
-        self.assertEqual(dataset.purpose, original_purpose,
-                         "purpose must NOT be synced when not in field_names")
+        self.assertEqual(dataset.abstract, "Synced abstract via field selection", "abstract should have been synced")
+        self.assertEqual(dataset.purpose, original_purpose, "purpose must NOT be synced when not in field_names")
