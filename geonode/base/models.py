@@ -1713,6 +1713,15 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
             logger.exception(e)
             return None
 
+    def get_metadata_edit_url(self):
+        """Return the URL for editing this resource's metadata, or None.
+
+        Subclasses (Dataset, Document, Map, GeoApp) override this method to
+        provide their specific metadata-edit URL. The base implementation
+        returns None for any resource type that has no dedicated edit page.
+        """
+        return None
+
     def set_bbox_polygon(self, bbox, srid):
         """
         Set `bbox_polygon` from bbox values.
