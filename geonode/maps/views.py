@@ -803,7 +803,8 @@ def map_metadata_sync(request, mapid, template="maps/map_metadata_sync.html"):
                 metadata_url = reverse("map_metadata", kwargs={"mapid": res.pk})
             else:
                 metadata_url = None
-        except Exception:
+        except Exception as e:
+            logger.warning("Could not reverse metadata URL for resource %s: %s", res.pk, e)
             metadata_url = None
 
         comparison_data.append(
