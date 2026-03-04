@@ -789,13 +789,32 @@ def map_metadata_sync(request, mapid, template="maps/map_metadata_sync.html"):
         diffs = compare_metadata(map_obj, res)
         diff_count = sum(1 for d in diffs if not d["match"])
         total_diffs += diff_count
+
+        # Build a direct link to the resource's metadata edit page
+        try:
+            rtype = res.resource_type
+            if rtype == "dataset":
+                metadata_url = reverse("dataset_metadata", kwargs={"layername": res.alternate or res.pk})
+            elif rtype == "document":
+                metadata_url = reverse("document_metadata", kwargs={"docid": res.pk})
+            elif rtype == "geoapp":
+                metadata_url = reverse("geoapp_metadata", kwargs={"geoappid": res.pk})
+            elif rtype == "map":
+                metadata_url = reverse("map_metadata", kwargs={"mapid": res.pk})
+            else:
+                metadata_url = None
+        except Exception:
+            metadata_url = None
+
         comparison_data.append(
             {
                 "resource": res,
                 "diffs": diffs,
                 "diff_count": diff_count,
+                "metadata_url": metadata_url,
             }
         )
+
 
     return render(
         request,

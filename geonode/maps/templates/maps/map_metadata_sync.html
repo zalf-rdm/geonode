@@ -319,6 +319,13 @@
                             {% else %}
                             <span class="badge-ok">{% trans "All match" %}</span>
                             {% endif %}
+                            {% if item.metadata_url %}
+                            <a href="{{ item.metadata_url }}" target="_blank" rel="noopener"
+                                class="btn btn-xs btn-default" style="margin-left:10px;white-space:nowrap;"
+                                onclick="event.stopPropagation();" title="{% trans 'Edit metadata of this resource' %}">
+                                <i class="fa fa-pencil"></i> {% trans "Edit Metadata" %}
+                            </a>
+                            {% endif %}
                         </div>
                         <div class="resource-body {% if item.diff_count == 0 %}collapsed{% endif %}"
                             id="resource-{{ item.resource.pk }}">
