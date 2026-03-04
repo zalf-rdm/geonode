@@ -193,32 +193,9 @@
     }
 
     /* ====================================================
-       CSS :has() — hide field rows when checkbox unchecked.
-       One rule per field, generated from the field list.
+       Row hiding is now handled by Javascript to prevent 
+       auto-formatters from breaking Django tags in CSS.
        ==================================================== */
-        {
-        % for f in all_fields %
-    }
-
-    body:has(#field-chk- {
-                {
-                f.field
-            }
-        }
-
-        :not(:checked)) .field-row- {
-            {
-            f.field
-        }
-    }
-
-        {
-        display: none;
-    }
-
-        {
-        % endfor %
-    }
 </style>
 
 
@@ -410,32 +387,51 @@
         }, this);
     });
 
-    // Select all / deselect all fields — drives the hidden checkboxes via their <label>
+    // Select all / deselect all fields
     document.getElementById('select-all-fields').addEventListener('change', function () {
-        // The visible checkboxes share the same id as the hidden ones (labels point to them)
-        {% for f in all_fields %}
-        document.getElementById('field-chk-{{ f.field }}').checked = this.checked;
-        {% endfor %}
+        var isChecked = this.checked;
+        document.querySelectorAll('input[id^="field-chk-"]').forEach(function (chk) {
+            chk.checked = isChecked;
+        });
+        updateFieldVisibility();
+    });
+
+    /**
+     * Toggles visibility of rows based on checkbox state.
+     */
+    function updateFieldVisibility() {
+        document.querySelectorAll('input[id^="field-chk-"]').forEach(function (chk) {
+            var fieldName = chk.id.replace('field-chk-', '');
+            document.querySelectorAll('.field-row-' + fieldName).forEach(function (row) {
+                row.style.display = chk.checked ? '' : 'none';
+            });
+        });
+    }
+
+    // Bind change event to all field checkboxes to trigger visibility updates instantly
+    document.querySelectorAll('input[id^="field-chk-"]').forEach(function (chk) {
+        chk.addEventListener('change', updateFieldVisibility);
     });
 
     /**
      * Called onsubmit: collect all currently-checked field checkbox ids and inject
      * hidden <input name="field_names"> into the form so the server receives them.
-     * This is the ONLY JavaScript that touches the sync logic.
      */
     function injectFieldNames() {
         var form = document.getElementById('sync-form');
         // Remove any previously injected field_names inputs
         form.querySelectorAll('input[name="field_names"]').forEach(function (el) { el.remove(); });
-        {% for f in all_fields %}
-        if (document.getElementById('field-chk-{{ f.field }}').checked) {
-            var inp = document.createElement('input');
-            inp.type = 'hidden';
-            inp.name = 'field_names';
-            inp.value = '{{ f.field }}';
-            form.appendChild(inp);
-        }
-        {% endfor %}
+
+        document.querySelectorAll('input[id^="field-chk-"]').forEach(function (chk) {
+            if (chk.checked) {
+                var fieldName = chk.id.replace('field-chk-', '');
+                var inp = document.createElement('input');
+                inp.type = 'hidden';
+                inp.name = 'field_names';
+                inp.value = fieldName;
+                form.appendChild(inp);
+            }
+        });
         return true; // allow form to submit
     }
 </script>
