@@ -75,7 +75,7 @@ from geonode.people.forms import ProfileForm
 from geonode.people.utils import get_user_display_name
 from geonode.security.utils import get_user_visible_groups
 from geonode.utils import check_ogc_backend, http_client, resolve_object
-from geonode.maps.utils import compare_metadata, get_syncable_resources, sync_metadata
+from geonode.maps.utils import compare_metadata, get_all_syncable_fields, get_syncable_resources, sync_metadata
 
 if check_ogc_backend(geoserver.BACKEND_PACKAGE):
     # FIXME: The post service providing the map_status object
@@ -754,9 +754,11 @@ def map_metadata_sync(request, mapid, template="maps/map_metadata_sync.html"):
         raise Http404(MSG_NOT_FOUND)
 
     resources = get_syncable_resources(map_obj)
+    all_fields = get_all_syncable_fields()
 
     if request.method == "POST":
         selected_ids = request.POST.getlist("resource_ids")
+        selected_field_names = request.POST.getlist("field_names")
         if selected_ids:
             try:
                 selected_ids = [int(rid) for rid in selected_ids]
@@ -767,7 +769,7 @@ def map_metadata_sync(request, mapid, template="maps/map_metadata_sync.html"):
             for res in resources:
                 if res.pk in selected_ids:
                     try:
-                        sync_metadata(map_obj, res)
+                        sync_metadata(map_obj, res, field_names=selected_field_names)
                         synced_count += 1
                     except Exception:
                         logger.exception("Failed to sync metadata to resource %s", res.pk)
@@ -787,11 +789,18 @@ def map_metadata_sync(request, mapid, template="maps/map_metadata_sync.html"):
         diffs = compare_metadata(map_obj, res)
         diff_count = sum(1 for d in diffs if not d["match"])
         total_diffs += diff_count
+
+        # Delegate URL generation to the model — each resource type knows its own edit URL.
+        metadata_url = res.get_metadata_edit_url()
+        if not metadata_url:
+            logger.debug("No metadata edit URL available for resource %s (%s)", res.pk, res.resource_type)
+
         comparison_data.append(
             {
                 "resource": res,
                 "diffs": diffs,
                 "diff_count": diff_count,
+                "metadata_url": metadata_url,
             }
         )
 
@@ -804,5 +813,6 @@ def map_metadata_sync(request, mapid, template="maps/map_metadata_sync.html"):
             "resources": resources,
             "comparison_data": comparison_data,
             "total_diffs": total_diffs,
+            "all_fields": all_fields,
         },
     )
