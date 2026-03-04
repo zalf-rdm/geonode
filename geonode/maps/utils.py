@@ -37,9 +37,11 @@ from geonode.base.models import (
 logger = logging.getLogger("geonode.maps.utils")
 
 # Simple (scalar / FK) fields to compare and sync.
-# title, title_translated, uuid, alternate, resource_type, subtype, blob
+# uuid, alternate, resource_type, subtype, blob
 # are intentionally excluded.
 SYNC_SIMPLE_FIELDS = [
+    "title",
+    "title_translated",
     "abstract",
     "abstract_translated",
     "subtitle",
