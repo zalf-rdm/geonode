@@ -28,7 +28,7 @@ def _get_owner(id):
     try:
         return user_model.objects.get(id=id)
     except user_model.DoesNotExist:
-        raise BadRequest("User does not exist")
+        raise Http404("User does not exist")
 
 def _update_resource_status(resource, is_approved=None, is_published=None):
     if is_approved != None:
