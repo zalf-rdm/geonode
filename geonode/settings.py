@@ -2496,6 +2496,11 @@ SOCIALACCOUNT_LOGOUT_REDIRECT_URL = os.environ.get("SOCIALACCOUNT_LOGOUT_REDIREC
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 INSTALLED_APPS += ('allauth.socialaccount.providers.openid_connect',)
 AUTHENTICATION_BACKENDS += ('allauth.account.auth_backends.AuthenticationBackend',)
+SOCIALACCOUNT_PROFILE_EXTRACTOR = os.environ.get("SOCIALACCOUNT_PROFILE_EXTRACTOR", "geonode.people.profileextractors.OrcidExtractor")
+SOCIALACCOUNT_PROFILE_EXTRACTORS = {
+    SOCIALACCOUNT_PROVIDER: SOCIALACCOUNT_PROFILE_EXTRACTOR,
+}
+SOCIALACCOUNT_GROUPNAME_PREFIX = os.environ.get("SOCIALACCOUNT_GROUPNAME_PREFIX","gn_")
 # =============================================================================
 # END OF "ORCID"
 # =============================================================================
