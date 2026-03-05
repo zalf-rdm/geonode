@@ -733,6 +733,9 @@ LOGGING = {
         "geonode_logstash.logstash": {
             "level": "ERROR",
         },
+        "geonode.people.profileextractors": {
+            "level": "DEBUG",
+        }
     },
 }
 
