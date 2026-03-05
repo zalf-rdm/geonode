@@ -38,6 +38,7 @@ from drf_spectacular.utils import extend_schema
 from dynamic_rest.viewsets import DynamicModelViewSet, WithDynamicViewSetMixin
 from dynamic_rest.filters import DynamicFilterBackend, DynamicSortingFilter
 
+from dynamic_rest.filters import DynamicFilterBackend, DynamicSortingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 
 from oauth2_provider.contrib.rest_framework import OAuth2Authentication

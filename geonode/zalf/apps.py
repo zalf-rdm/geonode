@@ -27,7 +27,7 @@ class UploadAppConfig(AppConfig):
 
         for required_setting in REQUIRED_DATACITE_SETTINGS:
             if not getattr(settings, required_setting, None):
-                logger.warning(f"Setting '{required_setting}' is required for DOI registration")
+                raise ImproperlyConfigured(f"Setting '{required_setting}' is required for DOI registration")
 
         urlpatterns += [
             re_path(r"^api/v2/", include("geonode.zalf.api.urls")),
