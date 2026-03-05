@@ -66,8 +66,10 @@ def _approve_data_collection(user, map_resource: Map):
 @api_view(['POST'])
 @authentication_classes(allowed_authentication_classes)
 def approve_data_collection_post(request, mapid):
-    owner = request.data["owner"]
-    user = _get_owner(id=owner)
+    owner_id = request.data.get("owner")
+    if not owner_id:
+        raise BadRequest("Owner ID is required")
+    user = _get_owner(id=owner_id)
     map = get_object_or_404(Map, id=mapid)
     if not user.can_approve(map):
         raise PermissionDenied(_("Permission Denied"))
