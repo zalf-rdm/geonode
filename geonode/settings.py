@@ -2455,13 +2455,13 @@ SOCIALACCOUNT_PROVIDER_ROOT = f"{SOCIALACCOUNT_PROVIDER_HOST}realms/{SOCIALACCOU
 #
 SOCIALACCOUNT_CLIENT_ID = os.environ.get("SOCIALACCOUNT_CLIENT_ID")
 if not SOCIALACCOUNT_CLIENT_ID:
-    logging.error("SOCIALACCOUNT_CLIENT_ID not set in environment")
+    logger.error("SOCIALACCOUNT_CLIENT_ID not set in environment")
 #
 #   client secret
 #
 SOCIALACCOUNT_CLIENT_SECRET = os.environ.get("SOCIALACCOUNT_CLIENT_SECRET")
 if not SOCIALACCOUNT_CLIENT_SECRET:
-    logging.error("SOCIALACCOUNT_CLIENT_SECRET not set in environment")
+    logger.error("SOCIALACCOUNT_CLIENT_SECRET not set in environment")
 
 SOCIALACCOUNT_PROVIDERS = {
     #
