@@ -129,6 +129,14 @@ class Map(ResourceBase):
     def get_absolute_url(self):
         return hookset.map_detail_url(self)
 
+    def get_metadata_edit_url(self):
+        from django.urls import NoReverseMatch
+
+        try:
+            return reverse("map_metadata", kwargs={"mapid": self.pk})
+        except NoReverseMatch:
+            return None
+
     @property
     def embed_url(self):
         return reverse("map_embed", kwargs={"mapid": self.pk})
