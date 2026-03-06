@@ -703,7 +703,7 @@ LOGGING = {
             "filters": ["require_debug_false"],
             "class": "django.utils.log.AdminEmailHandler",
         },
-        "br": {"level": "DEBUG", "class": "logging.StreamHandler", "formatter": "br"},
+        "br": {"level": "INFO", "class": "logging.StreamHandler", "formatter": "br"},
     },
     "loggers": {
         "django": {
@@ -716,13 +716,13 @@ LOGGING = {
         },
         "geonode.br": {"level": "INFO", "handlers": ["br"], "propagate": False},
         "geoserver-restconfig.catalog": {
-            "level": "ERROR",
+            "level": "INFO",
         },
         "owslib": {
-            "level": "ERROR",
+            "level": "INFO",
         },
         "pycsw": {
-            "level": "ERROR",
+            "level": "INFO",
         },
         "celery": {
             "level": "WARN",
@@ -1144,6 +1144,9 @@ PYCSW = {
             "allowed_ips": "*",
             # 'csw_harvest_pagesize': '10',
         },
+        "logging": {
+            "level": "WARNING",
+        },
         "metadata": {
             "inspire": {
                 "enabled": True,
@@ -1325,6 +1328,7 @@ DOWNLOAD_FORMATS_METADATA = [
     "ebRIM",
     "FGDC",
     "ISO",
+    "DataCite",
 ]
 DOWNLOAD_FORMATS_VECTOR = [
     "JPEG",
@@ -1472,13 +1476,20 @@ if GEONODE_CLIENT_LAYER_PREVIEW_LIBRARY == "mapstore":
 
     def get_geonode_catalogue_service():
         if PYCSW:
-            pycsw_config = PYCSW["CONFIGURATION"]
+            pycsw_config = PYCSW.get("CONFIGURATION", {})
             if pycsw_config:
+                # Safely get the title, defaulting to "GeoNode Catalogue" if not found
+                title = pycsw_config.get("metadata", {}).get("identification", {}).get("title", "GeoNode Catalogue")
+                
+                # Check for old style metadata:main as fallback
+                if "metadata:main" in pycsw_config:
+                    title = pycsw_config["metadata:main"].get("identification_title", title)
+                    
                 pycsw_catalogue = {
-                    f"{pycsw_config['metadata:main']['identification_title']}": {
+                    f"{title}": {
                         "url": CATALOGUE["default"]["URL"],
                         "type": "csw",
-                        "title": pycsw_config["metadata:main"]["identification_title"],
+                        "title": title,
                         "autoload": True,
                         "layerOptions": {"tileSize": DEFAULT_TILE_SIZE},
                     }
@@ -2431,3 +2442,6 @@ ZALF_DATACITE_BASE_URL=os.getenv("ZALF_DATACITE_BASE_URL", "https://api.datacite
 ZALF_DATACITE_AGENT=os.getenv("ZALF_DATACITE_AGENT", "BonaRes Repository (https://repository.zalf.de; mailto:dataservice@zalf.de)")
 ZALF_DATACITE_USERNAME=os.getenv("ZALF_DATACITE_USERNAME")
 ZALF_DATACITE_PASSWORD=os.getenv("ZALF_DATACITE_PASSWORD")
+
+# Allowed groups for publishing data collections. Admins can always publish.
+PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS = os.getenv("PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS", "data_stewards").split(",")

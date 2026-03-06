@@ -14,6 +14,7 @@ from oauth2_provider.contrib.rest_framework import OAuth2Authentication
 from geonode.utils import http_client
 from geonode.maps.models import Map
 from geonode.zalf.api.serializer import PublishSerializer
+from geonode.zalf.api.datacite import validate_doi_prefix, register_doi
 
 logger = logging.getLogger(__name__)
 
@@ -113,40 +114,45 @@ def _publish_data_collection(map: Map, payload):
         if not resource.is_approved:
             raise ValidationError(_(f"Resource '{resource.title}' (ID: {resource.id}) is not approved, yet!"))
 
-
     to_publish = [ map, *resources ]
     
-    doi_prefix = getattr(payload, "doi_prefix", False)
+    doi_prefix = payload.get("doi_prefix")
+    collection_doi = None
+
     if doi_prefix:
+        # Validate the DOI prefix format
+        validate_doi_prefix(doi_prefix)
 
-        # TODO check if doi_prefix is valid
-        # TODO check if doi_prefix matches group
+        # Register a single DOI for the whole collection, using the map's UUID as suffix.
+        # All resources in the collection will share this one DOI.
+        try:
+            collection_doi = register_doi(map, doi_prefix, doi_suffix=str(map.uuid))
+            logger.info(f"Registered collection DOI '{collection_doi}' for map '{map.title}' (ID: {map.id})")
+        except ValidationError as e:
+            logger.error(f"DOI registration failed for data collection map '{map.title}': {e}")
+            raise ValidationError(
+                _(f"DOI registration failed for data collection '{map.title}' (ID: {map.id}): {e.message}")
+            )
 
-        # TODO register DOI
-
-        # Prepare the metadata
-        
-
-        doi_url = settings.ZALF_DATACITE_BASE_URL
-        doi_agent = settings.ZALF_DATACITE_AGENT
-        doi_username = settings.ZALF_DATACITE_USERNAME
-        doi_password = settings.ZALF_DATACITE_PASSWORD
-
-        headers = {
-            "Content-Type": "application/vnd.api+json"
-        }
-
-        # TODO we can use
-        # http_client.post(...)
-
-        pass
+        # Assign the same DOI to every resource in the collection
+        for resource in resources:
+            resource.doi = collection_doi
+            resource.save(update_fields=["doi"])
+            logger.info(f"Assigned collection DOI '{collection_doi}' to resource '{resource.title}' (ID: {resource.id})")
+    else:
+        raise ValidationError(_("DOI prefix is required"))
 
     [ _update_resource_status(resource, is_published=True) for resource in to_publish ]
     
-    return JsonResponse({
+    response_data = {
         "success": True,
-        "message": "Data Collection published"
-    })
+        "message": "Data Collection published",
+    }
+
+    if collection_doi:
+        response_data["doi"] = collection_doi
+
+    return JsonResponse(response_data)
 
 
 
@@ -156,8 +162,9 @@ def publish_data_collection(request, mapid):
 
     map = get_object_or_404(Map, id=mapid)
     user = request.user
-    if not user.can_publish(map):
-        # TODO fine granular permissions necessary? (which only allow data stewards to publish)
+    
+
+    if not user.can_publish_data_collection():
         raise PermissionDenied(_("Permission Denied"))
 
     serializer = PublishSerializer(data=request.data)

@@ -54,6 +54,9 @@ CONFIGURATION = {
         "domaincounts": "true",
         "profiles": "apiso,ebrim",
     },
+    "logging": {
+        "level": "WARNING",
+    },
     "repository": {
         "source": "geonode.catalogue.backends.pycsw_plugin.GeoNodeRepository",
         "filter": "uuid IS NOT NULL",
@@ -65,7 +68,7 @@ CONFIGURATION = {
 class CatalogueBackend(GenericCatalogueBackend):
     def __init__(self, *args, **kwargs):
         GenericCatalogueBackend.__init__(CatalogueBackend, self, *args, **kwargs)
-        self.catalogue.formats = ["Atom", "DIF", "Dublin Core", "ebRIM", "FGDC", "ISO"]
+        self.catalogue.formats = ["Atom", "DataCite", "DIF", "Dublin Core", "ebRIM", "FGDC", "ISO"]
         self.catalogue.local = True
 
     def remove_record(self, uuid):
@@ -95,6 +98,47 @@ class CatalogueBackend(GenericCatalogueBackend):
         record.links["download"] = self.catalogue.extract_links(record)
         return record
 
+    def get_datacite_record(self, uuid):
+        """Get DataCite XML metadata for a resource by UUID.
+
+        Returns the inner <resource> DataCite XML element serialised as a
+        string, unwrapped from the CSW GetRecordByIdResponse envelope that
+        pycsw wraps around every record.
+        """
+        from owslib.etree import etree as _etree
+
+        DATACITE_NS = "http://datacite.org/schema/kernel-4"
+        CSW_NS = "http://www.opengis.net/cat/csw/2.0.2"
+
+        response = self._csw_local_dispatch(
+            identifier=uuid,
+            outputschema=METADATA_FORMATS["DataCite"][1],
+        )
+        if not response or len(response) < 1:
+            return None
+
+        # response is the serialised CSW envelope; unwrap it to get the inner
+        # DataCite <resource> element.
+        import logging as _logging
+        _logger = _logging.getLogger(__name__)
+        _logger.debug(f"get_datacite_record raw pycsw response for {uuid}: {response[:2000] if response else None}")
+        try:
+            root = _etree.fromstring(response if isinstance(response, bytes) else response.encode("utf-8"))
+        except Exception as exc:
+            _logger.warning(f"get_datacite_record: failed to parse pycsw response for {uuid}: {exc}")
+            return None
+
+        # pycsw wraps the record inside <csw:GetRecordByIdResponse>
+        # Try to find the DataCite <resource> element directly.
+        resource_el = root.find(f"{{{DATACITE_NS}}}resource")
+        if resource_el is None:
+            # Fallback: search anywhere in the tree
+            resource_el = root.find(f".//{{{DATACITE_NS}}}resource")
+        if resource_el is None:
+            return None
+
+        return _etree.tostring(resource_el, encoding="unicode")
+
     def search_records(self, keywords, start, limit, bbox):
         with self.catalogue:
             lresults = self._csw_local_dispatch(keywords, keywords, start + 1, limit, bbox)
@@ -118,7 +162,7 @@ class CatalogueBackend(GenericCatalogueBackend):
 
             return result
 
-    def _csw_local_dispatch(self, keywords=None, start=0, limit=10, bbox=None, identifier=None):
+    def _csw_local_dispatch(self, keywords=None, start=0, limit=10, bbox=None, identifier=None, outputschema=None):
         """
         HTTP-less CSW
         """
@@ -162,7 +206,7 @@ class CatalogueBackend(GenericCatalogueBackend):
                 "version": "2.0.2",
                 "request": "GetRecordById",
                 "id": identifier,
-                "outputschema": "http://www.isotc211.org/2005/gmd",
+                "outputschema": outputschema or "http://www.isotc211.org/2005/gmd",
             }
             # FIXME(Ariel): Remove this try/except block when pycsw deals with
             # empty geometry fields better.
