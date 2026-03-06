@@ -733,6 +733,9 @@ LOGGING = {
         "geonode_logstash.logstash": {
             "level": "ERROR",
         },
+        "geonode.people.profileextractors": {
+            "level": "DEBUG",
+        }
     },
 }
 
@@ -2455,13 +2458,13 @@ SOCIALACCOUNT_PROVIDER_ROOT = f"{SOCIALACCOUNT_PROVIDER_HOST}realms/{SOCIALACCOU
 #
 SOCIALACCOUNT_CLIENT_ID = os.environ.get("SOCIALACCOUNT_CLIENT_ID")
 if not SOCIALACCOUNT_CLIENT_ID:
-    logging.error("SOCIALACCOUNT_CLIENT_ID not set in environment")
+    logger.error("SOCIALACCOUNT_CLIENT_ID not set in environment")
 #
 #   client secret
 #
 SOCIALACCOUNT_CLIENT_SECRET = os.environ.get("SOCIALACCOUNT_CLIENT_SECRET")
 if not SOCIALACCOUNT_CLIENT_SECRET:
-    logging.error("SOCIALACCOUNT_CLIENT_SECRET not set in environment")
+    logger.error("SOCIALACCOUNT_CLIENT_SECRET not set in environment")
 
 SOCIALACCOUNT_PROVIDERS = {
     #
@@ -2493,6 +2496,11 @@ SOCIALACCOUNT_LOGOUT_REDIRECT_URL = os.environ.get("SOCIALACCOUNT_LOGOUT_REDIREC
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 INSTALLED_APPS += ('allauth.socialaccount.providers.openid_connect',)
 AUTHENTICATION_BACKENDS += ('allauth.account.auth_backends.AuthenticationBackend',)
+SOCIALACCOUNT_PROFILE_EXTRACTOR = os.environ.get("SOCIALACCOUNT_PROFILE_EXTRACTOR", "geonode.people.profileextractors.OrcidExtractor")
+SOCIALACCOUNT_PROFILE_EXTRACTORS = {
+    SOCIALACCOUNT_PROVIDER: SOCIALACCOUNT_PROFILE_EXTRACTOR,
+}
+SOCIALACCOUNT_GROUPNAME_PREFIX = os.environ.get("SOCIALACCOUNT_GROUPNAME_PREFIX","gn_")
 # =============================================================================
 # END OF "ORCID"
 # =============================================================================
