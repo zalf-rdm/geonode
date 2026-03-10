@@ -18,6 +18,7 @@
 #########################################################################
 
 # Django settings for the GeoNode project.
+import json as _json
 import os
 import re
 import ast
@@ -2442,8 +2443,28 @@ ZALF_DATACITE_BASE_URL = os.getenv("ZALF_DATACITE_BASE_URL", "https://api.dataci
 ZALF_DATACITE_AGENT = os.getenv(
     "ZALF_DATACITE_AGENT", "BonaRes Repository (https://repository.zalf.de; mailto:dataservice@zalf.de)"
 )
-ZALF_DATACITE_USERNAME = os.getenv("ZALF_DATACITE_USERNAME")
-ZALF_DATACITE_PASSWORD = os.getenv("ZALF_DATACITE_PASSWORD")
 
-# Allowed groups for publishing data collections. Admins can always publish.
-PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS = [g.strip() for g in os.getenv("PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS", "data_stewards").split(",") if g.strip()]
+# ---------------------------------------------------------------------------
+# DataCite accounts — maps DataCite repository credentials to allowed groups.
+#
+# Configure via the JSON env var ZALF_DATACITE_ACCOUNTS:
+#
+#   ZALF_DATACITE_ACCOUNTS='[
+#     {"username": "TIB.BONARES", "password": "...", "groups": ["data_stewards"]},
+#     {"username": "TIB.OTHER",   "password": "...", "groups": ["other_project"]}
+#   ]'
+#
+# Each entry:
+#   username (str)  – DataCite repository ID (e.g. "TIB.BONARES")
+#   password (str)  – DataCite repository password
+#   groups   (list) – Django group names whose members may use this account
+#
+# The DOI prefixes available for each account are fetched dynamically from the
+# DataCite API at runtime (GET /clients/{username}/prefixes).
+# Superusers (admins) can always use all accounts / prefixes.
+# ---------------------------------------------------------------------------
+ZALF_DATACITE_ACCOUNTS = _json.loads(os.getenv("ZALF_DATACITE_ACCOUNTS", "[]"))
+
+# Allowed groups for publishing data collections (derived from accounts).
+# Admins can always publish regardless of group membership.
+PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS = sorted({g for acct in ZALF_DATACITE_ACCOUNTS for g in acct.get("groups", [])})

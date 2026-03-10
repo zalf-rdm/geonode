@@ -13,10 +13,13 @@ from rest_framework.decorators import api_view, authentication_classes
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication
 from oauth2_provider.contrib.rest_framework import OAuth2Authentication
 
-from geonode.utils import http_client
 from geonode.maps.models import Map
 from geonode.zalf.api.serializer import PublishSerializer
-from geonode.zalf.api.datacite import validate_doi_prefix, register_doi
+from geonode.zalf.api.datacite import (
+    validate_doi_prefix,
+    register_doi,
+    get_datacite_account_for_prefix,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +41,7 @@ def _get_owner(id):
 def _update_resource_status(resource, is_approved=None, is_published=None):
     if is_approved is not None:
         resource.is_approved = is_approved
-    if is_published != None:
+    if is_published is not None:
         resource.is_published = is_published
         if is_published:
             today = datetime.date.today()
@@ -69,25 +72,25 @@ def _approve_data_collection(user, map_resource: Map):
             ),
         ),
     ]
-    
+
     for resource in to_approve:
         _update_resource_status(resource, is_approved=True)
-    
-    return JsonResponse({
-        "success": True,
-        "message": "Data Collection approved"
-    })
+
+    return JsonResponse({"success": True, "message": "Data Collection approved"})
 
 
 @api_view(["POST"])
 @authentication_classes(allowed_authentication_classes)
 def approve_data_collection_post(request, mapid):
     # Authorization: always check the *authenticated* user, never the payload.
+    # We use can_publish_data_collection() (group membership in ZALF_DATACITE_ACCOUNTS groups)
+    # rather than GeoNode's can_approve() which requires the resource to be assigned to the
+    # user's group as a manager — a setup constraint that doesn't apply to our workflow.
     if not request.user.is_authenticated:
         raise PermissionDenied(_("Authentication required"))
-    map = get_object_or_404(Map, id=mapid)
-    if not request.user.can_approve(map):
+    if not request.user.can_publish_data_collection():
         raise PermissionDenied(_("Permission Denied"))
+    map = get_object_or_404(Map, id=mapid)
 
     # The owner field is used only to filter which linked resources to approve.
     owner_id = request.data.get("owner")
@@ -98,8 +101,18 @@ def approve_data_collection_post(request, mapid):
     return _approve_data_collection(owner, map_resource=map)
 
 
-def _publish_data_collection(map: Map, payload):
+# ---------------------------------------------------------------------------
+# Publish
+# ---------------------------------------------------------------------------
 
+
+def _publish_data_collection(map: Map, payload, user):
+    """
+    Publish a data collection (map + linked resources).
+
+    The *user* parameter is the **authenticated request user** — used to
+    resolve which DataCite account/credentials to use for the requested prefix.
+    """
     owner = _get_owner(id=payload["owner"])
     resources = set(
         filter(
@@ -124,10 +137,14 @@ def _publish_data_collection(map: Map, payload):
         # Validate the DOI prefix format
         validate_doi_prefix(doi_prefix)
 
+        # Ensure the authenticated user is allowed to use this prefix.
+        # get_datacite_account_for_prefix raises ValidationError if not.
+        get_datacite_account_for_prefix(doi_prefix, user=user)
+
         # Register a single DOI for the whole collection, using the map's UUID as suffix.
         # All resources in the collection will share this one DOI.
         try:
-            collection_doi = register_doi(map, doi_prefix, doi_suffix=str(map.uuid))
+            collection_doi = register_doi(map, doi_prefix, doi_suffix=str(map.uuid), user=user)
             logger.info(f"Registered collection DOI '{collection_doi}' for map '{map.title}' (ID: {map.id})")
         except ValidationError as e:
             logger.error(f"DOI registration failed for data collection map '{map.title}': {e}")
@@ -136,6 +153,7 @@ def _publish_data_collection(map: Map, payload):
             )
 
         # Assign the same DOI to every resource in the collection
+        # collection_doi is already an FQDN (https://doi.org/...) as returned by register_doi
         for resource in resources:
             resource.doi = collection_doi
             resource.save(update_fields=["doi"])
@@ -162,6 +180,9 @@ def _publish_data_collection(map: Map, payload):
 @authentication_classes(allowed_authentication_classes)
 def publish_data_collection(request, mapid):
 
+    if not request.user.is_authenticated:
+        raise PermissionDenied(_("Authentication required"))
+
     map = get_object_or_404(Map, id=mapid)
     user = request.user
 
@@ -172,4 +193,4 @@ def publish_data_collection(request, mapid):
     serializer.is_valid(raise_exception=True)
     payload = serializer.validated_data
 
-    return _publish_data_collection(map, payload)
+    return _publish_data_collection(map, payload, user=user)

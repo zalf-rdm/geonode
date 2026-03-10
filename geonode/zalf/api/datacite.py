@@ -6,6 +6,7 @@ import base64
 import requests as _requests
 
 from django.conf import settings
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 
 from lxml import etree
@@ -17,6 +18,36 @@ DATACITE_DOIS_PATH = "dois"
 
 # DataCite XML namespace
 DATACITE_NS = "http://datacite.org/schema/kernel-4"
+
+# DataCite resolver base URLs
+_DATACITE_PROD_API = "https://api.datacite.org"
+_DATACITE_TEST_API = "https://api.test.datacite.org"
+_DATACITE_PROD_RESOLVER = "https://doi.org"
+_DATACITE_TEST_RESOLVER = "https://handle.test.datacite.org"
+
+# Cache TTL for DataCite prefix lookups (seconds).  Prefixes change rarely.
+_DATACITE_PREFIX_CACHE_TTL = 3600
+
+
+def doi_resolver_base_url():
+    """
+    Return the correct DOI resolver base URL depending on whether the
+    configured DataCite API endpoint is production or test.
+
+    - Production API (api.datacite.org)      → https://doi.org
+    - Test API      (api.test.datacite.org)  → https://handle.test.datacite.org
+    """
+    base = getattr(settings, "ZALF_DATACITE_BASE_URL", _DATACITE_PROD_API).rstrip("/")
+    if "test" in base:
+        return _DATACITE_TEST_RESOLVER
+    return _DATACITE_PROD_RESOLVER
+
+
+def doi_to_fqdn(doi):
+    """Convert a bare DOI (e.g. '10.20387/abc') to a fully-qualified URL."""
+    if doi and doi.startswith("https://"):
+        return doi
+    return f"{doi_resolver_base_url()}/{doi}"
 
 
 def validate_doi_prefix(prefix):
@@ -34,6 +65,134 @@ def validate_doi_prefix(prefix):
             f"Invalid DOI prefix format: '{prefix}'. " "Expected format: '10.XXXXX' (e.g., '10.12345')"
         )
     return True
+
+
+# ---------------------------------------------------------------------------
+# DataCite account helpers
+# ---------------------------------------------------------------------------
+
+
+def get_datacite_accounts():
+    """Return the full list of configured DataCite accounts."""
+    return getattr(settings, "ZALF_DATACITE_ACCOUNTS", [])
+
+
+def get_datacite_accounts_for_user(user):
+    """
+    Return the DataCite accounts the given user may use.
+
+    Superusers get all accounts.  Other users get accounts whose ``groups``
+    list contains at least one Django group the user belongs to.
+    """
+    accounts = get_datacite_accounts()
+    if user.is_superuser:
+        return accounts
+    user_groups = set(user.groups.values_list("name", flat=True))
+    return [acct for acct in accounts if user_groups & set(acct.get("groups", []))]
+
+
+def fetch_prefixes_for_account(account):
+    """
+    Fetch the DOI prefixes associated with a DataCite repository account.
+
+    Uses ``GET /clients/{client-id}`` (JSON:API) and reads
+    ``data.relationships.prefixes.data``.  The dedicated sub-endpoint
+    ``/clients/{id}/relationships/prefixes`` is not used because it returns
+    an empty list for some accounts even when prefixes are assigned.
+    Results are cached using Django's cache framework to avoid hammering the
+    DataCite API on every request.
+
+    Args:
+        account (dict): Account dict with ``username`` and ``password`` keys.
+
+    Returns:
+        list[str]: DOI prefix strings (e.g. ``["10.20387", "10.99999"]``).
+                   Returns an empty list on any error so callers degrade
+                   gracefully when the DataCite API is unreachable.
+    """
+    username = account.get("username", "")
+    password = account.get("password", "")
+    if not username:
+        return []
+
+    cache_key = f"datacite_prefixes_{username}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    base_url = getattr(settings, "ZALF_DATACITE_BASE_URL", _DATACITE_PROD_API).rstrip("/")
+    # The client ID is the lowercase username in the DataCite API
+    client_id = username.lower()
+    # Use GET /clients/{id} and read relationships.prefixes — the dedicated
+    # /clients/{id}/relationships/prefixes sub-endpoint returns empty data
+    # for some accounts even when prefixes exist.
+    url = f"{base_url}/clients/{client_id}"
+
+    credentials = base64.b64encode(f"{username}:{password}".encode()).decode()
+    headers = {
+        "Accept": "application/vnd.api+json",
+        "Authorization": f"Basic {credentials}",
+    }
+
+    try:
+        response = _requests.get(url, headers=headers, timeout=15, verify=True)
+    except _requests.exceptions.RequestException as e:
+        logger.warning(f"Could not fetch DataCite prefixes for '{username}': {e}")
+        return []
+
+    if response.status_code != 200:
+        logger.warning(
+            f"DataCite prefix fetch for '{username}' returned HTTP {response.status_code}: {response.text[:200]}"
+        )
+        return []
+
+    try:
+        relationships = response.json().get("data", {}).get("relationships", {})
+        prefix_items = relationships.get("prefixes", {}).get("data", [])
+        prefixes = [item["id"] for item in prefix_items if item.get("id")]
+    except (ValueError, KeyError, TypeError) as e:
+        logger.warning(f"Unexpected DataCite client response for '{username}': {e}")
+        prefixes = []
+
+    cache.set(cache_key, prefixes, _DATACITE_PREFIX_CACHE_TTL)
+    logger.debug(f"DataCite prefixes for '{username}': {prefixes}")
+    return prefixes
+
+
+def get_doi_prefixes_for_user(user):
+    """
+    Return a deduplicated, sorted list of DOI prefix strings the user may use.
+
+    Prefixes are fetched from the DataCite API for each account the user has
+    access to.  Results are cached per account (see ``fetch_prefixes_for_account``).
+    """
+    seen = set()
+    for acct in get_datacite_accounts_for_user(user):
+        for prefix in fetch_prefixes_for_account(acct):
+            seen.add(prefix)
+    return sorted(seen)
+
+
+def get_datacite_account_for_prefix(doi_prefix, user=None):
+    """
+    Return the first DataCite account that has access to the given prefix.
+
+    If *user* is provided, only accounts the user may use are considered
+    (accounts whose groups overlap with the user's groups, or all accounts
+    if the user is a superuser).
+
+    The prefix list for each candidate account is fetched from the DataCite
+    API (cached).
+
+    Raises ``ValidationError`` if no matching account is found.
+    """
+    accounts = get_datacite_accounts_for_user(user) if user else get_datacite_accounts()
+    for acct in accounts:
+        if doi_prefix in fetch_prefixes_for_account(acct):
+            return acct
+    raise ValidationError(
+        f"No DataCite account found for prefix '{doi_prefix}'" + (f" accessible by user '{user}'" if user else "")
+    )
 
 
 def _get_catalogue_backend():
@@ -192,7 +351,7 @@ def _build_fallback_attributes(resource):
     return attributes
 
 
-def register_doi(resource, doi_prefix, doi_suffix=None, event="publish"):
+def register_doi(resource, doi_prefix, doi_suffix=None, event="publish", user=None):
     """
     Register a DOI for a GeoNode resource via the DataCite REST API.
 
@@ -201,18 +360,23 @@ def register_doi(resource, doi_prefix, doi_suffix=None, event="publish"):
         doi_prefix: The DOI prefix (e.g., '10.12345')
         doi_suffix: Optional DOI suffix (defaults to resource UUID)
         event: DataCite event ('publish', 'register', or 'hide')
+        user: The requesting user — used to resolve credentials from
+              ``ZALF_DATACITE_ACCOUNTS``.  When ``None``, the first account
+              matching the prefix is used (for backward compat / CLI use).
 
     Returns:
-        str: The registered DOI string (e.g., '10.12345/uuid-here')
+        str: The registered DOI as a fully-qualified URL
 
     Raises:
         ValidationError: If DOI registration fails
     """
     validate_doi_prefix(doi_prefix)
 
+    account = get_datacite_account_for_prefix(doi_prefix, user=user)
+    doi_username = account["username"]
+    doi_password = account["password"]
+
     doi_url = settings.ZALF_DATACITE_BASE_URL.rstrip("/")
-    doi_username = settings.ZALF_DATACITE_USERNAME
-    doi_password = settings.ZALF_DATACITE_PASSWORD
 
     if not doi_username or not doi_password:
         raise ValidationError("DataCite credentials are not configured")
@@ -253,11 +417,18 @@ def register_doi(resource, doi_prefix, doi_suffix=None, event="publish"):
         raise ValidationError(f"Failed to connect to DataCite API: {e}")
 
     if response.status_code in (200, 201):
-        # Success - update the resource's DOI field
+        # Success - read the registered DOI from the response
         try:
-            registered_doi = response.json().get("data", {}).get("attributes", {}).get("doi", doi)
-        except ValueError:
-            registered_doi = doi
+            attrs = response.json().get("data", {}).get("attributes", {})
+            # Prefer the full URL from the identifiers array (contains the
+            # correct resolver for both prod and test environments).
+            doi_identifier = next(
+                (i.get("identifier") for i in attrs.get("identifiers", []) if i.get("identifierType") == "DOI"),
+                None,
+            )
+            registered_doi = doi_identifier or doi_to_fqdn(attrs.get("doi", doi))
+        except (ValueError, StopIteration):
+            registered_doi = doi_to_fqdn(doi)
 
         resource.doi = registered_doi
         resource.save(update_fields=["doi"])

@@ -1,5 +1,8 @@
 from geonode.upload.api.urls import urlpatterns
-from geonode.zalf.api.views import approve_data_collection_post, publish_data_collection
+from geonode.zalf.api.views import (
+    approve_data_collection_post,
+    publish_data_collection,
+)
 from django.urls import re_path
 
 urlpatterns = [

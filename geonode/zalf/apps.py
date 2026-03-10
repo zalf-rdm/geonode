@@ -6,14 +6,6 @@ from django.urls import include, re_path
 logger = logging.getLogger(__name__)
 
 
-REQUIRED_DATACITE_SETTINGS = [
-    "ZALF_DATACITE_BASE_URL",
-    "ZALF_DATACITE_AGENT",
-    "ZALF_DATACITE_USERNAME",
-    "ZALF_DATACITE_PASSWORD",
-]
-
-
 class UploadAppConfig(AppConfig):
     name = "geonode.zalf"
 
@@ -22,9 +14,26 @@ class UploadAppConfig(AppConfig):
         from django.conf import settings
         from geonode.urls import urlpatterns
 
-        for required_setting in REQUIRED_DATACITE_SETTINGS:
-            if not getattr(settings, required_setting, None):
-                logger.warning(f"Setting '{required_setting}' is not configured for DOI registration")
+        if not getattr(settings, "ZALF_DATACITE_BASE_URL", None):
+            logger.warning("Setting 'ZALF_DATACITE_BASE_URL' is not configured for DOI registration")
+        if not getattr(settings, "ZALF_DATACITE_AGENT", None):
+            logger.warning("Setting 'ZALF_DATACITE_AGENT' is not configured for DOI registration")
+
+        accounts = getattr(settings, "ZALF_DATACITE_ACCOUNTS", [])
+        if not accounts:
+            logger.warning(
+                "No DataCite accounts configured (ZALF_DATACITE_ACCOUNTS). " "DOI registration will not be available."
+            )
+        else:
+            logger.info(f"Loaded {len(accounts)} DataCite account(s): {[a.get('username') for a in accounts]}")
+            for i, acct in enumerate(accounts):
+                if not acct.get("username") or not acct.get("password"):
+                    logger.warning(f"DataCite account #{i} (username={acct.get('username')!r}) is missing credentials")
+                if not acct.get("groups"):
+                    logger.warning(
+                        f"DataCite account #{i} (username={acct.get('username')!r}) has no groups assigned — "
+                        "only admins will be able to use this account"
+                    )
 
         urlpatterns += [
             re_path(r"^api/v2/", include("geonode.zalf.api.urls")),
