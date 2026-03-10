@@ -17,7 +17,6 @@ DATACITE_DOIS_PATH = "dois"
 
 # DataCite XML namespace
 DATACITE_NS = "http://datacite.org/schema/kernel-4"
-DATACITE_NSMAP = {"datacite": DATACITE_NS}
 
 
 def validate_doi_prefix(prefix):
@@ -84,13 +83,11 @@ def _patch_xml_doi(datacite_xml, doi):
         # DataCite XML uses a namespace; find the identifier element
         ns = {"dc": DATACITE_NS}
         identifier_el = root.find("dc:identifier", ns)
-        if identifier_el is not None:
-            identifier_el.text = doi
-        else:
+        if identifier_el is None:
             # Element absent – create it
             identifier_el = etree.SubElement(root, f"{{{DATACITE_NS}}}identifier")
-            identifier_el.set("identifierType", "DOI")
-            identifier_el.text = doi
+        identifier_el.set("identifierType", "DOI")
+        identifier_el.text = doi
 
         return etree.tostring(root, encoding="unicode", xml_declaration=False)
     except etree.XMLSyntaxError as e:
@@ -123,9 +120,12 @@ def build_datacite_payload(resource, doi_prefix, doi_suffix=None, event="publish
 
     doi = f"{doi_prefix}/{doi_suffix}"
 
-    # Landing page URL
+    # Landing page URL — use the resource's own absolute URL so the correct
+    # resource type and pk are used (e.g. /catalogue/#/map/42 for maps,
+    # /catalogue/#/tabular-collection/42 for collections, etc.)
     site_url = settings.SITEURL.rstrip("/")
-    url = f"{site_url}/catalogue/#/dataset/{resource.uuid}"
+    resource_path = (resource.get_absolute_url() or "").lstrip("/")
+    url = f"{site_url}/{resource_path}"
 
     # Try to obtain DataCite XML from pycsw
     datacite_xml = get_datacite_xml(resource)
@@ -144,7 +144,6 @@ def build_datacite_payload(resource, doi_prefix, doi_suffix=None, event="publish
             "xml": base64.b64encode(xml_bytes).decode("ascii"),
         }
     else:
-        # TODO CONTINUE: HERE, THE CODE IS TRYING TO ACCESS DATACITE METADATA FROM MAP WHICH IS NOT AVAILABLE, BECAUSE THE MAP I
         # Fallback: build minimal JSON metadata attributes from the resource model.
         logger.warning(f"No DataCite XML available for resource {resource.uuid}, using JSON fallback")
         attributes = {
@@ -174,7 +173,7 @@ def _build_fallback_attributes(resource):
     attributes = {
         "titles": [{"title": resource.title or "Untitled"}],
         "creators": [{"name": str(resource.owner) if resource.owner else "Unknown"}],
-        "publisher": settings.ZALF_DATACITE_AGENT,
+        "publisher": getattr(settings, "ZALF_DATACITE_AGENT", ""),
         "publicationYear": resource.date.year if resource.date else datetime.now().year,
         "types": {
             "resourceTypeGeneral": "Dataset",
@@ -216,8 +215,8 @@ def register_doi(resource, doi_prefix, doi_suffix=None, event="publish"):
     if not doi_username or not doi_password:
         raise ValidationError("DataCite credentials are not configured")
 
+    doi = f"{doi_prefix}/{doi_suffix if doi_suffix is not None else resource.uuid}"
     payload = build_datacite_payload(resource, doi_prefix, doi_suffix=doi_suffix, event=event)
-    doi = payload["data"]["attributes"]["doi"]
 
     logger.info(f"Registering DOI '{doi}' for resource '{resource.title}' (UUID: {resource.uuid})")
 
@@ -255,7 +254,7 @@ def register_doi(resource, doi_prefix, doi_suffix=None, event="publish"):
         # Success - update the resource's DOI field
         try:
             registered_doi = response.json().get("data", {}).get("attributes", {}).get("doi", doi)
-        except (json.JSONDecodeError, ValueError):
+        except ValueError:
             registered_doi = doi
 
         resource.doi = registered_doi
@@ -275,7 +274,7 @@ def register_doi(resource, doi_prefix, doi_suffix=None, event="publish"):
                         for e in errors
                     )
                     error_msg += f": {error_details}"
-        except (json.JSONDecodeError, ValueError):
+        except ValueError:
             pass
 
         # Always log the full raw response body so the DataCite error is visible

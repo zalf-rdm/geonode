@@ -46,16 +46,14 @@ CONFIGURATION = {
         "encoding": "UTF-8",
         "language": settings.LANGUAGE_CODE,
         "maxrecords": "10",
-        #  'loglevel': 'DEBUG',
-        #  'logfile': '/tmp/pycsw.log',
-        #  'federatedcatalogues': 'http://geo.data.gov/geoportal/csw/discovery',
+
         "pretty_print": "true",
         "domainquerytype": "range",
         "domaincounts": "true",
         "profiles": "apiso,ebrim",
     },
     "logging": {
-        "level": "WARNING",
+        "level": "INFO",
     },
     "repository": {
         "source": "geonode.catalogue.backends.pycsw_plugin.GeoNodeRepository",
