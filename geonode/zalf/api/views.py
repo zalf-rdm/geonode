@@ -56,7 +56,8 @@ def _approve_data_collection(user, map_resource: Map):
         )
     ]
     
-    [ _update_resource_status(resource, is_approved=True) for resource in to_approve ]
+    for resource in to_approve:
+        _update_resource_status(resource, is_approved=True)
     
     return JsonResponse({
         "success": True,
