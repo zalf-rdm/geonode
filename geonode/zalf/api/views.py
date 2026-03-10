@@ -32,7 +32,7 @@ def _get_owner(id):
         raise Http404("User does not exist")
 
 def _update_resource_status(resource, is_approved=None, is_published=None):
-    if is_approved != None:
+    if is_approved is not None:
         resource.is_approved = is_approved
     if is_published != None:
         resource.is_published = is_published
