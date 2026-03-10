@@ -115,14 +115,44 @@ def write_record(result, esn, context, url=None):
         resTypeGeneral = "Model"
     elif resTypeGeneral.lower() in ["series"]:
         resTypeGeneral = "Collection"
-    elif resTypeGeneral.lower() in ["text", "document", "article"]:
+    elif resTypeGeneral.lower() in ["text","document","article"]:
         resTypeGeneral = "Text"
     elif resTypeGeneral.lower() in ["image"]:
         resTypeGeneral = "Image"
     else:
         resTypeGeneral = "Other"
 
-    type.attrib['resourceTypeGeneral'] = resTypeGeneral
+    assert resTypeGeneral in  [
+        "Audiovisual",
+        "Book",
+        "BookChapter",
+        "Collection",
+        "ComputationalNotebook",
+        "ConferencePaper",
+        "ConferenceProceeding",
+        "DataPaper",
+        "Dataset",
+        "Dissertation",
+        "Event",
+        "Image",
+        "InteractiveResource",
+        "Journal",
+        "JournalArticle",
+        "Model",
+        "OutputManagementPlan",
+        "PeerReview",
+        "PhysicalObject",
+        "Preprint",
+        "Report",
+        "Service",
+        "Software",
+        "Sound",
+        "Standard",
+        "Text",
+        "Workflow",
+        "Other"
+      ]
+    type.attrib[util.nspath_eval('resourceTypeGeneral', NAMESPACES)] = resTypeGeneral
     
     # Identifier
     ident = etree.SubElement(node, util.nspath_eval('identifier', NAMESPACES))
@@ -138,7 +168,7 @@ def write_record(result, esn, context, url=None):
         idType = "URN"
     else:
         idType = "URL"
-    ident.attrib['identifierType'] = idType or "DOI"
+    ident.attrib[util.nspath_eval('identifierType', NAMESPACES)] = idType or "DOI"
     
     # modified
     mod = util.getqattr(result, context.md_core_model['mappings']['pycsw:Date'])
@@ -147,7 +177,6 @@ def write_record(result, esn, context, url=None):
         date = etree.SubElement(dates, util.nspath_eval('date', NAMESPACES))
         date.attrib['dateType'] = 'Updated'
         date.text = mod
-
 
     # Title
     titles = etree.SubElement(node, util.nspath_eval('titles', NAMESPACES))
@@ -166,21 +195,21 @@ def write_record(result, esn, context, url=None):
         kw = etree.SubElement(kws, util.nspath_eval('subject', NAMESPACES))
         kw.attrib[util.nspath_eval("xml:lang", NAMESPACES)]= util.getqattr(result, context.md_core_model['mappings']['pycsw:Language']) or "eng"
         kw.text = kwval
-    if tcval not in [None, '']:
+    if tcval not in  [None, '']:
         kw = etree.SubElement(kws, util.nspath_eval('subject', NAMESPACES))
-        kw.attrib['schemeURI'] = 'https://schemas.opengis.net/iso/19139/20070417/resources/codelist/gmxCodelists.xml#MD_TopicCategoryCode'
-        kw.text = tcval
+        kw.attrib['schemaUri'] = 'https://schemas.opengis.net/iso/19139/20070417/resources/codelist/gmxCodelists.xml#MD_TopicCategoryCode' 
+        kw.text = tcval   
     # themes
     # <subjects><subject schemeURI="https://example.com" xml:lang="eng">example</subject></subjects>
     themes = util.getqattr(result, context.md_core_model['mappings']['pycsw:Themes'])
     if themes not in [None, '']:
         try:
             for t in json.loads(themes):
-                thesaurus = t.get('thesaurus', {}).get('url', t.get('thesaurus', {}).get('title', ''))
+                thesaurus = t.get('thesaurus',{}).get('url', t.get('thesaurus',{}).get('title', ''))
                 for k in [c for c in t.get('keywords', []) if c['name'] not in [None, '']]:
                     kw = etree.SubElement(kws, util.nspath_eval('subject', NAMESPACES))
-                    kw.attrib['schemeURI'] = thesaurus
-                    kw.text = k.get('name')
+                    kw.attrib['schemaUri'] = thesaurus 
+                    kw.text = k.get('name') 
         except Exception as err:
             LOGGER.exception(f"failed to parse themes json of {themes}: {err}")
 
@@ -210,30 +239,30 @@ def write_record(result, esn, context, url=None):
                     }                    
 
                     contnm = etree.SubElement(cont, util.nspath_eval('contributorName', NAMESPACES))
-                    contnm.text = cnt.get('individualname', cnt.get('organization', ''))
-                    cont.attrib['contributorType'] = roleMapping.get(cnt.get('role', ''), 'Other')
-                    if cnt.get('url', '').startswith('http'):
+                    contnm.text = cnt.get('individualname',cnt.get('organization', ''))
+                    cont.attrib['contributorType'] = roleMapping.get(cnt.get('role', ''),'Other')
+                    if cnt.get('url').startswith('http'):
                         contid = etree.SubElement(cont, util.nspath_eval('nameIdentifier', NAMESPACES))
                         contid.attrib['nameIdentifierScheme'] = "URL"
                         contid.text = cnt['url']
-                    if cnt.get('organization'):
+                    if cnt['organization']:
                         contaf = etree.SubElement(cont, util.nspath_eval('affiliation', NAMESPACES))
                         contaf.text = cnt['organization']
 
-                    if not hasPublisher and cnt.get('role', '').lower() in ['publisher', 'resourceprovider', 'distributor']:
+                    if not hasPublisher and cnt.get('role', '').lower() in ['publisher','resourceProvider','distributor']:
                         hasPublisher = True
                         pb = etree.SubElement(node, util.nspath_eval('publisher', NAMESPACES))
-                        pb.text = cnt.get('individualname', cnt.get('organization', ''))
-                    elif cnt.get('role', '').lower() in ['originator', 'author', 'principalinvestigator']:
+                        pb.text = cnt.get('individualname',cnt.get('organization', ''))
+                    elif cnt.get('role', '').lower() in ['originator','author','principalInvestigator']:
                         hasCreator = True
                         crea = etree.SubElement(creas, util.nspath_eval('creator', NAMESPACES))
                         creanm = etree.SubElement(crea, util.nspath_eval('creatorName', NAMESPACES))
-                        creanm.text = cnt.get('individualname', cnt.get('organization', ''))
-                        if cnt.get('url', '') not in [None, '']:
+                        creanm.text = cnt.get('individualname',cnt.get('organization', ''))
+                        if cnt['url'] not in [None, '']:
                             creaid = etree.SubElement(crea, util.nspath_eval('nameIdentifier', NAMESPACES))
                             creaid.attrib['nameIdentifierScheme'] = "URL"
                             creaid.text = cnt['url']
-                        if cnt.get('organization', '') not in [None, '']:
+                        if cnt['organization'] not in [None, '']:
                             creaff = etree.SubElement(crea, util.nspath_eval('affiliation', NAMESPACES))
                             creaff.text = cnt['organization']
 
@@ -258,37 +287,33 @@ def write_record(result, esn, context, url=None):
 # <language>eng</language>
     tval = util.getqattr(result, context.md_core_model['mappings']['pycsw:Language'])
     if tval not in [None, '']:
-        lang_el = etree.SubElement(node, util.nspath_eval('language', NAMESPACES))
-        lang_el.text = tval
+        format = etree.SubElement(node, util.nspath_eval('Language', NAMESPACES))
+        format.text = tval
 
 # https://guidelines.openaire.eu/en/latest/data/field_version.html?highlight=version
 # <version>1.0</version>
     tval = util.getqattr(result, context.md_core_model['mappings']['pycsw:Edition'])
     if tval not in [None, '']:
-        version_el = etree.SubElement(node, util.nspath_eval('version', NAMESPACES))
-        version_el.text = tval
+        format = etree.SubElement(node, util.nspath_eval('version', NAMESPACES))
+        format.text = tval
 
 # https://guidelines.openaire.eu/en/latest/data/field_format.html
 # <formats> <format>PDF</format> </formats>
     tval = util.getqattr(result, context.md_core_model['mappings']['pycsw:Format'])
     if tval not in [None, '']:
-        formats_el = etree.SubElement(node, util.nspath_eval('formats', NAMESPACES))
-        format_el = etree.SubElement(formats_el, util.nspath_eval('format', NAMESPACES))
-        format_el.text = tval
+        formats = etree.SubElement(node, util.nspath_eval('formats', NAMESPACES))
+        format = etree.SubElement(formats, util.nspath_eval('format', NAMESPACES))
+        format.text = tval
 
 # <rightsList><rights rightsURI="https://example.com">example</rights></rightsList>
-    rights_items = []
-    for r in ["AccessConstraints", "OtherConstraints", "Classification", "ConditionApplyingToAccessAndUse"]:
-        rval = util.getqattr(result, context.md_core_model['mappings']['pycsw:' + r])
+    rights = etree.SubElement(node, util.nspath_eval('rightsList', NAMESPACES))
+    for r in ["AccessConstraints","OtherConstraints","Classification","ConditionApplyingToAccessAndUse"]:
+        rval = util.getqattr(result, context.md_core_model['mappings']['pycsw:'+r])
         if rval not in [None, '']:
-            rights_items.append((r, rval))
-    if rights_items:
-        rights = etree.SubElement(node, util.nspath_eval('rightsList', NAMESPACES))
-        for r, rval in rights_items:
             right = etree.SubElement(rights, util.nspath_eval('rights', NAMESPACES))
             if rval.startswith('http'):
                 right.attrib['rightsURI'] = rval
-            right.text = r + ':' + rval
+            right.text = r+':'+rval
 
 # <sizes><size></size></sizes>
 
@@ -317,37 +342,34 @@ def write_record(result, esn, context, url=None):
         try:
             bbox2 = util.wkt2geom(bbox)
         except Exception as err:
-            LOGGER.warning(f'Geometry parsing error for bbox "{bbox}": {err}')
-            bbox2 = None
-        if bbox2 is not None:
-            bounds = etree.SubElement(node, util.nspath_eval('geoLocations', NAMESPACES))
-            bound = etree.SubElement(bounds, util.nspath_eval('geoLocation', NAMESPACES))
-            box = etree.SubElement(bound, util.nspath_eval('geoLocationBox', NAMESPACES))
-            wb = etree.SubElement(box, util.nspath_eval('westBoundLongitude', NAMESPACES))
-            wb.text = str(bbox2[0])
-            sb = etree.SubElement(box, util.nspath_eval('southBoundLatitude', NAMESPACES))
-            sb.text = str(bbox2[1])
-            eb = etree.SubElement(box, util.nspath_eval('eastBoundLongitude', NAMESPACES))
-            eb.text = str(bbox2[2])
-            nb = etree.SubElement(box, util.nspath_eval('northBoundLatitude', NAMESPACES))
-            nb.text = str(bbox2[3])
+            LOGGER.debug(f'Geometry parsing error: {err}')
+            return None
+        bounds = etree.SubElement(node, util.nspath_eval('geoLocations', NAMESPACES))
+        bound = etree.SubElement(bounds, util.nspath_eval('geoLocation', NAMESPACES))
+        box = etree.SubElement(bound, util.nspath_eval('geoLocationBox', NAMESPACES)) 
+        wb = etree.SubElement(box, util.nspath_eval('westBoundLongitude', NAMESPACES))
+        wb.text = str(bbox2[0])
+        sb = etree.SubElement(box, util.nspath_eval('southBoundLatitude', NAMESPACES)) 
+        sb.text = str(bbox2[1])
+        eb = etree.SubElement(box, util.nspath_eval('eastBoundLongitude', NAMESPACES)) 
+        eb.text = str(bbox2[2])
+        nb = etree.SubElement(box, util.nspath_eval('northBoundLatitude', NAMESPACES))  
+        nb.text = str(bbox2[3])
 
 # Subtitle
     sval = util.getqattr(result, context.md_core_model['mappings']['pycsw:AlternateTitle'])
     if sval:
         subtitle = etree.SubElement(titles, util.nspath_eval('title', NAMESPACES))
-        subtitle.attrib['titleType'] = "Subtitle"
+        subtitle.attrib["titleType"] = "Subtitle"
         subtitle.text = sval
 
 # PublicationYear
     dval = util.getqattr(result, context.md_core_model['mappings']['pycsw:PublicationDate'])
     if dval in [None, '']:
-        dval = util.getqattr(result, context.md_core_model['mappings']['pycsw:Date'])
-    if dval not in [None, '']:
-        try:
+        dval = util.getqattr(result, context.md_core_model['mappings']['pycsw:Date']) 
+        if dval not in [None, '']:
             dt = datetime.fromisoformat(dval)
-            etree.SubElement(node, util.nspath_eval('publicationYear', NAMESPACES)).text = dt.strftime("%Y")
-        except Exception as err:
-            LOGGER.warning(f"Failed to parse publication date '{dval}': {err}")
+            dt = dt.strftime("%Y")
+            etree.SubElement(node, util.nspath_eval('publicationYear', NAMESPACES)).text = dt
 
     return node
