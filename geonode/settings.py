@@ -1480,11 +1480,11 @@ if GEONODE_CLIENT_LAYER_PREVIEW_LIBRARY == "mapstore":
             if pycsw_config:
                 # Safely get the title, defaulting to "GeoNode Catalogue" if not found
                 title = pycsw_config.get("metadata", {}).get("identification", {}).get("title", "GeoNode Catalogue")
-                
+
                 # Check for old style metadata:main as fallback
                 if "metadata:main" in pycsw_config:
                     title = pycsw_config["metadata:main"].get("identification_title", title)
-                    
+
                 pycsw_catalogue = {
                     f"{title}": {
                         "url": CATALOGUE["default"]["URL"],
@@ -2435,13 +2435,15 @@ ADVANCED_EDIT_EXCLUDE_FIELD = [  # base
     "extra_metadata",
 ]
 
-CSRF_TRUSTED_ORIGINS=os.getenv("CSRF_TRUSTED_ORIGINS", "").split()
+CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split()
 INSTALLED_APPS += ("geonode.zalf",)
 
-ZALF_DATACITE_BASE_URL=os.getenv("ZALF_DATACITE_BASE_URL", "https://api.datacite.org/")
-ZALF_DATACITE_AGENT=os.getenv("ZALF_DATACITE_AGENT", "BonaRes Repository (https://repository.zalf.de; mailto:dataservice@zalf.de)")
-ZALF_DATACITE_USERNAME=os.getenv("ZALF_DATACITE_USERNAME")
-ZALF_DATACITE_PASSWORD=os.getenv("ZALF_DATACITE_PASSWORD")
+ZALF_DATACITE_BASE_URL = os.getenv("ZALF_DATACITE_BASE_URL", "https://api.datacite.org/")
+ZALF_DATACITE_AGENT = os.getenv(
+    "ZALF_DATACITE_AGENT", "BonaRes Repository (https://repository.zalf.de; mailto:dataservice@zalf.de)"
+)
+ZALF_DATACITE_USERNAME = os.getenv("ZALF_DATACITE_USERNAME")
+ZALF_DATACITE_PASSWORD = os.getenv("ZALF_DATACITE_PASSWORD")
 
 # Allowed groups for publishing data collections. Admins can always publish.
 PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS = os.getenv("PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS", "data_stewards").split(",")

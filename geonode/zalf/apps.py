@@ -13,6 +13,7 @@ REQUIRED_DATACITE_SETTINGS = [
     "ZALF_DATACITE_PASSWORD",
 ]
 
+
 class UploadAppConfig(AppConfig):
     name = "geonode.zalf"
 

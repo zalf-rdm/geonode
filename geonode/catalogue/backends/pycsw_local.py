@@ -46,7 +46,6 @@ CONFIGURATION = {
         "encoding": "UTF-8",
         "language": settings.LANGUAGE_CODE,
         "maxrecords": "10",
-
         "pretty_print": "true",
         "domainquerytype": "range",
         "domaincounts": "true",
@@ -118,6 +117,7 @@ class CatalogueBackend(GenericCatalogueBackend):
         # response is the serialised CSW envelope; unwrap it to get the inner
         # DataCite <resource> element.
         import logging as _logging
+
         _logger = _logging.getLogger(__name__)
         _logger.debug(f"get_datacite_record raw pycsw response for {uuid}: {response[:2000] if response else None}")
         try:

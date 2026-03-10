@@ -31,8 +31,7 @@ def validate_doi_prefix(prefix):
     pattern = r"^10\.\d{4,}$"
     if not re.match(pattern, prefix):
         raise ValidationError(
-            f"Invalid DOI prefix format: '{prefix}'. "
-            "Expected format: '10.XXXXX' (e.g., '10.12345')"
+            f"Invalid DOI prefix format: '{prefix}'. " "Expected format: '10.XXXXX' (e.g., '10.12345')"
         )
     return True
 
@@ -40,6 +39,7 @@ def validate_doi_prefix(prefix):
 def _get_catalogue_backend():
     """Get the active catalogue backend instance."""
     from geonode.catalogue import get_catalogue
+
     return get_catalogue()
 
 
@@ -56,7 +56,7 @@ def get_datacite_xml(resource):
     """
     catalogue = _get_catalogue_backend()
 
-    if hasattr(catalogue, 'get_datacite_record'):
+    if hasattr(catalogue, "get_datacite_record"):
         return catalogue.get_datacite_record(resource.uuid)
 
     logger.warning(
@@ -182,10 +182,12 @@ def _build_fallback_attributes(resource):
     }
 
     if resource.abstract:
-        attributes["descriptions"] = [{
-            "description": resource.abstract,
-            "descriptionType": "Abstract",
-        }]
+        attributes["descriptions"] = [
+            {
+                "description": resource.abstract,
+                "descriptionType": "Abstract",
+            }
+        ]
 
     return attributes
 
@@ -270,8 +272,7 @@ def register_doi(resource, doi_prefix, doi_suffix=None, event="publish"):
                 errors = error_data.get("errors", [])
                 if errors:
                     error_details = "; ".join(
-                        f"{e.get('title', '')} – {e.get('detail', '')}".strip(" –")
-                        for e in errors
+                        f"{e.get('title', '')} – {e.get('detail', '')}".strip(" –") for e in errors
                     )
                     error_msg += f": {error_details}"
         except ValueError:

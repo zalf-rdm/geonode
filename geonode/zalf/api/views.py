@@ -1,7 +1,9 @@
 import logging
+import datetime
 
 from django.conf import settings
 from django.http import JsonResponse
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
@@ -24,6 +26,7 @@ allowed_authentication_classes = [
     OAuth2Authentication,
 ]
 
+
 def _get_owner(id):
     user_model = get_user_model()
     try:
@@ -31,11 +34,21 @@ def _get_owner(id):
     except user_model.DoesNotExist:
         raise Http404("User does not exist")
 
+
 def _update_resource_status(resource, is_approved=None, is_published=None):
     if is_approved != None:
         resource.is_approved = is_approved
     if is_published != None:
         resource.is_published = is_published
+        if is_published:
+            today = datetime.date.today()
+            now = datetime.datetime.now()
+            if not resource.date_available:
+                resource.date_available = today
+            if not resource.date_issued:
+                resource.date_issued = today
+            if not resource.date:
+                resource.date = now
 
     # first save to ensure permission update loads status from db
     resource.save()
@@ -43,39 +56,42 @@ def _update_resource_status(resource, is_approved=None, is_published=None):
     # now save the permission change
     resource.save()
 
+
 def _approve_data_collection(user, map_resource: Map):
 
-    to_approve = [ 
+    to_approve = [
         map_resource,
         *set(
             filter(
-                lambda resource: resource.owner == user, 
+                lambda resource: resource.owner == user,
                 # map layers are also just linked resources
-                [ lr.target for lr in map_resource.get_linked_resources() ]
+                [lr.target for lr in map_resource.get_linked_resources()],
             ),
-        )
+        ),
     ]
-    
-    [ _update_resource_status(resource, is_approved=True) for resource in to_approve ]
-    
-    return JsonResponse({
-        "success": True,
-        "message": "Data Collection approved"
-    })
+
+    [_update_resource_status(resource, is_approved=True) for resource in to_approve]
+
+    return JsonResponse({"success": True, "message": "Data Collection approved"})
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 @authentication_classes(allowed_authentication_classes)
 def approve_data_collection_post(request, mapid):
+    # Authorization: always check the *authenticated* user, never the payload.
+    if not request.user.is_authenticated:
+        raise PermissionDenied(_("Authentication required"))
+    map = get_object_or_404(Map, id=mapid)
+    if not request.user.can_approve(map):
+        raise PermissionDenied(_("Permission Denied"))
+
+    # The owner field is used only to filter which linked resources to approve.
     owner_id = request.data.get("owner")
     if not owner_id:
         raise BadRequest("Owner ID is required")
-    user = _get_owner(id=owner_id)
-    map = get_object_or_404(Map, id=mapid)
-    if not user.can_approve(map):
-        raise PermissionDenied(_("Permission Denied"))
-    
-    return _approve_data_collection(user, map_resource=map)
+    owner = _get_owner(id=owner_id)
+
+    return _approve_data_collection(owner, map_resource=map)
 
 
 # @api_view(['GET'])
@@ -92,21 +108,16 @@ def approve_data_collection_post(request, mapid):
 #     return _approve_data_collection(status=status)
 
 
-
 def _publish_data_collection(map: Map, payload):
 
     owner = _get_owner(id=payload["owner"])
     resources = set(
         filter(
             lambda resource: (
-                resource.id in payload["resources"]
-                and
-                not resource.is_published
-                and 
-                resource.owner == owner
+                resource.id in payload["resources"] and not resource.is_published and resource.owner == owner
             ),
             # map layers are also just linked resources
-            [ lr.target for lr in map.get_linked_resources() ]
+            [lr.target for lr in map.get_linked_resources()],
         )
     )
 
@@ -114,8 +125,8 @@ def _publish_data_collection(map: Map, payload):
         if not resource.is_approved:
             raise ValidationError(_(f"Resource '{resource.title}' (ID: {resource.id}) is not approved, yet!"))
 
-    to_publish = [ map, *resources ]
-    
+    to_publish = [map, *resources]
+
     doi_prefix = payload.get("doi_prefix")
     collection_doi = None
 
@@ -138,12 +149,14 @@ def _publish_data_collection(map: Map, payload):
         for resource in resources:
             resource.doi = collection_doi
             resource.save(update_fields=["doi"])
-            logger.info(f"Assigned collection DOI '{collection_doi}' to resource '{resource.title}' (ID: {resource.id})")
+            logger.info(
+                f"Assigned collection DOI '{collection_doi}' to resource '{resource.title}' (ID: {resource.id})"
+            )
     else:
         raise ValidationError(_("DOI prefix is required"))
 
-    [ _update_resource_status(resource, is_published=True) for resource in to_publish ]
-    
+    [_update_resource_status(resource, is_published=True) for resource in to_publish]
+
     response_data = {
         "success": True,
         "message": "Data Collection published",
@@ -155,14 +168,12 @@ def _publish_data_collection(map: Map, payload):
     return JsonResponse(response_data)
 
 
-
-@api_view(['POST'])
+@api_view(["POST"])
 @authentication_classes(allowed_authentication_classes)
 def publish_data_collection(request, mapid):
 
     map = get_object_or_404(Map, id=mapid)
     user = request.user
-    
 
     if not user.can_publish_data_collection():
         raise PermissionDenied(_("Permission Denied"))
