@@ -2446,4 +2446,4 @@ ZALF_DATACITE_USERNAME = os.getenv("ZALF_DATACITE_USERNAME")
 ZALF_DATACITE_PASSWORD = os.getenv("ZALF_DATACITE_PASSWORD")
 
 # Allowed groups for publishing data collections. Admins can always publish.
-PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS = os.getenv("PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS", "data_stewards").split(",")
+PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS = [g.strip() for g in os.getenv("PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS", "data_stewards").split(",") if g.strip()]

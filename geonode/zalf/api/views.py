@@ -36,7 +36,7 @@ def _get_owner(id):
 
 
 def _update_resource_status(resource, is_approved=None, is_published=None):
-    if is_approved != None:
+    if is_approved is not None:
         resource.is_approved = is_approved
     if is_published != None:
         resource.is_published = is_published
@@ -69,10 +69,14 @@ def _approve_data_collection(user, map_resource: Map):
             ),
         ),
     ]
-
-    [_update_resource_status(resource, is_approved=True) for resource in to_approve]
-
-    return JsonResponse({"success": True, "message": "Data Collection approved"})
+    
+    for resource in to_approve:
+        _update_resource_status(resource, is_approved=True)
+    
+    return JsonResponse({
+        "success": True,
+        "message": "Data Collection approved"
+    })
 
 
 @api_view(["POST"])
@@ -92,20 +96,6 @@ def approve_data_collection_post(request, mapid):
     owner = _get_owner(id=owner_id)
 
     return _approve_data_collection(owner, map_resource=map)
-
-
-# @api_view(['GET'])
-# def approve_data_collection_get(request):
-#     if not "uuid" in request.GET:
-#         raise BadRequest("The 'uuid' parameter is required")
-#     uuid = request.GET["uuid"]
-#     try:
-#         status = Map.objects.get(approval_code=uuid)
-#     except (ValidationError, Map.DoesNotExist):
-#         logger.debug(f"Ignore (invalid) approval code: '{uuid}'")
-#         raise BadRequest("Invalid approval code!")
-
-#     return _approve_data_collection(status=status)
 
 
 def _publish_data_collection(map: Map, payload):
