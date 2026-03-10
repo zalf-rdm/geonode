@@ -5,6 +5,7 @@ workflow.
 All DataCite HTTP calls are patched out so these tests run without network
 access or a running GeoServer.
 """
+
 import json
 import uuid
 from unittest.mock import MagicMock, patch
@@ -42,6 +43,7 @@ _REGISTERED_DOI = "https://handle.test.datacite.org/10.20387/test-uuid"
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _create_user(username, groups=(), is_superuser=False, password="testpass"):
     user = User.objects.create_user(username=username, password=password, is_superuser=is_superuser)
     for g in groups:
@@ -62,6 +64,7 @@ def _create_map(owner, title="Test Collection", is_approved=False, is_published=
 def _create_dataset(owner, title="Test Dataset", is_approved=False, is_published=False):
     """Create a minimal Dataset (ResourceBase subtype) for linking to a map."""
     from geonode.layers.models import Dataset
+
     return Dataset.objects.create(
         owner=owner,
         title=title,
@@ -82,6 +85,7 @@ def _link(source_map, target_resource):
 # ---------------------------------------------------------------------------
 # Approve endpoint — authentication / authorization
 # ---------------------------------------------------------------------------
+
 
 @override_settings(**_SETTINGS)
 class TestApproveAuthZ(TestCase):
@@ -147,6 +151,7 @@ class TestApproveAuthZ(TestCase):
 # Approve endpoint — business logic
 # ---------------------------------------------------------------------------
 
+
 @override_settings(**_SETTINGS)
 class TestApproveLogic(TestCase):
     """_approve_data_collection — sets is_approved on map and owned linked resources."""
@@ -208,6 +213,7 @@ class TestApproveLogic(TestCase):
 # Publish endpoint — authentication / authorization
 # ---------------------------------------------------------------------------
 
+
 @override_settings(**_SETTINGS)
 class TestPublishAuthZ(TestCase):
     """publish_data_collection — auth and permission checks."""
@@ -221,11 +227,13 @@ class TestPublishAuthZ(TestCase):
         self.url = f"/api/v2/publish/{self.map.pk}/"
 
     def _payload(self, owner=None, resources=None, doi_prefix="10.20387"):
-        return json.dumps({
-            "owner": (owner or self.member).pk,
-            "resources": resources or [],
-            "doi_prefix": doi_prefix,
-        })
+        return json.dumps(
+            {
+                "owner": (owner or self.member).pk,
+                "resources": resources or [],
+                "doi_prefix": doi_prefix,
+            }
+        )
 
     def test_anonymous_gets_403(self):
         resp = self.client.post(self.url, data=self._payload(), content_type="application/json")
@@ -247,15 +255,19 @@ class TestPublishAuthZ(TestCase):
 
     def test_invalid_doi_prefix_format_returns_400(self):
         self.client.force_login(self.member)
-        with patch("geonode.zalf.api.views.get_datacite_account_for_prefix"), \
-             patch("geonode.zalf.api.views.register_doi", return_value=_REGISTERED_DOI):
+        with (
+            patch("geonode.zalf.api.views.get_datacite_account_for_prefix"),
+            patch("geonode.zalf.api.views.register_doi", return_value=_REGISTERED_DOI),
+        ):
             resp = self.client.post(
                 self.url,
-                data=json.dumps({
-                    "owner": self.member.pk,
-                    "resources": [],
-                    "doi_prefix": "INVALID",
-                }),
+                data=json.dumps(
+                    {
+                        "owner": self.member.pk,
+                        "resources": [],
+                        "doi_prefix": "INVALID",
+                    }
+                ),
                 content_type="application/json",
             )
         # validate_doi_prefix raises ValidationError → 400
@@ -278,6 +290,7 @@ class TestPublishAuthZ(TestCase):
 # Publish endpoint — business logic
 # ---------------------------------------------------------------------------
 
+
 @override_settings(**_SETTINGS)
 class TestPublishLogic(TestCase):
     """_publish_data_collection — DOI registration, status flags, edge cases."""
@@ -293,11 +306,13 @@ class TestPublishLogic(TestCase):
     def _post(self, resources=None, doi_prefix="10.20387", owner=None):
         return self.client.post(
             self.url,
-            data=json.dumps({
-                "owner": (owner or self.member).pk,
-                "resources": resources or [],
-                "doi_prefix": doi_prefix,
-            }),
+            data=json.dumps(
+                {
+                    "owner": (owner or self.member).pk,
+                    "resources": resources or [],
+                    "doi_prefix": doi_prefix,
+                }
+            ),
             content_type="application/json",
         )
 
@@ -338,6 +353,7 @@ class TestPublishLogic(TestCase):
     @patch("geonode.zalf.api.views.register_doi")
     def test_datacite_api_failure_returns_error(self, mock_register, mock_acct):
         from django.core.exceptions import ValidationError
+
         mock_acct.return_value = _ACCOUNTS[0]
         mock_register.side_effect = ValidationError("DataCite API returned status 500")
         resp = self._post()
@@ -373,8 +389,10 @@ class TestPublishLogic(TestCase):
         mock_acct.return_value = _ACCOUNTS[0]
         try:
             ds = _create_dataset(
-                owner=self.member, title="Already Published DS",
-                is_approved=True, is_published=True,
+                owner=self.member,
+                title="Already Published DS",
+                is_approved=True,
+                is_published=True,
             )
         except Exception:
             self.skipTest("Dataset creation requires GeoServer or extra fixtures")
@@ -406,6 +424,7 @@ class TestPublishLogic(TestCase):
 # can_publish_data_collection — user model method
 # ---------------------------------------------------------------------------
 
+
 @override_settings(**_SETTINGS)
 class TestCanPublishDataCollection(TestCase):
     """Profile.can_publish_data_collection()"""
@@ -430,6 +449,7 @@ class TestCanPublishDataCollection(TestCase):
 
     def test_anonymous_user_cannot_publish(self):
         from django.contrib.auth.models import AnonymousUser
+
         anon = AnonymousUser()
         # AnonymousUser has no can_publish_data_collection — the view checks
         # is_authenticated first.  Verify the view rejects anonymous requests.
@@ -439,6 +459,7 @@ class TestCanPublishDataCollection(TestCase):
 # ---------------------------------------------------------------------------
 # _update_resource_status — date stamping behaviour
 # ---------------------------------------------------------------------------
+
 
 @override_settings(**_SETTINGS)
 class TestUpdateResourceStatus(TestCase):
@@ -459,10 +480,12 @@ class TestUpdateResourceStatus(TestCase):
         self.assertIsNone(the_map.date_issued)
 
         from geonode.zalf.api.views import _update_resource_status
+
         _update_resource_status(the_map, is_published=True)
 
         the_map.refresh_from_db()
         import datetime
+
         self.assertIsNotNone(the_map.date_available)
         self.assertIsNotNone(the_map.date_issued)
         self.assertEqual(the_map.date_available, datetime.date.today())
@@ -470,6 +493,7 @@ class TestUpdateResourceStatus(TestCase):
 
     def test_existing_date_fields_not_overwritten(self):
         import datetime
+
         fixed_date = datetime.date(2020, 1, 1)
         the_map = _create_map(owner=self.member)
         the_map.date_available = fixed_date
@@ -477,6 +501,7 @@ class TestUpdateResourceStatus(TestCase):
         the_map.save()
 
         from geonode.zalf.api.views import _update_resource_status
+
         _update_resource_status(the_map, is_published=True)
 
         the_map.refresh_from_db()
@@ -487,6 +512,7 @@ class TestUpdateResourceStatus(TestCase):
     def test_is_approved_flag_set_independently(self):
         the_map = _create_map(owner=self.member)
         from geonode.zalf.api.views import _update_resource_status
+
         _update_resource_status(the_map, is_approved=True)
         the_map.refresh_from_db()
         self.assertTrue(the_map.is_approved)
@@ -496,6 +522,7 @@ class TestUpdateResourceStatus(TestCase):
 # ---------------------------------------------------------------------------
 # Approve — response body and edge cases
 # ---------------------------------------------------------------------------
+
 
 @override_settings(**_SETTINGS)
 class TestApproveResponseBody(TestCase):
@@ -530,6 +557,7 @@ class TestApproveResponseBody(TestCase):
 # ---------------------------------------------------------------------------
 # Publish — register_doi called with correct user and suffix
 # ---------------------------------------------------------------------------
+
 
 @override_settings(**_SETTINGS)
 class TestPublishCallArgs(TestCase):
@@ -572,6 +600,7 @@ class TestPublishCallArgs(TestCase):
     def test_prefix_not_accessible_to_user_returns_error(self, mock_acct):
         """get_datacite_account_for_prefix raises when the prefix isn't in the user's accounts."""
         from django.core.exceptions import ValidationError
+
         mock_acct.side_effect = ValidationError("No DataCite account found for prefix '10.20387'")
         resp = self.client.post(
             f"/api/v2/publish/{self.map.pk}/",

@@ -2,6 +2,7 @@
 Unit tests for geonode.zalf.api.datacite — account helpers and prefix
 resolution.  All external HTTP calls are patched out.
 """
+
 import base64
 from unittest.mock import MagicMock, patch
 
@@ -29,7 +30,7 @@ from geonode.zalf.api.datacite import (
 
 _ACCOUNTS = [
     {"username": "ORG.ALPHA", "password": "pw-alpha", "groups": ["alpha-team"]},
-    {"username": "ORG.BETA",  "password": "pw-beta",  "groups": ["beta-team"]},
+    {"username": "ORG.BETA", "password": "pw-beta", "groups": ["beta-team"]},
 ]
 
 _SETTINGS = {
@@ -46,11 +47,7 @@ def _make_client_response(prefixes):
         "data": {
             "id": "org.alpha",
             "type": "clients",
-            "relationships": {
-                "prefixes": {
-                    "data": [{"id": p, "type": "prefixes"} for p in prefixes]
-                }
-            },
+            "relationships": {"prefixes": {"data": [{"id": p, "type": "prefixes"} for p in prefixes]}},
         }
     }
 
@@ -58,6 +55,7 @@ def _make_client_response(prefixes):
 # ---------------------------------------------------------------------------
 # validate_doi_prefix
 # ---------------------------------------------------------------------------
+
 
 class TestValidateDoiPrefix(TestCase):
 
@@ -68,7 +66,7 @@ class TestValidateDoiPrefix(TestCase):
 
     def test_too_short_digits(self):
         with self.assertRaises(ValidationError):
-            validate_doi_prefix("10.123")   # only 3 digits
+            validate_doi_prefix("10.123")  # only 3 digits
 
     def test_missing_10_dot(self):
         with self.assertRaises(ValidationError):
@@ -86,6 +84,7 @@ class TestValidateDoiPrefix(TestCase):
 # ---------------------------------------------------------------------------
 # doi_resolver_base_url / doi_to_fqdn
 # ---------------------------------------------------------------------------
+
 
 class TestDoiHelpers(TestCase):
 
@@ -110,6 +109,7 @@ class TestDoiHelpers(TestCase):
 # ---------------------------------------------------------------------------
 # fetch_prefixes_for_account
 # ---------------------------------------------------------------------------
+
 
 @override_settings(**_SETTINGS)
 class TestFetchPrefixesForAccount(TestCase):
@@ -148,6 +148,7 @@ class TestFetchPrefixesForAccount(TestCase):
     @patch("geonode.zalf.api.datacite._requests.get")
     def test_connection_error_returns_empty(self, mock_get):
         import requests as _r
+
         mock_get.side_effect = _r.exceptions.ConnectionError("timeout")
         result = fetch_prefixes_for_account(_ACCOUNTS[0])
         self.assertEqual(result, [])
@@ -180,12 +181,14 @@ class TestFetchPrefixesForAccount(TestCase):
 # get_datacite_accounts_for_user
 # ---------------------------------------------------------------------------
 
+
 @override_settings(**_SETTINGS)
 class TestGetAccountsForUser(TestCase):
 
     def _make_user(self, username, groups=(), is_superuser=False):
         from django.contrib.auth import get_user_model
         from django.contrib.auth.models import Group as DjangoGroup
+
         User = get_user_model()
         user = User.objects.create_user(username=username, password="pw", is_superuser=is_superuser)
         for g in groups:
@@ -219,6 +222,7 @@ class TestGetAccountsForUser(TestCase):
 # get_doi_prefixes_for_user
 # ---------------------------------------------------------------------------
 
+
 @override_settings(**_SETTINGS)
 class TestGetDoiPrefixesForUser(TestCase):
 
@@ -228,6 +232,7 @@ class TestGetDoiPrefixesForUser(TestCase):
     def _make_user(self, username, groups=()):
         from django.contrib.auth import get_user_model
         from django.contrib.auth.models import Group as DjangoGroup
+
         User = get_user_model()
         user = User.objects.create_user(username=username, password="pw")
         for g in groups:
@@ -256,6 +261,7 @@ class TestGetDoiPrefixesForUser(TestCase):
 # get_datacite_account_for_prefix
 # ---------------------------------------------------------------------------
 
+
 @override_settings(**_SETTINGS)
 class TestGetAccountForPrefix(TestCase):
 
@@ -264,9 +270,7 @@ class TestGetAccountForPrefix(TestCase):
 
     @patch("geonode.zalf.api.datacite.fetch_prefixes_for_account")
     def test_finds_correct_account(self, mock_fetch):
-        mock_fetch.side_effect = lambda acct: (
-            ["10.20387"] if acct["username"] == "ORG.ALPHA" else ["10.55555"]
-        )
+        mock_fetch.side_effect = lambda acct: (["10.20387"] if acct["username"] == "ORG.ALPHA" else ["10.55555"])
         acct = get_datacite_account_for_prefix("10.55555")
         self.assertEqual(acct["username"], "ORG.BETA")
 
@@ -281,14 +285,13 @@ class TestGetAccountForPrefix(TestCase):
         """A user in only alpha-team cannot access a beta-team prefix."""
         from django.contrib.auth import get_user_model
         from django.contrib.auth.models import Group as DjangoGroup
+
         User = get_user_model()
         user = User.objects.create_user(username="alpha_only", password="pw")
         grp, _ = DjangoGroup.objects.get_or_create(name="alpha-team")
         user.groups.add(grp)
 
-        mock_fetch.side_effect = lambda acct: (
-            ["10.20387"] if acct["username"] == "ORG.ALPHA" else ["10.55555"]
-        )
+        mock_fetch.side_effect = lambda acct: (["10.20387"] if acct["username"] == "ORG.ALPHA" else ["10.55555"])
         # alpha-team prefix — OK
         acct = get_datacite_account_for_prefix("10.20387", user=user)
         self.assertEqual(acct["username"], "ORG.ALPHA")
@@ -329,6 +332,7 @@ class TestPatchXmlDoi(TestCase):
 
     def test_identifier_type_attribute_is_doi(self):
         from lxml import etree
+
         result = _patch_xml_doi(_DATACITE_XML_WITH_ID, "10.20387/x")
         root = etree.fromstring(result.encode())
         ns = {"dc": "http://datacite.org/schema/kernel-4"}
@@ -348,6 +352,7 @@ class TestPatchXmlDoi(TestCase):
 # ---------------------------------------------------------------------------
 # _build_fallback_attributes
 # ---------------------------------------------------------------------------
+
 
 class TestBuildFallbackAttributes(TestCase):
 
@@ -384,6 +389,7 @@ class TestBuildFallbackAttributes(TestCase):
 
     def test_date_used_for_publication_year(self):
         import datetime
+
         attrs = _build_fallback_attributes(self._make_resource(date=datetime.date(2023, 6, 15)))
         self.assertEqual(attrs["publicationYear"], 2023)
 
@@ -397,11 +403,13 @@ class TestBuildFallbackAttributes(TestCase):
 # build_datacite_payload
 # ---------------------------------------------------------------------------
 
+
 @override_settings(**_SETTINGS, SITEURL="https://example.org/")
 class TestBuildDatacitePayload(TestCase):
 
     def _make_resource(self, uuid_val=None):
         import uuid as _uuid
+
         resource = MagicMock()
         resource.uuid = str(uuid_val or _uuid.uuid4())
         resource.title = "Test Resource"
@@ -425,6 +433,7 @@ class TestBuildDatacitePayload(TestCase):
     @patch("geonode.zalf.api.datacite.get_datacite_xml", return_value=_DATACITE_XML_WITH_ID)
     def test_xml_path_base64_encodes_xml(self, mock_xml):
         import base64 as _b64
+
         resource = self._make_resource()
         payload = build_datacite_payload(resource, "10.20387", doi_suffix="test-suffix")
         attrs = payload["data"]["attributes"]
@@ -458,6 +467,7 @@ class TestBuildDatacitePayload(TestCase):
 # register_doi
 # ---------------------------------------------------------------------------
 
+
 @override_settings(**_SETTINGS, SITEURL="https://example.org/")
 class TestRegisterDoi(TestCase):
 
@@ -467,6 +477,7 @@ class TestRegisterDoi(TestCase):
         cache.clear()
         from django.contrib.auth import get_user_model
         from django.contrib.auth.models import Group as DjangoGroup
+
         User = get_user_model()
         self.user = User.objects.create_user(username="reg_user", password="pw")
         grp, _ = DjangoGroup.objects.get_or_create(name="alpha-team")
@@ -474,6 +485,7 @@ class TestRegisterDoi(TestCase):
 
     def _make_resource(self):
         from geonode.maps.models import Map
+
         return Map.objects.create(owner=self.user, title="Reg Test Map")
 
     def _mock_post(self, status_code=201, identifiers=None, doi=None):
@@ -492,7 +504,9 @@ class TestRegisterDoi(TestCase):
     @patch("geonode.zalf.api.datacite.build_datacite_payload")
     @patch("geonode.zalf.api.datacite._requests.post")
     def test_returns_doi_from_identifiers_array(self, mock_post, mock_payload, mock_prefixes):
-        mock_payload.return_value = {"data": {"type": "dois", "attributes": {"doi": "10.20387/x", "event": "publish", "url": "https://x"}}}
+        mock_payload.return_value = {
+            "data": {"type": "dois", "attributes": {"doi": "10.20387/x", "event": "publish", "url": "https://x"}}
+        }
         mock_post.return_value = self._mock_post(
             status_code=201,
             identifiers=[{"identifierType": "DOI", "identifier": "https://handle.test.datacite.org/10.20387/x"}],
@@ -536,9 +550,7 @@ class TestRegisterDoi(TestCase):
         mock_resp = MagicMock()
         mock_resp.status_code = 422
         mock_resp.text = "Unprocessable"
-        mock_resp.json.return_value = {
-            "errors": [{"title": "Bad prefix", "detail": "Prefix not found"}]
-        }
+        mock_resp.json.return_value = {"errors": [{"title": "Bad prefix", "detail": "Prefix not found"}]}
         mock_post.return_value = mock_resp
         resource = self._make_resource()
         with self.assertRaises(ValidationError) as ctx:
@@ -550,6 +562,7 @@ class TestRegisterDoi(TestCase):
     @patch("geonode.zalf.api.datacite._requests.post")
     def test_network_error_raises_validation_error(self, mock_post, mock_payload, mock_prefixes):
         import requests as _r
+
         mock_payload.return_value = {"data": {"type": "dois", "attributes": {}}}
         mock_post.side_effect = _r.exceptions.ConnectionError("connection refused")
         resource = self._make_resource()
@@ -560,4 +573,3 @@ class TestRegisterDoi(TestCase):
         """validate_doi_prefix runs first — no HTTP call should be made."""
         with self.assertRaises(ValidationError):
             register_doi(MagicMock(), "BADPREFIX", user=self.user)
-

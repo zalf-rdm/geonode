@@ -122,7 +122,9 @@ class CatalogueBackend(GenericCatalogueBackend):
         _logger.debug(f"get_datacite_record raw pycsw response for {uuid}: {response[:2000] if response else None}")
         try:
             parser = _etree.XMLParser(resolve_entities=False, no_network=True)
-            root = _etree.fromstring(response if isinstance(response, bytes) else response.encode("utf-8"), parser=parser)
+            root = _etree.fromstring(
+                response if isinstance(response, bytes) else response.encode("utf-8"), parser=parser
+            )
         except Exception as exc:
             _logger.warning(f"get_datacite_record: failed to parse pycsw response for {uuid}: {exc}")
             return None
