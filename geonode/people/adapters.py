@@ -276,21 +276,20 @@ PROFILE_URL = getattr(settings, "SOCIALACCOUNT_PROVIDERS", {}).get(PROVIDER_ID, 
 
 ID_TOKEN_ISSUER = getattr(settings, "SOCIALACCOUNT_PROVIDERS", {}).get(PROVIDER_ID, {}).get("ID_TOKEN_ISSUER", "")
 
+
 def _update_user_groups_from_social(sociallogin, user):
     extractor = get_data_extractor(sociallogin.account.provider)
     group_role_mapper = get_group_role_mapper(sociallogin.account.provider)
     try:
-        groups = extractor.extract_groups(
+        groups = extractor.extract_groups(sociallogin.account.extra_data) or extractor.extract_roles(
             sociallogin.account.extra_data
-        ) or extractor.extract_roles(sociallogin.account.extra_data)
+        )
 
         # check here if user is member already of other groups and remove it form the ones that are not declared here...
         for groupprofile in user.group_list_all():
             groupprofile.leave(user)
         for group_role_name in groups:
-            group_name, role_name = group_role_mapper.parse_group_and_role(
-                group_role_name
-            )
+            group_name, role_name = group_role_mapper.parse_group_and_role(group_role_name)
             groupprofile = GroupProfile.objects.filter(slug=group_name).first()
             if groupprofile:
                 groupprofile.join(user)
@@ -368,9 +367,7 @@ class GenericOpenIDConnectAdapter(OAuth2Adapter, SocialAccountAdapter):
         return login
 
     def save_user(self, request, sociallogin, form=None):
-        user = super(SocialAccountAdapter, self).save_user(
-            request, sociallogin, form=form
-        )
+        user = super(SocialAccountAdapter, self).save_user(request, sociallogin, form=form)
         user = _update_user_groups_from_social(sociallogin, user)
         return user
 
