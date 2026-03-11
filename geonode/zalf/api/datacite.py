@@ -237,7 +237,8 @@ def _patch_xml_doi(datacite_xml, doi):
     """
     try:
         xml_bytes = datacite_xml.encode("utf-8") if isinstance(datacite_xml, str) else datacite_xml
-        root = etree.fromstring(xml_bytes)
+        parser = etree.XMLParser(resolve_entities=False, no_network=True)
+        root = etree.fromstring(xml_bytes, parser)
 
         # DataCite XML uses a namespace; find the identifier element
         ns = {"dc": DATACITE_NS}

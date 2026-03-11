@@ -17,6 +17,7 @@
 #
 #########################################################################
 
+import logging
 import os
 from owslib.etree import etree as dlxml
 from django.conf import settings
@@ -25,6 +26,8 @@ from pycsw import server
 from geonode.catalogue.backends.generic import CatalogueBackend as GenericCatalogueBackend
 from geonode.catalogue.backends.generic import METADATA_FORMATS
 from shapely.errors import WKBReadingError, WKTReadingError
+
+logger = logging.getLogger(__name__)
 
 true_value = "true"
 false_value = "false"
@@ -102,8 +105,6 @@ class CatalogueBackend(GenericCatalogueBackend):
         string, unwrapped from the CSW GetRecordByIdResponse envelope that
         pycsw wraps around every record.
         """
-        from owslib.etree import etree as _etree
-
         DATACITE_NS = "http://datacite.org/schema/kernel-4"
 
         response = self._csw_local_dispatch(
@@ -115,17 +116,14 @@ class CatalogueBackend(GenericCatalogueBackend):
 
         # response is the serialised CSW envelope; unwrap it to get the inner
         # DataCite <resource> element.
-        import logging as _logging
-
-        _logger = _logging.getLogger(__name__)
-        _logger.debug(f"get_datacite_record raw pycsw response for {uuid}: {response[:2000] if response else None}")
+        logger.debug(f"get_datacite_record raw pycsw response for {uuid}: {response[:2000] if response else None}")
         try:
-            parser = _etree.XMLParser(resolve_entities=False, no_network=True)
-            root = _etree.fromstring(
+            parser = dlxml.XMLParser(resolve_entities=False, no_network=True)
+            root = dlxml.fromstring(
                 response if isinstance(response, bytes) else response.encode("utf-8"), parser=parser
             )
-        except Exception as exc:
-            _logger.warning(f"get_datacite_record: failed to parse pycsw response for {uuid}: {exc}")
+        except dlxml.XMLSyntaxError as exc:
+            logger.warning(f"get_datacite_record: failed to parse pycsw response for {uuid}: {exc}")
             return None
 
         # pycsw wraps the record inside <csw:GetRecordByIdResponse>
@@ -137,7 +135,7 @@ class CatalogueBackend(GenericCatalogueBackend):
         if resource_el is None:
             return None
 
-        return _etree.tostring(resource_el, encoding="unicode")
+        return dlxml.tostring(resource_el, encoding="unicode")
 
     def search_records(self, keywords, start, limit, bbox):
         with self.catalogue:

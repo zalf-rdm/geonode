@@ -59,7 +59,7 @@ def _update_resource_status(resource, is_approved=None, is_published=None):
     resource.save()
 
 
-def _approve_data_collection(user, map_resource: Map):
+def _approve_data_collection(user, map_resource: Map, requesting_user=None):
 
     to_approve = [
         map_resource,
@@ -71,6 +71,13 @@ def _approve_data_collection(user, map_resource: Map):
             ),
         ),
     ]
+
+    if requesting_user is not None:
+        for resource in to_approve:
+            if not requesting_user.has_perm("base.change_resourcebase", resource):
+                raise PermissionDenied(
+                    _(f"You do not have permission to approve resource '{resource.title}' (ID: {resource.id})")
+                )
 
     for resource in to_approve:
         _update_resource_status(resource, is_approved=True)
@@ -97,7 +104,7 @@ def approve_data_collection_post(request, mapid):
         raise BadRequest("Owner ID is required")
     owner = _get_owner(id=owner_id)
 
-    return _approve_data_collection(owner, map_resource=map)
+    return _approve_data_collection(owner, map_resource=map, requesting_user=request.user)
 
 
 # ---------------------------------------------------------------------------
@@ -126,6 +133,10 @@ def _publish_data_collection(map: Map, payload, user):
     for resource in resources:
         if not resource.is_approved:
             raise ValidationError(_(f"Resource '{resource.title}' (ID: {resource.id}) is not approved, yet!"))
+        if not user.has_perm("base.publish_resourcebase", resource):
+            raise PermissionDenied(
+                _(f"You do not have permission to publish resource '{resource.title}' (ID: {resource.id})")
+            )
 
     to_publish = [map, *resources]
 
@@ -162,7 +173,8 @@ def _publish_data_collection(map: Map, payload, user):
     else:
         raise ValidationError(_("DOI prefix is required"))
 
-    [_update_resource_status(resource, is_published=True) for resource in to_publish]
+    for resource in to_publish:
+        _update_resource_status(resource, is_published=True)
 
     response_data = {
         "success": True,
