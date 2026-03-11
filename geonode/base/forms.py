@@ -71,6 +71,31 @@ from geonode.people.utils import get_user_display_name
 logger = logging.getLogger(__name__)
 
 
+class OrderedModelSelect2Multiple(autocomplete.ModelSelect2Multiple):
+    """
+    Custom widget that preserves the order of selected items
+    """
+
+    def build_attrs(self, base_attrs, extra_attrs=None):
+        """Add data attribute with ordered values"""
+        attrs = super().build_attrs(base_attrs, extra_attrs)
+
+        # Add ordered values as data attribute for Tom Select
+        if hasattr(self, "_ordered_value") and self._ordered_value:
+            # Convert to JSON string for data attribute
+            import json
+
+            attrs["data-ordered-values"] = json.dumps([str(v) for v in self._ordered_value])
+
+        return attrs
+
+    def format_value(self, value):
+        """Store the ordered value for rendering"""
+        if value:
+            self._ordered_value = value if isinstance(value, (list, tuple)) else [value]
+        return super().format_value(value)
+
+
 def get_tree_data():
     def rectree(parent, path):
         children_list_of_tuples = list()
