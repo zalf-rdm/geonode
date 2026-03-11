@@ -228,15 +228,9 @@ class OrcidExtractor(OpenIDExtractor):
 
     def extract_organization(self, data):
         affiliation = data.get("affiliation") or {}
-        org_name = (
-            affiliation.get("organization").get("name")
-            if affiliation.get("organization")
-            else None
-        )
+        org_name = affiliation.get("organization").get("name") if affiliation.get("organization") else None
         if not org_name:
-            logger.debug(
-                "end processing affiliation information, because no org_name is found."
-            )
+            logger.debug("end processing affiliation information, because no org_name is found.")
             return None
         org_ror = (
             affiliation.get("organization")
@@ -244,13 +238,8 @@ class OrcidExtractor(OpenIDExtractor):
             .get("disambiguated-organization-identifier")
             if affiliation.get("organization")
             and affiliation.get("organization").get("disambiguated-organization")
-            and affiliation.get("organization")
-            .get("disambiguated-organization")
-            .get("disambiguation-source")
-            and affiliation.get("organization")
-            .get("disambiguated-organization")
-            .get("disambiguation-source")
-            == "ROR"
+            and affiliation.get("organization").get("disambiguated-organization").get("disambiguation-source")
+            and affiliation.get("organization").get("disambiguated-organization").get("disambiguation-source") == "ROR"
             else None
         )
         logger.debug(f"Found affiliation: '{org_name}' ('{org_ror}')")
