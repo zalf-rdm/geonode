@@ -105,7 +105,6 @@ class CatalogueBackend(GenericCatalogueBackend):
         from owslib.etree import etree as _etree
 
         DATACITE_NS = "http://datacite.org/schema/kernel-4"
-        CSW_NS = "http://www.opengis.net/cat/csw/2.0.2"
 
         response = self._csw_local_dispatch(
             identifier=uuid,

@@ -8,12 +8,11 @@ access or a running GeoServer.
 
 import json
 import uuid
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group as DjangoGroup
 from django.test import TestCase, override_settings
-from django.urls import reverse
 
 from geonode.base.models import LinkedResource
 from geonode.maps.models import Map
