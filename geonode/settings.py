@@ -2437,7 +2437,100 @@ ADVANCED_EDIT_EXCLUDE_FIELD = [  # base
 ]
 
 CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split()
+
+# =============================================================================
+# ORCID
+# =============================================================================
+# NOTE: This is a sample configuration for ORCID integration using django-allauth and a generic OIDC provider.
+import logging
+logger = logging.getLogger("geonode")  # Use the configured geonode logger
+# logger.error("SSL certificate verifikation disabled - ENABLE in production!!!")
+
+# import requests
+# old_session_init = requests.Session.__init__
+
+# def no_ssl_verify_init(self, *k, **kw):
+#     old_session_init(self, *k, **kw)
+#     self.verify = False
+
+# requests.Session.__init__ = no_ssl_verify_init
+
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_AUTHENTICATION_METHOD = "email"
+#
+#   Used internally to reference the configuration of allauth
+#
+SOCIALACCOUNT_PROVIDER = os.environ.get("SOCIALACCOUNT_PROVIDER", "oidc")
+#
+#   Used as name of the configuration
+#
+SOCIALACCOUNT_PROVIDER_CONNECTOR_NAME = os.environ.get("SOCIALACCOUNT_CONNECTOR_NAME", "ORCID")
+#
+#   MUST match keycloak configuration
+#
+SOCIALACCOUNT_PROVIDER_REALM = os.environ.get("SOCIALACCOUNT_PROVIDER_REALM", "ORCID")
+#
+#   protocol, hostname and port required to access the keycloak instance
+#
+SOCIALACCOUNT_PROVIDER_HOST = os.environ.get(
+    "SOCIALACCOUNT_PROVIDER_HOST", "https://host.docker.internal:8008/"
+)
+SOCIALACCOUNT_PROVIDER_ROOT = f"{SOCIALACCOUNT_PROVIDER_HOST}realms/{SOCIALACCOUNT_PROVIDER_REALM}/"
+#
+#   client id
+#
+SOCIALACCOUNT_CLIENT_ID = os.environ.get("SOCIALACCOUNT_CLIENT_ID")
+if not SOCIALACCOUNT_CLIENT_ID:
+    logger.error("SOCIALACCOUNT_CLIENT_ID not set in environment")
+#
+#   client secret
+#
+SOCIALACCOUNT_CLIENT_SECRET = os.environ.get("SOCIALACCOUNT_CLIENT_SECRET")
+if not SOCIALACCOUNT_CLIENT_SECRET:
+    logger.error("SOCIALACCOUNT_CLIENT_SECRET not set in environment")
+
+SOCIALACCOUNT_PROVIDERS = {
+    #
+    # We use openid_connect, hence all services use ZALF's keycloak instance, which
+    # connects to ORCID or else
+    #
+    # see https://docs.allauth.org/en/latest/socialaccount/providers/openid_connect.html
+    #
+    "openid_connect": {
+        # Optional PKCE defaults to False, but may be required by your provider
+        # Can be set globally, or per app (settings).
+        "OAUTH_PKCE_ENABLED": True,
+        "APPS": [
+            {
+                "provider_id": SOCIALACCOUNT_PROVIDER,
+                "name": SOCIALACCOUNT_PROVIDER_CONNECTOR_NAME,
+                "client_id": SOCIALACCOUNT_CLIENT_ID,
+                "secret": SOCIALACCOUNT_CLIENT_SECRET,
+                "settings": {
+                    "server_url": urljoin(
+                        SOCIALACCOUNT_PROVIDER_ROOT, ".well-known/openid-configuration"
+                    ),
+                },
+            },
+        ],
+    }
+}
+SOCIALACCOUNT_LOGOUT_REDIRECT_URL = os.environ.get("SOCIALACCOUNT_LOGOUT_REDIRECT_URL", "https://sandbox.orcid.org/signout")
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+INSTALLED_APPS += ('allauth.socialaccount.providers.openid_connect',)
+AUTHENTICATION_BACKENDS += ('allauth.account.auth_backends.AuthenticationBackend',)
+SOCIALACCOUNT_PROFILE_EXTRACTOR = os.environ.get("SOCIALACCOUNT_PROFILE_EXTRACTOR", "geonode.people.profileextractors.OrcidExtractor")
+SOCIALACCOUNT_PROFILE_EXTRACTORS = {
+    SOCIALACCOUNT_PROVIDER: SOCIALACCOUNT_PROFILE_EXTRACTOR,
+}
+SOCIALACCOUNT_GROUPNAME_PREFIX = os.environ.get("SOCIALACCOUNT_GROUPNAME_PREFIX","gn_")
+# =============================================================================
+# END OF "ORCID"
+# =============================================================================
+
 INSTALLED_APPS += ("geonode.zalf",)
+
+
 
 ZALF_DATACITE_BASE_URL = os.getenv("ZALF_DATACITE_BASE_URL", "https://api.datacite.org/")
 ZALF_DATACITE_AGENT = os.getenv(
