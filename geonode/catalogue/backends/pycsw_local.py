@@ -160,6 +160,50 @@ class CatalogueBackend(GenericCatalogueBackend):
 
             return result
 
+    @staticmethod
+    def _flatten_pycsw_config(mdict):
+        """Flatten GeoNode's nested PYCSW config into pycsw's expected format.
+
+        pycsw's configparser only accepts a two-level dict (sections → options)
+        where every option value is a plain string.  GeoNode's settings nest
+        sub-sections under 'metadata' (inspire, identification, …) which must
+        be promoted to top-level sections named 'metadata:inspire', etc.
+        Booleans → 'true'/'false', lists → comma-separated strings.
+        """
+
+        def _to_str(v):
+            if isinstance(v, bool):
+                return "true" if v else "false"
+            if isinstance(v, (list, tuple)):
+                return ",".join(str(i) for i in v)
+            return str(v)
+
+        flat = {}
+        for section, options in mdict.items():
+            if not isinstance(options, dict):
+                continue
+            section_opts = {}
+            for k, v in options.items():
+                if isinstance(v, dict):
+                    # Promote nested dict to a new top-level section "section:k"
+                    sub_opts = {}
+                    for kk, vv in v.items():
+                        if isinstance(vv, dict):
+                            # Serialize nested dicts (e.g. temp_extent: {begin, end})
+                            # as "begin/end" — the format pycsw APISO plugin expects.
+                            if "begin" in vv and "end" in vv:
+                                sub_opts[kk] = f"{vv['begin']}/{vv['end']}"
+                            else:
+                                sub_opts[kk] = ",".join(f"{kkk}={vvv}" for kkk, vvv in vv.items())
+                        else:
+                            sub_opts[kk] = _to_str(vv)
+                    flat[f"{section}:{k}"] = sub_opts
+                else:
+                    section_opts[k] = _to_str(v)
+            if section_opts:
+                flat[section] = section_opts
+        return flat
+
     def _csw_local_dispatch(self, keywords=None, start=0, limit=10, bbox=None, identifier=None, outputschema=None):
         """
         HTTP-less CSW
@@ -169,6 +213,14 @@ class CatalogueBackend(GenericCatalogueBackend):
         if "server" in settings.PYCSW["CONFIGURATION"]:
             # override server system defaults with user specified directives
             mdict["server"].update(settings.PYCSW["CONFIGURATION"]["server"])
+
+        # Ensure ogc_schemas_base is set (required by the APISO profile)
+        mdict.setdefault("server", {}).setdefault("ogc_schemas_base", "https://schemas.opengis.net")
+
+        # Flatten nested sections and stringify all leaf values so that
+        # pycsw's configparser receives the two-level string-only structure
+        # it requires.
+        mdict = self._flatten_pycsw_config(mdict)
 
         # fake HTTP environment variable
         os.environ["QUERY_STRING"] = ""
