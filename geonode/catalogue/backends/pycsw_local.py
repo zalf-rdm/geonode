@@ -160,6 +160,22 @@ class CatalogueBackend(GenericCatalogueBackend):
 
             return result
 
+    @staticmethod
+    def _stringify_pycsw_config(d):
+        """Recursively convert all leaf values to strings for pycsw's configparser.
+        Booleans become 'true'/'false'; lists become comma-separated strings."""
+        result = {}
+        for k, v in d.items():
+            if isinstance(v, dict):
+                result[k] = CatalogueBackend._stringify_pycsw_config(v)
+            elif isinstance(v, bool):
+                result[k] = "true" if v else "false"
+            elif isinstance(v, list):
+                result[k] = ",".join(str(i) for i in v)
+            else:
+                result[k] = str(v)
+        return result
+
     def _csw_local_dispatch(self, keywords=None, start=0, limit=10, bbox=None, identifier=None, outputschema=None):
         """
         HTTP-less CSW
@@ -169,6 +185,13 @@ class CatalogueBackend(GenericCatalogueBackend):
         if "server" in settings.PYCSW["CONFIGURATION"]:
             # override server system defaults with user specified directives
             mdict["server"].update(settings.PYCSW["CONFIGURATION"]["server"])
+
+        # Ensure ogc_schemas_base is set (required by the APISO profile)
+        mdict.setdefault("server", {}).setdefault("ogc_schemas_base", "https://schemas.opengis.net")
+
+        # pycsw's configparser requires all option values to be strings;
+        # sanitize the merged config before handing it over.
+        mdict = self._stringify_pycsw_config(mdict)
 
         # fake HTTP environment variable
         os.environ["QUERY_STRING"] = ""
