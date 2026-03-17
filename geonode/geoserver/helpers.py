@@ -1086,7 +1086,7 @@ def set_attributes_from_geoserver(layer, overwrite=False):
             attribute_map = []
     # Get attribute statistics & package for call to really_set_attributes()
     attribute_stats = defaultdict(dict)
-    
+
     # Map subtype to store_type for aggregable check
     store_type_map = {
         "vector": "dataStore",
@@ -1097,7 +1097,7 @@ def set_attributes_from_geoserver(layer, overwrite=False):
         "remote": "remoteStore",
     }
     store_type = store_type_map.get(layer.subtype, layer.subtype)
-    
+
     # Add new layer attributes if they don't already exist
     for attribute in attribute_map:
         field, ftype = attribute
@@ -1106,7 +1106,7 @@ def set_attributes_from_geoserver(layer, overwrite=False):
                 continue
             elif is_dataset_attribute_aggregable(store_type, field, ftype):
                 logger.debug("Generating layer attribute statistics")
-                result = get_attribute_statistics(layer.alternate or layer.typename, field)
+                result = get_attribute_statistics(layer.alternate or layer.typename, field, store_type=store_type)
             else:
                 result = None
             attribute_stats[layer.name][field] = result
@@ -1295,15 +1295,15 @@ def is_dataset_attribute_aggregable(store_type, field_name, field_type):
     # Must be either vector or raster layer
     if store_type not in ("dataStore", "coverageStore"):
         return False
-    
+
     # For raster data, field_type is typically 'raster' - always aggregable
     if field_type == "raster":
         return True
-    
+
     # For vector data, must be a numeric data type
     if field_type not in LAYER_ATTRIBUTE_NUMERIC_DATA_TYPES:
         return False
-    
+
     # must not be an identifier type field
     if field_name.lower() in {"id", "identifier"}:
         return False
@@ -1311,13 +1311,110 @@ def is_dataset_attribute_aggregable(store_type, field_name, field_type):
     return True
 
 
-def get_attribute_statistics(dataset_name, field):
+def wps_execute_raster_statistics(dataset_name, band_name):
+    """
+    Derive raster statistics from WCS DescribeCoverage.
+
+    For raster coverages, we extract per-band allowed value intervals from
+    `swe:field/swe:AllowedValues/swe:interval` and estimate total pixel count
+    from the grid envelope high/low coordinates.
+    """
+
+    logger.debug("Deriving raster statistics for band %s from %s", band_name, dataset_name)
+
+    ows_url = urljoin(ogc_server_settings.LOCATION, "ows")
+    coverage_id = (dataset_name or "").replace(":", "__", 1)
+    query = urlencode(
+        {
+            "service": "WCS",
+            "request": "DescribeCoverage",
+            "version": "2.0.1",
+            "coverageid": coverage_id,
+        }
+    )
+    describe_url = f"{ows_url}?{query}"
+
+    req, body = http_client.get(describe_url, user=_user)
+    if req.status_code >= 400 or not body:
+        logger.debug("DescribeCoverage request failed for %s: status=%s", coverage_id, req.status_code)
+        return None
+
+    exml = dlxml.fromstring(body.encode())
+    ns = {
+        "swe": "http://www.opengis.net/swe/2.0",
+        "gml": "http://www.opengis.net/gml/3.2",
+    }
+
+    # Pick the matching band field first, fallback to first available field.
+    selected_field = None
+    fields = exml.xpath(".//swe:field", namespaces=ns)
+    for f in fields:
+        if (f.attrib.get("name") or "").lower() == (band_name or "").lower():
+            selected_field = f
+            break
+    if selected_field is None and fields:
+        selected_field = fields[0]
+
+    min_val = None
+    max_val = None
+    if selected_field is not None:
+        interval_nodes = selected_field.xpath(".//swe:AllowedValues/swe:interval", namespaces=ns)
+        if interval_nodes and interval_nodes[0].text:
+            parts = [p for p in interval_nodes[0].text.replace(",", " ").split() if p]
+            if len(parts) >= 2:
+                try:
+                    min_val = float(parts[0])
+                    max_val = float(parts[1])
+                except (TypeError, ValueError):
+                    min_val = None
+                    max_val = None
+
+    # Estimate pixel count from grid envelope limits if available.
+    count = 0
+    low_nodes = exml.xpath(".//gml:GridEnvelope/gml:low", namespaces=ns)
+    high_nodes = exml.xpath(".//gml:GridEnvelope/gml:high", namespaces=ns)
+    if low_nodes and high_nodes and low_nodes[0].text and high_nodes[0].text:
+        try:
+            lows = [int(v) for v in low_nodes[0].text.split()]
+            highs = [int(v) for v in high_nodes[0].text.split()]
+            if lows and len(lows) == len(highs):
+                count = 1
+                for low, high in zip(lows, highs):
+                    count *= max(0, high - low + 1)
+        except (TypeError, ValueError):
+            count = 0
+
+    if min_val is None and max_val is None:
+        return None
+
+    return {
+        "Min": min_val,
+        "Max": max_val,
+        "Average": "NA",
+        "Median": "NA",
+        "StandardDeviation": "NA",
+        "Sum": "NA",
+        "Count": count,
+        "unique_values": "NA",
+    }
+
+
+def get_attribute_statistics(dataset_name, field, store_type=None):
     """
     Generate statistics (range, mean, median, standard deviation, unique values)
     for layer attribute
     """
 
     logger.debug("Deriving aggregate statistics for attribute %s", field)
+
+    if store_type == "coverageStore":
+        try:
+            return wps_execute_raster_statistics(dataset_name, field)
+        except Exception:
+            tb = traceback.format_exc()
+            logger.debug(tb)
+            logger.exception("Error generating raster aggregate statistics")
+            return None
 
     if not ogc_server_settings.WPS_ENABLED:
         return None

@@ -36,6 +36,7 @@ from geonode.base.api.views import ApiPresetsInitializer
 from geonode.layers.api.exceptions import GeneralDatasetException, InvalidDatasetException, InvalidMetadataException
 from geonode.layers.metadata import parse_metadata
 from geonode.layers.models import Dataset, Attribute
+from geonode.geoserver.helpers import get_attribute_statistics, is_dataset_attribute_aggregable
 from geonode.maps.api.serializers import SimpleMapLayerSerializer, SimpleMapSerializer
 from geonode.resource.utils import update_resource
 from geonode.resource.manager import resource_manager
@@ -53,6 +54,56 @@ from .permissions import DatasetPermissionsFilter
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _get_store_type(subtype):
+    return {
+        "vector": "dataStore",
+        "vector_time": "dataStore",
+        "tabular": "dataStore",
+        "tileStore": "dataStore",
+        "raster": "coverageStore",
+        "remote": "remoteStore",
+    }.get(subtype, subtype)
+
+
+def _has_any_stats(attr):
+    return any(
+        [
+            _parse_stat(attr.min) is not None,
+            _parse_stat(attr.max) is not None,
+            _parse_stat(attr.average) is not None,
+            _parse_stat(attr.median) is not None,
+            _parse_stat(attr.stddev) is not None,
+            _parse_stat(attr.sum) is not None,
+        ]
+    )
+
+
+def _backfill_attribute_stats(dataset, attr):
+    """Compute and persist missing stats on demand for a single attribute."""
+    store_type = _get_store_type(dataset.subtype)
+    if not is_dataset_attribute_aggregable(store_type, attr.attribute, attr.attribute_type):
+        return attr
+
+    result = get_attribute_statistics(
+        dataset.alternate or dataset.typename,
+        attr.attribute,
+        store_type=store_type,
+    )
+    if not result:
+        return attr
+
+    attr.count = result.get("Count")
+    attr.min = result.get("Min")
+    attr.max = result.get("Max")
+    attr.average = result.get("Average")
+    attr.median = result.get("Median")
+    attr.stddev = result.get("StandardDeviation")
+    attr.sum = result.get("Sum")
+    attr.unique_values = result.get("unique_values")
+    attr.save()
+    return attr
 
 
 def _parse_stat(value, as_float=True):
@@ -86,6 +137,7 @@ def _build_attribute_stats(attr):
 
     # Build histogram bins from unique numeric values if available
     histogram = None
+    histogram_estimated = False
     if is_numeric and unique_vals and len(unique_vals) >= 2:
         mn = _parse_stat(attr.min)
         mx = _parse_stat(attr.max)
@@ -99,6 +151,26 @@ def _build_attribute_stats(attr):
                 count = sum(1 for v in unique_vals if low <= v < high)
                 bins.append({"range": [round(low, 4), round(high, 4)], "count": count})
             histogram = bins
+
+    # Fallback for numeric layers (e.g. raster) when we only have range/count.
+    # This provides an estimated distribution instead of no chart at all.
+    if histogram is None and is_numeric:
+        mn = _parse_stat(attr.min)
+        mx = _parse_stat(attr.max)
+        total_count = int(attr.count or 0)
+        if mn is not None and mx is not None and mx > mn:
+            bin_count = 10
+            bin_size = (mx - mn) / bin_count
+            base = total_count // bin_count if total_count > 0 else 0
+            remainder = total_count % bin_count if total_count > 0 else 0
+            bins = []
+            for i in range(bin_count):
+                low = mn + i * bin_size
+                high = mn + (i + 1) * bin_size
+                estimated_count = base + (1 if i < remainder else 0)
+                bins.append({"range": [round(low, 4), round(high, 4)], "count": estimated_count})
+            histogram = bins
+            histogram_estimated = True
 
     return {
         "attribute": attr.attribute,
@@ -114,6 +186,7 @@ def _build_attribute_stats(attr):
         "sum": _parse_stat(attr.sum),
         "unique_values": unique_vals,
         "histogram": histogram,
+        "histogram_estimated": histogram_estimated,
         "last_stats_updated": attr.last_stats_updated,
         "has_stats": is_numeric or (unique_vals is not None),
     }
@@ -297,6 +370,16 @@ class DatasetViewSet(ApiPresetsInitializer, DynamicModelViewSet, AdvertisedListM
                 attr = qs.get(attribute=attr_name)
             except Attribute.DoesNotExist:
                 raise NotFound(detail=f"Attribute '{attr_name}' not found on this dataset.")
+
+            # Auto-compute once on demand when ingest left stats empty.
+            if not _has_any_stats(attr):
+                try:
+                    attr = _backfill_attribute_stats(dataset, attr)
+                except Exception:
+                    logger.exception(
+                        "On-demand attribute stats backfill failed",
+                        extra={"dataset_pk": dataset.pk, "attribute": attr.attribute},
+                    )
             return Response(_build_attribute_stats(attr))
 
         # Return stats for all attributes
