@@ -28,7 +28,7 @@ from django.contrib.auth.models import Group
 from django.forms.models import model_to_dict
 from django.contrib.auth import get_user_model
 from django.db.models.query import QuerySet
-from geonode.assets.utils import get_default_asset
+from geonode.assets.utils import get_default_asset, get_asset_size_bytes
 from geonode.people import Roles
 from django.http import QueryDict
 from deprecated import deprecated
@@ -737,6 +737,7 @@ class LinksSerializer(DynamicModelSerializer):
                     "type": "asset",
                     "content": model_to_dict(lnk.asset, ["title", "description", "type", "created"]),
                 }
+                extras["content"]["size_bytes"] = get_asset_size_bytes(lnk.asset)
                 extras["content"]["download_url"] = asset_handler_registry.get_handler(lnk.asset).create_download_url(
                     lnk.asset
                 )
