@@ -30,6 +30,8 @@ import datetime
 import tempfile
 import traceback
 import dataclasses
+import tempfile
+import math
 
 from shutil import copyfile
 from itertools import cycle
@@ -1347,13 +1349,16 @@ def wps_execute_raster_statistics(dataset_name, band_name):
 
     # Pick the matching band field first, fallback to first available field.
     selected_field = None
+    selected_band_idx = 1
     fields = exml.xpath(".//swe:field", namespaces=ns)
-    for f in fields:
+    for idx, f in enumerate(fields, start=1):
         if (f.attrib.get("name") or "").lower() == (band_name or "").lower():
             selected_field = f
+            selected_band_idx = idx
             break
     if selected_field is None and fields:
         selected_field = fields[0]
+        selected_band_idx = 1
 
     min_val = None
     max_val = None
@@ -1384,10 +1389,8 @@ def wps_execute_raster_statistics(dataset_name, band_name):
         except (TypeError, ValueError):
             count = 0
 
-    if min_val is None and max_val is None:
-        return None
-
-    return {
+    # Default response from metadata only (fallback when full stats are not possible).
+    fallback_result = {
         "Min": min_val,
         "Max": max_val,
         "Average": "NA",
@@ -1397,6 +1400,137 @@ def wps_execute_raster_statistics(dataset_name, band_name):
         "Count": count,
         "unique_values": "NA",
     }
+
+    # If no numeric range at all, no stats can be derived.
+    if min_val is None and max_val is None:
+        return None
+
+    # Try to compute real stats from raster pixels via WCS GetCoverage.
+    # This path runs in background tasks / on-demand backfill.
+    try:
+        import numpy as np
+        from osgeo import gdal
+
+        coverage_query = urlencode(
+            {
+                "service": "WCS",
+                "request": "GetCoverage",
+                "version": "2.0.1",
+                "coverageid": coverage_id,
+                "format": "image/tiff",
+            }
+        )
+        coverage_url = f"{ows_url}?{coverage_query}"
+        cov_req, cov_body = http_client.get(coverage_url, user=_user)
+        if cov_req.status_code >= 400 or not cov_body:
+            return fallback_result
+
+        with tempfile.NamedTemporaryFile(suffix=".tif", delete=True) as tmp:
+            tmp.write(cov_body.encode() if isinstance(cov_body, str) else cov_body)
+            tmp.flush()
+
+            ds = gdal.Open(tmp.name, gdal.GA_ReadOnly)
+            if ds is None:
+                return fallback_result
+
+            band = ds.GetRasterBand(selected_band_idx)
+            if band is None:
+                return fallback_result
+
+            nodata = band.GetNoDataValue()
+            xsize = band.XSize
+            ysize = band.YSize
+            bx, by = band.GetBlockSize()
+            if not bx or bx <= 0:
+                bx = min(512, xsize)
+            if not by or by <= 0:
+                by = min(512, ysize)
+
+            total_count = 0
+            total_sum = 0.0
+            total_sq = 0.0
+            pix_min = None
+            pix_max = None
+
+            # Pass 1: min/max/count/sum/std accumulators
+            for yoff in range(0, ysize, by):
+                ys = min(by, ysize - yoff)
+                for xoff in range(0, xsize, bx):
+                    xs = min(bx, xsize - xoff)
+                    arr = band.ReadAsArray(xoff, yoff, xs, ys)
+                    if arr is None:
+                        continue
+                    data = arr.astype(np.float64, copy=False).ravel()
+                    if nodata is not None:
+                        data = data[data != nodata]
+                    data = data[np.isfinite(data)]
+                    if data.size == 0:
+                        continue
+
+                    c = int(data.size)
+                    s = float(data.sum())
+                    sq = float((data * data).sum())
+                    mn = float(data.min())
+                    mx = float(data.max())
+
+                    total_count += c
+                    total_sum += s
+                    total_sq += sq
+                    pix_min = mn if pix_min is None else min(pix_min, mn)
+                    pix_max = mx if pix_max is None else max(pix_max, mx)
+
+            if total_count == 0:
+                return fallback_result
+
+            mean = total_sum / total_count
+            variance = max((total_sq / total_count) - (mean * mean), 0.0)
+            stddev = math.sqrt(variance)
+
+            # Pass 2: approximate median via histogram bins.
+            bins = 2048
+            if pix_max is None or pix_min is None or pix_max <= pix_min:
+                median = mean
+            else:
+                hist = np.zeros(bins, dtype=np.int64)
+                edges = np.linspace(pix_min, pix_max, bins + 1)
+
+                for yoff in range(0, ysize, by):
+                    ys = min(by, ysize - yoff)
+                    for xoff in range(0, xsize, bx):
+                        xs = min(bx, xsize - xoff)
+                        arr = band.ReadAsArray(xoff, yoff, xs, ys)
+                        if arr is None:
+                            continue
+                        data = arr.astype(np.float64, copy=False).ravel()
+                        if nodata is not None:
+                            data = data[data != nodata]
+                        data = data[np.isfinite(data)]
+                        if data.size == 0:
+                            continue
+                        h, _ = np.histogram(data, bins=edges)
+                        hist += h
+
+                cumulative = np.cumsum(hist)
+                mid = (total_count - 1) / 2.0
+                idx = int(np.searchsorted(cumulative, mid, side="left"))
+                idx = max(0, min(idx, bins - 1))
+                median = float((edges[idx] + edges[idx + 1]) / 2.0)
+
+            return {
+                "Min": pix_min,
+                "Max": pix_max,
+                "Average": mean,
+                "Median": median,
+                "StandardDeviation": stddev,
+                "Sum": total_sum,
+                "Count": total_count,
+                "unique_values": "NA",
+            }
+    except Exception:
+        tb = traceback.format_exc()
+        logger.debug(tb)
+        logger.exception("Could not compute full raster statistics, using fallback range stats")
+        return fallback_result
 
 
 def get_attribute_statistics(dataset_name, field, store_type=None):
