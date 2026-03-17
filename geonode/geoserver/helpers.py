@@ -1086,13 +1086,25 @@ def set_attributes_from_geoserver(layer, overwrite=False):
             attribute_map = []
     # Get attribute statistics & package for call to really_set_attributes()
     attribute_stats = defaultdict(dict)
+    
+    # Map subtype to store_type for aggregable check
+    store_type_map = {
+        "vector": "dataStore",
+        "vector_time": "dataStore",
+        "tabular": "dataStore",
+        "tileStore": "dataStore",
+        "raster": "coverageStore",
+        "remote": "remoteStore",
+    }
+    store_type = store_type_map.get(layer.subtype, layer.subtype)
+    
     # Add new layer attributes if they don't already exist
     for attribute in attribute_map:
         field, ftype = attribute
         if field is not None:
             if Attribute.objects.filter(dataset=layer, attribute=field).exists():
                 continue
-            elif is_dataset_attribute_aggregable(layer.subtype, field, ftype):
+            elif is_dataset_attribute_aggregable(store_type, field, ftype):
                 logger.debug("Generating layer attribute statistics")
                 result = get_attribute_statistics(layer.alternate or layer.typename, field)
             else:
@@ -1276,15 +1288,22 @@ def save_style(gs_style, layer):
 
 def is_dataset_attribute_aggregable(store_type, field_name, field_type):
     """
-    Decipher whether layer attribute is suitable for statistical derivation
+    Decipher whether layer attribute is suitable for statistical derivation.
+    Supports both vector (dataStore) and raster (coverageStore) layers.
     """
 
-    # must be vector layer
-    if store_type != "dataStore":
+    # Must be either vector or raster layer
+    if store_type not in ("dataStore", "coverageStore"):
         return False
-    # must be a numeric data type
+    
+    # For raster data, field_type is typically 'raster' - always aggregable
+    if field_type == "raster":
+        return True
+    
+    # For vector data, must be a numeric data type
     if field_type not in LAYER_ATTRIBUTE_NUMERIC_DATA_TYPES:
         return False
+    
     # must not be an identifier type field
     if field_name.lower() in {"id", "identifier"}:
         return False
