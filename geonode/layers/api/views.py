@@ -220,6 +220,7 @@ def _build_attribute_stats(attr):
     # Parse unique_values into a sorted list (stored as comma-separated string)
     raw_unique = []
     unique_vals = None
+    total_unique = None
     if attr.unique_values and attr.unique_values not in ("NA", ""):
         parsed_json = None
         if isinstance(attr.unique_values, str):
@@ -240,6 +241,7 @@ def _build_attribute_stats(attr):
     is_date = DATE_TYPE_RE.search(effective_type) is not None
 
     if raw_unique:
+        total_unique = len(set(raw_unique))
         if is_numeric:
             parsed = []
             for v in raw_unique:
@@ -318,6 +320,8 @@ def _build_attribute_stats(attr):
         "stddev": _parse_stat(attr.stddev),
         "sum": _parse_stat(attr.sum),
         "unique_values": unique_vals,
+        "total_unique": total_unique,
+        "groups": None,
         "histogram": histogram,
         "histogram_estimated": histogram_estimated,
         "last_stats_updated": attr.last_stats_updated,
@@ -513,7 +517,27 @@ class DatasetViewSet(ApiPresetsInitializer, DynamicModelViewSet, AdvertisedListM
                         "On-demand attribute stats backfill failed",
                         extra={"dataset_pk": dataset.pk, "attribute": attr.attribute},
                     )
-            return Response(_build_attribute_stats(attr))
+            response_data = _build_attribute_stats(attr)
+            try:
+                store_type = _get_store_type(dataset.subtype)
+                live_stats = get_attribute_statistics(
+                    dataset.alternate or dataset.typename,
+                    attr.attribute,
+                    store_type=store_type,
+                    field_type=response_data.get("attribute_type") or attr.attribute_type,
+                ) or {}
+                if live_stats.get("inferred_field_type"):
+                    response_data["attribute_type"] = live_stats["inferred_field_type"]
+                if live_stats.get("total_unique") is not None:
+                    response_data["total_unique"] = live_stats["total_unique"]
+                if live_stats.get("groups") is not None:
+                    response_data["groups"] = live_stats["groups"]
+            except Exception:
+                logger.exception(
+                    "Live attribute stats enrichment failed",
+                    extra={"dataset_pk": dataset.pk, "attribute": attr.attribute},
+                )
+            return Response(response_data)
 
         # Return stats for all attributes
         serialized = []
