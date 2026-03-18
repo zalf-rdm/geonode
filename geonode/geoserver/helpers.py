@@ -1640,23 +1640,69 @@ def _postgis_attribute_statistics(dataset_name, field, field_type=None):
         table_sql = f"{_quote_pg_ident(schema)}.{_quote_pg_ident(table)}"
         field_sql = _quote_pg_ident(field)
 
+        cursor.execute(
+            """
+            SELECT data_type
+            FROM information_schema.columns
+            WHERE table_schema = %s AND table_name = %s AND column_name = %s
+            LIMIT 1
+            """,
+            [schema, table, field],
+        )
+        col_row = cursor.fetchone()
+        column_data_type = (col_row[0] if col_row else "") or ""
+        is_textual_column = column_data_type in ("character varying", "character", "text")
+
         normalized_type = (field_type or "").lower()
         is_numeric = normalized_type in LAYER_ATTRIBUTE_NUMERIC_DATA_TYPES
         is_geometry = "geometry" in normalized_type or normalized_type.startswith("gml:")
+        inferred_field_type = None
+
+        # Detect numeric values stored as strings (e.g. decimal comma such as "12,34").
+        numeric_like_expr = (
+            f"TRIM({field_sql}::text) ~ '^[-+]?(?:[0-9]+(?:[\\.,][0-9]+)?|[\\.,][0-9]+)$'"
+        )
+        normalized_numeric_expr = f"NULLIF(REPLACE(TRIM({field_sql}::text), ',', '.'), '')::double precision"
+        numeric_value_expr = field_sql
+
+        if is_textual_column and not is_geometry:
+            cursor.execute(
+                f"""
+                SELECT
+                    COUNT(*) FILTER (WHERE {field_sql} IS NOT NULL)::bigint,
+                    COUNT(*) FILTER (WHERE {numeric_like_expr})::bigint,
+                    COUNT(*) FILTER (WHERE POSITION(',' IN TRIM({field_sql}::text)) > 0)::bigint,
+                    COUNT(*) FILTER (WHERE POSITION('.' IN TRIM({field_sql}::text)) > 0)::bigint
+                FROM {table_sql}
+                """
+            )
+            total_non_null, numeric_like_count, comma_decimal_count, dot_decimal_count = cursor.fetchone()
+            ratio = (float(numeric_like_count) / float(total_non_null)) if total_non_null else 0.0
+            if total_non_null and ratio >= 0.8:
+                is_numeric = True
+                numeric_value_expr = (
+                    f"CASE WHEN {numeric_like_expr} THEN {normalized_numeric_expr} ELSE NULL END"
+                )
+                inferred_field_type = "xsd:int" if not comma_decimal_count and not dot_decimal_count else "xsd:double"
+            elif is_numeric:
+                # Stored type says numeric but DB values are textual and not mostly numeric.
+                # Avoid invalid casts and fallback to string stats.
+                is_numeric = False
+                inferred_field_type = "xsd:string"
 
         if is_numeric:
             cursor.execute(
                 f"""
                 SELECT
-                    COUNT({field_sql})::bigint,
-                    MIN({field_sql})::double precision,
-                    MAX({field_sql})::double precision,
-                    AVG({field_sql})::double precision,
-                    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY {field_sql})::double precision,
-                    STDDEV_POP({field_sql})::double precision,
-                    SUM({field_sql})::double precision
+                    COUNT({numeric_value_expr})::bigint,
+                    MIN({numeric_value_expr})::double precision,
+                    MAX({numeric_value_expr})::double precision,
+                    AVG({numeric_value_expr})::double precision,
+                    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY {numeric_value_expr})::double precision,
+                    STDDEV_POP({numeric_value_expr})::double precision,
+                    SUM({numeric_value_expr})::double precision
                 FROM {table_sql}
-                WHERE {field_sql} IS NOT NULL
+                WHERE {numeric_value_expr} IS NOT NULL
                 """
             )
             count, min_v, max_v, avg_v, median_v, stddev_v, sum_v = cursor.fetchone()
@@ -1694,6 +1740,17 @@ def _postgis_attribute_statistics(dataset_name, field, field_type=None):
                 LIMIT 50
                 """
             )
+        elif is_numeric:
+            cursor.execute(
+                f"""
+                SELECT {numeric_value_expr}::text
+                FROM {table_sql}
+                WHERE {numeric_value_expr} IS NOT NULL
+                GROUP BY {numeric_value_expr}
+                ORDER BY {numeric_value_expr}
+                LIMIT 200
+                """
+            )
         else:
             cursor.execute(
                 f"""
@@ -1706,7 +1763,7 @@ def _postgis_attribute_statistics(dataset_name, field, field_type=None):
                 """
             )
         unique_values = [row[0] for row in cursor.fetchall() if row and row[0] is not None]
-        unique_csv = ",".join(unique_values) if unique_values else "NA"
+        unique_values_payload = json.dumps(unique_values, ensure_ascii=False) if unique_values else "NA"
 
         return {
             "Min": min_v,
@@ -1716,7 +1773,8 @@ def _postgis_attribute_statistics(dataset_name, field, field_type=None):
             "StandardDeviation": stddev_v,
             "Sum": sum_v,
             "Count": int(count),
-            "unique_values": unique_csv,
+            "unique_values": unique_values_payload,
+            "inferred_field_type": inferred_field_type,
         }
 
 
