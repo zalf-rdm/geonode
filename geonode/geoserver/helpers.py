@@ -30,6 +30,8 @@ import datetime
 import tempfile
 import traceback
 import dataclasses
+import tempfile
+import math
 
 from shutil import copyfile
 from itertools import cycle
@@ -1086,15 +1088,27 @@ def set_attributes_from_geoserver(layer, overwrite=False):
             attribute_map = []
     # Get attribute statistics & package for call to really_set_attributes()
     attribute_stats = defaultdict(dict)
+
+    # Map subtype to store_type for aggregable check
+    store_type_map = {
+        "vector": "dataStore",
+        "vector_time": "dataStore",
+        "tabular": "dataStore",
+        "tileStore": "dataStore",
+        "raster": "coverageStore",
+        "remote": "remoteStore",
+    }
+    store_type = store_type_map.get(layer.subtype, layer.subtype)
+
     # Add new layer attributes if they don't already exist
     for attribute in attribute_map:
         field, ftype = attribute
         if field is not None:
             if Attribute.objects.filter(dataset=layer, attribute=field).exists():
                 continue
-            elif is_dataset_attribute_aggregable(layer.subtype, field, ftype):
+            elif is_dataset_attribute_aggregable(store_type, field, ftype):
                 logger.debug("Generating layer attribute statistics")
-                result = get_attribute_statistics(layer.alternate or layer.typename, field)
+                result = get_attribute_statistics(layer.alternate or layer.typename, field, store_type=store_type)
             else:
                 result = None
             attribute_stats[layer.name][field] = result
@@ -1276,15 +1290,22 @@ def save_style(gs_style, layer):
 
 def is_dataset_attribute_aggregable(store_type, field_name, field_type):
     """
-    Decipher whether layer attribute is suitable for statistical derivation
+    Decipher whether layer attribute is suitable for statistical derivation.
+    Supports both vector (dataStore) and raster (coverageStore) layers.
     """
 
-    # must be vector layer
-    if store_type != "dataStore":
+    # Must be either vector or raster layer
+    if store_type not in ("dataStore", "coverageStore"):
         return False
-    # must be a numeric data type
+
+    # For raster data, field_type is typically 'raster' - always aggregable
+    if field_type == "raster":
+        return True
+
+    # For vector data, must be a numeric data type
     if field_type not in LAYER_ATTRIBUTE_NUMERIC_DATA_TYPES:
         return False
+
     # must not be an identifier type field
     if field_name.lower() in {"id", "identifier"}:
         return False
@@ -1292,13 +1313,242 @@ def is_dataset_attribute_aggregable(store_type, field_name, field_type):
     return True
 
 
-def get_attribute_statistics(dataset_name, field):
+def wps_execute_raster_statistics(dataset_name, band_name):
+    """
+    Derive raster statistics from WCS DescribeCoverage.
+
+    For raster coverages, we extract per-band allowed value intervals from
+    `swe:field/swe:AllowedValues/swe:interval` and estimate total pixel count
+    from the grid envelope high/low coordinates.
+    """
+
+    logger.debug("Deriving raster statistics for band %s from %s", band_name, dataset_name)
+
+    ows_url = urljoin(ogc_server_settings.LOCATION, "ows")
+    coverage_id = (dataset_name or "").replace(":", "__", 1)
+    query = urlencode(
+        {
+            "service": "WCS",
+            "request": "DescribeCoverage",
+            "version": "2.0.1",
+            "coverageid": coverage_id,
+        }
+    )
+    describe_url = f"{ows_url}?{query}"
+
+    req, body = http_client.get(describe_url, user=_user)
+    if req.status_code >= 400 or not body:
+        logger.debug("DescribeCoverage request failed for %s: status=%s", coverage_id, req.status_code)
+        return None
+
+    exml = dlxml.fromstring(body.encode())
+    ns = {
+        "swe": "http://www.opengis.net/swe/2.0",
+        "gml": "http://www.opengis.net/gml/3.2",
+    }
+
+    # Pick the matching band field first, fallback to first available field.
+    selected_field = None
+    selected_band_idx = 1
+    fields = exml.xpath(".//swe:field", namespaces=ns)
+    for idx, f in enumerate(fields, start=1):
+        if (f.attrib.get("name") or "").lower() == (band_name or "").lower():
+            selected_field = f
+            selected_band_idx = idx
+            break
+    if selected_field is None and fields:
+        selected_field = fields[0]
+        selected_band_idx = 1
+
+    min_val = None
+    max_val = None
+    if selected_field is not None:
+        interval_nodes = selected_field.xpath(".//swe:AllowedValues/swe:interval", namespaces=ns)
+        if interval_nodes and interval_nodes[0].text:
+            parts = [p for p in interval_nodes[0].text.replace(",", " ").split() if p]
+            if len(parts) >= 2:
+                try:
+                    min_val = float(parts[0])
+                    max_val = float(parts[1])
+                except (TypeError, ValueError):
+                    min_val = None
+                    max_val = None
+
+    # Estimate pixel count from grid envelope limits if available.
+    count = 0
+    low_nodes = exml.xpath(".//gml:GridEnvelope/gml:low", namespaces=ns)
+    high_nodes = exml.xpath(".//gml:GridEnvelope/gml:high", namespaces=ns)
+    if low_nodes and high_nodes and low_nodes[0].text and high_nodes[0].text:
+        try:
+            lows = [int(v) for v in low_nodes[0].text.split()]
+            highs = [int(v) for v in high_nodes[0].text.split()]
+            if lows and len(lows) == len(highs):
+                count = 1
+                for low, high in zip(lows, highs):
+                    count *= max(0, high - low + 1)
+        except (TypeError, ValueError):
+            count = 0
+
+    # Default response from metadata only (fallback when full stats are not possible).
+    fallback_result = {
+        "Min": min_val,
+        "Max": max_val,
+        "Average": "NA",
+        "Median": "NA",
+        "StandardDeviation": "NA",
+        "Sum": "NA",
+        "Count": count,
+        "unique_values": "NA",
+    }
+
+    # If no numeric range at all, no stats can be derived.
+    if min_val is None and max_val is None:
+        return None
+
+    # Try to compute real stats from raster pixels via WCS GetCoverage.
+    # This path runs in background tasks / on-demand backfill.
+    try:
+        import numpy as np
+        from osgeo import gdal
+
+        coverage_query = urlencode(
+            {
+                "service": "WCS",
+                "request": "GetCoverage",
+                "version": "2.0.1",
+                "coverageid": coverage_id,
+                "format": "image/tiff",
+            }
+        )
+        coverage_url = f"{ows_url}?{coverage_query}"
+        cov_req, cov_body = http_client.get(coverage_url, user=_user)
+        if cov_req.status_code >= 400 or not cov_body:
+            return fallback_result
+
+        with tempfile.NamedTemporaryFile(suffix=".tif", delete=True) as tmp:
+            tmp.write(cov_body.encode() if isinstance(cov_body, str) else cov_body)
+            tmp.flush()
+
+            ds = gdal.Open(tmp.name, gdal.GA_ReadOnly)
+            if ds is None:
+                return fallback_result
+
+            band = ds.GetRasterBand(selected_band_idx)
+            if band is None:
+                return fallback_result
+
+            nodata = band.GetNoDataValue()
+            xsize = band.XSize
+            ysize = band.YSize
+            bx, by = band.GetBlockSize()
+            if not bx or bx <= 0:
+                bx = min(512, xsize)
+            if not by or by <= 0:
+                by = min(512, ysize)
+
+            total_count = 0
+            total_sum = 0.0
+            total_sq = 0.0
+            pix_min = None
+            pix_max = None
+
+            # Pass 1: min/max/count/sum/std accumulators
+            for yoff in range(0, ysize, by):
+                ys = min(by, ysize - yoff)
+                for xoff in range(0, xsize, bx):
+                    xs = min(bx, xsize - xoff)
+                    arr = band.ReadAsArray(xoff, yoff, xs, ys)
+                    if arr is None:
+                        continue
+                    data = arr.astype(np.float64, copy=False).ravel()
+                    if nodata is not None:
+                        data = data[data != nodata]
+                    data = data[np.isfinite(data)]
+                    if data.size == 0:
+                        continue
+
+                    c = int(data.size)
+                    s = float(data.sum())
+                    sq = float((data * data).sum())
+                    mn = float(data.min())
+                    mx = float(data.max())
+
+                    total_count += c
+                    total_sum += s
+                    total_sq += sq
+                    pix_min = mn if pix_min is None else min(pix_min, mn)
+                    pix_max = mx if pix_max is None else max(pix_max, mx)
+
+            if total_count == 0:
+                return fallback_result
+
+            mean = total_sum / total_count
+            variance = max((total_sq / total_count) - (mean * mean), 0.0)
+            stddev = math.sqrt(variance)
+
+            # Pass 2: approximate median via histogram bins.
+            bins = 2048
+            if pix_max is None or pix_min is None or pix_max <= pix_min:
+                median = mean
+            else:
+                hist = np.zeros(bins, dtype=np.int64)
+                edges = np.linspace(pix_min, pix_max, bins + 1)
+
+                for yoff in range(0, ysize, by):
+                    ys = min(by, ysize - yoff)
+                    for xoff in range(0, xsize, bx):
+                        xs = min(bx, xsize - xoff)
+                        arr = band.ReadAsArray(xoff, yoff, xs, ys)
+                        if arr is None:
+                            continue
+                        data = arr.astype(np.float64, copy=False).ravel()
+                        if nodata is not None:
+                            data = data[data != nodata]
+                        data = data[np.isfinite(data)]
+                        if data.size == 0:
+                            continue
+                        h, _ = np.histogram(data, bins=edges)
+                        hist += h
+
+                cumulative = np.cumsum(hist)
+                mid = (total_count - 1) / 2.0
+                idx = int(np.searchsorted(cumulative, mid, side="left"))
+                idx = max(0, min(idx, bins - 1))
+                median = float((edges[idx] + edges[idx + 1]) / 2.0)
+
+            return {
+                "Min": pix_min,
+                "Max": pix_max,
+                "Average": mean,
+                "Median": median,
+                "StandardDeviation": stddev,
+                "Sum": total_sum,
+                "Count": total_count,
+                "unique_values": "NA",
+            }
+    except Exception:
+        tb = traceback.format_exc()
+        logger.debug(tb)
+        logger.exception("Could not compute full raster statistics, using fallback range stats")
+        return fallback_result
+
+
+def get_attribute_statistics(dataset_name, field, store_type=None):
     """
     Generate statistics (range, mean, median, standard deviation, unique values)
     for layer attribute
     """
 
     logger.debug("Deriving aggregate statistics for attribute %s", field)
+
+    if store_type == "coverageStore":
+        try:
+            return wps_execute_raster_statistics(dataset_name, field)
+        except Exception:
+            tb = traceback.format_exc()
+            logger.debug(tb)
+            logger.exception("Error generating raster aggregate statistics")
+            return None
 
     if not ogc_server_settings.WPS_ENABLED:
         return None
