@@ -76,6 +76,7 @@ def _has_any_stats(attr):
             _parse_stat(attr.median) is not None,
             _parse_stat(attr.stddev) is not None,
             _parse_stat(attr.sum) is not None,
+            bool(attr.unique_values and attr.unique_values not in ("", "NA")),
         ]
     )
 
@@ -83,13 +84,17 @@ def _has_any_stats(attr):
 def _backfill_attribute_stats(dataset, attr):
     """Compute and persist missing stats on demand for a single attribute."""
     store_type = _get_store_type(dataset.subtype)
-    if not is_dataset_attribute_aggregable(store_type, attr.attribute, attr.attribute_type):
+    is_aggregable = is_dataset_attribute_aggregable(store_type, attr.attribute, attr.attribute_type)
+    # For vectors/tabular datasets we also backfill non-numeric fields to expose
+    # useful summaries (count + unique values / geometry types).
+    if not is_aggregable and store_type != "dataStore":
         return attr
 
     result = get_attribute_statistics(
         dataset.alternate or dataset.typename,
         attr.attribute,
         store_type=store_type,
+        field_type=attr.attribute_type,
     )
     if not result:
         return attr
