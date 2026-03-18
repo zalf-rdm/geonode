@@ -43,7 +43,7 @@ import xml.etree.ElementTree as ET
 
 from django.conf import settings
 from django.utils import timezone
-from django.db import transaction
+from django.db import transaction, connections
 from django.utils.module_loading import import_string
 from django.core.exceptions import ImproperlyConfigured
 from django.template.loader import render_to_string
@@ -1533,7 +1533,7 @@ def wps_execute_raster_statistics(dataset_name, band_name):
         return fallback_result
 
 
-def get_attribute_statistics(dataset_name, field, store_type=None):
+def get_attribute_statistics(dataset_name, field, store_type=None, field_type=None):
     """
     Generate statistics (range, mean, median, standard deviation, unique values)
     for layer attribute
@@ -1550,14 +1550,174 @@ def get_attribute_statistics(dataset_name, field, store_type=None):
             logger.exception("Error generating raster aggregate statistics")
             return None
 
-    if not ogc_server_settings.WPS_ENABLED:
-        return None
+    if ogc_server_settings.WPS_ENABLED and field_type in LAYER_ATTRIBUTE_NUMERIC_DATA_TYPES:
+        try:
+            return wps_execute_dataset_attribute_statistics(dataset_name, field)
+        except Exception:
+            tb = traceback.format_exc()
+            logger.debug(tb)
+            logger.exception("Error generating layer aggregate statistics via WPS")
+
+    # Fallback path for vector/tabular datasets when WPS is disabled or fails.
     try:
-        return wps_execute_dataset_attribute_statistics(dataset_name, field)
+        return _postgis_attribute_statistics(dataset_name, field, field_type=field_type)
     except Exception:
         tb = traceback.format_exc()
         logger.debug(tb)
-        logger.exception("Error generating layer aggregate statistics")
+        logger.exception("Error generating layer aggregate statistics via PostGIS")
+        return None
+
+
+def _quote_pg_ident(identifier):
+    safe = str(identifier).replace('"', '""')
+    return f'"{safe}"'
+
+
+def _resolve_postgis_table(cursor, dataset_name):
+    if not dataset_name:
+        return None
+
+    workspace = None
+    table = dataset_name
+    if ":" in dataset_name:
+        workspace, table = dataset_name.split(":", 1)
+
+    candidates = []
+    if workspace:
+        candidates.append((workspace, table))
+    candidates.append(("public", table))
+    candidates.append((None, table))
+
+    for schema, name in candidates:
+        if schema is None:
+            cursor.execute(
+                """
+                SELECT table_schema, table_name
+                FROM information_schema.tables
+                WHERE table_name = %s
+                ORDER BY CASE WHEN table_schema = 'public' THEN 0 ELSE 1 END
+                LIMIT 1
+                """,
+                [name],
+            )
+            row = cursor.fetchone()
+            if row:
+                return row[0], row[1]
+        else:
+            cursor.execute(
+                """
+                SELECT table_schema, table_name
+                FROM information_schema.tables
+                WHERE table_schema = %s AND table_name = %s
+                LIMIT 1
+                """,
+                [schema, name],
+            )
+            row = cursor.fetchone()
+            if row:
+                return row[0], row[1]
+
+    return None
+
+
+def _postgis_attribute_statistics(dataset_name, field, field_type=None):
+    db_alias = getattr(ogc_server_settings, "DATASTORE", None) or "default"
+    if db_alias not in connections:
+        db_alias = "default"
+
+    conn = connections[db_alias]
+    if conn.vendor != "postgresql":
+        logger.debug("PostGIS fallback skipped: database vendor is %s", conn.vendor)
+        return None
+
+    with conn.cursor() as cursor:
+        resolved = _resolve_postgis_table(cursor, dataset_name)
+        if not resolved:
+            logger.debug("PostGIS fallback: table not found for dataset %s", dataset_name)
+            return None
+
+        schema, table = resolved
+        table_sql = f"{_quote_pg_ident(schema)}.{_quote_pg_ident(table)}"
+        field_sql = _quote_pg_ident(field)
+
+        normalized_type = (field_type or "").lower()
+        is_numeric = normalized_type in LAYER_ATTRIBUTE_NUMERIC_DATA_TYPES
+        is_geometry = "geometry" in normalized_type or normalized_type.startswith("gml:")
+
+        if is_numeric:
+            cursor.execute(
+                f"""
+                SELECT
+                    COUNT({field_sql})::bigint,
+                    MIN({field_sql})::double precision,
+                    MAX({field_sql})::double precision,
+                    AVG({field_sql})::double precision,
+                    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY {field_sql})::double precision,
+                    STDDEV_POP({field_sql})::double precision,
+                    SUM({field_sql})::double precision
+                FROM {table_sql}
+                WHERE {field_sql} IS NOT NULL
+                """
+            )
+            count, min_v, max_v, avg_v, median_v, stddev_v, sum_v = cursor.fetchone()
+        else:
+            cursor.execute(
+                f"""
+                SELECT COUNT({field_sql})::bigint
+                FROM {table_sql}
+                WHERE {field_sql} IS NOT NULL
+                """
+            )
+            count = (cursor.fetchone() or [0])[0]
+            min_v = max_v = avg_v = median_v = stddev_v = sum_v = "NA"
+
+        if not count:
+            return {
+                "Min": "NA",
+                "Max": "NA",
+                "Average": "NA",
+                "Median": "NA",
+                "StandardDeviation": "NA",
+                "Sum": "NA",
+                "Count": 0,
+                "unique_values": "NA",
+            }
+
+        if is_geometry:
+            cursor.execute(
+                f"""
+                SELECT ST_GeometryType({field_sql})::text
+                FROM {table_sql}
+                WHERE {field_sql} IS NOT NULL
+                GROUP BY ST_GeometryType({field_sql})
+                ORDER BY ST_GeometryType({field_sql})
+                LIMIT 50
+                """
+            )
+        else:
+            cursor.execute(
+                f"""
+                SELECT {field_sql}::text
+                FROM {table_sql}
+                WHERE {field_sql} IS NOT NULL
+                GROUP BY {field_sql}
+                ORDER BY {field_sql}
+                LIMIT 200
+                """
+            )
+        unique_values = [row[0] for row in cursor.fetchall() if row and row[0] is not None]
+        unique_csv = ",".join(unique_values) if unique_values else "NA"
+
+        return {
+            "Min": min_v,
+            "Max": max_v,
+            "Average": avg_v,
+            "Median": median_v,
+            "StandardDeviation": stddev_v,
+            "Sum": sum_v,
+            "Count": int(count),
+            "unique_values": unique_csv,
+        }
 
 
 def get_wcs_record(instance, retry=True):
@@ -1850,7 +2010,8 @@ def wps_execute_dataset_attribute_statistics(dataset_name, field):
     # generate statistics using WPS
     url = urljoin(ogc_server_settings.LOCATION, "ows")
 
-    request = render_to_string("layers/wps_execute_gs_aggregate.xml", {"dataset_name": dataset_name, "field": field})
+    # Keep context key aligned with template placeholder {{ layer_name }}.
+    request = render_to_string("datasets/wps_execute_gs_aggregate.xml", {"layer_name": dataset_name, "field": field})
     u = urlsplit(url)
 
     headers = {

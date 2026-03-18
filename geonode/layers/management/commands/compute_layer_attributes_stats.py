@@ -92,7 +92,8 @@ class Command(BaseCommand):
 
                 # Check if attribute is aggregable
                 store_type = store_type_map.get(dataset.subtype, dataset.subtype)
-                if not is_dataset_attribute_aggregable(store_type, attr.attribute, attr.attribute_type):
+                is_aggregable = is_dataset_attribute_aggregable(store_type, attr.attribute, attr.attribute_type)
+                if not is_aggregable and store_type != "dataStore":
                     continue
 
                 # Compute statistics
@@ -101,6 +102,7 @@ class Command(BaseCommand):
                         dataset.alternate or dataset.typename,
                         attr.attribute,
                         store_type=store_type,
+                        field_type=attr.attribute_type,
                     )
 
                     if result:
