@@ -3,6 +3,8 @@ name: Docker Build and Push
 on:
   push:
     branches: [ "main" ]
+  repository_dispatch:
+    types: [ mapstore-client-compiled ]
   workflow_dispatch:
 
 env:

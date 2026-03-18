@@ -3,6 +3,8 @@ name: Docker Build and Push UI
 on:
   push:
     branches: [ "main-ui" ]
+  repository_dispatch:
+    types: [ mapstore-client-compiled-ui ]
   workflow_dispatch:
 
 env:
@@ -19,6 +21,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: main-ui
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -39,7 +43,7 @@ jobs:
           images: ${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=${{ env.BASE_VERSION }}.${{ github.run_number }}
-            type=raw,value=latest-ui,enable=${{ github.ref == 'refs/heads/main-ui' }}
+            type=raw,value=latest-ui
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
