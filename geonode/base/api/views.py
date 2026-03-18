@@ -452,6 +452,20 @@ class ApiPresetsInitializer(APIView):
     Replaces the `api_preset` query params with the configured params
     """
 
+    @staticmethod
+    def _deduplicate_and_remove_ancestor_fields(values):
+        """
+        Dynamic REST field parser fails when both a parent field and one of
+        its nested children are requested (e.g. `foo` and `foo.bar`).
+        Keep the most specific fields and drop ancestor-only duplicates.
+        """
+        ordered_unique = list(dict.fromkeys(values))
+        return [
+            field
+            for field in ordered_unique
+            if not any(other != field and other.startswith(f"{field}.") for other in ordered_unique)
+        ]
+
     def initialize_request(self, request, *args, **kwargs):
         self.replace_presets(request)
         return super().initialize_request(request, *args, **kwargs)
@@ -467,8 +481,16 @@ class ApiPresetsInitializer(APIView):
                     return
                 for param_name in presets.keys():
                     for param_value in presets.get(param_name):
-                        if param_value not in request.GET.get(param_name, []):
+                        if param_value not in request.GET.getlist(param_name):
                             request.GET.appendlist(param_name, param_value)
+
+            # Normalize request field parameters after all presets are merged.
+            # This prevents dynamic_rest from raising when parent and nested
+            # fields are present together.
+            for param_name in ["include[]", "exclude[]"]:
+                values = request.GET.getlist(param_name)
+                if values:
+                    request.GET.setlist(param_name, self._deduplicate_and_remove_ancestor_fields(values))
         finally:
             request.GET._mutable = False
 
