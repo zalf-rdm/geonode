@@ -1,6 +1,10 @@
 # Generated manually for issue #324
+# Originally added a 'position' field to ContactRole, but the upstream
+# 0111_alter_contactrole_options_contactrole_order migration added an
+# 'order' field instead.  This migration is now a no-op; the merge
+# migration 0115 keeps the dependency graph intact.
 
-from django.db import migrations, models
+from django.db import migrations
 
 
 class Migration(migrations.Migration):
@@ -9,14 +13,4 @@ class Migration(migrations.Migration):
         ("base", "0110_remove_resourcebase_date_collected_and_more"),
     ]
 
-    operations = [
-        migrations.AddField(
-            model_name="contactrole",
-            name="position",
-            field=models.IntegerField(default=0, help_text="Order position for this contact role"),
-        ),
-        migrations.AlterModelOptions(
-            name="contactrole",
-            options={"ordering": ["position", "id"]},
-        ),
-    ]
+    operations = []
