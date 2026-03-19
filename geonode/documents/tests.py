@@ -782,7 +782,7 @@ class DocumentViewTestCase(GeoNodeBaseTestSupport):
                 data[f"form_contact_role-{i}-id"] = cr.id
                 data[f"form_contact_role-{i}-resource"] = cr.resource_id
                 data[f"form_contact_role-{i}-contact"] = cr.contact_id
-                data[f"form_contact_role-{i}-role"] = cr.role.id if hasattr(cr.role, 'id') else cr.role
+                data[f"form_contact_role-{i}-role"] = cr.role.id if hasattr(cr.role, "id") else cr.role
                 data[f"form_contact_role-{i}-order"] = cr.order
 
             response = self.client.post(url, data=data)
@@ -848,7 +848,7 @@ class DocumentViewTestCase(GeoNodeBaseTestSupport):
                 data[f"form_contact_role-{i}-id"] = cr.id
                 data[f"form_contact_role-{i}-resource"] = cr.resource_id
                 data[f"form_contact_role-{i}-contact"] = cr.contact_id
-                data[f"form_contact_role-{i}-role"] = cr.role.id if hasattr(cr.role, 'id') else cr.role
+                data[f"form_contact_role-{i}-role"] = cr.role.id if hasattr(cr.role, "id") else cr.role
                 data[f"form_contact_role-{i}-order"] = cr.order
 
             response = self.client.post(url, data=data)
