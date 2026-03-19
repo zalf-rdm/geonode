@@ -14,40 +14,56 @@ class Migration(migrations.Migration):
             name='maplayer',
             options={'ordering': ['-pk']},
         ),
-        migrations.RemoveField(
-            model_name='maplayer',
-            name='dataset_params',
-        ),
-        migrations.RemoveField(
-            model_name='maplayer',
-            name='fixed',
-        ),
-        migrations.RemoveField(
-            model_name='maplayer',
-            name='format',
-        ),
-        migrations.RemoveField(
-            model_name='maplayer',
-            name='group',
-        ),
-        migrations.RemoveField(
-            model_name='maplayer',
-            name='opacity',
-        ),
-        migrations.RemoveField(
-            model_name='maplayer',
-            name='source_params',
-        ),
-        migrations.RemoveField(
-            model_name='maplayer',
-            name='stack_order',
-        ),
-        migrations.RemoveField(
-            model_name='maplayer',
-            name='transparent',
-        ),
-        migrations.RemoveField(
-            model_name='maplayer',
-            name='visibility',
-        ),
+        migrations.RunSQL(
+            sql=[
+                ("ALTER TABLE maps_maplayer DROP COLUMN IF EXISTS dataset_params CASCADE;", None),
+                ("ALTER TABLE maps_maplayer DROP COLUMN IF EXISTS fixed CASCADE;", None),
+                ("ALTER TABLE maps_maplayer DROP COLUMN IF EXISTS format CASCADE;", None),
+                ("ALTER TABLE maps_maplayer DROP COLUMN IF EXISTS \"group\" CASCADE;", None),
+                ("ALTER TABLE maps_maplayer DROP COLUMN IF EXISTS opacity CASCADE;", None),
+                ("ALTER TABLE maps_maplayer DROP COLUMN IF EXISTS source_params CASCADE;", None),
+                ("ALTER TABLE maps_maplayer DROP COLUMN IF EXISTS stack_order CASCADE;", None),
+                ("ALTER TABLE maps_maplayer DROP COLUMN IF EXISTS transparent CASCADE;", None),
+                ("ALTER TABLE maps_maplayer DROP COLUMN IF EXISTS visibility CASCADE;", None),
+            ],
+            reverse_sql=migrations.RunSQL.noop,
+            state_operations=[
+                migrations.RemoveField(
+                    model_name='maplayer',
+                    name='dataset_params',
+                ),
+                migrations.RemoveField(
+                    model_name='maplayer',
+                    name='fixed',
+                ),
+                migrations.RemoveField(
+                    model_name='maplayer',
+                    name='format',
+                ),
+                migrations.RemoveField(
+                    model_name='maplayer',
+                    name='group',
+                ),
+                migrations.RemoveField(
+                    model_name='maplayer',
+                    name='opacity',
+                ),
+                migrations.RemoveField(
+                    model_name='maplayer',
+                    name='source_params',
+                ),
+                migrations.RemoveField(
+                    model_name='maplayer',
+                    name='stack_order',
+                ),
+                migrations.RemoveField(
+                    model_name='maplayer',
+                    name='transparent',
+                ),
+                migrations.RemoveField(
+                    model_name='maplayer',
+                    name='visibility',
+                ),
+            ]
+        )
     ]
