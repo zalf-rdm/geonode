@@ -39,10 +39,6 @@ jobs:
         docker compose -f docker-compose-test.yml exec -T db psql -U postgres -c "ALTER USER geonode WITH SUPERUSER;"
         docker compose -f docker-compose-test.yml exec -T db psql -U postgres -c "ALTER USER geonode_data WITH SUPERUSER;"
 
-    - name: Run migrations and setup
-      run: |
-        echo "Migrations and setup were handled by the django container's entrypoint.sh"
-
     - name: Run main test suite
       run: |
         docker compose -f docker-compose-test.yml exec -T django ./test.sh || echo "MAIN_TESTS_FAILED=true" >> $GITHUB_ENV
