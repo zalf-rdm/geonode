@@ -37,6 +37,7 @@ urlpatterns = [
     re_path(r"^embed/$", views.map_embed, name="map_embed"),
     re_path(r"^metadata/batch/$", views.map_batch_metadata, name="map_batch_metadata"),
     re_path(r"^(?P<mapid>[^/]*)/metadata_detail$", views.map_metadata_detail, name="map_metadata_detail"),
+    re_path(r"^(?P<mapid>[^/]+)/metadata_sync$", views.map_metadata_sync, name="map_metadata_sync"),
     re_path(r"^(?P<layername>[^/]*)/attributes", views.mapdataset_attributes, name="mapdataset_attributes"),
     re_path(r"^", include("geonode.maps.api.urls")),
 ]

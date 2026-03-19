@@ -847,6 +847,10 @@ class ContactRoleForm(forms.ModelForm):
         model = ContactRole
         fields = ["contact", "role", "order"]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["contact"].label_from_instance = get_user_display_name
+
     def clean(self):
         cleaned_data = super().clean()
         if cleaned_data.get("DELETE"):

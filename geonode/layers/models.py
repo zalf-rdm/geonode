@@ -254,6 +254,14 @@ class Dataset(ResourceBase):
     def get_absolute_url(self):
         return hookset.dataset_detail_url(self)
 
+    def get_metadata_edit_url(self):
+        from django.urls import NoReverseMatch
+
+        try:
+            return reverse("dataset_metadata", kwargs={"layername": self.alternate or self.pk})
+        except NoReverseMatch:
+            return None
+
     @property
     def capabilities_url(self):
         from geonode.geoserver.helpers import get_dataset_capabilities_url
