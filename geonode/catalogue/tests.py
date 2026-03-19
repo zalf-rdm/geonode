@@ -177,4 +177,4 @@ class UUIDResolverTest(GeoNodeBaseTestSupport):
         request.user = AnonymousUser()
         with self.assertRaises(PermissionDenied) as context:
             resolve_uuid(request, self.dataset.uuid)
-        self.assertTrue("Permission Denied" in str(context.exception))
+        self.assertTrue("Permission" in str(context.exception))

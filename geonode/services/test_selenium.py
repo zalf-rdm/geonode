@@ -80,7 +80,7 @@ class WmsServiceHarvestingTestCase(GeoNodeLiveTestSupport):
     def test_harvest_resources(self):
         if self.selenium:
             table = self.selenium.find_element_by_id("resource_table")
-            self.test_resource_table_status(table, False)
+            self._check_resource_table_status(table, is_row_filtered)
 
             self.selenium.find_element_by_id("id-filter").send_keys("atlantis:roads")
             self.selenium.find_element_by_id("btn-id-filter").click()
@@ -106,7 +106,7 @@ class WmsServiceHarvestingTestCase(GeoNodeLiveTestSupport):
             # self.selenium.find_element_by_id('option_atlantis:tiger_roads_tiger_roads').click()
             # self.selenium.find_element_by_tag_name('form').submit()
 
-    def test_resource_table_status(self, table, is_row_filtered):
+    def _check_resource_table_status(self, table, is_row_filtered):
         tbody = table.find_elements_by_tag_name("tbody")
         rows = tbody[0].find_elements_by_tag_name("tr")
         visible_rows_count = 0

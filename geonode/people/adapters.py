@@ -105,7 +105,7 @@ def update_profile(sociallogin):
             try:
                 extractor_method = getattr(extractor, f"extract_{field}")
                 value = extractor_method(sociallogin.account.extra_data)
-                if not user_field(user, field):
+                if value and not user_field(user, field):
                     user_field(user, field, value)
             except (AttributeError, NotImplementedError):
                 pass  # extractor doesn't define a method for extracting field
