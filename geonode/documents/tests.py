@@ -722,7 +722,7 @@ class DocumentViewTestCase(GeoNodeBaseTestSupport):
             response = self.client.get(url)
             self.assertFalse(self.not_admin.is_superuser)
             self.assertEqual(response.status_code, 200)
-            self.assertTrue(response.context["form"]["keywords"].field.disabled)
+            self.assertTrue(response.context["document_form"]["keywords"].field.disabled)
 
     def test_that_featured_enabling_and_disabling_for_users(self):
         # Non Admins
@@ -731,12 +731,12 @@ class DocumentViewTestCase(GeoNodeBaseTestSupport):
         response = self.client.get(url)
         self.assertFalse(self.not_admin.is_superuser)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.context["form"]["featured"].field.disabled)
+        self.assertTrue(response.context["document_form"]["featured"].field.disabled)
         # Admin
         self.client.login(username="admin", password="admin")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.context["form"]["featured"].field.disabled)
+        self.assertFalse(response.context["document_form"]["featured"].field.disabled)
 
     def test_that_keyword_multiselect_is_not_disabled_for_admin_users(self):
         """
@@ -750,7 +750,7 @@ class DocumentViewTestCase(GeoNodeBaseTestSupport):
         response = self.client.get(url)
         self.assertTrue(admin.is_superuser)
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.context["form"]["keywords"].field.disabled)
+        self.assertFalse(response.context["document_form"]["keywords"].field.disabled)
 
     def test_that_non_admin_user_can_create_write_to_map_without_keyword(self):
         """
@@ -760,17 +760,35 @@ class DocumentViewTestCase(GeoNodeBaseTestSupport):
         self.client.login(username=self.not_admin.username, password="very-secret")
         url = reverse("document_metadata", args=(self.test_doc.pk,))
         with self.settings(FREETEXT_KEYWORDS_READONLY=True):
-            response = self.client.post(
-                url,
-                data={
-                    "resource-owner": self.not_admin.id,
-                    "resource-title": "doc",
-                    "resource-date": "2022-01-24 16:38 pm",
-                    "resource-date_type": "creation",
-                    "resource-language": "eng",
-                },
-            )
+            cr_qs = self.test_doc.contactrole_set.all()
+            data = {
+                "resource-owner": self.not_admin.id,
+                "resource-title": "doc",
+                "resource-date": "2022-01-24 16:38 pm",
+                "resource-date_type": "creation",
+                "resource-date_available": "2022-01-24 16:38",
+                "resource-date_created": "2022-01-24 16:38",
+                "resource-date_updated": "2022-01-24 16:38",
+                "resource-conformity_results": "Unknown",
+                "resource-language": "eng",
+                "form_funding-TOTAL_FORMS": "0",
+                "form_funding-INITIAL_FORMS": "0",
+                "form_related_identifier-TOTAL_FORMS": "0",
+                "form_related_identifier-INITIAL_FORMS": "0",
+                "form_contact_role-TOTAL_FORMS": str(cr_qs.count()),
+                "form_contact_role-INITIAL_FORMS": str(cr_qs.count()),
+            }
+            for i, cr in enumerate(cr_qs):
+                data[f"form_contact_role-{i}-id"] = cr.id
+                data[f"form_contact_role-{i}-resource"] = cr.resource_id
+                data[f"form_contact_role-{i}-contact"] = cr.contact_id
+                data[f"form_contact_role-{i}-role"] = cr.role.id if hasattr(cr.role, 'id') else cr.role
+                data[f"form_contact_role-{i}-order"] = cr.order
+
+            response = self.client.post(url, data=data)
             self.assertFalse(self.not_admin.is_superuser)
+            if response.status_code != 200:
+                print(response.content)
             self.assertEqual(response.status_code, 200)
         self.test_doc.refresh_from_db()
         self.assertEqual("doc", self.test_doc.title)
@@ -798,7 +816,7 @@ class DocumentViewTestCase(GeoNodeBaseTestSupport):
             response = self.client.get(url)
             self.assertFalse(self.not_admin.is_superuser)
             self.assertEqual(response.status_code, 200)
-            self.assertFalse(response.context["form"]["keywords"].field.disabled)
+            self.assertFalse(response.context["document_form"]["keywords"].field.disabled)
 
     def test_that_non_admin_user_can_create_edit_keyword_when_freetext_keywords_readonly_istrue(self):
         """
@@ -807,18 +825,36 @@ class DocumentViewTestCase(GeoNodeBaseTestSupport):
         self.client.login(username=self.not_admin.username, password="very-secret")
         url = reverse("document_metadata", args=(self.test_doc.pk,))
         with self.settings(FREETEXT_KEYWORDS_READONLY=False):
-            response = self.client.post(
-                url,
-                data={
-                    "resource-owner": self.not_admin.id,
-                    "resource-title": "doc",
-                    "resource-date": "2022-01-24 16:38 pm",
-                    "resource-date_type": "creation",
-                    "resource-language": "eng",
-                    "resource-keywords": "wonderful-keyword",
-                },
-            )
+            cr_qs = self.test_doc.contactrole_set.all()
+            data = {
+                "resource-owner": self.not_admin.id,
+                "resource-title": "doc",
+                "resource-date": "2022-01-24 16:38 pm",
+                "resource-date_type": "creation",
+                "resource-date_available": "2022-01-24 16:38",
+                "resource-date_created": "2022-01-24 16:38",
+                "resource-date_updated": "2022-01-24 16:38",
+                "resource-conformity_results": "Unknown",
+                "resource-language": "eng",
+                "resource-keywords": "wonderful-keyword",
+                "form_funding-TOTAL_FORMS": "0",
+                "form_funding-INITIAL_FORMS": "0",
+                "form_related_identifier-TOTAL_FORMS": "0",
+                "form_related_identifier-INITIAL_FORMS": "0",
+                "form_contact_role-TOTAL_FORMS": str(cr_qs.count()),
+                "form_contact_role-INITIAL_FORMS": str(cr_qs.count()),
+            }
+            for i, cr in enumerate(cr_qs):
+                data[f"form_contact_role-{i}-id"] = cr.id
+                data[f"form_contact_role-{i}-resource"] = cr.resource_id
+                data[f"form_contact_role-{i}-contact"] = cr.contact_id
+                data[f"form_contact_role-{i}-role"] = cr.role.id if hasattr(cr.role, 'id') else cr.role
+                data[f"form_contact_role-{i}-order"] = cr.order
+
+            response = self.client.post(url, data=data)
             self.assertFalse(self.not_admin.is_superuser)
+            if response.status_code != 200:
+                print(response.content)
             self.assertEqual(response.status_code, 200)
         self.test_doc.refresh_from_db()
         self.assertEqual("doc", self.test_doc.title)
