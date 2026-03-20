@@ -27,12 +27,13 @@ See the README.rst in this directory for details on running these tests.
 """
 
 from unittest import mock
-from geonode.tests.base import GeoNodeBaseTestSupport
+from geonode.tests.base import GeoNodeLiveTestSupport
 
 import os.path
 from django.conf import settings
 from django.db import connections
 from django.contrib.auth import get_user_model
+from django.test.utils import override_settings
 
 from geonode.base.models import Link
 from geonode.layers.models import Dataset
@@ -62,7 +63,6 @@ import dj_database_url
 
 GEONODE_USER = "admin"
 GEONODE_PASSWD = "admin"
-GEONODE_URL = settings.SITEURL.rstrip("/")
 GEOSERVER_URL = ogc_server_settings.LOCATION
 GEOSERVER_USER, GEOSERVER_PASSWD = ogc_server_settings.credentials
 
@@ -105,8 +105,10 @@ def get_wms(version="1.1.1", type_name=None, username=None, password=None):
         return WebMapService(url, timeout=ogc_server_settings.get("TIMEOUT", 60))
 
 
-class UploaderBase(GeoNodeBaseTestSupport):
+@override_settings(SITEURL="http://localhost:8001/")
+class UploaderBase(GeoNodeLiveTestSupport):
     type = "dataset"
+    port = 8001
 
     @classmethod
     def setUpClass(cls):
@@ -119,7 +121,8 @@ class UploaderBase(GeoNodeBaseTestSupport):
 
     def setUp(self):
         # await startup
-        cl = Client(GEONODE_URL, GEONODE_USER, GEONODE_PASSWD)
+        self.geonode_url = settings.SITEURL.rstrip("/")
+        cl = Client(self.geonode_url, GEONODE_USER, GEONODE_PASSWD)
         for i in range(10):
             try:
                 cl.get_html("/", debug=False)
@@ -127,7 +130,7 @@ class UploaderBase(GeoNodeBaseTestSupport):
             except Exception:
                 pass
 
-        self.client = Client(GEONODE_URL, GEONODE_USER, GEONODE_PASSWD)
+        self.client = Client(self.geonode_url, GEONODE_USER, GEONODE_PASSWD)
         self.catalog = Catalog(
             f"{GEOSERVER_URL}rest",
             GEOSERVER_USER,
@@ -397,7 +400,11 @@ class UploaderBase(GeoNodeBaseTestSupport):
         return abspath
 
 
+@override_settings(SITEURL="http://127.0.0.1:8001/")
 class TestUpload(UploaderBase):
+    port = 8001
+    host = "127.0.0.1"
+
     def test_shp_upload(self):
         """Tests if a vector dataset can be uploaded to a running GeoNode/GeoServer"""
         dataset_name = "san_andres_y_providencia_water"
@@ -629,7 +636,11 @@ class TestUpload(UploaderBase):
 
 
 @unittest.skipUnless(ogc_server_settings.datastore_db, "Vector datastore not enabled")
+@override_settings(SITEURL="http://127.0.0.1:8001/")
 class TestUploadDBDataStore(UploaderBase):
+    port = 8001
+    host = "127.0.0.1"
+
     def test_csv(self):
         """Override the baseclass test and verify a correct CSV upload"""
 
