@@ -152,7 +152,9 @@ class GroupProfileSerializer(BaseDynamicModelSerializer):
 
     group = DynamicRelationField(GroupSerializer, embed=True, many=False, required=False, read_only=False)
     keywords = serializers.SlugRelatedField(many=True, slug_field="slug", read_only=True)
-    categories = serializers.SlugRelatedField(many=True, slug_field="slug", queryset=GroupCategory.objects.all())
+    categories = serializers.SlugRelatedField(
+        many=True, slug_field="slug", queryset=GroupCategory.objects.all(), required=False
+    )
 
 
 class SimpleHierarchicalKeywordSerializer(DynamicModelSerializer):
