@@ -100,21 +100,29 @@ def get_visible_resources(
                 queryset = queryset.filter(
                     Q(is_published=True) | Q(group__in=public_groups) | Q(group__in=groups)
                 ).exclude(is_approved=False)
-            elif user and user.is_authenticated and not user.is_anonymous:
+            else:
                 # Authenticated non-admin users should only see:
                 # - approved resources, OR
-                # - resources they own
-                queryset = queryset.filter(Q(is_approved=True) | Q(owner=user))
+                # - resources they own, OR
+                # - resources they can manage (staff or group managers with change_resourcebase)
+                _manageable = get_objects_for_user(user, "base.change_resourcebase")
+                queryset = queryset.filter(
+                    Q(is_approved=True) | Q(owner=user) | Q(id__in=_manageable.values("id"))
+                )
 
         # Hide Unpublished Resources to Anonymous Users
         if unpublished_not_visible:
             if not user or not user.is_authenticated or user.is_anonymous:
                 queryset = queryset.exclude(is_published=False)
-            elif user and user.is_authenticated and not user.is_anonymous:
+            else:
                 # Authenticated non-admin users should only see:
                 # - published resources, OR
-                # - resources they own
-                queryset = queryset.filter(Q(is_published=True) | Q(owner=user))
+                # - resources they own, OR
+                # - resources they can manage (staff or group managers with change_resourcebase)
+                _manageable = get_objects_for_user(user, "base.change_resourcebase")
+                queryset = queryset.filter(
+                    Q(is_published=True) | Q(owner=user) | Q(id__in=_manageable.values("id"))
+                )
 
         # Hide Resources Belonging to Private Groups
         if private_groups_not_visibile:
