@@ -106,9 +106,7 @@ def get_visible_resources(
                 # - resources they own, OR
                 # - resources they can manage (staff or group managers with change_resourcebase)
                 _manageable = get_objects_for_user(user, "base.change_resourcebase")
-                queryset = queryset.filter(
-                    Q(is_approved=True) | Q(owner=user) | Q(id__in=_manageable.values("id"))
-                )
+                queryset = queryset.filter(Q(is_approved=True) | Q(owner=user) | Q(id__in=_manageable.values("id")))
 
         # Hide Unpublished Resources to Anonymous Users
         if unpublished_not_visible:
@@ -120,9 +118,7 @@ def get_visible_resources(
                 # - resources they own, OR
                 # - resources they can manage (staff or group managers with change_resourcebase)
                 _manageable = get_objects_for_user(user, "base.change_resourcebase")
-                queryset = queryset.filter(
-                    Q(is_published=True) | Q(owner=user) | Q(id__in=_manageable.values("id"))
-                )
+                queryset = queryset.filter(Q(is_published=True) | Q(owner=user) | Q(id__in=_manageable.values("id")))
 
         # Hide Resources Belonging to Private Groups
         if private_groups_not_visibile:
