@@ -95,6 +95,12 @@ def get_visible_resources(
             )
             queryset = queryset.filter(id__in=_allowed_resources.values("id"))
 
+        # Resources manageable by this user (for staff / group managers with change_resourcebase).
+        # Computed once and reused by the approval and publishing filters below.
+        _manageable_ids = None
+        if user and user.is_authenticated:
+            _manageable_ids = get_objects_for_user(user, "base.change_resourcebase").values("id")
+
         if admin_approval_required and not AdvancedSecurityWorkflowManager.is_simplified_workflow():
             if not user or not user.is_authenticated or user.is_anonymous:
                 queryset = queryset.filter(
@@ -105,8 +111,7 @@ def get_visible_resources(
                 # - approved resources, OR
                 # - resources they own, OR
                 # - resources they can manage (staff or group managers with change_resourcebase)
-                _manageable = get_objects_for_user(user, "base.change_resourcebase")
-                queryset = queryset.filter(Q(is_approved=True) | Q(owner=user) | Q(id__in=_manageable.values("id")))
+                queryset = queryset.filter(Q(is_approved=True) | Q(owner=user) | Q(id__in=_manageable_ids))
 
         # Hide Unpublished Resources to Anonymous Users
         if unpublished_not_visible:
@@ -117,8 +122,7 @@ def get_visible_resources(
                 # - published resources, OR
                 # - resources they own, OR
                 # - resources they can manage (staff or group managers with change_resourcebase)
-                _manageable = get_objects_for_user(user, "base.change_resourcebase")
-                queryset = queryset.filter(Q(is_published=True) | Q(owner=user) | Q(id__in=_manageable.values("id")))
+                queryset = queryset.filter(Q(is_published=True) | Q(owner=user) | Q(id__in=_manageable_ids))
 
         # Hide Resources Belonging to Private Groups
         if private_groups_not_visibile:
