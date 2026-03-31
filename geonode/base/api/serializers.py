@@ -150,7 +150,7 @@ class GroupProfileSerializer(BaseDynamicModelSerializer):
         view_name = "group-profiles-list"
         fields = ("pk", "title", "group", "slug", "logo", "description", "email", "keywords", "access", "categories")
 
-    group = DynamicRelationField(GroupSerializer, embed=True, many=False, required=False, read_only=False)
+    group = DynamicRelationField(GroupSerializer, embed=True, many=False, read_only=True)
     keywords = serializers.SlugRelatedField(many=True, slug_field="slug", read_only=True)
     categories = serializers.SlugRelatedField(
         many=True, slug_field="slug", queryset=GroupCategory.objects.all(), required=False
