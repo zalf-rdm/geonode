@@ -100,11 +100,21 @@ def get_visible_resources(
                 queryset = queryset.filter(
                     Q(is_published=True) | Q(group__in=public_groups) | Q(group__in=groups)
                 ).exclude(is_approved=False)
+            elif user and user.is_authenticated and not user.is_anonymous:
+                # Authenticated non-admin users should only see:
+                # - approved resources, OR
+                # - resources they own
+                queryset = queryset.filter(Q(is_approved=True) | Q(owner=user))
 
         # Hide Unpublished Resources to Anonymous Users
         if unpublished_not_visible:
             if not user or not user.is_authenticated or user.is_anonymous:
                 queryset = queryset.exclude(is_published=False)
+            elif user and user.is_authenticated and not user.is_anonymous:
+                # Authenticated non-admin users should only see:
+                # - published resources, OR
+                # - resources they own
+                queryset = queryset.filter(Q(is_published=True) | Q(owner=user))
 
         # Hide Resources Belonging to Private Groups
         if private_groups_not_visibile:
