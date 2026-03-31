@@ -58,7 +58,8 @@ ROLE_VALUES = (
     (
         "other",
         _(
-            "Any person or institution making a significant contribution to the development and/or maintenance of the resource, but whose contribution does not “fit” other con-trolled vocabulary for Type."
+            "Any person or institution making a significant contribution to the development and/or maintenance of the resource, \
+but whose contribution does not “fit” other con-trolled vocabulary for Type."
         ),
     ),
     ("producer", _("Typically a person or organisation responsible for the artistry and form of a media product.")),
@@ -100,7 +101,8 @@ ROLE_VALUES = (
     (
         "researcher",
         _(
-            "A person involved in analysing data or the results of an experiment or formal study. May indicate an intern or assistant to one of the authors who helped with research but who was not so “key” as to be listed as an author."
+            "A person involved in analysing data or the results of an experiment or formal study. May indicate an intern or assistant \
+to one of the authors who helped with research but who was not so “key” as to be listed as an author."
         ),
     ),
     (
@@ -124,7 +126,9 @@ ROLE_VALUES = (
     (
         "workPackageLeader",
         _(
-            "A Work Package is a recognized data product, not all of which is included in publication. The pack-age, instead, may include notes, discarded documents, etc. The Work Package Leader is responsi-ble for ensuring the comprehen-sive contents, versioning, and availability of the Work Package during the development of the resource."
+            "A Work Package is a recognized data product, not all of which is included in publication. The pack-age, \
+instead, may include notes, discarded documents, etc. The Work Package Leader is responsi-ble for ensuring the comprehen-sive contents, \
+versioning, and availability of the Work Package during the development of the resource."
         ),
     ),
 )

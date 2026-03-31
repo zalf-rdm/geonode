@@ -10,13 +10,11 @@ logger = logging.getLogger(__name__)
 
 
 class AssetDownloadHandlerInterface:
-
     def create_response(self, asset: Asset, attachment: bool = False, basename=None, path=None) -> HttpResponse:
         raise NotImplementedError()
 
 
 class AssetHandlerInterface:
-
     def handled_asset_class(self):
         raise NotImplementedError()
 

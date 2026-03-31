@@ -22,9 +22,6 @@ PyMuPDF==1.26.3
 defusedxml==0.7.1
 zipstream-ng==1.8.0
 
-# ZALF CHANGES
-sentry-sdk
-
 # Django Apps
 django-allauth==0.63.6
 django-appconf==1.0.6
@@ -49,10 +46,10 @@ oauthlib==3.3.1
 pyjwt==2.8.0
 
 # geopython dependencies
-pyproj<3.7.0
-OWSLib==0.31.0
-pycsw==2.6.1
-SQLAlchemy==2.0.30 # required by PyCSW
+geonode-pycsw==3.0.0b1
+pyproj<3.8.0
+OWSLib==0.34.1
+SQLAlchemy==2.0.43 # required by PyCSW
 Shapely==1.8.5.post1
 mercantile==1.2.1
 numpy==1.26.*
@@ -83,7 +80,7 @@ dynamic-rest==2.3.0
 frictionless>=5.17.0
 
 # mapstore client package
--e git+https://github.com/zalf-rdm/geonode-mapstore-client.git@main#egg=django-geonode-mapstore-client
+-e git+https://github.com/zalf-rdm/geonode-mapstore-client.git@main-ui#egg=django-geonode-mapstore-client
 
 # gn importer package
 geonode-importer==1.1.3

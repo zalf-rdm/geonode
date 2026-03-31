@@ -167,7 +167,7 @@ class ProfileAutocomplete(autocomplete.Select2QuerySetView):
             )
 
         return qs
-       
+
     def get_result_label(self, result):
         """Return display name for dropdown results."""
         return get_user_display_name(result)

@@ -54,6 +54,12 @@
         });
     }
 
+    function getAttr($form, name) {
+        return $form.attr('data-' + name);
+    }
+
+    // Custom tab labels are now handled by inline scripts in templates when needed.
+
     // ----- Add new tab -----
     window.addNewTab = function addNewTab(buttonEl) {
         var $form = $(buttonEl).closest("div[id^='form']");
@@ -268,6 +274,7 @@
     // ----- Reorder only the UI (labels/anchors), do not rename fields after render -----
     function reOrderUI($form) {
         var prefix = $form.attr("id");
+        var hasCustomLabels = !!getAttr($form, 'tab-label-field');
 
         // Re-attach anchor targets and labels based on current visible tab order
         var $tabs = $form.find('.allTabs li a');
@@ -275,7 +282,11 @@
             $(this)
                 .attr('href', '#' + prefix + '-' + i)
                 .attr('aria-controls', prefix + '-' + i)
-                .find('.tabTex').text(i + 1);
+                .find('.tabTex').each(function () {
+                    if (!hasCustomLabels) {
+                        $(this).text(i + 1);
+                    }
+                });
         });
 
         // Re-id panes by order (UI only). We do NOT rename field names/ids after render to keep Django safe.
@@ -288,5 +299,7 @@
             paneIdx += 1;
         });
     }
+
+    // Dynamic tab label adjustments, if needed, should be handled by specialized scripts in templates.
 
 })();

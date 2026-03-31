@@ -1,0 +1,97 @@
+{% extends "geonode_base.html" %}
+{% load i18n %}
+
+{% block title %}
+    {% trans "Upload Data" %} — {{ block.super }}
+{% endblock %}
+
+{% block body_outer %}
+
+<div class="page-header">
+    <h2>{% trans "Upload Data to the ZALF Repository" %}</h2>
+</div>
+
+<p>
+    {% trans "This page provides general instructions on how to upload research data to the ZALF Repository using the Upload Tool. The process follows FAIR principles (Findable, Accessible, Interoperable, Reusable) and Research Data Management best practices to ensure high-quality, well-documented, and sustainable datasets." %}
+</p>
+
+<hr>
+
+<h3>{% trans "1. Before You Start" %}</h3>
+<p>
+    {% trans "Before uploading, please ensure that your dataset is complete, well-structured, and accompanied by clear documentation. Preparing your data in advance will improve discoverability and reuse." %}
+</p>
+
+<ul>
+    <li>{% trans "Organize your files logically (e.g., by variables, years, sampling locations)." %}</li>
+    <li>{% trans "Include readme files, codebooks, or data dictionaries when relevant." %}</li>
+    <li>{% trans "Remove confidential or personal information unless explicit approval exists." %}</li>
+    <li>{% trans "Ensure you have the right to publish and share the data." %}</li>
+</ul>
+
+<hr>
+
+<h3>{% trans "2. Using the Upload Tool" %}</h3>
+<p>
+    {% trans "The Upload Tool assists you in adding datasets to the ZALF Repository in a structured and guided way. You will be asked to provide metadata, describe your data, and assign licenses and access permissions." %}
+</p>
+
+<ol>
+    <li><strong>{% trans "Select Your Files" %}</strong> — {% trans "Upload individual files or compressed folders (ZIP). Large datasets may require additional steps depending on file size." %}</li>
+    <li><strong>{% trans "Describe Your Data" %}</strong> — {% trans "Fill in the metadata form including title, description, spatial and temporal coverage, keywords, and responsible institutions." %}</li>
+    <li><strong>{% trans "Choose License and Access Level" %}</strong> — {% trans "Decide how others may access or reuse your dataset (open, restricted, or internal only)." %}</li>
+    <li><strong>{% trans "Validate" %}</strong> — {% trans "The Upload Tool will check file formats, metadata completeness, and required information." %}</li>
+    <li><strong>{% trans "Submit" %}</strong> — {% trans "After submission, your dataset is processed and becomes available in the catalogue depending on the selected publication settings." %}</li>
+</ol>
+
+<hr>
+
+<h3>{% trans "3. FAIR Data Principles" %}</h3>
+<p>{% trans "When uploading data, please consider the following FAIR principles:" %}</p>
+
+<ul>
+    <li><strong>{% trans "Findable:" %}</strong> {% trans "Provide clear metadata, stable identifiers, keywords, and meaningful titles." %}</li>
+    <li><strong>{% trans "Accessible:" %}</strong> {% trans "Select an appropriate license and define accessibility conditions." %}</li>
+    <li><strong>{% trans "Interoperable:" %}</strong> {% trans "Use standard formats where possible (CSV, GeoTIFF, NetCDF, Shapefile, etc.)." %}</li>
+    <li><strong>{% trans "Reusable:" %}</strong> {% trans "Offer enough context, documentation, and provenance information for third-party reuse." %}</li>
+</ul>
+
+<hr>
+
+<h3>{% trans "4. Metadata Guidelines" %}</h3>
+<p>
+    {% trans "Good metadata is essential for proper discovery and reuse. The Upload Tool will guide you, but consider including additional information whenever possible." %}
+</p>
+
+<ul>
+    <li>{% trans "Methods and protocols used to collect or produce the data." %}</li>
+    <li>{% trans "Units, abbreviations, and variable descriptions." %}</li>
+    <li>{% trans "Spatial reference systems and coordinate information." %}</li>
+    <li>{% trans "Instrument names, calibration details, or model configurations." %}</li>
+    <li>{% trans "Known limitations, uncertainties, or data quality notes." %}</li>
+</ul>
+
+<hr>
+
+<h3>{% trans "5. After Uploading" %}</h3>
+<p>
+    {% trans "Once your dataset is successfully uploaded, you can edit its metadata, update files, or adjust permissions. Each dataset receives a unique identifier and becomes part of the ZALF Repository catalogue." %}
+</p>
+
+<ul>
+    <li>{% trans "Review your dataset page to confirm that all information is correct." %}</li>
+    <li>{% trans "If needed, add additional documentation or supporting material." %}</li>
+    <li>{% trans "Share the permanent link with collaborators or project partners." %}</li>
+</ul>
+
+<hr>
+
+<h3>{% trans "Need Help?" %}</h3>
+<p>
+    {% trans "If you require support with the upload process, metadata preparation, or RDM best practices, please contact the ZALF research data management team." %}
+</p>
+
+{% endblock %}
+{% block footer %}
+    {% include 'geonode-mapstore-client/snippets/footer.html' %}
+{% endblock %}

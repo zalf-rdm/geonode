@@ -33,10 +33,12 @@ from django.conf import settings
 from django.db.models import Subquery, QuerySet
 from django.http.request import QueryDict
 from django.contrib.auth import get_user_model
+from django_filters.rest_framework import DjangoFilterBackend
 
 from drf_spectacular.utils import extend_schema
 from dynamic_rest.viewsets import DynamicModelViewSet, WithDynamicViewSetMixin
 from dynamic_rest.filters import DynamicFilterBackend, DynamicSortingFilter
+
 
 from oauth2_provider.contrib.rest_framework import OAuth2Authentication
 
@@ -69,6 +71,7 @@ from geonode.base.models import (
     License,
     RelationType,
     RelatedIdentifierType,
+    ResourceTypeGeneral,
     RelatedIdentifier,
     Organization,
     Funding,
@@ -116,6 +119,7 @@ from .serializers import (
     RestrictionCodeTypeSerializer,
     RelationTypeSerializer,
     RelatedIdentifierTypeSerializer,
+    ResourceTypeGeneralSerializer,
     OrganizationSerializer,
     FundingSerializer,
     RelatedIdentifierSerializer,
@@ -293,7 +297,8 @@ class LicenseViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin
     queryset = License.objects.all()
     serializer_class = FullLicenseSerializer
     pagination_class = GeoNodeApiPagination
-    
+
+
 class RestrictionCodeTypeViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
     """
     API endpoint that lists RestrictCodeType.
@@ -351,10 +356,22 @@ class RelatedIdentifierViewSet(WithDynamicViewSetMixin, ListModelMixin, Retrieve
         AllowAny,
     ]
     filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter]
-    permission_classes = [IsAuthenticatedOrReadOnly, UserHasPerms]
-
     queryset = RelatedIdentifier.objects.all()
     serializer_class = RelatedIdentifierSerializer
+    pagination_class = GeoNodeApiPagination
+
+
+class ResourceTypeGeneralViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
+    """
+    API endpoint that lists resourcetypegenerals (DataCite controlled vocabulary).
+    """
+
+    permission_classes = [
+        AllowAny,
+    ]
+    filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter]
+    queryset = ResourceTypeGeneral.objects.all()
+    serializer_class = ResourceTypeGeneralSerializer
     pagination_class = GeoNodeApiPagination
 
 
@@ -435,6 +452,20 @@ class ApiPresetsInitializer(APIView):
     Replaces the `api_preset` query params with the configured params
     """
 
+    @staticmethod
+    def _deduplicate_and_remove_ancestor_fields(values):
+        """
+        Dynamic REST field parser fails when both a parent field and one of
+        its nested children are requested (e.g. `foo` and `foo.bar`).
+        Keep the most specific fields and drop ancestor-only duplicates.
+        """
+        ordered_unique = list(dict.fromkeys(values))
+        return [
+            field
+            for field in ordered_unique
+            if not any(other != field and other.startswith(f"{field}.") for other in ordered_unique)
+        ]
+
     def initialize_request(self, request, *args, **kwargs):
         self.replace_presets(request)
         return super().initialize_request(request, *args, **kwargs)
@@ -450,8 +481,16 @@ class ApiPresetsInitializer(APIView):
                     return
                 for param_name in presets.keys():
                     for param_value in presets.get(param_name):
-                        if param_value not in request.GET.get(param_name, []):
+                        if param_value not in request.GET.getlist(param_name):
                             request.GET.appendlist(param_name, param_value)
+
+            # Normalize request field parameters after all presets are merged.
+            # This prevents dynamic_rest from raising when parent and nested
+            # fields are present together.
+            for param_name in ["include[]", "exclude[]"]:
+                values = request.GET.getlist(param_name)
+                if values:
+                    request.GET.setlist(param_name, self._deduplicate_and_remove_ancestor_fields(values))
         finally:
             request.GET._mutable = False
 
@@ -468,6 +507,7 @@ class ResourceBaseViewSet(ApiPresetsInitializer, DynamicModelViewSet, Advertised
         DynamicFilterBackend,
         DynamicSortingFilter,
         DynamicSearchFilter,
+        DjangoFilterBackend,
         ExtentFilter,
         ResourceBasePermissionsFilter,
         FavoriteFilter,
@@ -475,6 +515,7 @@ class ResourceBaseViewSet(ApiPresetsInitializer, DynamicModelViewSet, Advertised
     queryset = ResourceBase.objects.all().order_by("-created")
     serializer_class = ResourceBaseSerializer
     pagination_class = GeoNodeApiPagination
+    filterset_fields = {"id": ["in", "exact"]}
 
     def _filtered(self, request, filter):
         paginator = GeoNodeApiPagination()

@@ -60,6 +60,7 @@ class ProfileUserManager(UserManager):
 
 class Profile(AbstractUser):
     """Fully featured Geonode user"""
+
     organization = models.ForeignKey(
         Organization,
         verbose_name=_("Organization Name"),
@@ -297,6 +298,10 @@ class Profile(AbstractUser):
 
     def can_publish(self, resource):
         return can_publish(self, resource)
+
+    def can_publish_data_collection(self):
+        allowed_groups = getattr(settings, "PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS")
+        return self.is_superuser or self.groups.filter(name__in=allowed_groups).exists()
 
     def can_feature(self, resource):
         return can_feature(self, resource)

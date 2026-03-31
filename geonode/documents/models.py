@@ -58,6 +58,14 @@ class Document(ResourceBase):
     def get_absolute_url(self):
         return hookset.document_detail_url(self)
 
+    def get_metadata_edit_url(self):
+        from django.urls import NoReverseMatch
+
+        try:
+            return reverse("document_metadata", kwargs={"docid": self.pk})
+        except NoReverseMatch:
+            return None
+
     @classproperty
     def allowed_permissions(cls):
         return {

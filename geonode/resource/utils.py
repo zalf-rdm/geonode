@@ -50,7 +50,6 @@ from ..layers.models import Dataset
 from ..documents.models import Document
 from ..documents.enumerations import DOCUMENT_TYPE_MAP, DOCUMENT_MIMETYPE_MAP
 from ..people.utils import get_valid_user
-from geonode.people import Roles
 from ..layers.utils import resolve_regions
 from ..layers.metadata import convert_keyword
 
@@ -143,6 +142,10 @@ def update_resource(
     vals: dict = {},
     extra_metadata: list = [],
 ):
+    """
+    REmark (Mwall): I have removed all contract role related content from here as i suppose it
+    # is handled elsewhere in the xml templating
+    """
     if xml_file:
         instance.metadata_xml = open(xml_file).read()
 
@@ -179,11 +182,6 @@ def update_resource(
                 defaults[key] = value
             else:
                 defaults[key] = value
-
-    contact_roles = {
-        contact_role.name: defaults.pop(contact_role.name, getattr(instance, contact_role.name))
-        for contact_role in Roles.get_multivalue_ones()
-    }
 
     to_update = {}
     for _key in ("name",):
@@ -238,12 +236,6 @@ def update_resource(
     if hasattr(instance, "ows_url") and "ows_url" not in to_update:
         _default_ows_url = urljoin(ogc_settings.PUBLIC_LOCATION, "ows")
         to_update["ows_url"] = defaults.pop("ows_url", getattr(instance, "ows_url", None)) or _default_ows_url
-
-    # update contact roles in instance
-    [
-        instance.__setattr__(contact_role_name, contact_role_value)
-        for contact_role_name, contact_role_value in contact_roles.items()
-    ]
 
     to_update.update(defaults)
     resource_dict = {  # TODO: cleanup params and dicts
