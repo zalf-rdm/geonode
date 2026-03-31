@@ -97,7 +97,7 @@ class ProfileAdmin(admin.ModelAdmin):
         "groups",
         "organization",
     )
-    search_fields = ("username", "organization", "profile", "first_name", "last_name", "email")
+    search_fields = ("username", "organization__organization", "profile", "first_name", "last_name", "email")
     # readonly_fields = ("groups", )
     ordering = ("username",)
     filter_horizontal = (
