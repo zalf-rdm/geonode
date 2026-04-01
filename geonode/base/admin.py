@@ -42,6 +42,7 @@ from geonode.base.models import (
     Link,
     RelationType,
     RelatedIdentifierType,
+    ResourceTypeGeneral,
     Organization,
     RelatedIdentifier,
     Funding,
@@ -180,8 +181,8 @@ class RestrictionCodeTypeAdmin(TabbedTranslationAdmin):
 class ContactRoleAdmin(admin.ModelAdmin):
     model = ContactRole
     list_display_links = ("id",)
-    list_display = ("id", "contact", "resource", "role")
-    list_editable = ("contact", "resource", "role")
+    list_display = ("id", "contact", "resource", "role", "order")
+    list_editable = ("contact", "resource", "role", "order")
     form = forms.modelform_factory(ContactRole, fields="__all__")
 
 
@@ -208,9 +209,22 @@ class RelationTypeAdmin(admin.ModelAdmin):
 
 class RelatedIdentifierAdmin(admin.ModelAdmin):
     model = RelatedIdentifier
-    list_display = ("id", "related_identifier", "related_identifier_type", "relation_type", "description")
-    list_display_links = ("related_identifier", "related_identifier_type", "relation_type", "description")
-    list_filter = ("related_identifier", "related_identifier_type", "relation_type")
+    list_display = (
+        "id",
+        "related_identifier",
+        "related_identifier_type",
+        "relation_type",
+        "resource_type_general",
+        "description",
+    )
+    list_display_links = (
+        "related_identifier",
+        "related_identifier_type",
+        "relation_type",
+        "resource_type_general",
+        "description",
+    )
+    list_filter = ("related_identifier", "related_identifier_type", "relation_type", "resource_type_general")
 
     form = forms.modelform_factory(RelatedIdentifier, fields="__all__")
 
@@ -224,6 +238,15 @@ class RelatedIdentifierTypeAdmin(admin.ModelAdmin):
     form = forms.modelform_factory(RelatedIdentifierType, fields="__all__")
 
 
+class ResourceTypeGeneralAdmin(admin.ModelAdmin):
+    model = ResourceTypeGeneral
+    list_display = ("label", "description")
+    list_display_links = ("label",)
+    list_filter = ("label",)
+
+    form = forms.modelform_factory(ResourceTypeGeneral, fields="__all__")
+
+
 class OrganizationAdmin(admin.ModelAdmin):
     model = Organization
     list_display = ("id", "organization", "ror", "abbreviation")
@@ -235,7 +258,7 @@ class OrganizationAdmin(admin.ModelAdmin):
 
 class FundingAdmin(admin.ModelAdmin):
     model = Funding
-    list_display = ("organization", "award_number", "award_uri", "award_title")
+    list_display = ("id", "organization", "award_number", "award_uri", "award_title")
     list_display_links = ("organization",)
     list_filter = ("organization", "award_number", "award_uri", "award_title")
 
@@ -389,6 +412,7 @@ admin.site.register(License, LicenseAdmin)
 admin.site.register(RelationType, RelationTypeAdmin)
 admin.site.register(RelatedIdentifierType, RelatedIdentifierTypeAdmin)
 admin.site.register(RelatedIdentifier, RelatedIdentifierAdmin)
+admin.site.register(ResourceTypeGeneral, ResourceTypeGeneralAdmin)
 admin.site.register(Organization, OrganizationAdmin)
 admin.site.register(Funding, FundingAdmin)
 admin.site.register(RelatedProject, RelatedProjectAdmin)

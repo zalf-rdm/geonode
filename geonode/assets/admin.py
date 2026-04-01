@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 
 
 class PrettyJSONWidget(widgets.Textarea):
-
     def format_value(self, value):
         try:
             value = json.dumps(json.loads(value), indent=2, sort_keys=True)

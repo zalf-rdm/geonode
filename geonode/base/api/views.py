@@ -69,6 +69,7 @@ from geonode.base.models import (
     License,
     RelationType,
     RelatedIdentifierType,
+    ResourceTypeGeneral,
     RelatedIdentifier,
     Organization,
     Funding,
@@ -116,6 +117,7 @@ from .serializers import (
     RestrictionCodeTypeSerializer,
     RelationTypeSerializer,
     RelatedIdentifierTypeSerializer,
+    ResourceTypeGeneralSerializer,
     OrganizationSerializer,
     FundingSerializer,
     RelatedIdentifierSerializer,
@@ -293,7 +295,8 @@ class LicenseViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin
     queryset = License.objects.all()
     serializer_class = FullLicenseSerializer
     pagination_class = GeoNodeApiPagination
-    
+
+
 class RestrictionCodeTypeViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
     """
     API endpoint that lists RestrictCodeType.
@@ -351,10 +354,22 @@ class RelatedIdentifierViewSet(WithDynamicViewSetMixin, ListModelMixin, Retrieve
         AllowAny,
     ]
     filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter]
-    permission_classes = [IsAuthenticatedOrReadOnly, UserHasPerms]
-
     queryset = RelatedIdentifier.objects.all()
     serializer_class = RelatedIdentifierSerializer
+    pagination_class = GeoNodeApiPagination
+
+
+class ResourceTypeGeneralViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
+    """
+    API endpoint that lists resourcetypegenerals (DataCite controlled vocabulary).
+    """
+
+    permission_classes = [
+        AllowAny,
+    ]
+    filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter]
+    queryset = ResourceTypeGeneral.objects.all()
+    serializer_class = ResourceTypeGeneralSerializer
     pagination_class = GeoNodeApiPagination
 
 

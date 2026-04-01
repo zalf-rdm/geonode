@@ -60,6 +60,7 @@ class ProfileUserManager(UserManager):
 
 class Profile(AbstractUser):
     """Fully featured Geonode user"""
+
     organization = models.ForeignKey(
         Organization,
         verbose_name=_("Organization Name"),

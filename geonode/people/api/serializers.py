@@ -18,7 +18,7 @@ class OrganizationRelationField(DynamicRelationField):
     """Allow linking organizations by ROR identifier when creating users."""
 
     def to_internal_value_single(self, data, serializer):
-        lookup = {} 
+        lookup = {}
         if isinstance(data, dict):
             ror = data.get("ror")
             name = data.get("organization") or data.get("name")
@@ -27,9 +27,7 @@ class OrganizationRelationField(DynamicRelationField):
             elif name:
                 lookup["organization__iexact"] = name
             else:
-                raise serializers.ValidationError(
-                    "organization payload requires 'ror' or 'organization'/'name' keys"
-                )
+                raise serializers.ValidationError("organization payload requires 'ror' or 'organization'/'name' keys")
         elif isinstance(data, str):
             if data.isdigit():
                 return super().to_internal_value_single(data, serializer)
@@ -49,7 +47,6 @@ class OrganizationRelationField(DynamicRelationField):
 
 
 class UserSerializer(base_serializers.DynamicModelSerializer):
-
     link = base_serializers.AutoLinkField(read_only=True)
 
     class Meta:
