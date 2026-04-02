@@ -20,6 +20,7 @@
 import logging
 import xml.etree.ElementTree as ET
 
+from django.db import models as db_models
 from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.template.loader import get_template
 from django.urls import reverse
@@ -55,6 +56,12 @@ class DatasetDownloadHandler:
         if not resource:
             raise Http404("Resource requested is not available")
         response = self.process_dowload(resource)
+        if not self.request.user.is_superuser:
+            from geonode.layers.models import Dataset
+
+            Dataset.objects.filter(id=resource.id).exclude(owner=self.request.user).update(
+                download_count=db_models.F("download_count") + 1
+            )
         return response
 
     @property

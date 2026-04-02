@@ -29,6 +29,7 @@ from urllib.parse import urlparse, urlsplit, urljoin
 from django.conf import settings
 from django.template import loader
 from django.http import HttpResponse, StreamingHttpResponse
+from django.db import models
 from django.db.models import signals
 from django.views.generic import View
 from django.http.request import validate_host
@@ -272,6 +273,10 @@ def download(request, resourceid, sender=Dataset):
             # ZIP everything and return
             target_file_name = "".join([instance.name, ".zip"])
             register_event(request, "download", instance)
+            if not request.user.is_superuser:
+                sender.objects.filter(id=instance.id).exclude(owner=request.user).update(
+                    download_count=models.F("download_count") + 1
+                )
             folder = os.path.dirname(dataset_files[0])
 
             zs = ZipStream.from_path(folder, arcname="/")

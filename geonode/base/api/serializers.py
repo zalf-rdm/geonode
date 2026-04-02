@@ -857,6 +857,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     srid = serializers.CharField(required=False)
     group = ComplexDynamicRelationField(GroupSerializer, embed=True)
     share_count = serializers.CharField(required=False)
+    download_count = serializers.IntegerField(read_only=True)
     featured = ResourceManagementField(required=False)
     advertised = serializers.BooleanField(required=False)
     is_published = ResourceManagementField(required=False)
@@ -1004,6 +1005,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "data_quality_statement",
             "group",
             "share_count",
+            "download_count",
             "featured",
             "advertised",
             "is_published",

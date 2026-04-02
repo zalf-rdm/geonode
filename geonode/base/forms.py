@@ -708,6 +708,7 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
             "metadata_xml",
             "csw_anytext",
             "popular_count",
+            "download_count",
             "share_count",
             "thumbnail",
             "charset",

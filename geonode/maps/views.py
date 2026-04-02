@@ -28,6 +28,7 @@ from django.conf import settings
 from django.contrib import messages as django_messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.db.models import F
 from django.forms.models import modelformset_factory
 from django.http import Http404, HttpResponse, HttpResponseNotAllowed, HttpResponseRedirect, HttpResponseServerError
 from django.shortcuts import render
@@ -581,6 +582,8 @@ def map_download(request, mapid, template="maps/map_download.html"):
     site_url = settings.SITEURL.rstrip("/") if settings.SITEURL.startswith("http") else settings.SITEURL
 
     register_event(request, EventType.EVENT_DOWNLOAD, map_obj)
+    if not request.user.is_superuser:
+        Map.objects.filter(id=map_obj.id).exclude(owner=request.user).update(download_count=F("download_count") + 1)
 
     return render(
         request,
