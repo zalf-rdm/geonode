@@ -27,6 +27,7 @@ from geonode.assets.models import (
     Asset,
     LocalAsset,
 )
+from geonode.assets.utils import get_asset_size_bytes
 
 logger = logging.getLogger(__name__)
 
@@ -57,16 +58,22 @@ class AssetSubclassField(DynamicComputedField):
         return None
 
 
+class AssetSizeBytesField(DynamicComputedField):
+    def get_attribute(self, instance):
+        return get_asset_size_bytes(instance)
+
+
 class AssetSerializer(DynamicModelSerializer):
     owner = SimpleUserSerializer(embed=False)
     asset_type = ClassTypeField()
     subinfo = AssetSubclassField()
+    size_bytes = AssetSizeBytesField()
 
     class Meta:
         model = Asset
         name = "asset"
         # fields = ("pk", "title", "description", "type", "owner", "created")
-        fields = ("pk", "title", "description", "type", "owner", "created", "asset_type", "subinfo")
+        fields = ("pk", "title", "description", "type", "owner", "created", "asset_type", "subinfo", "size_bytes")
 
 
 class LocalAssetSerializer(AssetSerializer):

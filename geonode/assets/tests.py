@@ -239,6 +239,22 @@ class AssetsDownloadTests(APITestCase):
             self.assertIn(key, rjson, f"Key '{key}' not found in path '{path}': {rjson} URL {url}")
             logger.info(f"Test for path '{path}' OK")
 
+    def test_asset_detail_exposes_size_bytes(self):
+        u, _ = get_user_model().objects.get_or_create(username="admin")
+        self.assertTrue(self.client.login(username="admin", password="admin"), "Login failed")
+
+        asset = self._setup_test(u)
+        asset = LocalAsset.objects.get(pk=asset.pk)
+        expected_size = os.path.getsize(asset.location[0])
+
+        url = reverse("assets-detail", kwargs={"pk": asset.pk})
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json().get("asset", {})
+        self.assertIn("size_bytes", payload)
+        self.assertEqual(payload.get("size_bytes"), expected_size)
+
     def test_download_with_attachment(self):
         u, _ = get_user_model().objects.get_or_create(username="admin")
         self.assertTrue(self.client.login(username="admin", password="admin"), "Login failed")

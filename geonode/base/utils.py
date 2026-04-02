@@ -62,6 +62,7 @@ _names = [
     "Atom",
     "DIF",
     "Dublin Core",
+    "DataCite",
     "ebRIM",
     "FGDC",
     "ISO",

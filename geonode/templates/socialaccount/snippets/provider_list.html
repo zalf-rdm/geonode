@@ -13,16 +13,43 @@
             {% endfor %}
         {% endif %}
         <div class="form-group">
-            <a class="btn btn-default btn-block" title="{{provider.name}}" href="{% provider_login_url provider process=process scope=scope auth_params=auth_params %}">
+            <a class="btn btn-default btn-block provider-login" 
+               title="{{provider.name}}"
+               href="{% provider_login_url provider process=process scope=scope auth_params=auth_params %}"
+               data-provider="{{provider.name}}">
                 <i class="fa fa-{{ provider.name|lower }}-square fa-2x" aria-hidden="true"></i>
                 {% if process == "login" %}
-                    {% trans "Sign in with" %}
+                    {% trans "Sign or Register in with" %}
                 {% elif process == "connect" %}
                     {% trans "Connect with" %}
                 {% else %}
                     {% trans "Sign up with" %}
                 {% endif %}
-                {{provider.name}}
+                {{provider.name}} 
             </a>
         </div>
 {% endfor %}
+
+<script>
+(function() {
+    // Pop-up window dimensions
+    const width = 500;
+    const height = 600;
+    
+    // Open provider login in pop-up
+    document.querySelectorAll('.provider-login').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const url = this.href;
+            const left = (window.innerWidth - width) / 2;
+            const top = (window.innerHeight - height) / 2;
+            
+            window.open(
+                url,
+                'provider-login',
+                `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+            );
+        });
+    });
+})();
+</script>

@@ -51,6 +51,32 @@ def get_default_asset(resource: ResourceBase, link_type=None) -> Asset or None:
     return asset.get_real_instance() if asset else None
 
 
+def get_asset_size_bytes(asset: Asset) -> int | None:
+    """
+    Return file size in bytes for local assets when available.
+
+    We currently compute size from the first local file path, since the
+    API links expose a single default downloadable content item.
+    """
+    if not asset:
+        return None
+
+    try:
+        real_asset = asset.get_real_instance() if hasattr(asset, "get_real_instance") else asset
+        location = getattr(real_asset, "location", None)
+        if not location or not isinstance(location, list):
+            return None
+
+        first_path = location[0] if location else None
+        if not first_path or not os.path.isfile(first_path):
+            return None
+
+        return os.path.getsize(first_path)
+    except Exception:
+        logger.debug("Cannot determine size for asset %s", getattr(asset, "pk", None), exc_info=True)
+        return None
+
+
 DEFAULT_TYPES = {"image": ["jpg", "jpeg", "gif", "png", "bmp", "svg"]}
 
 
