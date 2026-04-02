@@ -83,7 +83,7 @@ dynamic-rest==2.3.0
 frictionless>=5.17.0
 
 # mapstore client package
--e git+https://github.com/zalf-rdm/geonode-mapstore-client.git@main#egg=django-geonode-mapstore-client
+-e git+https://github.com/zalf-rdm/geonode-mapstore-client.git@release-4.4.4#egg=django-geonode-mapstore-client
 
 # gn importer package
 geonode-importer==1.1.3
@@ -150,7 +150,7 @@ pytest-bdd==7.1.2
 splinter==0.21.0
 pytest-splinter==3.3.2
 pytest-django==4.8.0
-setuptools>=59
+setuptools>=59,<72
 pixelmatch==0.3.0
 factory-boy==3.3.0
 flaky==3.8.1
