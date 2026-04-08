@@ -108,7 +108,7 @@ gn-gsimporter==2.0.4
 
 django-avatar==8.0.0
 django-activity-stream==2.0.0
-geoserver-restconfig~=2.0.13
+geoserver-restconfig~=2.0.16
 gisdata==0.5.4
 
 # datetimepicker widget
