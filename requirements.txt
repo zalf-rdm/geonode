@@ -49,7 +49,7 @@ django-tastypie<0.15.0
 django-tinymce==3.7.1
 django-grappelli==4.0.1
 django-uuid-upload-path==1.0.0
-django-widget-tweaks==1.5.0
+django-widget-tweaks==1.5.1
 django-sequences==3.0
 oauthlib==3.2.2
 pyjwt==2.8.0
