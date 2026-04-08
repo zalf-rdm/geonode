@@ -95,7 +95,7 @@ frictionless>=5.17.0
 -e git+https://github.com/zalf-rdm/geonode-mapstore-client.git@main#egg=django-geonode-mapstore-client
 
 # gn importer package
-geonode-importer==1.1.2
+geonode-importer==1.1.4
 
 # more gn dependencies
 geonode-oauth-toolkit==2.2.2.2
