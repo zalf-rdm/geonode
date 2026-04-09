@@ -20,6 +20,7 @@
 import os
 
 __version__ = (5, 0, 2, 'final', 0)
+__version_str__ = '5.0.2'
 
 
 def get_version():

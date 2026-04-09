@@ -463,7 +463,7 @@ INSTALLED_APPS = (
     # 'django_admin_bootstrapped.bootstrap3',
     # 'django_admin_bootstrapped',
     # Apps bundled with Django
-    "importer_datapackage",
+    # "importer_datapackage",  # TODO: re-enable after porting to 5.0.2
     "modeltranslation",
     "dal",
     "dal_select2",
@@ -2147,10 +2147,11 @@ DATABASE_ROUTERS = ["geonode.upload.db_router.DatastoreRouter"]
 
 IMPORTER_HANDLERS = ast.literal_eval(os.getenv("IMPORTER_HANDLERS", "[]"))
 
-IMPORTER_HANDLERS = [
-    "importer_datapackage.handlers.datapackage.handler.DataPackageFileHandler",
-    *IMPORTER_HANDLERS,
-]
+# TODO: re-enable after porting importer_datapackage to 5.0.2
+# IMPORTER_HANDLERS = [
+#     "importer_datapackage.handlers.datapackage.handler.DataPackageFileHandler",
+#     *IMPORTER_HANDLERS,
+# ]
 
 
 INSTALLED_APPS += ("geonode.facets",)

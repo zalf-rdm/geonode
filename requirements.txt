@@ -79,7 +79,8 @@ geonode-dynamic-rest==2.3.0.1
 # ---- GeoNode dependencies -----
 #TODO
 # importer package
--e git+https://github.com/GeoNodeUserGroup-DE/contrib_datapackage.git@geonode-v4.4.3+datapackage002#egg=importer_datapackage
+# TODO: re-enable after porting to 5.0.2
+# -e git+https://github.com/GeoNodeUserGroup-DE/contrib_datapackage.git@geonode-v4.4.3+datapackage002#egg=importer_datapackage
 frictionless>=5.17.0
 
 # mapstore client package
