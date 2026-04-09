@@ -791,6 +791,9 @@ msgstr ""
 msgid "Keyword"
 msgstr "Mot-clés"
 
+msgid "Keyword"
+msgstr "Mot-clés"
+
 msgid "keywords"
 msgstr "mots-clés"
 

@@ -20,13 +20,11 @@ from django.urls import include, re_path
 
 from .views import (
     DatasetsAutocomplete,
-    resource_clone,
     RegionAutocomplete,
     ThesaurusAvailable,
     OwnerRightsRequestView,
     ResourceBaseAutocomplete,
     HierarchicalKeywordAutocomplete,
-    ThesaurusKeywordLabelAutocomplete,
     LinkedResourcesAutocomplete,
 )
 
@@ -58,11 +56,6 @@ urlpatterns = [
         name="thesaurus_available",
     ),
     re_path(
-        r"^thesaurus_autocomplete/$",
-        ThesaurusKeywordLabelAutocomplete.as_view(),
-        name="thesaurus_autocomplete",
-    ),
-    re_path(
         r"^datasets_autocomplete/$",
         DatasetsAutocomplete.as_view(),
         name="datasets_autocomplete",
@@ -71,11 +64,6 @@ urlpatterns = [
         r"^resource_rights/(?P<pk>\d+)$",
         OwnerRightsRequestView.as_view(),
         name="owner_rights_request",
-    ),
-    re_path(
-        r"^resource_clone/?$",
-        resource_clone,
-        name="resource_clone",
     ),
     re_path(r"^", include("geonode.base.api.urls")),
 ]

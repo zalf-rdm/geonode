@@ -16,70 +16,51 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 #########################################################################
-from dynamic_rest.viewsets import DynamicModelViewSet
-from dynamic_rest.filters import DynamicFilterBackend, DynamicSortingFilter
-
-from drf_spectacular.utils import extend_schema
-
-from rest_framework import status
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework.exceptions import ValidationError
-from rest_framework.parsers import FileUploadParser
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
-from rest_framework.authentication import SessionAuthentication, BasicAuthentication
-from oauth2_provider.contrib.rest_framework import OAuth2Authentication
-
+import logging
+from urllib.parse import urljoin, urlsplit
+from django.conf import settings
+from django.http import Http404, HttpResponse
+from django.urls import reverse
+from geonode.resource.enumerator import ExecutionRequestAction
 from django.utils.translation import gettext_lazy as _
-
-from geonode.base.api.filters import DynamicSearchFilter
-from geonode.base.api.permissions import IsOwnerOrReadOnly, IsSelfOrAdminOrReadOnly
+from dynamic_rest.filters import DynamicFilterBackend, DynamicSortingFilter
+from dynamic_rest.viewsets import DynamicModelViewSet
+from geonode.base.api.filters import DynamicSearchFilter, ExtentFilter, FavoriteFilter
 from geonode.base.api.pagination import GeoNodeApiPagination
+from geonode.base.api.permissions import (
+    IsSelfOrAdminOrReadOnly,
+    ResourceBasePermissionsFilter,
+    UserHasPerms,
+)
+from rest_framework.exceptions import ValidationError
+from rest_framework import status
+from geonode.base.api.serializers import ResourceBaseSerializer
+from geonode.base.api.views import ResourceBaseViewSet
+from geonode.base.models import ResourceBase
+from geonode.storage.manager import StorageManager
+from geonode.upload.api.permissions import UploadPermissionsFilter
+from geonode.upload.models import UploadParallelismLimit, UploadSizeLimit
+from geonode.upload.utils import UploadLimitValidator
+from geonode.upload.api.exceptions import HandlerException, ImportException
+from geonode.upload.api.serializer import ImporterSerializer
+from geonode.upload.celery_tasks import import_orchestrator
+from geonode.upload.orchestrator import orchestrator
+from rest_framework.parsers import FileUploadParser, MultiPartParser, JSONParser
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.response import Response
+from geonode.proxy.utils import proxy_urls_registry
+from geonode.storage.manager import FileSystemStorageManager
 
-
-from .serializers import (
-    UploadSerializer,
+from geonode.upload.api.serializer import (
     UploadParallelismLimitSerializer,
     UploadSizeLimitSerializer,
 )
-from .permissions import UploadPermissionsFilter
 
-from ..models import Upload, UploadParallelismLimit, UploadSizeLimit
-
-import logging
-
-logger = logging.getLogger(__name__)
-
-
-class UploadViewSet(DynamicModelViewSet):
-    """
-    API endpoint that allows uploads to be viewed or edited.
-    """
-
-    parser_class = [
-        FileUploadParser,
-    ]
-
-    authentication_classes = [SessionAuthentication, BasicAuthentication, OAuth2Authentication]
-    permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
-    filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter, UploadPermissionsFilter]
-    queryset = Upload.objects.all()
-    serializer_class = UploadSerializer
-    pagination_class = GeoNodeApiPagination
-    http_method_names = ["get", "post"]
-
-    @extend_schema(
-        methods=["post"],
-        responses={201: None},
-    )
-    @action(detail=False, methods=["post"])
-    def upload(self, request, format=None):
-        return []
+logger = logging.getLogger("importer")
 
 
 class UploadSizeLimitViewSet(DynamicModelViewSet):
     http_method_names = ["get", "post"]
-    authentication_classes = [SessionAuthentication, BasicAuthentication, OAuth2Authentication]
     permission_classes = [IsSelfOrAdminOrReadOnly]
     queryset = UploadSizeLimit.objects.all()
     serializer_class = UploadSizeLimitSerializer
@@ -101,7 +82,6 @@ class UploadSizeLimitViewSet(DynamicModelViewSet):
 
 class UploadParallelismLimitViewSet(DynamicModelViewSet):
     http_method_names = ["get", "post"]
-    authentication_classes = [SessionAuthentication, BasicAuthentication, OAuth2Authentication]
     permission_classes = [IsSelfOrAdminOrReadOnly]
     queryset = UploadParallelismLimit.objects.all()
     serializer_class = UploadParallelismLimitSerializer
@@ -120,3 +100,203 @@ class UploadParallelismLimitViewSet(DynamicModelViewSet):
             raise ValidationError(detail)
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ImporterViewSet(DynamicModelViewSet):
+    """
+    API endpoint that allows uploads to be viewed or edited.
+    """
+
+    parser_class = [JSONParser, FileUploadParser, MultiPartParser]
+
+    permission_classes = [
+        IsAuthenticatedOrReadOnly,
+        UserHasPerms(perms_dict={"default": {"POST": ["base.add_resourcebase"]}}),
+    ]
+    filter_backends = [
+        DynamicFilterBackend,
+        DynamicSortingFilter,
+        DynamicSearchFilter,
+        UploadPermissionsFilter,
+    ]
+    queryset = ResourceBase.objects.all().order_by("-last_updated")
+    serializer_class = ImporterSerializer
+    pagination_class = GeoNodeApiPagination
+    http_method_names = ["get", "post"]
+
+    def get_serializer_class(self):
+        specific_serializer = orchestrator.get_serializer(self.request.data)
+        return specific_serializer or ImporterSerializer
+
+    def create(self, request, *args, **kwargs):
+        """
+        Main function called by the new import flow.
+        It received the file via the front end
+        if is a gpkg (in future it will support all the vector file)
+        the new import flow is follow, else the normal upload api is used.
+        It clone on the local repo the file that the user want to upload
+        """
+        _file = request.FILES.get("base_file") or request.data.get("base_file")
+        execution_id = None
+        storage_manager = None
+        serializer = self.get_serializer_class()
+        data = serializer(data=request.data)
+        # serializer data validation
+        data.is_valid(raise_exception=True)
+        _data = {
+            **data.data.copy(),
+            **{key: value[0] if isinstance(value, list) else value for key, value in request.FILES.items()},
+        }
+
+        # clone the memory files into local file system
+        if "url" not in _data and not _data.get("is_empty", False):
+            storage_manager = StorageManager(
+                remote_files={k: v for k, v in _data.items() if k.endswith("_file")},
+                concrete_storage_manager=FileSystemStorageManager(),
+            )
+            storage_manager.clone_remote_files(create_tempdir=True, unzip=False)
+            # validate the upload
+            self.validate_upload(request, storage_manager)
+            # merging the new local path with the input payload
+            _data = _data | storage_manager.get_retrieved_paths()
+        # checking the correct handler for the uploaded files
+        handler = orchestrator.get_handler(_data)
+        # not file but handler means that is a remote resource
+        action = _data.get("action")
+
+        if handler and handler.can_do(action):
+            try:
+                extracted_params, _files = handler.extract_params_from_data(_data)
+                if "url" in extracted_params:
+                    # we should register the hosts for the proxy
+                    proxy_urls_registry.register_host(urlsplit(extracted_params["url"]).hostname)
+
+                input_params = {
+                    **{"files": _files, "handler_module_path": str(handler)},
+                    **{"temporary_files": _files},
+                    **extracted_params,
+                }
+
+                action = input_params.get("action")
+                execution_id = orchestrator.create_execution_request(
+                    user=request.user,
+                    func_name=next(iter(handler.get_task_list(action=action))),
+                    step=_(next(iter(handler.get_task_list(action=action)))),
+                    input_params=input_params,
+                    resource=extracted_params.get("resource_pk", None),
+                    action=action,
+                    name=_file.name if _file else extracted_params.get("title", None),
+                )
+
+                sig = import_orchestrator.s(_data, str(execution_id), handler=str(handler), action=action)
+                sig.apply_async()
+                return Response(data={"execution_id": execution_id}, status=201)
+            except Exception as e:
+                # in case of any exception, is better to delete the
+                # cloned files to keep the storage under control
+                if storage_manager:
+                    try:
+                        storage_manager.delete_retrieved_paths(force=True)
+                    except Exception as _exc:
+                        logger.warning(_exc)
+                if execution_id:
+                    orchestrator.set_as_failed(execution_id=str(execution_id), reason=e)
+                logger.exception(e)
+                raise ImportException(detail=e.args[0] if len(e.args) > 0 else e)
+
+        raise ImportException(detail="No handlers found for this dataset type/action")
+
+    def validate_upload(self, request, storage_manager):
+        upload_validator = UploadLimitValidator(request.user)
+        upload_validator.validate_parallelism_limit_per_user()
+        upload_validator.validate_files_sum_of_sizes(storage_manager.data_retriever)
+
+
+class ResourceImporter(DynamicModelViewSet):
+    permission_classes = [
+        IsAuthenticatedOrReadOnly,
+        UserHasPerms(
+            perms_dict={
+                "dataset": {
+                    "PUT": ["base.add_resourcebase", "base.download_resourcebase"],
+                    "rule": all,
+                },
+                "document": {
+                    "PUT": ["base.add_resourcebase", "base.download_resourcebase"],
+                    "rule": all,
+                },
+                "default": {"PUT": ["base.add_resourcebase"]},
+            }
+        ),
+    ]
+    filter_backends = [
+        DynamicFilterBackend,
+        DynamicSortingFilter,
+        DynamicSearchFilter,
+        ExtentFilter,
+        ResourceBasePermissionsFilter,
+        FavoriteFilter,
+    ]
+    queryset = ResourceBase.objects.all().order_by("-last_updated")
+    serializer_class = ResourceBaseSerializer
+    pagination_class = GeoNodeApiPagination
+
+    def copy(self, request, *args, **kwargs):
+        try:
+            resource = self.get_object()
+            if resource.resourcehandlerinfo_set.exists():
+                handler_module_path = resource.resourcehandlerinfo_set.first().handler_module_path
+
+                action = ExecutionRequestAction.COPY.value
+
+                handler = orchestrator.load_handler(handler_module_path)
+
+                if not handler.can_do(action):
+                    raise HandlerException(
+                        detail=f"The handler {handler_module_path} cannot manage the action required: {action}"
+                    )
+
+                step = next(iter(handler.get_task_list(action=action)))
+
+                extracted_params, _data = handler.extract_params_from_data(request.data, action=action)
+
+                execution_id = orchestrator.create_execution_request(
+                    user=request.user,
+                    func_name=step,
+                    step=step,
+                    action=action,
+                    input_params={
+                        **{"handler_module_path": handler_module_path},
+                        **extracted_params,
+                    },
+                )
+
+                sig = import_orchestrator.s(
+                    {},
+                    str(execution_id),
+                    step=step,
+                    handler=str(handler_module_path),
+                    action=action,
+                    layer_name=resource.title,
+                    alternate=resource.alternate,
+                )
+                sig.apply_async()
+
+                # to reduce the work on the FE, the old payload is mantained
+                return Response(
+                    data={
+                        "status": "ready",
+                        "execution_id": execution_id,
+                        "status_url": urljoin(
+                            settings.SITEURL,
+                            reverse("rs-execution-status", kwargs={"execution_id": execution_id}),
+                        ),
+                    },
+                    status=200,
+                )
+        except (Exception, Http404) as e:
+            logger.error(e)
+            return HttpResponse(status=404, content=e)
+        return ResourceBaseViewSet(request=request, format_kwarg=None, args=args, kwargs=kwargs).resource_service_copy(
+            request, pk=kwargs.get("pk")
+        )

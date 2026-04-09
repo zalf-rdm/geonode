@@ -28,7 +28,7 @@ from django.contrib.auth.models import Group
 from django.forms.models import model_to_dict
 from django.contrib.auth import get_user_model
 from django.db.models.query import QuerySet
-from geonode.assets.utils import get_default_asset
+from geonode.assets.utils import get_default_asset, is_asset_deletable
 from geonode.people import Roles
 from django.http import QueryDict
 from deprecated import deprecated
@@ -81,6 +81,7 @@ from geonode.utils import build_absolute_uri
 from geonode.security.utils import get_resources_with_perms, get_geoapp_subtypes
 from geonode.resource.models import ExecutionRequest
 from django.contrib.gis.geos import Polygon
+from geonode.security.registry import permissions_registry
 
 logger = logging.getLogger(__name__)
 
@@ -141,6 +142,40 @@ class GroupSerializer(DynamicModelSerializer):
         model = Group
         name = "group"
         fields = ("pk", "name")
+
+    def update(self, instance, validated_data):
+        user = self.context["request"].user
+
+        # Check if 'group' is being updated
+        new_group = validated_data.get("group", None)
+
+        if new_group is None:
+            # Handle clearing the group field
+            instance.group = None
+            # Remove 'group' from validated_data so super().update() won't process it again
+            validated_data.pop("group", None)
+            return instance
+
+        if not GroupProfile.objects.filter(group=new_group).exists():
+            logger.warning(f"Group {new_group.pk} does not have an associated GroupProfile.")
+            raise serializers.ValidationError("The selected group does not have a valid group profile.")
+
+        gp = new_group
+
+        if not (user.is_superuser or user.is_staff):
+            qs = user.groups.filter(pk=new_group.pk)
+            # check if the group exists and if it has a group profile
+            if qs.exists():
+                gp = qs.first()
+            else:
+                logger.warning(f"User {user.username} does not have permission for this group: {new_group.pk}")
+                raise serializers.ValidationError("You do not have permission to use this group.")
+
+        # If the user is a member of the group, we can proceed to update
+        validated_data["group"] = gp
+
+        # Call the super class's update method to continue with the default behavior
+        return super().update(instance, validated_data)
 
 
 class GroupProfileSerializer(BaseDynamicModelSerializer):
@@ -430,7 +465,7 @@ class DownloadArrayLinkField(DynamicComputedField):
                     download_urls.append({"url": obj.download_url, "ajax_safe": obj.is_ajax_safe, "default": False})
 
             if asset:
-                download_urls.append({"url": asset_url, "ajax_safe": True, "default": False if download_urls else True})
+                download_urls.append({"url": asset_url, "ajax_safe": True, "default": False})
 
             return download_urls
         else:
@@ -718,7 +753,11 @@ class PermsSerializer(DynamicModelSerializer):
     def to_representation(self, instance):
         request = self.context.get("request", None)
         resource = ResourceBase.objects.get(pk=instance)
-        return resource.get_user_perms(request.user) if request and request.user and resource else []
+        return (
+            permissions_registry.get_perms(instance=resource, user=request.user)
+            if request and request.user and resource
+            else []
+        )
 
 
 class LinksSerializer(DynamicModelSerializer):
@@ -731,36 +770,26 @@ class LinksSerializer(DynamicModelSerializer):
         links = Link.objects.filter(
             resource_id=instance,  # link_type__in=["OGC:WMS", "OGC:WFS", "OGC:WCS", "image", "metadata"]
         )
+        request = self.context.get("request", None)
         for lnk in links:
             formatted_link = model_to_dict(lnk, fields=link_fields)
             ret.append(formatted_link)
             if lnk.asset:
+                deletable = is_asset_deletable(lnk.asset)
                 extras = {
                     "type": "asset",
+                    "deletable": deletable,
                     "content": model_to_dict(lnk.asset, ["title", "description", "type", "created"]),
                 }
-                extras["content"]["download_url"] = asset_handler_registry.get_handler(lnk.asset).create_download_url(
-                    lnk.asset
-                )
+                if request and permissions_registry.user_has_perm(
+                    request.user, lnk.resource.get_self_resource(), "download_resourcebase", include_virtual=True
+                ):
+                    extras["content"]["download_url"] = asset_handler_registry.get_handler(
+                        lnk.asset
+                    ).create_download_url(lnk.asset)
                 formatted_link["extras"] = extras
 
         return ret
-
-
-class ResourceManagementField(serializers.BooleanField):
-    MAPPING = {"is_approved": "can_approve", "is_published": "can_publish", "featured": "can_feature"}
-
-    def to_internal_value(self, data):
-        new_val = super().to_internal_value(data)
-        user = self.context["request"].user
-        user_action = self.MAPPING.get(self.field_name)
-        instance = self.root.instance or ResourceBase.objects.get(pk=self.root.initial_data["pk"])
-        if getattr(user, user_action)(instance):
-            logger.debug("User can perform the action, the new value is returned")
-            return new_val
-        else:
-            logger.warning(f"The user does not have the perms to update the value of {self.field_name}")
-            return getattr(instance, self.field_name)
 
 
 class ResourceBaseSerializer(DynamicModelSerializer):
@@ -857,10 +886,11 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     srid = serializers.CharField(required=False)
     group = ComplexDynamicRelationField(GroupSerializer, embed=True)
     share_count = serializers.CharField(required=False)
-    featured = ResourceManagementField(required=False)
+    rating = serializers.CharField(required=False)
+    featured = serializers.BooleanField(required=False)
     advertised = serializers.BooleanField(required=False)
-    is_published = ResourceManagementField(required=False)
-    is_approved = ResourceManagementField(required=False)
+    is_published = serializers.BooleanField(required=False)
+    is_approved = serializers.BooleanField(required=False)
     detail_url = DetailUrlField(read_only=True)
     created = serializers.DateTimeField(read_only=True)
     last_updated = serializers.DateTimeField(read_only=True)
@@ -885,7 +915,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     download_url = DownloadLinkField(read_only=True)
     favorite = FavoriteField(read_only=True)
     download_urls = DownloadArrayLinkField(read_only=True)
-    perms = DynamicRelationField(PermsSerializer, source="id", read_only=True)
+    perms = serializers.SerializerMethodField(read_only=True)
     links = DynamicRelationField(LinksSerializer, source="id", read_only=True)
 
     # Deferred fields
@@ -1057,6 +1087,32 @@ class ResourceBaseSerializer(DynamicModelSerializer):
         data = super(ResourceBaseSerializer, self).to_internal_value(data)
         return data
 
+    def update(self, instance, validated_data):
+        user = self.context["request"].user
+
+        # Handle group update from the GroupSerializer
+        if "group" in validated_data:
+            # Call GroupSerializer's update method
+            group_serializer = GroupSerializer(context=self.context)
+            group_serializer.update(instance, validated_data)
+
+        for field in instance.ROLE_BASED_MANAGED_FIELDS:
+            if not user.can_change_resource_field(instance, field) and field in validated_data:
+                validated_data.pop(field)
+        return super().update(instance, validated_data)
+
+    def get_perms(self, instance):
+        """
+        Returns the permissions for the resource instance using Django cache.
+        """
+        request = self.context.get("request")
+        permissions = (
+            permissions_registry.get_perms(instance=instance, user=request.user, use_cache=True)
+            if request and request.user and instance
+            else []
+        )
+        return permissions
+
     def save(self, **kwargs):
         extent = self.validated_data.pop("extent", None)
         keywords = self.validated_data.pop("keywords", None)
@@ -1078,7 +1134,12 @@ class ResourceBaseSerializer(DynamicModelSerializer):
                 logger.exception(e)
                 raise InvalidResourceException("The standard bbox provided is invalid")
             instance.set_bbox_polygon(coords, srid)
-        self._save_contact_role_payloads(instance, contact_role_payloads)
+
+        user = self.context["request"].user
+        for field in instance.ROLE_BASED_MANAGED_FIELDS:
+            if not user.can_change_resource_field(instance, field):
+                logger.debug("User can perform the action, the default value is set")
+                setattr(user, field, getattr(ResourceBase, field).field.default)
         return instance
 
     def _pop_contact_role_payloads(self):

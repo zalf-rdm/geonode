@@ -164,12 +164,12 @@ def opensearch_dispatch(request):
     """OpenSearch wrapper"""
 
     ctx = {
-        "shortname": settings.PYCSW["CONFIGURATION"]["metadata:main"]["identification_title"],
-        "description": settings.PYCSW["CONFIGURATION"]["metadata:main"]["identification_abstract"],
-        "developer": settings.PYCSW["CONFIGURATION"]["metadata:main"]["contact_name"],
-        "contact": settings.PYCSW["CONFIGURATION"]["metadata:main"]["contact_email"],
-        "attribution": settings.PYCSW["CONFIGURATION"]["metadata:main"]["provider_name"],
-        "tags": settings.PYCSW["CONFIGURATION"]["metadata:main"]["identification_keywords"].replace(",", " "),
+        "shortname": settings.PYCSW["CONFIGURATION"]["metadata"]["identification"]["title"],
+        "description": settings.PYCSW["CONFIGURATION"]["metadata"]["identification"]["description"],
+        "developer": settings.PYCSW["CONFIGURATION"]["metadata"]["contact"]["name"],
+        "contact": settings.PYCSW["CONFIGURATION"]["metadata"]["contact"]["email"],
+        "attribution": settings.PYCSW["CONFIGURATION"]["metadata"]["provider"]["name"],
+        "tags": " ".join(settings.PYCSW["CONFIGURATION"]["metadata"]["identification"]["keywords"]),
         "url": settings.SITEURL.rstrip("/") if settings.SITEURL.startswith("http") else settings.SITEURL,
     }
 
@@ -199,16 +199,6 @@ def fst(value):
     result = str(value)
     result = result.replace(chrs["separator"], ",").replace("\\n", " ").replace("\r\n", " ")
     return result
-
-
-# from a resource object, build the corresponding metadata dict
-# the aim is to handle the output format (csv, html or pdf) the same structure
-def build_md_dict(resource):
-    md_dict = {
-        "r_uuid": {"label": "uuid", "value": resource.uuid},
-        "r_title": {"label": "titre", "value": resource.title},
-    }
-    return md_dict
 
 
 def get_keywords(resource):

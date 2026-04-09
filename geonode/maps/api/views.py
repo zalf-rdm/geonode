@@ -23,8 +23,6 @@ from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from dynamic_rest.filters import DynamicFilterBackend, DynamicSortingFilter
 from dynamic_rest.viewsets import DynamicModelViewSet
-from oauth2_provider.contrib.rest_framework import OAuth2Authentication
-from rest_framework.authentication import BasicAuthentication, SessionAuthentication
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
@@ -35,6 +33,7 @@ from geonode.base.api.mixins import AdvertisedListMixin
 from geonode.base.api.pagination import GeoNodeApiPagination
 from geonode.base.api.permissions import UserHasPerms
 from geonode.base.api.views import ApiPresetsInitializer
+from geonode.base.enumerations import EventType
 from geonode.layers.api.serializers import DatasetSerializer
 from geonode.maps.api.exception import GeneralMapsException
 from geonode.maps.api.permissions import MapPermissionsFilter
@@ -42,7 +41,6 @@ from geonode.maps.api.serializers import MapLayerSerializer, MapSerializer
 from geonode.maps.contants import _PERMISSION_MSG_SAVE
 from geonode.maps.models import Map
 from geonode.maps.signals import map_changed_signal
-from geonode.monitoring.models import EventType
 from geonode.resource.manager import resource_manager
 from geonode.utils import resolve_object
 
@@ -55,7 +53,6 @@ class MapViewSet(ApiPresetsInitializer, DynamicModelViewSet, AdvertisedListMixin
     """
 
     http_method_names = ["get", "patch", "post", "put"]
-    authentication_classes = [SessionAuthentication, BasicAuthentication, OAuth2Authentication]
     permission_classes = [
         IsAuthenticatedOrReadOnly,
         UserHasPerms(perms_dict={"default": {"POST": ["base.add_resourcebase"]}}),

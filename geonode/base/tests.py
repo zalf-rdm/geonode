@@ -21,6 +21,8 @@ import json
 import logging
 import os
 import requests
+import importlib
+from django.apps import apps
 from PIL import Image
 from io import BytesIO
 from uuid import uuid4
@@ -38,7 +40,6 @@ from geonode.storage.manager import storage_manager
 from django.test import Client, TestCase, override_settings, SimpleTestCase
 from rest_framework.test import APITestCase
 from django.shortcuts import reverse
-from django.utils import translation
 from django.core.files import File
 from django.core.management import call_command
 from django.core.management.base import CommandError
@@ -53,7 +54,6 @@ from geonode.services.models import Service
 from geonode.documents.models import Document
 from geonode.tests.base import GeoNodeBaseTestSupport
 from geonode.base.templatetags.base_tags import display_change_perms_button
-from geonode.base.templatetags.sanitize_html import sanitize_html
 from geonode.base.utils import OwnerRightsRequestViewUtils
 from geonode.base.models import (
     HierarchicalKeyword,
@@ -69,11 +69,10 @@ from geonode.base.models import (
     Thesaurus,
     ThesaurusKeyword,
     generate_thesaurus_reference,
-    RelatedIdentifier,
-    RelatedIdentifierType,
-    RelationType,
-    ResourceTypeGeneral,
+    Link,
 )
+from geonode.assets.tests import ONE_JSON
+from geonode.assets.utils import create_asset
 from geonode.base.middleware import ReadOnlyMiddleware, MaintenanceMiddleware
 from geonode.base.templatetags.base_tags import get_visibile_resources, facets
 from geonode.base.templatetags.thesaurus import (
@@ -87,8 +86,8 @@ from geonode.base.templatetags.thesaurus import (
 from geonode.base.templatetags.user_messages import show_notification
 from geonode import geoserver
 from geonode.decorators import on_ogc_backend
-from geonode.base.forms import ThesaurusAvailableForm, THESAURUS_RESULT_LIST_SEPERATOR
 from geonode.resource.manager import resource_manager
+from geonode.base.api.serializers import ResourceBaseSerializer
 
 test_image = Image.new("RGBA", size=(50, 50), color=(155, 0, 0))
 
@@ -738,14 +737,6 @@ class TestOwnerRightsRequestUtils(TestCase):
         self.assertTrue(user_perms)
 
 
-class SanitizedHtmlTest(TestCase):
-    def test_sanitized_html(self):
-        test_html = "<script>alert('XSS');</script><b>Allowed Text</b>"
-        expected_output = "<b>Allowed Text</b>"
-        sanitized_output = sanitize_html(test_html)
-        self.assertEqual(sanitized_output, expected_output)
-
-
 class TestGetVisibleResource(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create(username="mikel_arteta")
@@ -905,79 +896,6 @@ class TestTagThesaurus(TestCase):
     @staticmethod
     def __get_last_thesaurus():
         return Thesaurus.objects.all().order_by("id")[0]
-
-
-@override_settings(THESAURUS_DEFAULT_LANG="en")
-class TestThesaurusAvailableForm(TestCase):
-    #  loading test thesausurs
-    fixtures = ["test_thesaurus.json"]
-
-    def setUp(self):
-        self.sut = ThesaurusAvailableForm
-
-    def test_form_is_valid_if_all_fields_are_missing(self):
-        #  is now always true since the required is moved to the UI
-        #  (like the other fields)
-        actual = self.sut(data={})
-        self.assertTrue(actual.is_valid())
-
-    def test_form_is_invalid_if_fileds_send_unexpected_values(self):
-        actual = self.sut(data={"1": [1, 2]})
-        self.assertFalse(actual.is_valid())
-
-    def test_form_is_valid_if_fileds_send_expected_values(self):
-        actual = self.sut(data={"1": 1})
-        self.assertTrue(actual.is_valid())
-
-    def test_field_class_treq_is_correctly_set_when_field_is_required(self):
-        actual = self.sut(data={"1": 1})
-        required = actual.fields.get("1")
-        obj_class = required.widget.attrs.get("class")
-        self.assertTrue(obj_class == "treq")
-
-    def test_field_class_treq_is_not_set_when_field_is_optional(self):
-        actual = self.sut(data={"1": 1})
-        required = actual.fields.get("2")
-        obj_class = required.widget.attrs.get("class")
-        self.assertTrue(obj_class == "")
-
-    def test_will_return_thesaurus_with_the_expected_defined_order(self):
-        actual = self.sut(data={"1": 1})
-        fields = list(actual.fields.items())
-        #  will check if the first element of the tuple is the thesaurus_id = 2
-        self.assertEqual(fields[0][0], "2")
-        #  will check if the second element of the tuple is the thesaurus_id = 1
-        self.assertEqual(fields[1][0], "1")
-
-    def test_will_return_thesaurus_with_the_defaul_order_as_0(self):
-        # Update thesaurus order to 0 in order to check if the default order by id is observed
-        t = Thesaurus.objects.get(identifier="inspire-theme")
-        t.order = 0
-        t.save()
-        actual = ThesaurusAvailableForm(data={"1": 1})
-        fields = list(actual.fields.items())
-        #  will check if the first element of the tuple is the thesaurus_id = 2
-        self.assertEqual(fields[0][0], "1")
-        #  will check if the second element of the tuple is the thesaurus_id = 1
-        self.assertEqual(fields[1][0], "2")
-
-    def test_get_thesuro_key_label_with_cmd_language_code(self):
-        # in python test language code look like 'en' this test checks if key label result function
-        # returns correct results
-        tid = 1
-        translation.activate("en")
-        t_available_form = ThesaurusAvailableForm(data={"1": tid})
-        results = t_available_form._get_thesauro_keyword_label(tid, translation.get_language())
-        self.assertNotEqual(results[1], THESAURUS_RESULT_LIST_SEPERATOR)
-
-    def test_get_thesuro_key_label_with_browser_language_code(self):
-        # in browser scenario language does not look like "it", but rather include coutry code
-        # like "it-it" this test checks if _get_thesauro_keyword_label can handle this
-        tid = 1
-        translation.activate("en-us")
-        t_available_form = ThesaurusAvailableForm(data={"1": tid})
-        results = t_available_form._get_thesauro_keyword_label(tid, translation.get_language())
-        self.assertNotEqual(results[1], THESAURUS_RESULT_LIST_SEPERATOR)
 
 
 class TestFacets(TestCase):
@@ -1372,244 +1290,107 @@ class LinkedResourcesTest(GeoNodeBaseTestSupport):
                 _.delete()
 
 
-class ResourceTypeGeneralModelTests(TestCase):
-    """Tests for the ResourceTypeGeneral model."""
-
-    def test_create_resource_type_general(self):
-        """Ensure a ResourceTypeGeneral instance can be created."""
-        rtg = ResourceTypeGeneral.objects.create(
-            label="Dataset",
-            description="Data encoded in a defined structure.",
-        )
-        self.assertEqual(rtg.label, "Dataset")
-        self.assertEqual(str(rtg), "Dataset")
-
-    def test_label_is_primary_key(self):
-        """Ensure the label field serves as the primary key."""
-        rtg = ResourceTypeGeneral.objects.create(
-            label="Software",
-            description="A computer program in either source code (text) or compiled form.",
-        )
-        self.assertEqual(rtg.pk, "Software")
-        fetched = ResourceTypeGeneral.objects.get(pk="Software")
-        self.assertEqual(fetched.description, rtg.description)
-
-    def test_label_is_unique(self):
-        """Ensure duplicate labels are rejected."""
-        ResourceTypeGeneral.objects.create(label="Text", description="A resource consisting primarily of words.")
-        with self.assertRaises(IntegrityError):
-            ResourceTypeGeneral.objects.create(label="Text", description="Duplicate label.")
-
-
-class RelatedIdentifierWithResourceTypeGeneralTests(TestCase):
-    """Tests for the resource_type_general FK on RelatedIdentifier."""
-
-    def setUp(self):
-        self.rit = RelatedIdentifierType.objects.create(label="DOI", description="Digital Object Identifier")
-        self.rt = RelationType.objects.create(label="Cites", description="Cites this resource")
-        self.rtg = ResourceTypeGeneral.objects.create(
-            label="Dataset", description="Data encoded in a defined structure."
+class TestResourceBaseViewSetQueryset(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.test_user = get_user_model().objects.create_user(
+            username="test_queryset_user", email="test@example.com", password="testpass123"
         )
 
-    def test_create_related_identifier_with_resource_type_general(self):
-        """Ensure RelatedIdentifier can be created with resource_type_general."""
-        ri = RelatedIdentifier.objects.create(
-            related_identifier="10.1234/test",
-            related_identifier_type=self.rit,
-            relation_type=self.rt,
-            resource_type_general=self.rtg,
-            description="Test identifier",
+        cls.admin_user = get_user_model().objects.create_user(
+            username="admin_queryset_user", email="admin@example.com", password="adminpass123", is_staff=True
         )
-        self.assertEqual(ri.resource_type_general, self.rtg)
-        self.assertIn("Dataset", str(ri))
 
-    def test_create_related_identifier_without_resource_type_general(self):
-        """Ensure RelatedIdentifier can be created without resource_type_general."""
-        ri, _ = RelatedIdentifier.objects.get_or_create(
-            related_identifier="10.1234/no-rtg",
-            related_identifier_type=self.rit,
-            relation_type=self.rt,
-            resource_type_general=None,
-        )
-        self.assertIsNone(ri.resource_type_general)
-
-    def test_cascade_delete(self):
-        """Ensure deleting a ResourceTypeGeneral cascades to RelatedIdentifier."""
-        ri = RelatedIdentifier.objects.create(
-            related_identifier="10.1234/cascade",
-            related_identifier_type=self.rit,
-            relation_type=self.rt,
-            resource_type_general=self.rtg,
-        )
-        ri_id = ri.id
-        self.rtg.delete()
-        self.assertFalse(RelatedIdentifier.objects.filter(id=ri_id).exists())
-
-
-class DataMigrationTests(TestCase):
-    """Tests that the data migration seeded the expected ResourceTypeGeneral values."""
-
-    def test_seed_data_exists(self):
-        """Ensure all 30 DataCite resourceTypeGeneral values are present."""
-        expected_labels = [
-            "Audiovisual",
-            "Book",
-            "BookChapter",
-            "Collection",
-            "ComputationalNotebook",
-            "ConferencePaper",
-            "ConferenceProceeding",
-            "DataPaper",
-            "Dataset",
-            "Dissertation",
-            "Event",
-            "Image",
-            "InteractiveResource",
-            "Instrument",
-            "Journal",
-            "JournalArticle",
-            "Model",
-            "OutputManagementPlan",
-            "PeerReview",
-            "PhysicalObject",
-            "Preprint",
-            "Report",
-            "Service",
-            "Software",
-            "Sound",
-            "Standard",
-            "StudyRegistration",
-            "Text",
-            "Workflow",
-            "Other",
-        ]
-        for label in expected_labels:
-            self.assertTrue(
-                ResourceTypeGeneral.objects.filter(label=label).exists(),
-                f"ResourceTypeGeneral '{label}' not found — data migration may not have run.",
+        cls.test_resources = []
+        for i in range(5):
+            resource = ResourceBase.objects.create(
+                title=f"test_resource_queryset_{i}",
+                uuid=str(uuid4()),
+                owner=cls.test_user if i % 2 == 0 else cls.admin_user,
+                abstract=f"Test resource {i} for queryset",
+                subtype="vector",
+                is_approved=True,
+                is_published=True,
             )
+            cls.test_resources.append(resource)
 
-    def test_seed_count(self):
-        """Ensure exactly 30 values were seeded."""
-        self.assertEqual(ResourceTypeGeneral.objects.count(), 30)
+    def test_original_queryset_vs_optimized_queryset(self):
+        """Test that original and optimized querysets return the same results"""
+
+        original_queryset = ResourceBase.objects.all().order_by("-created")
+
+        optimized_queryset = ResourceBase.objects.select_related("owner").order_by("-created")
+
+        original_list = list(original_queryset)
+        optimized_list = list(optimized_queryset)
+
+        self.assertEqual(len(original_list), len(optimized_list))
+
+        self.assertEqual(original_list, optimized_list)
+
+        original_pks = [obj.pk for obj in original_list]
+        optimized_pks = [obj.pk for obj in optimized_list]
+        self.assertEqual(original_pks, optimized_pks)
 
 
-class ResourceTypeGeneralAPITests(APITestCase):
-    """Tests for the ResourceTypeGeneral API endpoints."""
+class FixOtherRestrictionsTest(GeoNodeBaseTestSupport):
 
-    fixtures = ["initial_data.json", "group_test_data.json", "default_oauth_apps.json"]
+    def test_fix_otherrestrictions_codetype(self):
+        from geonode.base.models import RestrictionCodeType
+        from django.db.models import Q
 
-    def test_list_resource_type_generals(self):
-        """Ensure the resourcetypegenerals list endpoint returns all values."""
-        url = reverse("resourcetypegenerals-list")
-        response = self.client.get(url, format="json")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["total"], 30)
+        migration_module = importlib.import_module(
+            "geonode.base.migrations.0094_fix_otherrestrictions_codetype"
+        )  # importing migration module to test
+        fix_otherrestrictions_codetype = migration_module.fix_otherrestrictions_codetype
 
-    def test_retrieve_resource_type_general(self):
-        """Ensure a single ResourceTypeGeneral can be retrieved by PK."""
-        url = reverse("resourcetypegenerals-detail", kwargs={"pk": "Dataset"})
-        response = self.client.get(url, format="json")
-        self.assertEqual(response.status_code, 200)
-        data = response.data["ResourceTypeGeneral"]
-        self.assertEqual(data["label"], "Dataset")
-        self.assertIn("description", data)
-
-    def test_related_identifier_serializer_includes_resource_type_general(self):
-        """Ensure the RelatedIdentifier API response includes resource_type_general."""
-        rit = RelatedIdentifierType.objects.create(label="DOI_API", description="DOI")
-        rt = RelationType.objects.create(label="Cites_API", description="Cites")
-        rtg = ResourceTypeGeneral.objects.get(label="Dataset")
-        ri = RelatedIdentifier.objects.create(
-            related_identifier="10.5678/api-test",
-            related_identifier_type=rit,
-            relation_type=rt,
-            resource_type_general=rtg,
+        updated = RestrictionCodeType.objects.filter(
+            Q(identifier="limitation not listed") | Q(identifier="otherRestrictions")
+        ).update(
+            identifier="limitation not listed", description="otherRestrictions", gn_description="otherRestrictions"
         )
 
-        url = reverse("relatedidentifiers-detail", kwargs={"pk": ri.pk})
-        response = self.client.get(url, format="json")
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(updated, 1, "Expected one record to be updated")
 
-    def test_resource_base_related_identifier_with_resource_type_general(self):
-        """Ensure resource_type_general appears in the resource's related_identifier field."""
-        resource = ResourceBase.objects.first()
-        if resource is None:
-            self.skipTest("No ResourceBase objects available")
+        fix_otherrestrictions_codetype(apps=apps, schema_editor=None)  # calling the migration function to correct
 
-        rit = RelatedIdentifierType.objects.create(label="DOI_RB", description="DOI")
-        rt = RelationType.objects.create(label="References_RB", description="References")
-        rtg = ResourceTypeGeneral.objects.get(label="Software")
-        ri = RelatedIdentifier.objects.create(
-            related_identifier="10.9999/resource-test",
-            related_identifier_type=rit,
-            relation_type=rt,
-            resource_type_general=rtg,
+        with self.assertRaises(RestrictionCodeType.DoesNotExist):
+            RestrictionCodeType.objects.get(identifier="limitation not listed")
+
+        fixed_obj = RestrictionCodeType.objects.get(identifier="otherRestrictions")
+        self.assertEqual(fixed_obj.description, "limitation not listed")
+        self.assertEqual(fixed_obj.gn_description, "limitation not listed")
+
+
+class TestDeletableAssetKey(GeoNodeBaseTestSupport):
+    def setUp(self):
+        super().setUp()
+        self.user = get_user_model().objects.get(username="admin")
+        self.resource = create_single_dataset("test_resource")
+        self.asset1 = create_asset(self.user, asset_type="document", title="Test Asset for Deletion", files=[ONE_JSON])
+        self.asset2 = create_asset(self.user, asset_type="document", title="Original", files=[ONE_JSON])
+        self.link = Link.objects.create(resource=self.resource, asset=self.asset1, name="test_link")
+        self.link2 = Link.objects.create(resource=self.resource, asset=self.asset2, name="test_link_2")
+
+    def test_deletable_extra_property(self):
+        serializer = ResourceBaseSerializer(instance=self.resource)
+        data = serializer.data
+        links = data.get("links", [])  # get value from LinksSerializer
+
+        # Create a mapping from asset title to the link's deletable status
+        deletable_status_by_title = {
+            link.get("extras", {}).get("content", {}).get("title"): link.get("extras", {}).get("deletable")
+            for link in links
+            if link.get("extras", {}).get("content", {}).get("title")
+        }
+        # Assertions for specific asset titles
+        self.assertIn("Test Asset for Deletion", deletable_status_by_title)
+        self.assertTrue(
+            deletable_status_by_title["Test Asset for Deletion"],
+            "Link with title 'Test Asset for Deletion' should have deletable=True",
         )
-        resource.related_identifier.add(ri)
-
-        self.assertTrue(self.client.login(username="admin", password="admin"))
-        url = f"{reverse('base-resources-list')}/{resource.id}/"
-        response = self.client.get(url, format="json")
-        self.assertEqual(response.status_code, 200)
-
-        related_ids = response.data["resource"].get("related_identifier", [])
-        self.assertTrue(len(related_ids) > 0, "Expected at least one related identifier")
-        # Verify the resource_type_general field is present
-        found = any(ri_data.get("resource_type_general") is not None for ri_data in related_ids)
-        self.assertTrue(found, "resource_type_general field should be present in related_identifier response")
-
-    def test_write_resource_with_related_identifier_including_rtg(self):
-        """Ensure related identifiers with resource_type_general can be written via API."""
-        resource = ResourceBase.objects.filter(owner__username="bobby").first()
-        if resource is None:
-            self.skipTest("No ResourceBase with owner bobby available")
-
-        # Pre-create lookup values
-        RelatedIdentifierType.objects.get_or_create(label="URL_W", defaults={"description": "URL"})
-        RelationType.objects.get_or_create(label="IsSupplementTo_W", defaults={"description": "Is supplement to"})
-
-        self.assertTrue(self.client.login(username="bobby", password="bob"))
-        url = f"{reverse('base-resources-list')}/{resource.id}/"
-        data = {
-            "related_identifier": [
-                {
-                    "related_identifier": "https://example.com/supplement",
-                    "related_identifier_type": {"label": "URL_W"},
-                    "relation_type": {"label": "IsSupplementTo_W"},
-                    "resource_type_general": {"label": "Dataset"},
-                }
-            ]
-        }
-        response = self.client.patch(url, data=data, format="json")
-        self.assertEqual(response.status_code, 200, response.data)
-
-        # Verify it was saved
-        ri = RelatedIdentifier.objects.get(related_identifier="https://example.com/supplement")
-        self.assertEqual(ri.resource_type_general.label, "Dataset")
-
-    def test_write_resource_with_related_identifier_without_rtg(self):
-        """Ensure related identifiers without resource_type_general still work (backward compat)."""
-        resource = ResourceBase.objects.filter(owner__username="bobby").first()
-        if resource is None:
-            self.skipTest("No ResourceBase with owner bobby available")
-
-        RelatedIdentifierType.objects.get_or_create(label="URL_NR", defaults={"description": "URL"})
-        RelationType.objects.get_or_create(label="Cites_NR", defaults={"description": "Cites"})
-
-        self.assertTrue(self.client.login(username="bobby", password="bob"))
-        url = f"{reverse('base-resources-list')}/{resource.id}/"
-        data = {
-            "related_identifier": [
-                {
-                    "related_identifier": "https://example.com/no-rtg",
-                    "related_identifier_type": {"label": "URL_NR"},
-                    "relation_type": {"label": "Cites_NR"},
-                }
-            ]
-        }
-        response = self.client.patch(url, data=data, format="json")
-        self.assertEqual(response.status_code, 200, response.data)
-
-        ri = RelatedIdentifier.objects.get(related_identifier="https://example.com/no-rtg")
-        self.assertIsNone(ri.resource_type_general)
+        self.assertIn("Original", deletable_status_by_title)
+        self.assertFalse(
+            deletable_status_by_title["Original"],
+            "Link with title 'Original' should have deletable=False",
+        )

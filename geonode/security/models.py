@@ -47,7 +47,9 @@ from .permissions import (
     DATASET_EDIT_STYLE_PERMISSIONS,
 )
 
-from .utils import get_users_with_perms, get_user_obj_perms_model, skip_registered_members_common_group
+from .utils import get_users_with_perms, skip_registered_members_common_group
+from geonode.security.registry import permissions_registry
+from guardian.utils import get_user_obj_perms_model
 
 logger = logging.getLogger(__name__)
 
@@ -185,7 +187,7 @@ class PermissionLevelMixin:
         if not anonymous_group:
             raise Exception("Could not acquire 'anonymous' Group.")
 
-        perm_spec = copy.deepcopy(self.get_all_level_info())
+        perm_spec = copy.deepcopy(permissions_registry.get_perms(instance=self, include_virtual=False))
         if "users" not in perm_spec:
             perm_spec["users"] = {}
         if "groups" not in perm_spec:
@@ -371,6 +373,7 @@ class PermissionLevelMixin:
         def calculate_perms(instance, user):
             # To avoid circular import
             from geonode.base.models import Configuration
+            from geonode.layers.models import Dataset
 
             config = Configuration.load()
             ctype = ContentType.objects.get_for_model(instance)
@@ -378,10 +381,13 @@ class PermissionLevelMixin:
 
             PERMISSIONS_TO_FETCH = VIEW_PERMISSIONS + DOWNLOAD_PERMISSIONS + ADMIN_PERMISSIONS + SERVICE_PERMISSIONS
             # include explicit permissions appliable to "subtype == 'vector'"
-            if instance.subtype in ["vector", "vector_time"]:
-                PERMISSIONS_TO_FETCH += DATASET_ADMIN_PERMISSIONS
-            elif instance.subtype == "raster":
+
+            if instance.subtype == "raster":
                 PERMISSIONS_TO_FETCH += DATASET_EDIT_STYLE_PERMISSIONS
+            elif isinstance(instance.get_real_instance(), Dataset):
+                # remote layers are included, since https://github.com/GeoNode/geonode/issues/13011
+                # introduces an "optimistic" approach to editing remote layers
+                PERMISSIONS_TO_FETCH += DATASET_ADMIN_PERMISSIONS
 
             resource_perms = Permission.objects.filter(
                 codename__in=PERMISSIONS_TO_FETCH, content_type_id__in=[ctype.id, ctype_resource_base.id]
@@ -450,11 +456,4 @@ class PermissionLevelMixin:
         """
         Checks if a has a given permission to the resource.
         """
-        user_perms = self.get_user_perms(user)
-
-        if permission not in user_perms:
-            # TODO cater for permissions with syntax base.permission_codename
-            # eg 'base.change_resourcebase'
-            return False
-
-        return True
+        return permissions_registry.user_has_perm(user, self, permission)

@@ -1,15 +1,9 @@
-FROM geonode/geonode-base:latest-ubuntu-22.04
+FROM geonode/geonode-base:latest-ubuntu-24.04
 LABEL GeoNode development team
 
 # copy local geonode src inside container
 COPY . /usr/src/geonode/
 WORKDIR /usr/src/geonode
-
-#COPY monitoring-cron /etc/cron.d/monitoring-cron
-#RUN chmod 0644 /etc/cron.d/monitoring-cron
-#RUN crontab /etc/cron.d/monitoring-cron
-#RUN touch /var/log/cron.log
-#RUN service cron start
 
 COPY wait-for-databases.sh /usr/bin/wait-for-databases
 RUN chmod +x /usr/bin/wait-for-databases
@@ -27,6 +21,7 @@ RUN chmod +x /usr/bin/celery-cmd
 # # Install logstash and centralized dashboard dependencies
 # RUN cd /usr/src/geonode-contribs/ldap; pip install --upgrade  -e .
 
+RUN . /usr/src/venv/bin/activate
 RUN yes w | pip install --src /usr/src -r requirements.txt &&\
     yes w | pip install -e .
 

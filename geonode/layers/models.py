@@ -165,6 +165,21 @@ class Dataset(ResourceBase):
         return self.subtype == "raster"
 
     @property
+    def supports_time(self):
+        valid_attributes = self.get_choices
+        # check if the layer object if a vector and
+        # includes valid_attributes
+        if self.is_vector() and valid_attributes:
+            return True
+        return False
+
+    @property
+    def get_choices(self):
+
+        attributes = Attribute.objects.filter(dataset_id=self.pk)
+        return [(_a.pk, _a.attribute) for _a in attributes if _a.attribute_type in ["xsd:dateTime", "xsd:date"]]
+
+    @property
     def display_type(self):
         if self.subtype in ["vector", "vector_time"]:
             return "Vector Data"
@@ -372,11 +387,6 @@ class Dataset(ResourceBase):
         """
         if user == self.owner or user.is_superuser:
             return
-        if not do_local:
-            from geonode.messaging import producer
-
-            producer.viewing_dataset(str(user), str(self.owner), self.id)
-
         else:
             Dataset.objects.filter(id=self.id).update(popular_count=models.F("popular_count") + 1)
 

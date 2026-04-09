@@ -16,10 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 #########################################################################
-import ast
 import logging
 
-from dynamic_rest.fields.fields import DynamicField, DynamicRelationField
+from dynamic_rest.fields.fields import DynamicRelationField
 from dynamic_rest.serializers import DynamicModelSerializer
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError, ValidationError
@@ -28,22 +27,14 @@ from geonode.base.api.serializers import (
     DetailUrlField,
     BaseDynamicModelSerializer,
     ResourceBaseSerializer,
-    PermsSerializer,
     LinksSerializer,
 )
 from geonode.layers.api.serializers import FeatureInfoTemplateField, StyleSerializer
 from geonode.layers.models import Dataset
 from geonode.maps.models import Map, MapLayer
+from geonode.security.registry import permissions_registry
 
 logger = logging.getLogger(__name__)
-
-
-class DynamicListAsStringField(DynamicField):
-    def to_representation(self, value):
-        return ast.literal_eval(value) if isinstance(value, str) else value
-
-    def to_internal_value(self, data):
-        return str(data)
 
 
 class DynamicFullyEmbedM2MRelationField(DynamicRelationField):
@@ -111,7 +102,7 @@ class MapLayerDatasetSerializer(DynamicModelSerializer):
     styles = DynamicRelationField(StyleSerializer, embed=True, many=True, read_only=True)
     featureinfo_custom_template = FeatureInfoTemplateField()
 
-    perms = DynamicRelationField(PermsSerializer, source="id", read_only=True)
+    perms = serializers.SerializerMethodField(read_only=True)
     links = DynamicRelationField(LinksSerializer, source="id", read_only=True)
 
     class Meta:
@@ -129,6 +120,18 @@ class MapLayerDatasetSerializer(DynamicModelSerializer):
             "styles",
             "ptype",
         )
+
+    def get_perms(self, instance):
+        """
+        Returns the permissions for the dataset instance using  cache.
+        """
+        request = self.context.get("request")
+        permissions = (
+            permissions_registry.get_perms(instance=instance, user=request.user, use_cache=True)
+            if request and request.user and instance
+            else []
+        )
+        return permissions
 
 
 class MapLayerSerializer(DynamicModelSerializer):

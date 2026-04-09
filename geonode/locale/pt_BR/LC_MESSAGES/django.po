@@ -355,6 +355,9 @@ msgstr ""
 msgid "Region"
 msgstr "Região"
 
+msgid "Region"
+msgstr "Região"
+
 msgid "Regions"
 msgstr "Regiões"
 
@@ -768,6 +771,9 @@ msgid ""
 "Give an Explanation about the conformity check. (e.g. See the referenced "
 "specification."
 msgstr ""
+
+msgid "Keyword"
+msgstr "Palavra-chave"
 
 msgid "Keyword"
 msgstr "Palavra-chave"

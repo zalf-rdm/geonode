@@ -24,14 +24,10 @@ import time
 import uuid
 import json
 import errno
-import typing
 import logging
 import datetime
-import tempfile
 import traceback
-import dataclasses
 
-from shutil import copyfile
 from itertools import cycle
 from collections import defaultdict
 from os.path import basename, splitext, isfile
@@ -70,6 +66,7 @@ from geonode.security.views import _perms_info_json
 from geonode.catalogue.models import catalogue_post_save
 from geonode.layers.models import Dataset, Attribute, Style
 from geonode.layers.enumerations import LAYER_ATTRIBUTE_NUMERIC_DATA_TYPES
+from geonode.resource.utils import is_remote_resource
 
 from geonode.utils import (
     OGC_Servers_Handler,
@@ -482,8 +479,6 @@ def cascading_delete(dataset_name=None, catalog=None):
     finally:
         # Let's reset the connections first
         cat._cache.clear()
-        cat.reset()
-        cat.reload()
 
     if resource is None:
         # If there is no associated resource,
@@ -1002,6 +997,7 @@ def set_attributes_from_geoserver(layer, overwrite=False):
     else:
         server_url = ogc_server_settings.LOCATION
     if layer.subtype in ["tileStore", "remote"] and layer.remote_service.ptype == "gxp_arcrestsource":
+        logger.info(f"Getting info for {layer.subtype} '{layer.alternate or layer.typename}'")
         dft_url = f"{server_url}{(layer.alternate or layer.typename)}?f=json"
         try:
             # The code below will fail if http_client cannot be imported
@@ -1011,20 +1007,22 @@ def set_attributes_from_geoserver(layer, overwrite=False):
                 [n["name"], _esri_types[n["type"]]] for n in body["fields"] if n.get("name") and n.get("type")
             ]
         except Exception:
-            tb = traceback.format_exc()
-            logger.debug(tb)
+            logger.warning(
+                f"Error while retrieving info for {layer.subtype} '{layer.alternate or layer.typename}'", exc_info=True
+            )
             attribute_map = []
     elif layer.subtype in {"vector", "tileStore", "remote", "wmsStore", "vector_time", "tabular"}:
         typename = layer.alternate if layer.alternate else layer.typename
+        logger.info(f"Getting WFS info for {layer.subtype} '{typename}'")
         dft_url_path = re.sub(r"\/wms\/?$", "/", server_url)
         dft_query = urlencode(
             {"service": "wfs", "version": "1.0.0", "request": "DescribeFeatureType", "typename": typename}
         )
         dft_url = urljoin(dft_url_path, f"ows?{dft_query}")
+        logger.debug(f"WFS URL is {dft_url}")
         try:
             # The code below will fail if http_client cannot be imported or WFS not supported
-            req, body = http_client.get(dft_url, user=_user)
-            doc = dlxml.fromstring(body.encode())
+            doc = _get_xml(dft_url)
             xsd = "{http://www.w3.org/2001/XMLSchema}"
             path = f".//{xsd}extension/{xsd}sequence/{xsd}element"
             attribute_map = [
@@ -1033,8 +1031,9 @@ def set_attributes_from_geoserver(layer, overwrite=False):
                 if n.attrib.get("name") and n.attrib.get("type")
             ]
         except Exception:
-            tb = traceback.format_exc()
-            logger.debug(tb)
+            logger.warning(
+                f"Error while retrieving WFS info for {layer.subtype} '{typename}'... will try WMS", exc_info=True
+            )
             attribute_map = []
             # Try WMS instead
             dft_url = (
@@ -1059,7 +1058,9 @@ def set_attributes_from_geoserver(layer, overwrite=False):
                 )
             )
             try:
-                req, body = http_client.get(dft_url, user=_user)
+                logger.info(f"Getting WMS info for {layer.subtype} '{layer.alternate or layer.typename}'")
+                logger.debug(f"WMS URL is {dft_url}")
+                body = _get_from_catalog(dft_url)
                 soup = BeautifulSoup(body, features="lxml")
                 for field in soup.findAll("th"):
                     if field.string is None:
@@ -1068,21 +1069,19 @@ def set_attributes_from_geoserver(layer, overwrite=False):
                         field_name = field.string
                     attribute_map.append([field_name, "xsd:string"])
             except Exception:
-                tb = traceback.format_exc()
-                logger.debug(tb)
+                logger.warning(f"Error while retrieving WMS info for {layer.subtype} '{typename}'", exc_info=True)
                 attribute_map = []
     elif layer.subtype in ["raster"]:
         typename = layer.alternate if layer.alternate else layer.typename
+        logger.info(f"Getting WCS info for {layer.subtype} '{typename}'")
         dc_url = f"{server_url}wcs?{urlencode({'service': 'wcs', 'version': '1.1.0', 'request': 'DescribeCoverage', 'identifiers': typename})}"
         try:
-            req, body = http_client.get(dc_url, user=_user)
-            doc = dlxml.fromstring(body.encode())
+            doc = _get_xml(dc_url)
             wcs = "{http://www.opengis.net/wcs/1.1.1}"
             path = f".//{wcs}Axis/{wcs}AvailableKeys/{wcs}Key"
             attribute_map = [[n.text, "raster"] for n in doc.findall(path)]
         except Exception:
-            tb = traceback.format_exc()
-            logger.debug(tb)
+            logger.warning(f"Error while retrieving WCS info for {layer.subtype} '{typename}'", exc_info=True)
             attribute_map = []
     # Get attribute statistics & package for call to really_set_attributes()
     attribute_stats = defaultdict(dict)
@@ -1098,6 +1097,7 @@ def set_attributes_from_geoserver(layer, overwrite=False):
             else:
                 result = None
             attribute_stats[layer.name][field] = result
+    logger.info(f"Found {len(attribute_map)} attributes for {layer.subtype}")
     set_attributes(layer, attribute_map, overwrite=overwrite, attribute_stats=attribute_stats)
 
 
@@ -1324,16 +1324,6 @@ def get_wcs_record(instance, retry=True):
             return get_wcs_record(instance, retry=False)
         else:
             raise GeoNodeException(msg)
-
-
-def get_coverage_grid_extent(instance):
-    """
-    Returns a list of integers with the size of the coverage
-    extent in pixels
-    """
-    instance_wcs = get_wcs_record(instance)
-    grid = instance_wcs.grid
-    return [(int(h) - int(l) + 1) for h, l in zip(grid.highlimits, grid.lowlimits)]
 
 
 GEOSERVER_LAYER_TYPES = {
@@ -1650,7 +1640,7 @@ def _stylefilterparams_geowebcache_dataset(dataset_name):
 
     # check/write GWC filter parameters
     body = None
-    tree = dlxml.fromstring(_)
+    tree = dlxml.fromstring(content.encode())
     param_filters = tree.findall("parameterFilters")
     if param_filters and len(param_filters) > 0:
         if not param_filters[0].findall("styleParameterFilter"):
@@ -1828,37 +1818,34 @@ def set_time_info(layer, attribute, end_attribute, presentation, precision_value
 
 
 def get_time_info(layer):
-    """Get the configured time dimension metadata for the layer as a dict.
-
-    The keys of the dict will be those of the parameters of `set_time_info`.
-
-    :returns: dict of values or None if not configured
     """
-    layer = gs_catalog.get_layer(layer.name)
-    if layer is None:
-        raise ValueError(f"no such layer: {layer.name}")
-    resource = layer.resource if layer else None
-    if not resource:
-        resources = gs_catalog.get_resources(stores=[layer.name])
-        if resources:
-            resource = resources[0]
-
-    info = resource.metadata.get("time", None) if resource.metadata else None
-    vals = None
-    if info:
-        value = step = None
-        resolution = info.resolution_str()
-        if resolution:
-            value, step = resolution.split()
-        vals = dict(
-            enabled=info.enabled,
-            attribute=info.attribute,
-            end_attribute=info.end_attribute,
-            presentation=info.presentation,
-            precision_value=value,
-            precision_step=step,
-        )
-    return vals
+    Get the time configuration for a layer
+    """
+    time_info = {}
+    gs_layer = gs_catalog.get_layer(name=layer.name)
+    if gs_layer is not None:
+        gs_time_info = gs_layer.resource.metadata.get("time")
+        if gs_time_info.enabled:
+            _attr = layer.attributes.filter(attribute=gs_time_info.attribute).first()
+            time_info["attribute"] = _attr.pk if _attr else None
+            if gs_time_info.end_attribute is not None:
+                end_attr = layer.attributes.filter(attribute=gs_time_info.end_attribute).first()
+                time_info["end_attribute"] = end_attr.pk if end_attr else None
+            time_info["presentation"] = gs_time_info.presentation
+            lookup_value = sorted(list(gs_time_info._lookup), key=lambda x: x[1], reverse=True)
+            if gs_time_info.resolution is not None:
+                res = gs_time_info.resolution // 1000
+                for el in lookup_value:
+                    if res % el[1] == 0:
+                        time_info["precision_value"] = res // el[1]
+                        time_info["precision_step"] = el[0]
+                        break
+            else:
+                time_info["precision_value"] = gs_time_info.resolution
+                time_info["precision_step"] = "seconds"
+        return time_info
+    else:
+        return None
 
 
 ogc_server_settings = OGC_Servers_Handler(settings.OGC_SERVER)["default"]
@@ -1906,85 +1893,6 @@ _esri_types = {
 }
 
 
-def _dump_image_spec(request_body, image_spec):
-    millis = int(round(time.time() * 1000))
-    try:
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            _request_body_file_name = os.path.join(tmp_dir, f"request_body_{millis}.dump")
-            _image_spec_file_name = os.path.join(tmp_dir, f"image_spec_{millis}.dump")
-            with open(_request_body_file_name, "w") as _request_body_file:
-                _request_body_file.write(f"{request_body}")
-            copyfile(_request_body_file_name, os.path.join(tempfile.gettempdir(), f"request_body_{millis}.dump"))
-            with open(_image_spec_file_name, "w") as _image_spec_file:
-                _image_spec_file.write(f"{image_spec}")
-            copyfile(_image_spec_file_name, os.path.join(tempfile.gettempdir(), f"image_spec_{millis}.dump"))
-        return f"Dumping image_spec to: {os.path.join(tempfile.gettempdir(), f'image_spec_{millis}.dump')}"
-    except Exception as e:
-        logger.exception(e)
-        return f"Unable to dump image_spec for request: {request_body}"
-
-
-def mosaic_delete_first_granule(cat, layer):
-    # - since GeoNode will uploade the first granule again through the Importer, we need to /
-    #   delete the one created by the gs_config
-    cat._cache.clear()
-    store = cat.get_store(layer)
-    coverages = cat.mosaic_coverages(store)
-
-    granule_id = f"{layer}.1"
-
-    cat.mosaic_delete_granule(coverages["coverages"]["coverage"][0]["name"], store, granule_id)
-
-
-def set_time_dimension(
-    cat,
-    name,
-    workspace,
-    time_presentation,
-    time_presentation_res,
-    time_presentation_default_value,
-    time_presentation_reference_value,
-):
-    # configure the layer time dimension as LIST
-    presentation = time_presentation
-    if not presentation:
-        presentation = "LIST"
-
-    resolution = None
-    if time_presentation == "DISCRETE_INTERVAL":
-        resolution = time_presentation_res
-
-    strategy = None
-    if time_presentation_default_value and not time_presentation_default_value == "":
-        strategy = time_presentation_default_value
-
-    timeInfo = DimensionInfo(
-        "time",
-        "true",
-        presentation,
-        resolution,
-        "ISO8601",
-        None,
-        attribute="time",
-        strategy=strategy,
-        reference_value=time_presentation_reference_value,
-    )
-
-    layer = cat.get_layer(name)
-    resource = layer.resource if layer else None
-    if not resource:
-        resources = cat.get_resources(stores=[name]) or cat.get_resources(stores=[name], workspaces=[workspace])
-        if resources:
-            resource = resources[0]
-
-    if not resource:
-        logger.exception(f"No resource could be found on GeoServer with name {name}")
-        raise Exception(f"No resource could be found on GeoServer with name {name}")
-
-    resource.metadata = {"time": timeInfo}
-    cat.save(resource)
-
-
 # main entry point to create a thumbnail - will use implementation
 # defined in settings.THUMBNAIL_GENERATOR (see settings.py)
 def create_gs_thumbnail(instance, overwrite=False, check_bbox=False):
@@ -2024,23 +1932,18 @@ def sync_instance_with_geoserver(instance_id, *args, **kwargs):
 
         # Don't run this signal handler if it is a tile layer or a remote store (Service)
         #    Currently only gpkg files containing tiles will have this type & will be served via MapProxy.
-        _is_remote_instance = hasattr(instance, "subtype") and getattr(instance, "subtype") in ["tileStore", "remote"]
+        _is_remote_instance = is_remote_resource(instance)
 
-        # Let's reset the connections first
-        gs_catalog._cache.clear()
-        gs_catalog.reset()
-
-        gs_resource = None
         if not _is_remote_instance:
+            # Let's reset the connections first
+            gs_catalog._cache.clear()
+            gs_catalog.reset()
+
+            gs_resource = None
             values = {"title": instance.title, "abstract": instance.raw_abstract}
             _tries = 0
-            _max_tries = getattr(ogc_server_settings, "MAX_RETRIES", 3)
 
             values, gs_resource = fetch_gs_resource(instance, values, _tries)
-            while not gs_resource and _tries < _max_tries:
-                values, gs_resource = fetch_gs_resource(instance, values, _tries)
-                _tries += 1
-                time.sleep(3)
 
             if gs_resource:
                 logger.debug(f"Found geoserver resource for this dataset: {instance.name}")
@@ -2213,36 +2116,6 @@ def select_relevant_files(allowed_extensions, files):
     return result
 
 
-@dataclasses.dataclass()
-class SpatialFilesLayerType:
-    base_file: str
-    scan_hint: str
-    spatial_files: typing.List
-    dataset_type: typing.Optional[str] = None
-
-
-def get_spatial_files_dataset_type(allowed_extensions, files, charset="UTF-8") -> SpatialFilesLayerType:
-    """Reutnrs 'vector' or 'raster' whether a file from the allowed extensins has been identified."""
-    from geonode.upload.files import scan_file
-
-    allowed_file = select_relevant_files(allowed_extensions, files)
-    if not allowed_file or len(allowed_file) != 1:
-        return None
-    base_file = allowed_file[0]
-    spatial_files = scan_file(base_file, charset=charset)
-    the_dataset_type = get_dataset_type(spatial_files)
-    if the_dataset_type not in (FeatureType.resource_type, Coverage.resource_type):
-        return None
-    spatial_files_type = SpatialFilesLayerType(
-        base_file=base_file,
-        scan_hint=None,
-        spatial_files=spatial_files,
-        dataset_type="vector" if the_dataset_type == FeatureType.resource_type else "raster",
-    )
-
-    return spatial_files_type
-
-
 def get_dataset_type(spatial_files):
     """Returns 'FeatureType.resource_type' or 'Coverage.resource_type' accordingly to the provided SpatialFiles"""
     if spatial_files.archive is not None:
@@ -2294,3 +2167,19 @@ def ows_endpoint_in_path(path):
         or re.match(r".*(?<!w[a-z]s)/(w.*s)/.*$", path, re.IGNORECASE)
         or re.match(r".*(?<!ows)/(ows)/.*$", path, re.IGNORECASE)
     )
+
+
+def _get_from_catalog(url):
+    resp = gs_catalog.http_request(url)
+    if resp.status_code == 200:
+        return resp.content
+    else:
+        logger.debug(f"Request at {url} returned code {resp.status_code} and content {resp.content}")
+        raise Exception(f"Request returned code {resp.status_code}")
+
+
+def _get_xml(url):
+    content = _get_from_catalog(url)
+    if isinstance(content, bytes):
+        content = content.decode("UTF-8")
+    return dlxml.fromstring(content.encode())

@@ -1,3 +1,21 @@
+#########################################################################
+#
+# Copyright (C) 2024 OSGeo
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+#########################################################################
 import base64
 import binascii
 import html
@@ -10,7 +28,7 @@ from django.http import QueryDict
 from django.http.multipartparser import FIELD, FILE, ChunkIter, LazyStream, Parser, exhaust
 from django.utils.datastructures import MultiValueDict
 from django.utils.encoding import force_str
-
+from django.urls import reverse
 from geonode.upload.models import UploadSizeLimit
 
 
@@ -32,10 +50,16 @@ class SizeRestrictedFileUploadHandler(FileUploadHandler):
         )
         self.max_size_allowed = 0
         self.activated = False
+        dataset_upload_url = reverse("importer_upload")
 
         # If the post is too large, we create a empty UploadedFile, otherwise another handler will take care or it.
         if self.is_view_elegible_for_size_restriction:
-            file_type = "dataset_upload_size" if "uploads/upload" in input_data.path else "document_upload_size"
+            if dataset_upload_url in input_data.path:
+                file_type = "dataset_upload_size"
+            elif self.request.resolver_match.url_name == "base-resources-assets":
+                file_type = "asset_upload_size"
+            else:
+                file_type = "document_upload_size"
             self.max_size_allowed = self._get_max_size(file_type)
             self.activated = content_length > self.max_size_allowed
             if self.activated:
@@ -129,24 +153,9 @@ class SizeRestrictedFileUploadHandler(FileUploadHandler):
 
                 _post.appendlist(field_name, force_str(data, encoding, errors="replace"))
             elif item_type == FILE:
-                # NOTE: Parse files WITHOUT a stream.
-                # This is a file, use the handler...
-                file_name = disposition.get("filename")
-                if file_name:
-                    file_name = force_str(file_name, encoding, errors="replace")
-                    file_name = self.sanitize_file_name(file_name)
-                if not file_name:
-                    continue
-
-                content_type, content_type_extra = meta_data.get("content-type", ("", {}))
-                content_type = content_type.strip()
-                charset = content_type_extra.get("charset")
-                content_length = None
-
-                self.new_file(field_name, file_name, content_type, content_length, charset, content_type_extra)
-
-                # Handle file upload completions on next iteration.
-                old_field_name = field_name
+                raise RequestDataTooBig(
+                    f"File upload size exceeded maximum allowed size of {self.max_size_allowed} bytes."
+                )
             else:
                 # If this is neither a FIELD or a FILE, just exhaust the stream.
                 exhaust(stream)

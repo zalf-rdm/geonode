@@ -60,5 +60,4 @@ class ExecutionRequest(models.Model):
     action = models.CharField(
         max_length=50, choices=ACTION_CHOICES, default=ExecutionRequestAction.UNKNOWN.value, null=True
     )
-
-    source = models.CharField(max_length=250, null=True, default=None)
+    tasks = models.JSONField(blank=True, default=dict, help_text="Tracks the status of each task during the upload")
