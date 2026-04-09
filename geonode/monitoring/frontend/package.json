@@ -33,7 +33,7 @@
     "url-loader": "2.1.0",
     "webpack": "4.39.1",
     "webpack-cli": "3.3.6",
-    "webpack-dev-server": "3.7.2",
+    "webpack-dev-server": "5.2.1",
     "webpack-parallel-uglify-plugin": "1.1.1"
   },
   "dependencies": {
@@ -41,7 +41,7 @@
     "@material-ui/icons": "4.11.2",
     "@material-ui/lab": "4.0.0-alpha.57",
     "@material-ui/styles": "4.11.3",
-    "axios": "1.6.8",
+    "axios": "1.15.0",
     "babel-polyfill": "6.26.0",
     "chroma-js": "2.0.4",
     "clsx": "1.2.1",
