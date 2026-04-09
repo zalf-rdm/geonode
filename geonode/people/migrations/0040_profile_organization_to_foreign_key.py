@@ -47,7 +47,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("base", "0110_remove_resourcebase_date_collected_and_more"),
-        ("people", "0032_profile_department_alter_profile_first_name"),
+        ("people", "0039_profile_department_alter_profile_first_name"),
     ]
 
     operations = [

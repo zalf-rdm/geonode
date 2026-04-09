@@ -1034,6 +1034,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "data_quality_statement",
             "group",
             "share_count",
+            "rating",
             "featured",
             "advertised",
             "is_published",

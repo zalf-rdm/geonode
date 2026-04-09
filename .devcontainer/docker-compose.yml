@@ -25,6 +25,7 @@ services:
       test: "echo \"I'm alive.\""
 
     env_file:
+      - .env
       - .devcontainer/.env
 
     volumes:
@@ -53,6 +54,7 @@ services:
   celery:
     restart: "no"
     env_file:
+      - .env
       - .devcontainer/.env
 
     volumes:

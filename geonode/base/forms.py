@@ -20,13 +20,18 @@ import logging
 
 from dal import autocomplete
 from django import forms
+from django.contrib.auth import get_user_model
 from django.forms.fields import MultipleChoiceField
+from django.forms.models import BaseInlineFormSet
 from django.utils.translation import gettext_lazy as _
 
 from geonode.base.models import (
+    ContactRole,
     ResourceBase,
 )
 from geonode.layers.models import Dataset
+from geonode.people import Roles
+from geonode.people.utils import get_user_display_name
 
 logger = logging.getLogger(__name__)
 
