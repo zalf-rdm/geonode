@@ -1,0 +1,205 @@
+{
+  "title_translated": {
+    "type": "string",
+    "title": "Title (German)",
+    "description": "German name by which the cited resource is known",
+    "maxLength": 512,
+    "geonode:handler": "zalf",
+    "ui:options": {
+      "widget": "text"
+    }
+  },
+  "abstract_translated": {
+    "type": "string",
+    "title": "Abstract (German)",
+    "description": "Brief German narrative summary of the content of the resource(s)",
+    "maxLength": 2000,
+    "geonode:handler": "zalf",
+    "ui:options": {
+      "widget": "textarea",
+      "rows": 5
+    }
+  },
+  "subtitle": {
+    "type": "string",
+    "title": "Subtitle",
+    "description": "Subtitle of the dataset",
+    "maxLength": 1024,
+    "geonode:handler": "zalf",
+    "ui:options": {
+      "widget": "text"
+    }
+  },
+  "method_description": {
+    "type": "string",
+    "title": "Method Description",
+    "description": "The methodology employed for the study or research",
+    "maxLength": 6000,
+    "geonode:handler": "zalf",
+    "ui:options": {
+      "widget": "textarea",
+      "rows": 5
+    }
+  },
+  "series_information": {
+    "type": "string",
+    "title": "Series Information",
+    "description": "Information about a repeating series, such as volume, issue, number",
+    "maxLength": 6000,
+    "geonode:handler": "zalf",
+    "ui:options": {
+      "widget": "textarea",
+      "rows": 3
+    }
+  },
+  "table_of_content": {
+    "type": "string",
+    "title": "Table of Content",
+    "description": "A listing of the Table of Contents",
+    "maxLength": 6000,
+    "geonode:handler": "zalf",
+    "ui:options": {
+      "widget": "textarea",
+      "rows": 3
+    }
+  },
+  "technical_info": {
+    "type": "string",
+    "title": "Technical Info",
+    "description": "Detailed information that may be associated with design, implementation, operation, use, and/or maintenance of a process or system",
+    "maxLength": 6000,
+    "geonode:handler": "zalf",
+    "ui:options": {
+      "widget": "textarea",
+      "rows": 3
+    }
+  },
+  "other_description": {
+    "type": "string",
+    "title": "Other Description",
+    "description": "Other description information that does not fit into an existing category",
+    "maxLength": 6000,
+    "geonode:handler": "zalf",
+    "ui:options": {
+      "widget": "textarea",
+      "rows": 3
+    }
+  },
+  "data_lineage": {
+    "type": "string",
+    "title": "Data Lineage",
+    "description": "Description of the lineage of the dataset, including its origin and history",
+    "maxLength": 2048,
+    "geonode:handler": "zalf",
+    "ui:options": {
+      "widget": "textarea",
+      "rows": 3
+    }
+  },
+  "metadata_lineage": {
+    "type": "string",
+    "title": "Metadata Lineage",
+    "description": "Description of the lineage of the metadata, including its origin and history",
+    "maxLength": 2048,
+    "geonode:handler": "zalf",
+    "ui:options": {
+      "widget": "textarea",
+      "rows": 3
+    }
+  },
+  "conformity_results": {
+    "type": "string",
+    "title": "Conformity Result",
+    "description": "Degree of conformity of the dataset to the implementing rules of the BonaRes Schema.",
+    "maxLength": 40,
+    "geonode:handler": "zalf"
+  },
+  "conformity_explanation": {
+    "type": "string",
+    "title": "Conformity Explanation",
+    "description": "Explanation about the conformity check. (e.g. See the referenced specification.)",
+    "maxLength": 4000,
+    "geonode:handler": "zalf",
+    "ui:options": {
+      "widget": "textarea",
+      "rows": 3
+    }
+  },
+  "date_available": {
+    "type": "string",
+    "format": "date",
+    "title": "Date Available",
+    "description": "The date the resource is made publicly available. To indicate the end of an embargo period.",
+    "geonode:handler": "zalf"
+  },
+  "date_created": {
+    "type": "string",
+    "format": "date",
+    "title": "Date Created",
+    "description": "The date the resource itself was put together.",
+    "geonode:handler": "zalf"
+  },
+  "date_updated": {
+    "type": "string",
+    "format": "date",
+    "title": "Date Updated",
+    "description": "The date of the last update (last revision) to the dataset.",
+    "geonode:handler": "zalf"
+  },
+  "date_accepted": {
+    "type": ["string", "null"],
+    "format": "date",
+    "title": "Date Accepted",
+    "description": "The date that the publisher accepted the resource into their system.",
+    "geonode:handler": "zalf"
+  },
+  "date_copyrighted": {
+    "type": ["string", "null"],
+    "format": "date",
+    "title": "Date Copyrighted",
+    "description": "The specific date at which the dataset receives a copyrighted status.",
+    "geonode:handler": "zalf"
+  },
+  "date_submitted": {
+    "type": ["string", "null"],
+    "format": "date",
+    "title": "Date Submitted",
+    "description": "The date the creator submits the resource to the publisher.",
+    "geonode:handler": "zalf"
+  },
+  "date_valid": {
+    "type": ["string", "null"],
+    "format": "date",
+    "title": "Date Valid",
+    "description": "The date or date range during which the dataset or resource is accurate.",
+    "geonode:handler": "zalf"
+  },
+  "use_constraint_restrictions": {
+    "type": "array",
+    "title": "Use Constraint Restrictions",
+    "description": "Limitation(s) placed upon the access or use of the data by Admin.",
+    "items": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string"},
+        "label": {"type": "string"}
+      },
+      "required": ["id"]
+    },
+    "geonode:handler": "zalf"
+  },
+  "restriction_other": {
+    "type": "array",
+    "title": "Other Restrictions",
+    "description": "Limitation(s) placed upon the access or use of the data by User.",
+    "items": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string"},
+        "label": {"type": "string"}
+      },
+      "required": ["id"]
+    },
+    "geonode:handler": "zalf"
+  }
+}

@@ -171,7 +171,6 @@ SUBHANDLERS = {
     "language": LanguageSubHandler,
     "license": LicenseSubHandler,
     "maintenance_frequency": FrequencySubHandler,
-    "restriction_code_type": RestrictionsSubHandler,
     "spatial_representation_type": SpatialRepresentationTypeSubHandler,
 }
 

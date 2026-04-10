@@ -92,12 +92,6 @@
       "rows": 5
     }
   },
-  "restriction_code_type": {
-    "type": "string",
-    "title": "restrictions",
-    "description": "limitation(s) placed upon the access or use of the data.",
-    "maxLength": 255
-  },
   "constraints_other": {
     "type": ["string", "null"],
     "title": "Other constraints",

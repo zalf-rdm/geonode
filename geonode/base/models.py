@@ -1475,16 +1475,6 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     def restriction_code(self):
         return self.restriction_other.gn_description if self.restriction_other else None
 
-    @property
-    def restriction_code_type(self):
-        """Backward-compat property for metadata handler (was a FK, now M2M use_constraint_restrictions)."""
-        return self.use_constraint_restrictions.first()
-
-    @restriction_code_type.setter
-    def restriction_code_type(self, value):
-        """Allow metadata handler to set restriction via setattr."""
-        self.use_constraint_restrictions.set([value] if value else [])
-
     def __get_contact_role_elements__(self, role: str) -> Optional[List]:
         """General getter for all contact roles except owner.
 
