@@ -26,7 +26,7 @@ import logging
 import traceback
 import datetime
 
-from typing import List, Tuple
+from typing import List, Optional, Tuple, Union
 from sequences.models import Sequence
 from sequences import get_next_value
 from PIL import Image
@@ -36,7 +36,7 @@ from django.db import models
 from django.conf import settings
 from django.utils.html import escape
 from django.utils.timezone import now
-from django.db.models import Q, signals
+from django.db.models import Q, QuerySet, signals
 from django.db.utils import IntegrityError, OperationalError
 from django.contrib.auth.models import Group
 from django.core.files.base import ContentFile
@@ -1474,6 +1474,68 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     @property
     def restriction_code(self):
         return self.restriction_other.gn_description if self.restriction_other else None
+
+    @property
+    def restriction_code_type(self):
+        """Backward-compat property for metadata handler (was a FK, now M2M use_constraint_restrictions)."""
+        return self.use_constraint_restrictions.first()
+
+    @restriction_code_type.setter
+    def restriction_code_type(self, value):
+        """Allow metadata handler to set restriction via setattr."""
+        self.use_constraint_restrictions.set([value] if value else [])
+
+    def __get_contact_role_elements__(self, role: str) -> Optional[List]:
+        """General getter for all contact roles except owner.
+
+        Args:
+            role (str): string corresponding to role name, defining which property is requested
+        Returns:
+            Optional[List]: returns the requested contact role users from the database
+        """
+        try:
+            contact_role = ContactRole.objects.filter(role=role, resource=self)
+            contacts = [cr.contact for cr in contact_role]
+        except ContactRole.DoesNotExist:
+            contacts = None
+        return contacts
+
+    # types allowed as input for Contact role properties
+    CONTACT_ROLE_USER_PROFILES_ALLOWED_TYPES = Union[str, QuerySet, List]
+
+    def __set_contact_role_element__(self, user_profile: CONTACT_ROLE_USER_PROFILES_ALLOWED_TYPES, role: str):
+        """General setter for all contact roles except owner in resource base.
+
+        Args:
+            user_profile: user or list of users to set for the role
+            role (str): string corresponding to role name, defining which property is to set
+        """
+        from django.contrib.auth import get_user_model
+
+        def __create_role__(resource, role: str, user_profile):
+            return ContactRole.objects.create(role=role, resource=resource, contact=user_profile)
+
+        if isinstance(user_profile, QuerySet):
+            ContactRole.objects.filter(role=role, resource=self).delete()
+            return [__create_role__(self, role, user) for user in user_profile]
+
+        elif isinstance(user_profile, get_user_model()):
+            ContactRole.objects.filter(role=role, resource=self).delete()
+            return __create_role__(self, role, user_profile)
+
+        elif isinstance(user_profile, list) and all(
+            get_user_model().objects.filter(username=x).exists() for x in user_profile
+        ):
+            ContactRole.objects.filter(role=role, resource=self).delete()
+            return [
+                __create_role__(self, role, user)
+                for user in get_user_model().objects.filter(username__in=user_profile)
+            ]
+
+        elif user_profile is None:
+            ContactRole.objects.filter(role=role, resource=self).delete()
+        else:
+            logger.error(f"Bad profile format for role: {role} ...")
 
     @property
     def topiccategory(self):
