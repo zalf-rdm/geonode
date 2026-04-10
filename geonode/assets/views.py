@@ -94,9 +94,10 @@ class AssetViewSet(DynamicModelViewSet):
             from django.db import models as db_models
             from geonode.base.models import ResourceBase
 
-            ResourceBase.objects.filter(id=asset.resource_id).exclude(owner=request.user).update(
-                download_count=db_models.F("download_count") + 1
-            )
+            qs = ResourceBase.objects.filter(id=asset.resource_id)
+            if request.user.is_authenticated:
+                qs = qs.exclude(owner=request.user)
+            qs.update(download_count=db_models.F("download_count") + 1)
         return asset_handler.get_download_handler(asset).create_response(asset, path=path, attachment=attachment)
 
     @action(

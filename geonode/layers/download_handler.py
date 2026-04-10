@@ -59,9 +59,10 @@ class DatasetDownloadHandler:
         if not self.request.user.is_superuser:
             from geonode.layers.models import Dataset
 
-            Dataset.objects.filter(id=resource.id).exclude(owner=self.request.user).update(
-                download_count=db_models.F("download_count") + 1
-            )
+            qs = Dataset.objects.filter(id=resource.id)
+            if self.request.user.is_authenticated:
+                qs = qs.exclude(owner=self.request.user)
+            qs.update(download_count=db_models.F("download_count") + 1)
         return response
 
     @property

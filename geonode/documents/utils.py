@@ -81,9 +81,10 @@ def get_download_response(request, docid, attachment=False):
         if not request.user.is_superuser:
             from django.db import models as db_models
 
-            Document.objects.filter(id=document.id).exclude(owner=request.user).update(
-                download_count=db_models.F("download_count") + 1
-            )
+            qs = Document.objects.filter(id=document.id)
+            if request.user.is_authenticated:
+                qs = qs.exclude(owner=request.user)
+            qs.update(download_count=db_models.F("download_count") + 1)
     filename = slugify(os.path.splitext(os.path.basename(document.title))[0])
 
     asset = get_default_asset(document)

@@ -583,7 +583,10 @@ def map_download(request, mapid, template="maps/map_download.html"):
 
     register_event(request, EventType.EVENT_DOWNLOAD, map_obj)
     if not request.user.is_superuser:
-        Map.objects.filter(id=map_obj.id).exclude(owner=request.user).update(download_count=F("download_count") + 1)
+        qs = Map.objects.filter(id=map_obj.id)
+        if request.user.is_authenticated:
+            qs = qs.exclude(owner=request.user)
+        qs.update(download_count=F("download_count") + 1)
 
     return render(
         request,
