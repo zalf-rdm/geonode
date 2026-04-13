@@ -14,9 +14,19 @@ import json
 import logging
 import os
 
+from rest_framework.reverse import reverse
+
 from django.utils.translation import gettext as _
 
-from geonode.base.models import RestrictionCodeType
+from geonode.base.models import (
+    Funding,
+    Organization,
+    RelatedIdentifier,
+    RelatedIdentifierType,
+    RelationType,
+    ResourceTypeGeneral,
+    RestrictionCodeType,
+)
 from geonode.metadata.handlers.abstract import MetadataHandler
 
 logger = logging.getLogger(__name__)
@@ -45,12 +55,19 @@ SCALAR_FIELDS = {
     "date_copyrighted",
     "date_submitted",
     "date_valid",
+    "use_constrains",
 }
 
 # M2M fields — must be saved via .set(), never via QuerySet.update()
 M2M_RESTRICTION_FIELDS = {
     "use_constraint_restrictions",
     "restriction_other",
+}
+
+# Complex M2M fields with nested objects (funders, related identifiers)
+M2M_COMPLEX_FIELDS = {
+    "fundings",
+    "related_identifier",
 }
 
 # Fields that are NOT NULL in the DB (blank=True but no null=True) — keep empty string as ""
@@ -99,15 +116,44 @@ class ZalfHandler(MetadataHandler):
             self._localize_subschema_labels(context, subschema, lang, property_name)
             self._add_subschema(jsonschema, property_name, subschema)
 
-            # Populate dynamic choices
+            # Populate dynamic choices / autocomplete
             if property_name == "conformity_results":
                 subschema["oneOf"] = [{"const": v, "title": _(v)} for v in CONFORMITY_CHOICES]
             elif property_name in M2M_RESTRICTION_FIELDS:
-                items_oneof = [
-                    {"const": tc.identifier, "title": tc.identifier, "description": tc.description}
-                    for tc in RestrictionCodeType.objects.order_by("identifier")
+                subschema["ui:options"] = {
+                    "geonode-ui:autocomplete": reverse("metadata_autocomplete_restrictioncodes")
+                }
+            elif property_name == "fundings":
+                item_props = subschema["items"]["properties"]
+                item_props["organization"]["oneOf"] = [
+                    {"const": str(org.pk), "title": org.organization or str(org.pk)}
+                    for org in Organization.objects.order_by("organization")
                 ]
-                subschema["items"]["oneOf"] = items_oneof
+            elif property_name == "related_identifier":
+                item_props = subschema["items"]["properties"]
+                item_props["related_identifier_type"]["oneOf"] = [
+                    {"const": t.label, "title": t.label, "description": t.description}
+                    for t in RelatedIdentifierType.objects.order_by("label")
+                ]
+                item_props["relation_type"]["oneOf"] = [
+                    {"const": t.label, "title": t.label, "description": t.description}
+                    for t in RelationType.objects.order_by("label")
+                ]
+                item_props["resource_type_general"]["oneOf"] = [
+                    {"const": t.label, "title": t.label, "description": t.description}
+                    for t in ResourceTypeGeneral.objects.order_by("label")
+                ]
+
+        # Reposition constraints_other (added by base handler) to sit after restriction_other
+        props = jsonschema["properties"]
+        if "constraints_other" in props and "restriction_other" in props:
+            subschema = props.pop("constraints_other")
+            new_props = {}
+            for key, val in props.items():
+                new_props[key] = val
+                if key == "restriction_other":
+                    new_props["constraints_other"] = subschema
+            jsonschema["properties"] = new_props
 
         return jsonschema
 
@@ -115,6 +161,35 @@ class ZalfHandler(MetadataHandler):
         if field_name in M2M_RESTRICTION_FIELDS:
             m2m = getattr(resource, field_name)
             return [{"id": r.identifier, "label": r.identifier} for r in m2m.all()]
+
+        if field_name == "fundings":
+            result = []
+            for f in resource.fundings.select_related("organization").all():
+                org = f.organization
+                result.append({
+                    "organization": str(org.pk) if org else None,
+                    "award_title": f.award_title or "",
+                    "award_number": f.award_number or "",
+                    "award_uri": f.award_uri or "",
+                })
+            return result
+
+        if field_name == "related_identifier":
+            result = []
+            for ri in resource.related_identifier.select_related(
+                "related_identifier_type", "relation_type", "resource_type_general"
+            ).all():
+                rit = ri.related_identifier_type
+                rt = ri.relation_type
+                rtg = ri.resource_type_general
+                result.append({
+                    "related_identifier": ri.related_identifier,
+                    "related_identifier_type": rit.label if rit else None,
+                    "relation_type": rt.label if rt else None,
+                    "resource_type_general": rtg.label if rtg else None,
+                    "description": ri.description or "",
+                })
+            return result
 
         # Scalar: return value directly (dates as ISO strings)
         value = getattr(resource, field_name, None)
@@ -129,6 +204,60 @@ class ZalfHandler(MetadataHandler):
             qs = RestrictionCodeType.objects.filter(identifier__in=identifiers)
             getattr(resource, field_name).set(qs)
             # Do NOT add to context["base"] — M2M cannot go through QuerySet.update()
+            return
+
+        if field_name == "fundings":
+            data = json_instance.get(field_name) or []
+            fundings = []
+            for item in data:
+                if not isinstance(item, dict):
+                    continue
+                org = None
+                org_pk = item.get("organization")
+                if org_pk:
+                    try:
+                        org = Organization.objects.get(pk=org_pk)
+                    except Organization.DoesNotExist:
+                        logger.warning(f"ZalfHandler: Organization pk={org_pk} not found, skipping funder")
+                        continue
+                funding, _ = Funding.objects.get_or_create(
+                    organization=org,
+                    award_number=item.get("award_number") or "",
+                    award_uri=item.get("award_uri") or "",
+                    award_title=item.get("award_title") or "",
+                )
+                fundings.append(funding)
+            resource.fundings.set(fundings)
+            return
+
+        if field_name == "related_identifier":
+            data = json_instance.get(field_name) or []
+            rel_ids = []
+            for item in data:
+                if not isinstance(item, dict):
+                    continue
+                try:
+                    rit_label = item.get("related_identifier_type")
+                    rt_label = item.get("relation_type")
+                    rtg_label = item.get("resource_type_general")
+                    rit = RelatedIdentifierType.objects.get(label=rit_label) if rit_label else None
+                    rt = RelationType.objects.get(label=rt_label) if rt_label else None
+                    rtg = ResourceTypeGeneral.objects.get(label=rtg_label) if rtg_label else None
+                    lookup = {
+                        "related_identifier": item.get("related_identifier", ""),
+                        "related_identifier_type": rit,
+                        "relation_type": rt,
+                        "resource_type_general": rtg,
+                    }
+                    ri, _ = RelatedIdentifier.objects.get_or_create(
+                        **lookup,
+                        defaults={"description": item.get("description") or ""},
+                    )
+                    rel_ids.append(ri)
+                except Exception as e:
+                    logger.warning(f"ZalfHandler: could not resolve related_identifier entry {item}: {e}")
+                    continue
+            resource.related_identifier.set(rel_ids)
             return
 
         # Scalar field — safe to setattr and add to context["base"]

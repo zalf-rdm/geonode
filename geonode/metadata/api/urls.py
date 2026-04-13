@@ -27,6 +27,7 @@ from geonode.metadata.api.views import (
     MetadataRegionsAutocomplete,
     MetadataHKeywordAutocomplete,
     MetadataGroupAutocomplete,
+    restriction_code_types_autocomplete,
 )
 
 router.register(r"metadata", views.MetadataViewSet, "metadata")
@@ -67,6 +68,11 @@ urlpatterns = router.urls + [
         r"metadata/autocomplete/licenses",
         views.licenses_autocomplete,
         name="metadata_autocomplete_licenses",
+    ),
+    path(
+        r"metadata/autocomplete/restrictioncodes",
+        restriction_code_types_autocomplete,
+        name="metadata_autocomplete_restrictioncodes",
     ),
     # path(r"metadata/autocomplete/users", login_required(ProfileAutocomplete.as_view()), name="metadata_autocomplete_users"),
 ]

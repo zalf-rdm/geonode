@@ -24,6 +24,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext as _
 
+from geonode.base.models import ContactRole
 from geonode.metadata.handlers.abstract import MetadataHandler
 from geonode.people import Roles
 from geonode.resource.manager import resource_manager
@@ -137,21 +138,35 @@ class ContactHandler(MetadataHandler):
         return jsonschema
 
     def get_jsonschema_instance(self, resource, field_name, context, errors, lang=None):
-        def __create_user_entry(user):
+        def __create_user_entry(user, order=None):
             names = [n for n in (user.first_name, user.last_name) if n]
-            postfix = f" ({' '.join(names)})" if names else ""
-            return {"id": str(user.id), "label": f"{user.username}{postfix}"}
+            if names:
+                label = " ".join(names)
+            elif getattr(user, "department", None):
+                label = user.department
+            else:
+                label = user.username
+            entry = {"id": str(user.id), "label": label}
+            if order is not None:
+                entry["order"] = order
+            return entry
 
         contacts = {}
         for role in Roles:
             rolename = ROLE_NAMES_MAP[role]
             if role.is_multivalue:
-                content = [__create_user_entry(user) for user in resource.__get_contact_role_elements__(rolename) or []]
+                crs = ContactRole.objects.filter(
+                    role=role.role_value, resource=resource
+                ).select_related("contact").order_by("order")
+                content = [__create_user_entry(cr.contact, cr.order) for cr in crs]
             else:
-                users = resource.__get_contact_role_elements__(rolename)
-                if not users and role == Roles.OWNER:
-                    users = [resource.owner]
-                content = __create_user_entry(users[0]) if users else None
+                crs = ContactRole.objects.filter(
+                    role=role.role_value, resource=resource
+                ).select_related("contact").order_by("order")
+                if not crs and role == Roles.OWNER:
+                    content = __create_user_entry(resource.owner)
+                else:
+                    content = __create_user_entry(crs[0].contact, crs[0].order) if crs else None
 
             contacts[rolename] = content
 
@@ -182,6 +197,19 @@ class ContactHandler(MetadataHandler):
                         logger.warning(f"User with id {users['id']} not found for role '{rolename}'")
                         self._set_error(errors, ["contacts", rolename], f"User with id {users['id']} does not exist.")
             else:
-                ids = [u["id"] for u in users]
-                profiles = get_user_model().objects.filter(pk__in=ids)
-                resource.__set_contact_role_element__(profiles, rolename)
+                role_value = NAMES_ROLE_MAP[rolename].role_value
+                ContactRole.objects.filter(role=role_value, resource=resource).delete()
+                for idx, u in enumerate(users):
+                    # Always derive order from the array position — the client sends entries
+                    # in display order, so idx is always the correct authoritative order value.
+                    # Trusting the echoed-back 'order' field would preserve stale values when
+                    # the user reorders contacts in the UI.
+                    try:
+                        user = get_user_model().objects.get(pk=u["id"] if isinstance(u, dict) else u)
+                        ContactRole.objects.create(
+                            role=role_value, resource=resource, contact=user, order=idx
+                        )
+                    except get_user_model().DoesNotExist:
+                        uid = u.get("id") if isinstance(u, dict) else u
+                        logger.warning(f"User with id {uid} not found for role '{rolename}'")
+                        self._set_error(errors, ["contacts", rolename], f"User with id {uid} does not exist.")

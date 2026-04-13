@@ -188,6 +188,16 @@
     },
     "geonode:handler": "zalf"
   },
+  "use_constrains": {
+    "type": ["string", "null"],
+    "title": "Use Constraints (text)",
+    "description": "Free-text use constraints set by Admin.",
+    "geonode:handler": "zalf",
+    "ui:options": {
+      "widget": "textarea",
+      "rows": 3
+    }
+  },
   "restriction_other": {
     "type": "array",
     "title": "Other Restrictions",
@@ -201,5 +211,59 @@
       "required": ["id"]
     },
     "geonode:handler": "zalf"
+  },
+  "fundings": {
+    "type": "array",
+    "title": "Funders",
+    "description": "Organisations and awards funding this resource.",
+    "geonode:handler": "zalf",
+    "items": {
+      "type": "object",
+      "title": "Funder",
+      "properties": {
+        "organization": {
+          "type": "string",
+          "title": "Funding Organisation"
+        },
+        "award_title":  {"type": "string", "title": "Award Title",  "maxLength": 255},
+        "award_number": {"type": "string", "title": "Award Number", "maxLength": 255},
+        "award_uri":    {"type": "string", "title": "Award URI",    "maxLength": 255}
+      }
+    }
+  },
+  "related_identifier": {
+    "type": "array",
+    "title": "Related Identifiers",
+    "description": "Identifiers of related resources.",
+    "geonode:handler": "zalf",
+    "items": {
+      "type": "object",
+      "title": "Related Identifier",
+      "properties": {
+        "related_identifier": {
+          "type": "string",
+          "title": "Identifier",
+          "maxLength": 255
+        },
+        "related_identifier_type": {
+          "type": "string",
+          "title": "Identifier Type"
+        },
+        "relation_type": {
+          "type": "string",
+          "title": "Relation Type"
+        },
+        "resource_type_general": {
+          "type": "string",
+          "title": "Resource Type (general)"
+        },
+        "description": {
+          "type": "string",
+          "title": "Description",
+          "maxLength": 255
+        }
+      },
+      "required": ["related_identifier", "related_identifier_type", "relation_type"]
+    }
   }
 }

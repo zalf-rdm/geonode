@@ -32,7 +32,7 @@ from django.utils.translation import get_language, gettext as _
 from django.db.models import Q
 
 from geonode.base.api.permissions import UserHasPerms
-from geonode.base.models import ResourceBase, ThesaurusKeyword, ThesaurusKeywordLabel, TopicCategory, License
+from geonode.base.models import ResourceBase, RestrictionCodeType, ThesaurusKeyword, ThesaurusKeywordLabel, TopicCategory, License
 from geonode.base.utils import remove_country_from_languagecode
 from geonode.base.views import LinkedResourcesAutocomplete, RegionAutocomplete, HierarchicalKeywordAutocomplete
 from geonode.groups.models import GroupProfile
@@ -229,6 +229,19 @@ def licenses_autocomplete(request: WSGIRequest):
     return JsonResponse({"results": ret})
 
 
+def restriction_code_types_autocomplete(request: WSGIRequest):
+    qs = RestrictionCodeType.objects.order_by("identifier")
+
+    if q := request.GET.get("q", None):
+        qs = qs.filter(identifier__icontains=q)
+
+    ret = [
+        {"id": record.identifier, "label": record.identifier}
+        for record in qs.all()
+    ]
+    return JsonResponse({"results": ret})
+
+
 class ProfileAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         if self.request and self.request.user:
@@ -249,8 +262,12 @@ class ProfileAutocomplete(autocomplete.Select2QuerySetView):
     def get_results(self, context):
         def get_label(user):
             names = [n for n in (user.first_name, user.last_name) if n]
-            postfix = f" ({' '.join(names)})" if names else ""
-            return f"{user.username}{postfix}"
+            if names:
+                return " ".join(names)
+            elif getattr(user, "department", None):
+                return user.department
+            else:
+                return user.username
 
         """Return data for the 'results' key of the response."""
         return [{"id": self.get_result_value(result), "label": get_label(result)} for result in context["object_list"]]
