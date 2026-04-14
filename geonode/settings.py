@@ -1246,6 +1246,13 @@ except ValueError:
         else re.split(r" *[,|:;] *", os.getenv("ALLOWED_HOSTS"))
     )
 
+_csrf_origins_env = os.getenv("CSRF_TRUSTED_ORIGINS")
+CSRF_TRUSTED_ORIGINS = (
+    [o.strip() for o in _csrf_origins_env.split(",") if o.strip()]
+    if _csrf_origins_env
+    else [SITEURL.rstrip("/")]
+)
+
 # AUTH_IP_WHITELIST property limits access to users/groups REST endpoints
 # to only whitelisted IP addresses.
 #
