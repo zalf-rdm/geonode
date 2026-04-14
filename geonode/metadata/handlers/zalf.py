@@ -98,17 +98,19 @@ class ZalfHandler(MetadataHandler):
     """
 
     def __init__(self):
-        self._schema = None
+        pass
 
     def _load_schema(self):
-        if self._schema is None:
-            with open(_SCHEMA_PATH) as f:
-                self._schema = json.load(f)
-        return self._schema
+        with open(_SCHEMA_PATH) as f:
+            return json.load(f)
 
     def update_schema(self, jsonschema, context, lang=None):
         schema = self._load_schema()
         for property_name, subschema in schema.items():
+            # Only process fields owned by this handler
+            if subschema.get("geonode:handler", "zalf") != "zalf":
+                continue
+
             # Ensure handler tag is set
             if "geonode:handler" not in subschema:
                 subschema["geonode:handler"] = "zalf"
@@ -144,16 +146,18 @@ class ZalfHandler(MetadataHandler):
                     for t in ResourceTypeGeneral.objects.order_by("label")
                 ]
 
-        # Reposition constraints_other (added by base handler) to sit after restriction_other
-        props = jsonschema["properties"]
-        if "constraints_other" in props and "restriction_other" in props:
-            subschema = props.pop("constraints_other")
-            new_props = {}
-            for key, val in props.items():
-                new_props[key] = val
-                if key == "restriction_other":
-                    new_props["constraints_other"] = subschema
-            jsonschema["properties"] = new_props
+        # Reorder all properties to match the key order defined in zalf.json.
+        # Other handlers (base, thesaurus, region, contact, …) have already appended
+        # their fields; we now sort them into the desired positions. Fields not present
+        # in zalf.json (e.g. tkeywords, regions, contacts) are appended at the end in
+        # their original relative order.
+        desired_order = list(schema.keys())
+        current_props = jsonschema["properties"]
+        reordered = {k: current_props[k] for k in desired_order if k in current_props}
+        for k, v in current_props.items():
+            if k not in reordered:
+                reordered[k] = v
+        jsonschema["properties"] = reordered
 
         return jsonschema
 
