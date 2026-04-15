@@ -11,13 +11,14 @@
 <script type="text/javascript" src="{% static "geonode/js/utils/thumbnail.js" %}"></script>
 
 <!-- Required to make select2 fields work for autocomplete -->
-<link href="{% static "vendor/select2/dist/css/select2.css" %}" type="text/css" media="screen" rel="stylesheet" />
+<link href="{% static "lib/css/select2.css" %}" type="text/css" media="screen" rel="stylesheet" />
 <link href="{% static "autocomplete_light/select2.css" %}" type="text/css" media="screen" rel="stylesheet" />
 <script type="text/javascript" src="{% static "admin/js/vendor/jquery/jquery.js" %}"></script>
 <script type="text/javascript" src="{% static "autocomplete_light/autocomplete_light.min.js" %}"></script>
-<script type="text/javascript" src="{% static "vendor/select2/dist/js/select2.full.js" %}"></script>
-<script type="text/javascript" src="{% static "vendor/select2/dist/js/i18n/en.js" %}"></script>
+<script type="text/javascript" src="{% static "lib/js/select2.full.js" %}"></script>
 <script type="text/javascript" src="{% static "autocomplete_light/select2.js" %}"></script>
+<!-- SortableJS for drag-and-drop reordering -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
 <style>
 /* general panel styles */
@@ -46,6 +47,26 @@ form #mdeditor_form label{
 #regions_multiselect_container .fstChoiceItem {
   background-color: #2c689c;
   border: #2c689c;
+}
+
+/* Sortable Select2 Styles */
+.select2-selection--multiple .select2-selection__choice {
+  cursor: move;
+  cursor: grab;
+}
+
+.select2-selection--multiple .select2-selection__choice:active {
+  cursor: grabbing;
+}
+
+.select2-selection--multiple .select2-selection__choice.sortable-ghost {
+  opacity: 0.4;
+}
+
+.select2-selection--multiple .select2-selection__choice.sortable-drag {
+  opacity: 1;
+  background-color: #3875d7 !important;
+  color: white !important;
 }
 
 #mdeditor_form .mandatory-hint,#mdeditor_form .advanced-hint {
