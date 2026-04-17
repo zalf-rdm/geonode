@@ -29,7 +29,8 @@
     <li><a href="#tab-fundings" data-toggle="tab">{% trans "Fundings" %}</a></li>
     <li><a href="#tab-related" data-toggle="tab">{% trans "Related Identifiers" %}</a></li>
     <li><a href="#tab-features" data-toggle="tab">{% trans "Features" %}</a></li>
-    <li><a href="#tab-references" data-toggle="tab">{% trans "References" %}</a></li>
+    <li><a href="#tab-constraints" data-toggle="tab">{% trans "Constraints" %}</a></li>
+    <li><a href="#tab-references" data-toggle="tab">{% trans "Data Access" %}</a></li>
   </ul>
 
   <!-- Accordion (mobile) -->
@@ -45,16 +46,28 @@
       <div id="collapse-identification" class="panel-collapse collapse in">
         <div class="panel-body p-3 metadata-block">
           <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Title" %}</div><div class="col-sm-9">{{ resource.title|default:"-" }}</div></div>
+          {% if resource.subtitle %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Subtitle" %}</div><div class="col-sm-9">{{ resource.subtitle }}</div></div>{% endif %}
+          {% if resource.title_translated %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Title (translated)" %}</div><div class="col-sm-9">{{ resource.title_translated }}</div></div>{% endif %}
           <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Abstract" %}</div><div class="col-sm-9">{{ resource.abstract|default:"-" }}</div></div>
-          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Publication Data" %}</div><div class="col-sm-9">{{ resource.date_created|default:"-" }}</div></div>
-          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Publication Accepted" %}</div><div class="col-sm-9">{{ resource.date_accepted|default:"-" }}</div></div>
-          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Publication Available" %}</div><div class="col-sm-9">{{ resource.date_available|default:"-" }}</div></div>
+          {% if resource.abstract_translated %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Abstract (translated)" %}</div><div class="col-sm-9">{{ resource.abstract_translated }}</div></div>{% endif %}
+          {% if resource.purpose %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Purpose" %}</div><div class="col-sm-9">{{ resource.purpose }}</div></div>{% endif %}
           <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Type" %}</div><div class="col-sm-9">{{ resource.display_type|default:"-" }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "DOI" %}</div><div class="col-sm-9">{{ resource.doi|default:"-" }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Date" %}</div><div class="col-sm-9">{{ resource.date|default:"-" }} ({{ resource.date_type|default:"-" }})</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Date Created" %}</div><div class="col-sm-9">{{ resource.date_created|default:"-" }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Date Issued" %}</div><div class="col-sm-9">{{ resource.date_issued|default:"-" }}</div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Date Updated" %}</div><div class="col-sm-9">{{ resource.date_updated|default:"-" }}</div></div>
+          {% if resource.date_accepted %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Date Accepted" %}</div><div class="col-sm-9">{{ resource.date_accepted }}</div></div>{% endif %}
+          {% if resource.date_available %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Date Available" %}</div><div class="col-sm-9">{{ resource.date_available }}</div></div>{% endif %}
+          {% if resource.date_submitted %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Date Submitted" %}</div><div class="col-sm-9">{{ resource.date_submitted }}</div></div>{% endif %}
+          {% if resource.date_valid %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Date Valid" %}</div><div class="col-sm-9">{{ resource.date_valid }}</div></div>{% endif %}
+          {% if resource.date_copyrighted %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Date Copyrighted" %}</div><div class="col-sm-9">{{ resource.date_copyrighted }}</div></div>{% endif %}
+          {% if resource.category %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Category" %}</div><div class="col-sm-9">{{ resource.category.gn_description|default:resource.category }}</div></div>{% endif %}
+          {% with kws=resource.keywords.all %}{% if kws %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Keywords" %}</div><div class="col-sm-9">{% for k in kws %}{{ k.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>{% endif %}{% endwith %}
+          {% with tkws=resource.tkeywords.all %}{% if tkws %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Thesaurus Keywords" %}</div><div class="col-sm-9">{% for t in tkws %}{{ t }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>{% endif %}{% endwith %}
+          {% with regs=resource.regions.all %}{% if regs %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Regions" %}</div><div class="col-sm-9">{% for r in regs %}{{ r.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>{% endif %}{% endwith %}
           <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Approved" %}</div><div class="col-sm-9">{{ resource.is_approved|yesno:_("Yes,No") }}</div></div>
           <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Published" %}</div><div class="col-sm-9">{{ resource.is_published|yesno:_("Yes,No") }}</div></div>
-          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Featured" %}</div><div class="col-sm-9">{{ resource.featured|yesno:_("Yes,No") }}</div></div>
-          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "DOI" %}</div><div class="col-sm-9">{{ resource.doi|default:"-" }}</div></div>
-          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Attribution" %}</div><div class="col-sm-9">{{ resource.attribution|default:"-" }}</div></div>
         </div>
       </div>
     </div>
@@ -66,33 +79,16 @@
       </div>
       <div id="collapse-responsible" class="panel-collapse collapse">
         <div class="panel-body p-3">
-          <div class="metadata-block p-3 mb-3">
-            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Name" %}</div><div class="col-sm-9">{{ resource.owner }}</div></div>
-            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Email" %}</div><div class="col-sm-9">{{ resource.owner.email }}</div></div>
-            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Organization" %}</div><div class="col-sm-9">{{ resource.owner.organization|default:"-" }}</div></div>
-          </div>
-
-          {% if resource.custodian %}
-            <h5 class="fw-medium mt-3">{% trans "Custodian" %}</h5>
-            {% for custodian in resource.custodian %}
+          {% for role_label, users in resource.get_defined_multivalue_contact_roles.items %}
+            <h5 class="fw-medium mt-3">{{ role_label }}</h5>
+            {% for person in users %}
               <div class="metadata-block p-3 mb-3">
-                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Name' %}</div><div class="col-sm-9">{{ custodian.name_long|default:"-" }}</div></div>
-                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Email' %}</div><div class="col-sm-9">{{ custodian.email|default:"-" }}</div></div>
-                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Organization' %}</div><div class="col-sm-9">{{ custodian.organization|default:"-" }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Name' %}</div><div class="col-sm-9">{{ person.name_long|default:"-" }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Email' %}</div><div class="col-sm-9">{{ person.email|default:"-" }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Organization' %}</div><div class="col-sm-9">{{ person.organization|default:"-" }}</div></div>
               </div>
             {% endfor %}
-          {% endif %}
-
-          {% if resource.poc %}
-            <h5 class="fw-medium mt-3">{% trans "Contact Person" %}</h5>
-            {% for poc in resource.poc %}
-              <div class="metadata-block p-3 mb-3">
-                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Name' %}</div><div class="col-sm-9">{{ poc.name_long|default:"-" }}</div></div>
-                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Email' %}</div><div class="col-sm-9">{{ poc.email|default:"-" }}</div></div>
-                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Organization' %}</div><div class="col-sm-9">{{ poc.organization|default:"-" }}</div></div>
-              </div>
-            {% endfor %}
-          {% endif %}
+          {% endfor %}
         </div>
       </div>
     </div>
@@ -176,8 +172,18 @@
           <div class="metadata-block p-3 mb-3">
             <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Edition" %}</div><div class="col-sm-9">{{ resource.edition|default:"-" }}</div></div>
             <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Language" %}</div><div class="col-sm-9">{{ resource.language|default:"-" }}</div></div>
+            {% if resource.spatial_representation_type %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Spatial Representation Type" %}</div><div class="col-sm-9">{{ resource.spatial_representation_type }}</div></div>{% endif %}
+            {% if resource.maintenance_frequency %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Maintenance Frequency" %}</div><div class="col-sm-9">{{ resource.maintenance_frequency }}</div></div>{% endif %}
+            {% if resource.temporal_extent_start or resource.temporal_extent_end %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Temporal Extent" %}</div><div class="col-sm-9">{{ resource.temporal_extent_start|default:"-" }} — {{ resource.temporal_extent_end|default:"-" }}</div></div>{% endif %}
             <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Data Quality" %}</div><div class="col-sm-9">{{ resource.data_quality_statement }}</div></div>
             <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Supplemental Information" %}</div><div class="col-sm-9">{{ resource.supplemental_information|sanitize_html|safe }}</div></div>
+            {% if resource.method_description %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Method Description" %}</div><div class="col-sm-9">{{ resource.method_description }}</div></div>{% endif %}
+            {% if resource.series_information %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Series Information" %}</div><div class="col-sm-9">{{ resource.series_information }}</div></div>{% endif %}
+            {% if resource.table_of_content %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Table of Content" %}</div><div class="col-sm-9">{{ resource.table_of_content }}</div></div>{% endif %}
+            {% if resource.technical_info %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Technical Info" %}</div><div class="col-sm-9">{{ resource.technical_info }}</div></div>{% endif %}
+            {% if resource.other_description %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Other Description" %}</div><div class="col-sm-9">{{ resource.other_description }}</div></div>{% endif %}
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Conformity Result" %}</div><div class="col-sm-9">{{ resource.conformity_results|default:"-" }}</div></div>
+            {% if resource.conformity_explanation %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Conformity Explanation" %}</div><div class="col-sm-9">{{ resource.conformity_explanation }}</div></div>{% endif %}
           </div>
           <div class="metadata-block p-3 mb-3">
             <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Projection System" %}</div><div class="col-sm-9">{{ resource.srid|default:"-" }}</div></div>
@@ -187,15 +193,35 @@
       </div>
     </div>
 
+    <!-- Constraints -->
+    <div class="panel panel-default rounded shadow-sm mb-3">
+      <div class="panel-heading p-2">
+        <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapse-constraints">{% trans "Constraints" %}</a></h4>
+      </div>
+      <div id="collapse-constraints" class="panel-collapse collapse">
+        <div class="panel-body p-3">
+          <div class="metadata-block p-3 mb-3">
+            {% if resource.license %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "License" %}</div><div class="col-sm-9">{{ resource.license }}</div></div>{% endif %}
+            {% if resource.metadata_license %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Metadata License" %}</div><div class="col-sm-9">{{ resource.metadata_license }}</div></div>{% endif %}
+            {% if resource.use_constrains %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Use Constraints" %}</div><div class="col-sm-9">{{ resource.use_constrains }}</div></div>{% endif %}
+            {% if resource.constraints_other %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Other Constraints" %}</div><div class="col-sm-9">{{ resource.constraints_other }}</div></div>{% endif %}
+            {% with rests=resource.restriction_other.all %}{% if rests %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Other Restrictions" %}</div><div class="col-sm-9">{% for r in rests %}{{ r.gn_description }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>{% endif %}{% endwith %}
+            {% with urests=resource.use_constraint_restrictions.all %}{% if urests %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Use Constraint Restrictions" %}</div><div class="col-sm-9">{% for r in urests %}{{ r.gn_description }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>{% endif %}{% endwith %}
+            {% if resource.data_lineage %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Data Lineage" %}</div><div class="col-sm-9">{{ resource.data_lineage }}</div></div>{% endif %}
+            {% if resource.metadata_lineage %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Metadata Lineage" %}</div><div class="col-sm-9">{{ resource.metadata_lineage }}</div></div>{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- References -->
     <div class="panel panel-default rounded shadow-sm mb-3">
       <div class="panel-heading p-2">
-        <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapse-references">{% trans "References" %}</a></h4>
+        <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapse-references">{% trans "Data Access" %}</a></h4>
       </div>
       <div id="collapse-references" class="panel-collapse collapse">
         <div class="panel-body p-3 metadata-block">
-          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Link Online" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}">{{ resource.get_absolute_url }}</a></div></div>
-          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Metadata Page" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}/metadata_detail">{{ resource.get_absolute_url }}/metadata_detail</a></div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Link Online" %}</div><div class="col-sm-9"><a href="{{ SITEURL }}catalogue/#/uuid/{{ resource.uuid }}">{{ SITEURL }}catalogue/#/uuid/{{ resource.uuid }}</a></div></div>
         </div>
       </div>
     </div>
@@ -210,81 +236,51 @@
       <h3 class="fw-medium">{% trans "Identification" %}</h3><hr>
       <div class="metadata-block p-3 mb-3">
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Title" %}</div><div class="col-sm-9">{{ resource.title|default:"-" }}</div></div>
+        {% if resource.subtitle %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Subtitle" %}</div><div class="col-sm-9">{{ resource.subtitle }}</div></div>{% endif %}
+        {% if resource.title_translated %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Title (translated)" %}</div><div class="col-sm-9">{{ resource.title_translated }}</div></div>{% endif %}
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Abstract" %}</div><div class="col-sm-9">{{ resource.abstract|default:"-" }}</div></div>
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Publication Data" %}</div><div class="col-sm-9">{{ resource.date_created|default:"-" }}</div></div>
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Publication Accepted" %}</div><div class="col-sm-9">{{ resource.date_accepted|default:"-" }}</div></div>
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Publication Available" %}</div><div class="col-sm-9">{{ resource.date_available|default:"-" }}</div></div>
+        {% if resource.abstract_translated %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Abstract (translated)" %}</div><div class="col-sm-9">{{ resource.abstract_translated }}</div></div>{% endif %}
+        {% if resource.purpose %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Purpose" %}</div><div class="col-sm-9">{{ resource.purpose }}</div></div>{% endif %}
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Type" %}</div><div class="col-sm-9">{{ resource.display_type|default:"-" }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "DOI" %}</div><div class="col-sm-9">{{ resource.doi|default:"-" }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Date" %}</div><div class="col-sm-9">{{ resource.date|default:"-" }} ({{ resource.date_type|default:"-" }})</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Date Created" %}</div><div class="col-sm-9">{{ resource.date_created|default:"-" }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Date Issued" %}</div><div class="col-sm-9">{{ resource.date_issued|default:"-" }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Date Updated" %}</div><div class="col-sm-9">{{ resource.date_updated|default:"-" }}</div></div>
+        {% if resource.date_accepted %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Date Accepted" %}</div><div class="col-sm-9">{{ resource.date_accepted }}</div></div>{% endif %}
+        {% if resource.date_available %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Date Available" %}</div><div class="col-sm-9">{{ resource.date_available }}</div></div>{% endif %}
+        {% if resource.date_submitted %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Date Submitted" %}</div><div class="col-sm-9">{{ resource.date_submitted }}</div></div>{% endif %}
+        {% if resource.date_valid %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Date Valid" %}</div><div class="col-sm-9">{{ resource.date_valid }}</div></div>{% endif %}
+        {% if resource.date_copyrighted %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Date Copyrighted" %}</div><div class="col-sm-9">{{ resource.date_copyrighted }}</div></div>{% endif %}
+        {% if resource.category %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Category" %}</div><div class="col-sm-9">{{ resource.category.gn_description|default:resource.category }}</div></div>{% endif %}
+        {% with kws=resource.keywords.all %}{% if kws %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Keywords" %}</div><div class="col-sm-9">{% for k in kws %}{{ k.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>{% endif %}{% endwith %}
+        {% with tkws=resource.tkeywords.all %}{% if tkws %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Thesaurus Keywords" %}</div><div class="col-sm-9">{% for t in tkws %}{{ t }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>{% endif %}{% endwith %}
+        {% with regs=resource.regions.all %}{% if regs %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Regions" %}</div><div class="col-sm-9">{% for r in regs %}{{ r.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>{% endif %}{% endwith %}
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Approved" %}</div><div class="col-sm-9">{{ resource.is_approved|yesno:_("Yes,No") }}</div></div>
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Published" %}</div><div class="col-sm-9">{{ resource.is_published|yesno:_("Yes,No") }}</div></div>
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Featured" %}</div><div class="col-sm-9">{{ resource.featured|yesno:_("Yes,No") }}</div></div>
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "DOI" %}</div><div class="col-sm-9">{{ resource.doi|default:"-" }}</div></div>
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Attribution" %}</div><div class="col-sm-9">{{ resource.attribution|default:"-" }}</div></div>
       </div>
     </div>
 
     <!-- Responsible -->
     <div class="tab-pane" id="tab-responsible">
       <h3 class="fw-medium">{% trans "Responsibles" %}</h3><hr>
-      <div class="metadata-block p-3 mb-3">
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Name" %}</div><div class="col-sm-9">{{ resource.owner }}</div></div>
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Email" %}</div><div class="col-sm-9">{{ resource.owner.email }}</div></div>
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Organization" %}</div><div class="col-sm-9">{{ resource.owner.organization|default:"-" }}</div></div>
-      </div>
-      
-      <h3 class="fw-medium">{% trans "Custodian" %}</h3><hr>
-      {% if resource.custodian %}
-        {% for custodian in resource.custodian %}
+      {% for role_label, users in resource.get_defined_multivalue_contact_roles.items %}
+        <h5 class="fw-medium mt-3">{{ role_label }}</h5>
+        {% for person in users %}
           <div class="metadata-block p-3 mb-3">
-            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Name' %}</div><div class="col-sm-9">{{ custodian.name_long|default:"-" }}</div></div>
-            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Email' %}</div><div class="col-sm-9">{{ custodian.email|default:"-" }}</div></div>
-            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Position' %}</div><div class="col-sm-9">{{ custodian.position|default:"-" }}</div></div>
-            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Organization' %}</div><div class="col-sm-9">{{ custodian.organization|default:"-" }}</div></div>
-            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Location' %}</div><div class="col-sm-9">{{ custodian.location|default:"-" }}</div></div>
-            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Voice' %}</div><div class="col-sm-9">{{ custodian.voice|default:"-" }}</div></div>
-            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Fax' %}</div><div class="col-sm-9">{{ custodian.fax|default:"-" }}</div></div>
-            {% if custodian.keyword_list %}
-            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Keywords' %}</div><div class="col-sm-9">{% for keyword in custodian.keyword_list %}{{ keyword }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Name' %}</div><div class="col-sm-9">{{ person.name_long|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Email' %}</div><div class="col-sm-9">{{ person.email|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Position' %}</div><div class="col-sm-9">{{ person.position|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Organization' %}</div><div class="col-sm-9">{{ person.organization|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Location' %}</div><div class="col-sm-9">{{ person.location|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Voice' %}</div><div class="col-sm-9">{{ person.voice|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Fax' %}</div><div class="col-sm-9">{{ person.fax|default:"-" }}</div></div>
+            {% if person.keyword_list %}
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Keywords' %}</div><div class="col-sm-9">{% for keyword in person.keyword_list %}{{ keyword }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>
             {% endif %}
           </div>
         {% endfor %}
-      {% endif %}
-
-      <h3 class="fw-medium">{% trans "Contact Person" %}</h3><hr>
-      <div class="metadata-block p-3 mb-3">
-        {% if resource.poc %}
-          {% for poc in resource.poc %}
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Name' %}</div><div class="col-sm-9">{{ poc.name_long|default:"-" }}</div></div>
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Email' %}</div><div class="col-sm-9">{{ poc.email|default:"-" }}</div></div>
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Position' %}</div><div class="col-sm-9">{{ poc.position|default:"-" }}</div></div>
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Organization' %}</div><div class="col-sm-9">{{ poc.organization|default:"-" }}</div></div>
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Location' %}</div><div class="col-sm-9">{{ poc.location|default:"-" }}</div></div>
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Voice' %}</div><div class="col-sm-9">{{ poc.voice|default:"-" }}</div></div>
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Fax' %}</div><div class="col-sm-9">{{ poc.fax|default:"-" }}</div></div>
-              {% if poc.keyword_list %}
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Keywords' %}</div><div class="col-sm-9">{% for keyword in poc.keyword_list %}{{ keyword }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>
-              {% endif %}
-          {% endfor %}
-        {% endif %}
-
-      </div>
-      <h3 class="fw-medium">{% trans "Metadata Author" %}</h3><hr>
-        {% if resource.metadata_author %}
-          {% for metadata_author in resource.metadata_author %}
-            <div class="metadata-block p-3 mb-3">
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Name' %}</div><div class="col-sm-9">{{ metadata_author.name_long|default:"-" }}</div></div>
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Email' %}</div><div class="col-sm-9">{{ metadata_author.email|default:"-" }}</div></div>
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Position' %}</div><div class="col-sm-9">{{ metadata_author.position|default:"-" }}</div></div>
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Organization' %}</div><div class="col-sm-9">{{ metadata_author.organization|default:"-" }}</div></div>
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Location' %}</div><div class="col-sm-9">{{ metadata_author.location|default:"-" }}</div></div>
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Voice' %}</div><div class="col-sm-9">{{ metadata_author.voice|default:"-" }}</div></div>
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Fax' %}</div><div class="col-sm-9">{{ metadata_author.fax|default:"-" }}</div></div>
-              {% if metadata_author.keyword_list %}
-              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Keywords' %}</div><div class="col-sm-9">{% for keyword in metadata_author.keyword_list %}{{ keyword }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>
-              {% endif %}
-            </div>
-          {% endfor %}
-        {% endif %}
+      {% endfor %}
     </div>
 
     <!-- Projects -->
@@ -344,29 +340,47 @@
       <div class="metadata-block p-3 my-3">
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Edition" %}</div><div class="col-sm-9">{{ resource.edition|default:"-" }}</div></div>
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Language" %}</div><div class="col-sm-9">{{ resource.language|default:"-" }}</div></div>
+        {% if resource.spatial_representation_type %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Spatial Representation Type" %}</div><div class="col-sm-9">{{ resource.spatial_representation_type }}</div></div>{% endif %}
+        {% if resource.maintenance_frequency %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Maintenance Frequency" %}</div><div class="col-sm-9">{{ resource.maintenance_frequency }}</div></div>{% endif %}
+        {% if resource.temporal_extent_start or resource.temporal_extent_end %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Temporal Extent" %}</div><div class="col-sm-9">{{ resource.temporal_extent_start|default:"-" }} — {{ resource.temporal_extent_end|default:"-" }}</div></div>{% endif %}
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Data Quality" %}</div><div class="col-sm-9">{{ resource.data_quality_statement }}</div></div>
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Supplemental Information" %}</div><div class="col-sm-9">{{ resource.supplemental_information|sanitize_html|safe }}</div></div>
-        
+        {% if resource.method_description %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Method Description" %}</div><div class="col-sm-9">{{ resource.method_description }}</div></div>{% endif %}
+        {% if resource.series_information %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Series Information" %}</div><div class="col-sm-9">{{ resource.series_information }}</div></div>{% endif %}
+        {% if resource.table_of_content %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Table of Content" %}</div><div class="col-sm-9">{{ resource.table_of_content }}</div></div>{% endif %}
+        {% if resource.technical_info %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Technical Info" %}</div><div class="col-sm-9">{{ resource.technical_info }}</div></div>{% endif %}
+        {% if resource.other_description %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Other Description" %}</div><div class="col-sm-9">{{ resource.other_description }}</div></div>{% endif %}
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Conformity Result" %}</div><div class="col-sm-9">{{ resource.conformity_results|default:"-" }}</div></div>
+        {% if resource.conformity_explanation %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Conformity Explanation" %}</div><div class="col-sm-9">{{ resource.conformity_explanation }}</div></div>{% endif %}
       </div>
       <h3 class="fw-medium mt-5">{% trans "GeoInformation" %}</h3><hr>
       <div class="metadata-block p-3 my-3">
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Identification Image" %}</div><a href="{{ resource.get_thumbnail_url }}"><img class="p-4" ng-src="{{ resource.get_thumbnail_url }}" src="{{ resource.get_thumbnail_url }}" /></a></div>
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Projection System" %}</div><div class="col-sm-9">{{ resource.srid|default:"-" }}</div></div>
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Spatial Extent" %}</div><div class="col-sm-9">{{ resource.bbox_string|default:"-" }}</div></div>
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Extension x0" %}</div><div class="col-sm-9">{{ resource.bbox_x0|default:"-" }}</div></div>
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Extent x1" %}</div><div class="col-sm-9">{{ resource.bbox_x1|default:"-" }}</div></div>
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Extent y0" %}</div><div class="col-sm-9">{{ resource.bbox_y0|default:"-" }}</div></div>
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Extent x1" %}</div><div class="col-sm-9">{{ resource.bbox_y1|default:"-" }}</div></div>
+      </div>
+    </div>
+
+    <!-- Constraints -->
+    <div class="tab-pane" id="tab-constraints">
+      <h3 class="fw-medium">{% trans "Constraints" %}</h3><hr>
+      <div class="metadata-block p-3 my-3">
+        {% if resource.license %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "License" %}</div><div class="col-sm-9">{{ resource.license }}</div></div>{% endif %}
+        {% if resource.metadata_license %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Metadata License" %}</div><div class="col-sm-9">{{ resource.metadata_license }}</div></div>{% endif %}
+        {% if resource.use_constrains %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Use Constraints" %}</div><div class="col-sm-9">{{ resource.use_constrains }}</div></div>{% endif %}
+        {% if resource.constraints_other %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Other Constraints" %}</div><div class="col-sm-9">{{ resource.constraints_other }}</div></div>{% endif %}
+        {% with rests=resource.restriction_other.all %}{% if rests %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Other Restrictions" %}</div><div class="col-sm-9">{% for r in rests %}{{ r.gn_description }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>{% endif %}{% endwith %}
+        {% with urests=resource.use_constraint_restrictions.all %}{% if urests %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Use Constraint Restrictions" %}</div><div class="col-sm-9">{% for r in urests %}{{ r.gn_description }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>{% endif %}{% endwith %}
+        {% if resource.data_lineage %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Data Lineage" %}</div><div class="col-sm-9">{{ resource.data_lineage }}</div></div>{% endif %}
+        {% if resource.metadata_lineage %}<div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Metadata Lineage" %}</div><div class="col-sm-9">{{ resource.metadata_lineage }}</div></div>{% endif %}
       </div>
     </div>
 
     <!-- References -->
     <div class="tab-pane" id="tab-references">
-      <h3 class="fw-medium">{% trans "References" %}</h3><hr>
+      <h3 class="fw-medium">{% trans "Data Access" %}</h3><hr>
       <div class="metadata-block p-3 my-3">
-        
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Link Online" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}">{{ resource.get_absolute_url }}</a></div></div>
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Metadata Page" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}/metadata_detail">{{ resource.get_absolute_url }}/metadata_detail</a></div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Link Online" %}</div><div class="col-sm-9"><a href="{{ SITEURL }}catalogue/#/uuid/{{ resource.uuid }}">{{ SITEURL }}catalogue/#/uuid/{{ resource.uuid }}</a></div></div>
         {% if resource.doc_file %}
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Online Link" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}/download">{{ resource.get_absolute_url }}/download</a></div></div>
         {% endif %}
