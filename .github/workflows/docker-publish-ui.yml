@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 env:
-  BASE_VERSION: v4.4.3-zalf001-ui
-  IMAGE_NAME: zalf/geonode
+  BASE_VERSION: v4.4.3-zalf001
+  IMAGE_NAME: zalf/geonode-ui
 
 jobs:
   build-and-push:
