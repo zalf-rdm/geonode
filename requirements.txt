@@ -89,7 +89,7 @@ Markdown==3.6
 
 # importer package
 -e git+https://github.com/GeoNodeUserGroup-DE/contrib_datapackage.git@geonode-v4.4.3+datapackage002#egg=importer_datapackage
-frictionless>=5.17.0
+frictionless>=5.19.0
 
 # mapstore client package
 -e git+https://github.com/zalf-rdm/geonode-mapstore-client.git@main#egg=django-geonode-mapstore-client
