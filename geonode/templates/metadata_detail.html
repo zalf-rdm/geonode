@@ -83,6 +83,12 @@
       </div>
       <div id="collapse-responsible" class="panel-collapse collapse">
         <div class="panel-body p-3">
+          <h5 class="fw-medium mt-3">{% trans "Owner" %}</h5>
+          <div class="metadata-block p-3 mb-3">
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Name" %}</div><div class="col-sm-9">{{ resource.owner }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Email" %}</div><div class="col-sm-9">{{ resource.owner.email }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Organization" %}</div><div class="col-sm-9">{{ resource.owner.organization|default:"-" }}</div></div>
+          </div>
           {% for role_label, users in resource.get_defined_multivalue_contact_roles.items %}
             <h5 class="fw-medium mt-3">{{ role_label }}</h5>
             {% for person in users %}
@@ -220,12 +226,14 @@
       </div>
       <div id="collapse-references" class="panel-collapse collapse">
         <div class="panel-body p-3 metadata-block">
-          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Link Online" %}</div><div class="col-sm-9"><a href="{{ SITEURL }}/catalogue/#/uuid/{{ resource.uuid }}">{{ SITEURL }}/catalogue/#/uuid/{{ resource.uuid }}</a></div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Link Online" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}">{{ resource.get_absolute_url }}</a></div></div>
         </div>
         {% if resource.resource_type == 'map' %}
         <h5 class="fw-medium mt-3 px-3">{% trans "Linked Resources" %}</h5>
         <div class="panel-body p-3 metadata-block">
-          {% for dataset in resource.get_real_instance.datasets %}
+          {% for maplayer in resource.get_real_instance.maplayers.all %}
+            {% with dataset=maplayer.dataset %}
+            {% if dataset %}
             <div class="row mb-2">
               <div class="col-sm-3 fw-semibold">{{ dataset.title }}</div>
               <div class="col-sm-9">
@@ -235,6 +243,8 @@
                 {% endif %}
               </div>
             </div>
+            {% endif %}
+            {% endwith %}
           {% endfor %}
         </div>
         {% endif %}
@@ -283,6 +293,12 @@
     <!-- Responsible -->
     <div class="tab-pane" id="tab-responsible">
       <h3 class="fw-medium">{% trans "Responsibles" %}</h3><hr>
+      <h5 class="fw-medium mt-3">{% trans "Owner" %}</h5>
+      <div class="metadata-block p-3 mb-3">
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Name" %}</div><div class="col-sm-9">{{ resource.owner }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Email" %}</div><div class="col-sm-9">{{ resource.owner.email }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Organization" %}</div><div class="col-sm-9">{{ resource.owner.organization|default:"-" }}</div></div>
+      </div>
       {% for role_label, users in resource.get_defined_multivalue_contact_roles.items %}
         <h5 class="fw-medium mt-3">{{ role_label }}</h5>
         {% for person in users %}
@@ -394,7 +410,7 @@
     <div class="tab-pane" id="tab-references">
       <h3 class="fw-medium">{% trans "Data Access" %}</h3><hr>
       <div class="metadata-block p-3 my-3">
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Link Online" %}</div><div class="col-sm-9"><a href="{{ SITEURL }}/catalogue/#/uuid/{{ resource.uuid }}">{{ SITEURL }}/catalogue/#/uuid/{{ resource.uuid }}</a></div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Link Online" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}">{{ resource.get_absolute_url }}</a></div></div>
         {% if resource.doc_file %}
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Online Link" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}/download">{{ resource.get_absolute_url }}/download</a></div></div>
         {% endif %}
@@ -410,7 +426,9 @@
       {% if resource.resource_type == 'map' %}
       <h4 class="fw-medium mt-4">{% trans "Linked Resources" %}</h4><hr>
       <div class="metadata-block p-3 my-3">
-        {% for dataset in resource.get_real_instance.datasets %}
+        {% for maplayer in resource.get_real_instance.maplayers.all %}
+          {% with dataset=maplayer.dataset %}
+          {% if dataset %}
           <div class="row mb-2">
             <div class="col-sm-3 fw-semibold">{{ dataset.title }}</div>
             <div class="col-sm-9">
@@ -420,6 +438,8 @@
               {% endif %}
             </div>
           </div>
+          {% endif %}
+          {% endwith %}
         {% endfor %}
       </div>
       {% endif %}
