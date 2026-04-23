@@ -1257,6 +1257,14 @@ except ValueError:
         [HOSTNAME, "localhost", "django", "geonode"]
         if os.getenv("ALLOWED_HOSTS") is None
         else re.split(r" *[,|:;] *", os.getenv("ALLOWED_HOSTS"))
+_csrf_origins_env = os.getenv("CSRF_TRUSTED_ORIGINS")
+try:
+    CSRF_TRUSTED_ORIGINS = ast.literal_eval(_csrf_origins_env) if _csrf_origins_env else [SITEURL.rstrip("/")]
+except (ValueError, SyntaxError, TypeError):
+    CSRF_TRUSTED_ORIGINS = (
+        [o.strip() for o in re.split(r" *[,;] *", _csrf_origins_env) if o.strip()]
+        if _csrf_origins_env
+        else [SITEURL.rstrip("/")]
     )
 
 # AUTH_IP_WHITELIST property limits access to users/groups REST endpoints
