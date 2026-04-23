@@ -16,6 +16,9 @@
     <h2 class="page-title">
       <strong>{% trans "Metadata" %}:</strong> {{ resource.title }}
     </h2>
+    <a href="{{ resource.get_absolute_url }}" class="btn btn-sm btn-outline-secondary mt-2">
+      &larr; {% trans "Back to Resource" %}
+    </a>
   </div>
 </div>
 
@@ -83,12 +86,6 @@
       </div>
       <div id="collapse-responsible" class="panel-collapse collapse">
         <div class="panel-body p-3">
-          <h5 class="fw-medium mt-3">{% trans "Owner" %}</h5>
-          <div class="metadata-block p-3 mb-3">
-            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Name" %}</div><div class="col-sm-9">{{ resource.owner }}</div></div>
-            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Email" %}</div><div class="col-sm-9">{{ resource.owner.email }}</div></div>
-            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Organization" %}</div><div class="col-sm-9">{{ resource.owner.organization|default:"-" }}</div></div>
-          </div>
           {% for role_label, users in resource.get_defined_multivalue_contact_roles.items %}
             <h5 class="fw-medium mt-3">{{ role_label }}</h5>
             {% for person in users %}
@@ -226,7 +223,7 @@
       </div>
       <div id="collapse-references" class="panel-collapse collapse">
         <div class="panel-body p-3 metadata-block">
-          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Link Online" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}">{{ resource.get_absolute_url }}</a></div></div>
+          <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Link Online" %}</div><div class="col-sm-9">{% url 'resolve_uuid' uuid=resource.uuid as resource_uuid_url %}<a href="{{ request.scheme }}://{{ request.get_host }}{{ resource_uuid_url }}">{{ request.scheme }}://{{ request.get_host }}{{ resource_uuid_url }}</a></div></div>
         </div>
         {% if resource.resource_type == 'map' %}
         <h5 class="fw-medium mt-3 px-3">{% trans "Linked Resources" %}</h5>
@@ -293,12 +290,6 @@
     <!-- Responsible -->
     <div class="tab-pane" id="tab-responsible">
       <h3 class="fw-medium">{% trans "Responsibles" %}</h3><hr>
-      <h5 class="fw-medium mt-3">{% trans "Owner" %}</h5>
-      <div class="metadata-block p-3 mb-3">
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Name" %}</div><div class="col-sm-9">{{ resource.owner }}</div></div>
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Email" %}</div><div class="col-sm-9">{{ resource.owner.email }}</div></div>
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Organization" %}</div><div class="col-sm-9">{{ resource.owner.organization|default:"-" }}</div></div>
-      </div>
       {% for role_label, users in resource.get_defined_multivalue_contact_roles.items %}
         <h5 class="fw-medium mt-3">{{ role_label }}</h5>
         {% for person in users %}
@@ -410,7 +401,7 @@
     <div class="tab-pane" id="tab-references">
       <h3 class="fw-medium">{% trans "Data Access" %}</h3><hr>
       <div class="metadata-block p-3 my-3">
-        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Link Online" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}">{{ resource.get_absolute_url }}</a></div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Link Online" %}</div><div class="col-sm-9">{% url 'resolve_uuid' uuid=resource.uuid as resource_uuid_url %}<a href="{{ request.scheme }}://{{ request.get_host }}{{ resource_uuid_url }}">{{ request.scheme }}://{{ request.get_host }}{{ resource_uuid_url }}</a></div></div>
         {% if resource.doc_file %}
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Online Link" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}/download">{{ resource.get_absolute_url }}/download</a></div></div>
         {% endif %}
