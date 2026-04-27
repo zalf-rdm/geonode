@@ -2453,6 +2453,7 @@ CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split()
 # =============================================================================
 # NOTE: This is a sample configuration for ORCID integration using django-allauth and a generic OIDC provider.
 import logging
+
 logger = logging.getLogger("geonode")  # Use the configured geonode logger
 # logger.error("SSL certificate verifikation disabled - ENABLE in production!!!")
 
@@ -2482,9 +2483,7 @@ SOCIALACCOUNT_PROVIDER_REALM = os.environ.get("SOCIALACCOUNT_PROVIDER_REALM", "O
 #
 #   protocol, hostname and port required to access the keycloak instance
 #
-SOCIALACCOUNT_PROVIDER_HOST = os.environ.get(
-    "SOCIALACCOUNT_PROVIDER_HOST", "https://host.docker.internal:8008/"
-)
+SOCIALACCOUNT_PROVIDER_HOST = os.environ.get("SOCIALACCOUNT_PROVIDER_HOST", "https://host.docker.internal:8008/")
 SOCIALACCOUNT_PROVIDER_ROOT = f"{SOCIALACCOUNT_PROVIDER_HOST}realms/{SOCIALACCOUNT_PROVIDER_REALM}/"
 #
 #   client id
@@ -2517,29 +2516,30 @@ SOCIALACCOUNT_PROVIDERS = {
                 "client_id": SOCIALACCOUNT_CLIENT_ID,
                 "secret": SOCIALACCOUNT_CLIENT_SECRET,
                 "settings": {
-                    "server_url": urljoin(
-                        SOCIALACCOUNT_PROVIDER_ROOT, ".well-known/openid-configuration"
-                    ),
+                    "server_url": urljoin(SOCIALACCOUNT_PROVIDER_ROOT, ".well-known/openid-configuration"),
                 },
             },
         ],
     }
 }
-SOCIALACCOUNT_LOGOUT_REDIRECT_URL = os.environ.get("SOCIALACCOUNT_LOGOUT_REDIRECT_URL", "https://sandbox.orcid.org/signout")
+SOCIALACCOUNT_LOGOUT_REDIRECT_URL = os.environ.get(
+    "SOCIALACCOUNT_LOGOUT_REDIRECT_URL", "https://sandbox.orcid.org/signout"
+)
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
-INSTALLED_APPS += ('allauth.socialaccount.providers.openid_connect',)
-AUTHENTICATION_BACKENDS += ('allauth.account.auth_backends.AuthenticationBackend',)
-SOCIALACCOUNT_PROFILE_EXTRACTOR = os.environ.get("SOCIALACCOUNT_PROFILE_EXTRACTOR", "geonode.people.profileextractors.OrcidExtractor")
+INSTALLED_APPS += ("allauth.socialaccount.providers.openid_connect",)
+AUTHENTICATION_BACKENDS += ("allauth.account.auth_backends.AuthenticationBackend",)
+SOCIALACCOUNT_PROFILE_EXTRACTOR = os.environ.get(
+    "SOCIALACCOUNT_PROFILE_EXTRACTOR", "geonode.people.profileextractors.OrcidExtractor"
+)
 SOCIALACCOUNT_PROFILE_EXTRACTORS = {
     SOCIALACCOUNT_PROVIDER: SOCIALACCOUNT_PROFILE_EXTRACTOR,
 }
-SOCIALACCOUNT_GROUPNAME_PREFIX = os.environ.get("SOCIALACCOUNT_GROUPNAME_PREFIX","gn_")
+SOCIALACCOUNT_GROUPNAME_PREFIX = os.environ.get("SOCIALACCOUNT_GROUPNAME_PREFIX", "gn_")
 # =============================================================================
 # END OF "ORCID"
 # =============================================================================
 
 INSTALLED_APPS += ("geonode.zalf",)
-
 
 
 ZALF_DATACITE_BASE_URL = os.getenv("ZALF_DATACITE_BASE_URL", "https://api.datacite.org/")
