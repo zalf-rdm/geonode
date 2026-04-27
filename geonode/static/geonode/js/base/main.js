@@ -43,6 +43,43 @@
     var body = document.body;
     var reduced = prefersReduced || body.classList.contains('reduce-motion') || body.classList.contains('no-anim');
 
+    // ── Dropdown toggle (no Bootstrap JS needed) ──
+    $$('[data-toggle="dropdown"]').forEach(function (toggle) {
+      on(toggle, 'click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var parent = toggle.parentElement;
+        var menu = parent.querySelector('.dropdown-menu');
+        if (!menu) return;
+        var isOpen = menu.classList.contains('show');
+        // Close all open dropdowns first
+        $$('.dropdown-menu.show').forEach(function (m) {
+          m.classList.remove('show');
+          if (m.parentElement) m.parentElement.classList.remove('open');
+        });
+        if (!isOpen) {
+          menu.classList.add('show');
+          parent.classList.add('open');
+        }
+      });
+    });
+    // Close dropdowns on outside click
+    on(document, 'click', function () {
+      $$('.dropdown-menu.show').forEach(function (m) {
+        m.classList.remove('show');
+        if (m.parentElement) m.parentElement.classList.remove('open');
+      });
+    });
+    // Close on Escape
+    on(document, 'keydown', function (e) {
+      if (e.key === 'Escape') {
+        $$('.dropdown-menu.show').forEach(function (m) {
+          m.classList.remove('show');
+          if (m.parentElement) m.parentElement.classList.remove('open');
+        });
+      }
+    });
+
     if (!hasGSAP) {
       console.warn('[ui_zalf] GSAP not found; animations disabled.');
       // Minimal fallbacks for visibility

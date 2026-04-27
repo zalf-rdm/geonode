@@ -25,6 +25,7 @@
 
 /* ─── Reset / Base ─── */
 body.msgapi {
+    margin: 0;
     background: var(--zl-bg);
     color: var(--zl-text);
     font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -45,15 +46,12 @@ body.msgapi h3 {
    ============================================= */
 .zl-hero {
     position: relative;
-    padding: 100px 0 64px;
+    padding: 180px 0 64px;
     overflow: hidden;
     background: linear-gradient(170deg, #f0f9f1 0%, #e8f5e9 30%, #f7faf8 100%);
 }
 
-/* Prevent horizontal scrollbar from hero SVG */
-body.msgapi {
-    overflow-x: hidden;
-}
+/* body.msgapi overflow-x removed — root cause was 100vw on hero-svg */
 
 .zl-hero__bg {
     position: absolute;
@@ -87,12 +85,9 @@ body.msgapi {
 /* Abstract SVG landscape */
 .zl-hero .hero-svg {
     position: absolute;
-    left: 50%;
+    left: 0;
     bottom: 0;
-    transform: translateX(-50%);
-    width: 100vw;
-    max-width: none;
-    min-width: 100%;
+    width: 100%;
     height: auto;
     opacity: 0.9;
     z-index: 0;

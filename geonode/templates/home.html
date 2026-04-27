@@ -37,14 +37,14 @@
     </div>
 
     <div class="container zl-hero__inner">
-      <h1 class="zl-hero__title fade-up">
+      <h1 class="zl-hero__title">
         {% trans "ZALF Repository" %}
       </h1>
-      <p class="zl-hero__sub fade-up">
+      <p class="zl-hero__sub">
         {% trans "Discover, visualize and share high-quality geospatial datasets powering open science, policy and innovation." %}
       </p>
 
-      <form role="search" class="zl-search fade-up"
+      <form role="search" class="zl-search"
             onsubmit="window.location.href='/catalogue/#/search?q='+encodeURIComponent(document.getElementById('zl-q').value);return false;">
         <div class="zl-search__wrap">
           <i class="fa fa-search zl-search__icon"></i>
@@ -54,7 +54,7 @@
         </div>
       </form>
 
-      <div class="zl-hero__actions fade-up">
+      <div class="zl-hero__actions">
         <a href="/catalogue/#/datasets" class="zl-btn zl-btn--primary">
           <i class="fa fa-database"></i> {% trans "Explore Datasets" %}
         </a>
@@ -63,7 +63,7 @@
         </a>
       </div>
 
-      <div class="zl-stats fade-up" aria-label="{% trans 'Repository statistics' %}">
+      <div class="zl-stats" aria-label="{% trans 'Repository statistics' %}">
         <div class="zl-stat">
           <div class="zl-stat__num" data-count="{{ datasets_count|default:1280 }}">0</div>
           <div class="zl-stat__label">{% trans "Datasets" %}</div>
