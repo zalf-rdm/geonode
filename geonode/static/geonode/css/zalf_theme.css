@@ -38,7 +38,7 @@ body.msgapi .hero>.container {
 body.msgapi .hero-eyebrow {
     display: inline-block;
     background: rgba(46, 125, 50, .08);
-    color: var(--zalf-primary, #0b6b7a);
+    color: var(--zalf-primary, #0f7a0b);
     padding: 6px 12px;
     border-radius: 999px;
     font-weight: 600;
