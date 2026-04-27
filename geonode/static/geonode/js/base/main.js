@@ -278,8 +278,8 @@
   // -------------------------------
   function logoMarquee(reduced) {
     if (reduced) return;
-    var wrap = $('.logos-wrap') || $('.zl-logos');
-    var track = wrap ? ($('.logos', wrap) || wrap) : null;
+    var wrap = $('.zl-logos-wrap') || $('.logos-wrap');
+    var track = wrap ? ($('.zl-logos', wrap) || $('.logos', wrap)) : null;
     if (!wrap || !track) return;
 
     // Duplicate children if not already duplicated
@@ -293,9 +293,21 @@
     function build() {
       if (tl) tl.kill();
       window.gsap.set(track, { x: 0 });
-      var totalW = track.scrollWidth;
+      // Half = original set width (before duplication the total is 2x)
+      var half = track.scrollWidth / 2;
       var speed = 40; // px/s
-      tl = window.gsap.to(track, { x: -totalW / 2, duration: (totalW / 2) / speed, ease: 'none', repeat: -1 });
+      tl = window.gsap.to(track, {
+        x: -half,
+        duration: half / speed,
+        ease: 'none',
+        repeat: -1,
+        modifiers: {
+          x: function (x) {
+            // Seamless wrap: when past half, reset
+            return (parseFloat(x) % half) + 'px';
+          }
+        }
+      });
     }
     build();
     on(window, 'resize', debounce(build, 200));

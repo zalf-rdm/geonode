@@ -581,15 +581,22 @@ p.zl-section__sub,
     border-top: 1px solid var(--zl-border);
 }
 
-.zl-logos {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 16px;
+.zl-logos-wrap {
+    overflow: hidden;
+    width: 100%;
     margin-top: 8px;
 }
 
+.zl-logos {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 16px;
+    width: max-content;
+    will-change: transform;
+}
+
 .zl-logo {
+    flex-shrink: 0;
     width: 110px;
     height: 56px;
     display: flex;
@@ -626,7 +633,7 @@ p.zl-section__sub,
    CTA BANNER
    ============================================= */
 .zl-cta {
-    padding: 0 0 80px;
+    padding: 48px 0 80px;
     background: var(--zl-bg);
 }
 

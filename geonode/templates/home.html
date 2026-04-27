@@ -185,19 +185,21 @@
     <div class="container">
       <h2 class="zl-section__title fade-up">{% trans "Trusted By" %}</h2>
       <p class="zl-section__sub fade-up">{% trans "Collaborating with leading research institutions and global organizations." %}</p>
-      <div class="zl-logos fade-up" id="logos">
-        <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_zalf_square.jpg' %}" alt="ZALF"></div>
-        <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_bonares_hires.svg' %}" alt="BonaRes"></div>
-        <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_ejp_soil_hires.svg' %}" alt="EJP SOIL"></div>
-        <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_leibniz.svg' %}" alt="Leibniz"></div>
-        <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_bmbf.svg' %}" alt="BMBF"></div>
-        <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_bmel.svg' %}" alt="BMEL"></div>
-        <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_dfg.svg' %}" alt="DFG"></div>
-        <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_eu.svg' %}" alt="EU"></div>
-        <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_esa.svg' %}" alt="ESA"></div>
-        <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_nasa.svg' %}" alt="NASA"></div>
-        <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_fao.svg' %}" alt="FAO"></div>
-        <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_unep.svg' %}" alt="UNEP"></div>
+      <div class="zl-logos-wrap fade-up">
+        <div class="zl-logos" id="logos">
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_zalf_square.jpg' %}" alt="ZALF"></div>
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_bonares_hires.svg' %}" alt="BonaRes"></div>
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_ejp_soil_hires.svg' %}" alt="EJP SOIL"></div>
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_leibniz.svg' %}" alt="Leibniz"></div>
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_bmbf.svg' %}" alt="BMBF"></div>
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_bmel.svg' %}" alt="BMEL"></div>
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_dfg.svg' %}" alt="DFG"></div>
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_eu.svg' %}" alt="EU"></div>
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_esa.svg' %}" alt="ESA"></div>
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_nasa.svg' %}" alt="NASA"></div>
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_fao.svg' %}" alt="FAO"></div>
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_unep.svg' %}" alt="UNEP"></div>
+        </div>
       </div>
     </div>
   </section>
@@ -209,7 +211,7 @@
         <h2 class="zl-cta__title">{% trans "Ready to contribute?" %}</h2>
         <p class="zl-cta__sub">{% trans "Upload your datasets, create maps, and collaborate with researchers worldwide." %}</p>
         <div class="zl-cta__actions">
-          <a href="/catalogue/#/upload/dataset" class="zl-btn zl-btn--white">
+          <a href="https://upload-e.dataservice.zalf.de/" class="zl-btn zl-btn--white" target="_blank" rel="noopener noreferrer">
             <i class="fa fa-cloud-upload"></i> {% trans "Upload Dataset" %}
           </a>
           <a href="/account/signup/" class="zl-btn zl-btn--white-outline">
