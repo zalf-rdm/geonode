@@ -1257,6 +1257,8 @@ except ValueError:
         [HOSTNAME, "localhost", "django", "geonode"]
         if os.getenv("ALLOWED_HOSTS") is None
         else re.split(r" *[,|:;] *", os.getenv("ALLOWED_HOSTS"))
+    )
+
 _csrf_origins_env = os.getenv("CSRF_TRUSTED_ORIGINS")
 try:
     CSRF_TRUSTED_ORIGINS = ast.literal_eval(_csrf_origins_env) if _csrf_origins_env else [SITEURL.rstrip("/")]
