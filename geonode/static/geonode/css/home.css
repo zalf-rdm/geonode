@@ -122,8 +122,7 @@ body.msgapi h3 {
     box-shadow: 0 1px 3px rgba(0, 0, 0, .04);
 }
 
-body.msgapi .zl-hero .zl-hero__inner h1.zl-hero__title,
-body.msgapi .zl-hero .zl-hero__inner .zl-hero__title {
+body.msgapi .zl-hero__title {
     font-size: clamp(36px, 5vw, 56px);
     font-weight: 800;
     line-height: 1.08;
@@ -135,8 +134,7 @@ body.msgapi .zl-hero .zl-hero__inner .zl-hero__title {
     background-clip: text;
 }
 
-body.msgapi .zl-hero .zl-hero__inner p.zl-hero__sub,
-body.msgapi .zl-hero .zl-hero__inner .zl-hero__sub {
+body.msgapi .zl-hero__sub {
     font-size: 18px;
     color: var(--zl-muted);
     max-width: 600px;
@@ -187,8 +185,7 @@ body.msgapi .zl-hero .zl-hero__inner .zl-hero__sub {
     color: #a3b5ab;
 }
 
-body.msgapi .zl-search button.zl-search__btn,
-body.msgapi .zl-search .zl-search__btn {
+body.msgapi .zl-search__btn {
     flex-shrink: 0;
     background: linear-gradient(135deg, var(--zl-green), var(--zl-green-l));
     color: #fff;
@@ -290,16 +287,12 @@ body.msgapi .zl-search .zl-search__btn {
     -webkit-backface-visibility: hidden;
 }
 
-body.msgapi a.zl-btn--primary,
-body.msgapi button.zl-btn--primary,
 body.msgapi .zl-btn--primary {
     background: linear-gradient(135deg, var(--zl-green), var(--zl-green-l));
     color: #fff;
     box-shadow: 0 2px 8px rgba(27, 122, 43, .2);
 }
 
-body.msgapi a.zl-btn--primary:hover,
-body.msgapi button.zl-btn--primary:hover,
 body.msgapi .zl-btn--primary:hover {
     filter: brightness(1.06);
     transform: translateY(-1px);
@@ -308,7 +301,6 @@ body.msgapi .zl-btn--primary:hover {
     text-decoration: none;
 }
 
-body.msgapi a.zl-btn--outline,
 body.msgapi .zl-btn--outline {
     background: var(--zl-white);
     color: var(--zl-dark);
@@ -316,7 +308,6 @@ body.msgapi .zl-btn--outline {
     box-shadow: var(--zl-shadow);
 }
 
-body.msgapi a.zl-btn--outline:hover,
 body.msgapi .zl-btn--outline:hover {
     border-color: var(--zl-green);
     color: var(--zl-green);
@@ -324,14 +315,12 @@ body.msgapi .zl-btn--outline:hover {
     text-decoration: none;
 }
 
-body.msgapi a.zl-btn--ghost,
 body.msgapi .zl-btn--ghost {
     background: transparent;
     color: var(--zl-green);
     border: 1px solid var(--zl-border);
 }
 
-body.msgapi a.zl-btn--ghost:hover,
 body.msgapi .zl-btn--ghost:hover {
     background: var(--zl-green-bg);
     text-decoration: none;
@@ -343,14 +332,12 @@ body.msgapi .zl-btn--ghost:hover {
     border-radius: 10px;
 }
 
-body.msgapi a.zl-btn--white,
 body.msgapi .zl-btn--white {
     background: #fff;
     color: var(--zl-green);
     box-shadow: 0 2px 8px rgba(0, 0, 0, .1);
 }
 
-body.msgapi a.zl-btn--white:hover,
 body.msgapi .zl-btn--white:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 16px rgba(0, 0, 0, .15);
@@ -358,14 +345,12 @@ body.msgapi .zl-btn--white:hover {
     color: var(--zl-green);
 }
 
-body.msgapi a.zl-btn--white-outline,
 body.msgapi .zl-btn--white-outline {
     background: transparent;
     color: #fff;
     border: 1.5px solid rgba(255, 255, 255, .4);
 }
 
-body.msgapi a.zl-btn--white-outline:hover,
 body.msgapi .zl-btn--white-outline:hover {
     background: rgba(255, 255, 255, .12);
     border-color: rgba(255, 255, 255, .7);
@@ -384,8 +369,7 @@ body.msgapi .zl-btn--white-outline:hover {
     background: var(--zl-white);
 }
 
-body.msgapi .zl-section h2.zl-section__title,
-body.msgapi .zl-section .zl-section__title {
+body.msgapi .zl-section__title {
     font-size: 32px;
     font-weight: 800;
     text-align: center;
@@ -394,8 +378,7 @@ body.msgapi .zl-section .zl-section__title {
     color: var(--zl-dark);
 }
 
-body.msgapi .zl-section p.zl-section__sub,
-body.msgapi .zl-section .zl-section__sub {
+body.msgapi .zl-section__sub {
     text-align: center;
     color: var(--zl-muted);
     font-size: 16px;
@@ -679,16 +662,14 @@ body.msgapi .zl-section .zl-section__sub {
     border-radius: 50%;
 }
 
-body.msgapi .zl-cta .zl-cta__inner h2.zl-cta__title,
-body.msgapi .zl-cta .zl-cta__inner .zl-cta__title {
+body.msgapi .zl-cta__title {
     font-size: 28px;
     font-weight: 800;
     color: #fff;
     margin: 0 0 8px;
 }
 
-body.msgapi .zl-cta .zl-cta__inner p.zl-cta__sub,
-body.msgapi .zl-cta .zl-cta__inner .zl-cta__sub {
+body.msgapi .zl-cta__sub {
     color: rgba(255, 255, 255, .8);
     font-size: 16px;
     max-width: 500px;

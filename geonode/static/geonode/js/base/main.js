@@ -343,10 +343,16 @@
     // Use quickSetter for performance
     cards.forEach(function (card) {
       var setTransform = window.gsap.quickSetter(card, 'transform');
+      var defaultShadow = window.getComputedStyle(card).boxShadow;
+      var isZalfCard = card.classList.contains('zl-card') || card.classList.contains('zl-cat');
       var bounds;
       function enter() {
         bounds = card.getBoundingClientRect();
-        window.gsap.to(card, { duration: 0.25, boxShadow: '0 12px 30px rgba(0,0,0,.12)', y: -2 });
+        window.gsap.to(card, {
+          duration: 0.25,
+          boxShadow: isZalfCard ? 'var(--zl-shadow-lg)' : '0 12px 30px rgba(0,0,0,.12)',
+          y: -2
+        });
       }
       function move(e) {
         if (!bounds) bounds = card.getBoundingClientRect();
@@ -358,7 +364,14 @@
       }
       function leave() {
         bounds = null;
-        window.gsap.to(card, { duration: 0.3, rotateX: 0, rotateY: 0, y: 0, transform: 'perspective(600px)', boxShadow: 'var(--gn-shadow)' });
+        window.gsap.to(card, {
+          duration: 0.3,
+          rotateX: 0,
+          rotateY: 0,
+          y: 0,
+          transform: 'perspective(600px)',
+          boxShadow: defaultShadow
+        });
       }
       on(card, 'mouseenter', enter);
       on(card, 'mousemove', move);
