@@ -146,11 +146,12 @@
   function initHomepageSearch() {
     var form = $('#zl-search-form');
     var input = $('#zl-q', form || document);
+    var searchUrl = form && form.getAttribute('data-search-url');
     if (!form || !input) return;
 
     on(form, 'submit', function (e) {
       e.preventDefault();
-      window.location.href = '/catalogue/#/search?q=' + encodeURIComponent(input.value);
+      window.location.href = (searchUrl || 'catalogue/#/search') + '?q=' + encodeURIComponent(input.value);
     });
   }
 

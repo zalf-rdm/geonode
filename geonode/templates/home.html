@@ -44,7 +44,7 @@
         {% trans "Discover, visualize and share high-quality geospatial datasets powering open science, policy and innovation." %}
       </p>
 
-      <form role="search" class="zl-search" id="zl-search-form">
+      <form role="search" class="zl-search" id="zl-search-form" data-search-url="{% url 'home' %}catalogue/#/search">
         <div class="zl-search__wrap">
           <i class="fa fa-search zl-search__icon"></i>
           <input id="zl-q" type="search" class="zl-search__input"
@@ -54,10 +54,10 @@
       </form>
 
       <div class="zl-hero__actions">
-        <a href="/catalogue/#/datasets" class="zl-btn zl-btn--primary">
+        <a href="{% url 'home' %}catalogue/#/datasets" class="zl-btn zl-btn--primary">
           <i class="fa fa-database"></i> {% trans "Explore Datasets" %}
         </a>
-        <a href="/catalogue/#/maps" class="zl-btn zl-btn--outline">
+        <a href="{% url 'home' %}catalogue/#/maps" class="zl-btn zl-btn--outline">
           <i class="fa fa-map"></i> {% trans "Browse Maps" %}
         </a>
       </div>
@@ -90,37 +90,37 @@
       <p class="zl-section__sub fade-up">{% trans "Curated collections spanning core research areas at ZALF." %}</p>
 
       <div class="zl-grid zl-grid--3">
-        <a href="/catalogue/#/search?q=soil" class="zl-cat fade-up">
+        <a href="{% url 'home' %}catalogue/#/search?q=soil" class="zl-cat fade-up">
           <div class="zl-cat__icon"><i class="fa fa-pagelines"></i></div>
           <h3 class="zl-cat__title">{% trans "Soil" %}</h3>
           <p class="zl-cat__desc">{% trans "Profiles, chemistry and functions across landscapes." %}</p>
           <span class="zl-cat__arrow"><i class="fa fa-arrow-right"></i></span>
         </a>
-        <a href="/catalogue/#/search?q=water" class="zl-cat fade-up">
+        <a href="{% url 'home' %}catalogue/#/search?q=water" class="zl-cat fade-up">
           <div class="zl-cat__icon"><i class="fa fa-tint"></i></div>
           <h3 class="zl-cat__title">{% trans "Water" %}</h3>
           <p class="zl-cat__desc">{% trans "Hydrology, quality and availability for resilient ecosystems." %}</p>
           <span class="zl-cat__arrow"><i class="fa fa-arrow-right"></i></span>
         </a>
-        <a href="/catalogue/#/search?q=climate" class="zl-cat fade-up">
+        <a href="{% url 'home' %}catalogue/#/search?q=climate" class="zl-cat fade-up">
           <div class="zl-cat__icon"><i class="fa fa-sun-o"></i></div>
           <h3 class="zl-cat__title">{% trans "Climate" %}</h3>
           <p class="zl-cat__desc">{% trans "Weather, extremes and long-term trends impacting agriculture." %}</p>
           <span class="zl-cat__arrow"><i class="fa fa-arrow-right"></i></span>
         </a>
-        <a href="/catalogue/#/search?q=biodiversity" class="zl-cat fade-up">
+        <a href="{% url 'home' %}catalogue/#/search?q=biodiversity" class="zl-cat fade-up">
           <div class="zl-cat__icon"><i class="fa fa-leaf"></i></div>
           <h3 class="zl-cat__title">{% trans "Biodiversity" %}</h3>
           <p class="zl-cat__desc">{% trans "Species, habitats and ecosystem services in agro-landscapes." %}</p>
           <span class="zl-cat__arrow"><i class="fa fa-arrow-right"></i></span>
         </a>
-        <a href="/catalogue/#/search?q=landscape" class="zl-cat fade-up">
+        <a href="{% url 'home' %}catalogue/#/search?q=landscape" class="zl-cat fade-up">
           <div class="zl-cat__icon"><i class="fa fa-globe"></i></div>
           <h3 class="zl-cat__title">{% trans "Landscape" %}</h3>
           <p class="zl-cat__desc">{% trans "Land use, spatial patterns and agro-landscape structure." %}</p>
           <span class="zl-cat__arrow"><i class="fa fa-arrow-right"></i></span>
         </a>
-        <a href="/catalogue/#/search?q=agriculture" class="zl-cat fade-up">
+        <a href="{% url 'home' %}catalogue/#/search?q=agriculture" class="zl-cat fade-up">
           <div class="zl-cat__icon"><i class="fa fa-envira"></i></div>
           <h3 class="zl-cat__title">{% trans "Agriculture" %}</h3>
           <p class="zl-cat__desc">{% trans "Crop systems, management and yield monitoring." %}</p>
@@ -213,7 +213,7 @@
           <a href="https://upload-e.dataservice.zalf.de/" class="zl-btn zl-btn--white" target="_blank" rel="noopener noreferrer">
             <i class="fa fa-cloud-upload"></i> {% trans "Upload Dataset" %}
           </a>
-          <a href="/account/signup/" class="zl-btn zl-btn--white-outline">
+          <a href="{% url 'account_signup' %}" class="zl-btn zl-btn--white-outline">
             <i class="fa fa-user-plus"></i> {% trans "Create Account" %}
           </a>
         </div>
