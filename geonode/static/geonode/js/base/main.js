@@ -43,6 +43,8 @@
     var body = document.body;
     var reduced = prefersReduced || body.classList.contains('reduce-motion') || body.classList.contains('no-anim');
 
+    initHomepageSearch();
+
     // ── Dropdown toggle (no Bootstrap JS needed) ──
     $$('[data-toggle="dropdown"]').forEach(function (toggle) {
       on(toggle, 'click', function (e) {
@@ -139,6 +141,20 @@
   });
 
   // -------------------------------
+  // Module: Homepage search redirect
+  // -------------------------------
+  function initHomepageSearch() {
+    var form = $('#zl-search-form');
+    var input = $('#zl-q', form || document);
+    if (!form || !input) return;
+
+    on(form, 'submit', function (e) {
+      e.preventDefault();
+      window.location.href = '/catalogue/#/search?q=' + encodeURIComponent(input.value);
+    });
+  }
+
+  // -------------------------------
   // Module: Hero intro timeline
   // -------------------------------
   function heroIntro(reduced) {
@@ -157,30 +173,26 @@
   // -------------------------------
   function svgParallax(reduced) {
     if (reduced || !hasST || !$('.hero-svg')) return;
-    try {
-      window.gsap.to('#ridge1', {
-        yPercent: -6,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: '.zl-hero',
-          start: 'top top',
-          end: 'bottom top',
-          scrub: true
-        }
-      });
-      window.gsap.to('#ridge2', {
-        yPercent: -12,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: '.zl-hero',
-          start: 'top top',
-          end: 'bottom top',
-          scrub: true
-        }
-      });
-    } catch (e) {
-      // No-op if IDs are absent
-    }
+    window.gsap.to('#ridge1', {
+      yPercent: -6,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: '.zl-hero',
+        start: 'top top',
+        end: 'bottom top',
+        scrub: true
+      }
+    });
+    window.gsap.to('#ridge2', {
+      yPercent: -12,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: '.zl-hero',
+        start: 'top top',
+        end: 'bottom top',
+        scrub: true
+      }
+    });
 
     // Centering helper on resize (kept simple)
     function centerHeroSvg() {
@@ -361,6 +373,10 @@
   // -------------------------------
   function buttonRipple(reduced) {
     if (reduced) return;
+    $$('.btn, .zl-btn').forEach(function (b) {
+      b.classList.add('btn-ripple-container');
+    });
+
     function addRipple(e) {
       var btn = e.currentTarget;
       var rect = btn.getBoundingClientRect();
@@ -370,23 +386,9 @@
 
       var ripple = document.createElement('span');
       ripple.className = 'btn-ripple';
-      ripple.style.position = 'absolute';
-      ripple.style.left = x + 'px';
-      ripple.style.top = y + 'px';
-      ripple.style.width = size + 'px';
-      ripple.style.height = size + 'px';
-      ripple.style.borderRadius = '50%';
-      ripple.style.pointerEvents = 'none';
-      ripple.style.background = 'rgba(255,255,255,.35)';
-      ripple.style.transform = 'scale(0)';
-      ripple.style.opacity = '0.9';
-      ripple.style.mixBlendMode = 'overlay';
-      ripple.style.willChange = 'transform, opacity';
-      ripple.style.backfaceVisibility = 'hidden';
-      ripple.style.webkitBackfaceVisibility = 'hidden';
-
-      btn.style.position = btn.style.position || 'relative';
-      btn.style.overflow = 'hidden';
+      ripple.style.setProperty('--ripple-left', x + 'px');
+      ripple.style.setProperty('--ripple-top', y + 'px');
+      ripple.style.setProperty('--ripple-size', size + 'px');
       btn.appendChild(ripple);
 
       window.gsap.to(ripple, { duration: 0.45, scale: 1, ease: 'power2.out' });
@@ -513,7 +515,4 @@
     });
   }
 
-  // --------------------------------------------------
-  // End of file
-  // --------------------------------------------------
 })();

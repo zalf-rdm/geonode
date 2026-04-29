@@ -44,8 +44,7 @@
         {% trans "Discover, visualize and share high-quality geospatial datasets powering open science, policy and innovation." %}
       </p>
 
-      <form role="search" class="zl-search"
-            onsubmit="window.location.href='/catalogue/#/search?q='+encodeURIComponent(document.getElementById('zl-q').value);return false;">
+      <form role="search" class="zl-search" id="zl-search-form">
         <div class="zl-search__wrap">
           <i class="fa fa-search zl-search__icon"></i>
           <input id="zl-q" type="search" class="zl-search__input"

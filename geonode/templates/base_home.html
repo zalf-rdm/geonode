@@ -18,8 +18,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- Font Awesome 4 (already used in navbar) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <!-- Vendored Font Awesome 4 -->
+    <link rel="stylesheet" href="{% static 'geonode/css/font-awesome.min.css' %}">
 
     {% block head %}
     <!-- MapStore theme (same CSS used by /catalogue/ — includes navbar, footer, variables) -->
@@ -52,9 +52,9 @@
 
     {% block extra_script %}{% endblock extra_script %}
 
-    <!-- GSAP 3 + ScrollTrigger -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <!-- Vendored GSAP 3 + ScrollTrigger -->
+    <script src="{% static 'geonode/vendor/gsap/gsap.min.js' %}"></script>
+    <script src="{% static 'geonode/vendor/gsap/ScrollTrigger.min.js' %}"></script>
     <script src="{% static 'geonode/js/base/main.js' %}"></script>
 
   </body>

@@ -2483,7 +2483,9 @@ SOCIALACCOUNT_PROVIDER_REALM = os.environ.get("SOCIALACCOUNT_PROVIDER_REALM", "O
 #
 #   protocol, hostname and port required to access the keycloak instance
 #
-SOCIALACCOUNT_PROVIDER_HOST = os.environ.get("SOCIALACCOUNT_PROVIDER_HOST", "https://host.docker.internal:8008/")
+SOCIALACCOUNT_PROVIDER_HOST = os.environ.get(
+    "SOCIALACCOUNT_PROVIDER_HOST", "https://host.docker.internal:8008/"
+)
 SOCIALACCOUNT_PROVIDER_ROOT = f"{SOCIALACCOUNT_PROVIDER_HOST}realms/{SOCIALACCOUNT_PROVIDER_REALM}/"
 #
 #   client id

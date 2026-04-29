@@ -268,6 +268,28 @@ button.zl-search__btn,
     white-space: nowrap;
 }
 
+.btn-ripple-container {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-ripple {
+    position: absolute;
+    left: var(--ripple-left, 0);
+    top: var(--ripple-top, 0);
+    width: var(--ripple-size, 0);
+    height: var(--ripple-size, 0);
+    border-radius: 50%;
+    pointer-events: none;
+    background: rgba(255, 255, 255, .35);
+    transform: scale(0);
+    opacity: .9;
+    mix-blend-mode: overlay;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
 a.zl-btn--primary,
 button.zl-btn--primary,
 .zl-btn--primary {
