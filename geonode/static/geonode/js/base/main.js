@@ -379,6 +379,12 @@
 
     function addRipple(e) {
       var btn = e.currentTarget;
+      if (btn._rippling) return;
+      btn._rippling = true;
+      setTimeout(function () {
+        delete btn._rippling;
+      }, 500);
+
       var rect = btn.getBoundingClientRect();
       var size = Math.max(rect.width, rect.height);
       var x = (e.clientX || (e.touches && e.touches[0] && e.touches[0].clientX) || (rect.left + rect.width / 2)) - rect.left - size / 2;
