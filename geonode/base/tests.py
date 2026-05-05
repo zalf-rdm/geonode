@@ -73,7 +73,10 @@ from geonode.base.models import (
     RelatedIdentifierType,
     RelationType,
     ResourceTypeGeneral,
+    Organization,
+    Funding,
 )
+from geonode.base.api.fields import FundingsDynamicRelationField
 from geonode.base.middleware import ReadOnlyMiddleware, MaintenanceMiddleware
 from geonode.base.templatetags.base_tags import get_visibile_resources, facets
 from geonode.base.templatetags.thesaurus import (
@@ -218,6 +221,68 @@ class TestCreationOfContactRolesByDifferentInputTypes(ThumbnailTests):
         self.rb.owner = user
         self.rb.metadata_author = profile_list
         self.rb.poc = profile_list
+
+
+class FundingsDynamicRelationFieldTests(TestCase):
+    def setUp(self):
+        self.field = FundingsDynamicRelationField(None)
+
+    def test_creates_funding_and_organization_from_payload(self):
+        payload = {
+            "organization": {
+                "organization": "European Commission",
+                "ror": "https://ror.org/998nnx307",
+                "abbreviation": "EC",
+            },
+            "award_title": "Research on Agricultural Innovation",
+            "award_number": "H2020-123456",
+            "award_uri": "https://cordis.europa.eu/project/id/123456",
+        }
+
+        funding = self.field.to_internal_value_single(payload, serializer=None)
+
+        self.assertIsInstance(funding, Funding)
+        self.assertEqual(funding.organization.ror, "https://ror.org/998nnx307")
+        self.assertEqual(Organization.objects.filter(ror="https://ror.org/998nnx307").count(), 1)
+
+    def test_supports_funding_organization_alias(self):
+        payload = {
+            "funding_organization": {
+                "organization": "German Federal Ministry of Education and Research (BMBF)",
+                "ror": "https://ror.org/04wxnsj81",
+                "abbreviation": "BMBF",
+            },
+            "award_title": "ZALF Research Initiative",
+            "award_number": "01LC1234",
+            "award_uri": "https://www.bmbf.de",
+        }
+
+        funding = self.field.to_internal_value_single(payload, serializer=None)
+
+        self.assertEqual(funding.organization.ror, "https://ror.org/04wxnsj81")
+        self.assertEqual(Organization.objects.filter(ror="https://ror.org/04wxnsj81").count(), 1)
+
+    def test_reuses_existing_organization_by_ror(self):
+        org = Organization.objects.create(
+            organization="National Science Foundation",
+            ror="https://ror.org/01sjfss47",
+            abbreviation="NSF",
+        )
+        payload = {
+            "organization": {
+                "organization": "National Science Foundation (duplicate name variation)",
+                "ror": "https://ror.org/01sjfss47",
+                "abbreviation": "NSF",
+            },
+            "award_title": "Data Integration for Environmental Science",
+            "award_number": "NSF-2024-5678",
+            "award_uri": "https://nsf.gov/awardsearch/showAward",
+        }
+
+        funding = self.field.to_internal_value_single(payload, serializer=None)
+
+        self.assertEqual(funding.organization.pk, org.pk)
+        self.assertEqual(Organization.objects.filter(ror="https://ror.org/01sjfss47").count(), 1)
         self.rb.publisher = profile_list
         self.rb.custodian = profile_list
         self.rb.distributor = profile_list

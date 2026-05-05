@@ -57,16 +57,117 @@ class RelatedIdentifierDynamicRelationField(DynamicRelationField):
 
 
 class FundingsDynamicRelationField(DynamicRelationField):
+    """Generic nested get-or-create handler for fundings payload.
+
+    Supports payloads with either:
+    - organization: {...}
+    - funding_organization: {...}
+
+    and resolves/creates Organization first, then Funding.
+    """
+
+    nested_relations = {
+        "organization": {
+            "model": Organization,
+            "aliases": ("organization", "funding_organization"),
+            # Prefer stable identifiers first, then progressively weaker matches.
+            "lookup_order": (("ror",), ("organization", "abbreviation"), ("organization",)),
+            "required": True,
+        }
+    }
+
+    @staticmethod
+    def _clean_dict(data):
+        return {k: v for k, v in data.items() if v not in (None, "")}
+
+    def _get_alias_value(self, data, aliases):
+        for alias in aliases:
+            if alias in data:
+                return alias, data[alias]
+        return None, None
+
+    def _resolve_nested_instance(self, rel_name, rel_cfg, rel_raw):
+        model = rel_cfg["model"]
+
+        if isinstance(rel_raw, model):
+            return rel_raw
+
+        if isinstance(rel_raw, int):
+            return model.objects.get(pk=rel_raw)
+
+        if not isinstance(rel_raw, dict):
+            raise ParseError(
+                detail=f"Invalid object for '{rel_name}' in payload ...",
+                code=400,
+            )
+
+        rel_data = dict(rel_raw)
+
+        # Allow direct reference by id when clients already have it.
+        if rel_data.get("id"):
+            return model.objects.get(pk=rel_data["id"])
+
+        rel_data = self._clean_dict(rel_data)
+        if not rel_data:
+            raise ParseError(
+                detail=f"Missing '{rel_name}' object in payload ...",
+                code=400,
+            )
+
+        # Try deterministic lookup chains first; create only if no match exists.
+        for keys in rel_cfg.get("lookup_order", ()):
+            if all(rel_data.get(k) not in (None, "") for k in keys):
+                lookup = {k: rel_data[k] for k in keys}
+                instance = model.objects.filter(**lookup).first()
+                if instance:
+                    return instance
+
+                defaults = {k: v for k, v in rel_data.items() if k not in lookup}
+                return model.objects.get_or_create(**lookup, defaults=defaults)[0]
+
+        return model.objects.get_or_create(**rel_data)[0]
+
     def to_internal_value_single(self, data, serializer):
         try:
-            organization = Organization.objects.get(**data["organization"])
-            data["organization"] = organization
-        except TypeError:
-            raise ParseError(detail="Missing funding_organization object in funding ...", code=400)
+            if isinstance(data, str):
+                data = json.loads(data)
+        except ValueError:
+            return super().to_internal_value_single(data, serializer)
+
+        if not isinstance(data, dict):
+            return super().to_internal_value_single(data, serializer)
+
+        payload = dict(data)
+
+        # Reuse existing funding if id is explicitly provided.
+        funding_id = payload.get("id")
+        if funding_id:
+            return Funding.objects.get(pk=funding_id)
+
         try:
-            funder = Funding.objects.get_or_create(**data)
+            for rel_name, rel_cfg in self.nested_relations.items():
+                alias, rel_raw = self._get_alias_value(payload, rel_cfg.get("aliases", (rel_name,)))
+                if rel_raw is None:
+                    if rel_cfg.get("required", False):
+                        raise ParseError(
+                            detail=f"Missing {rel_name} object in funding ...",
+                            code=400,
+                        )
+                    continue
+
+                payload[rel_name] = self._resolve_nested_instance(rel_name, rel_cfg, rel_raw)
+
+                # Remove alias key if canonical key differs.
+                if alias and alias != rel_name:
+                    payload.pop(alias, None)
+
+            payload = self._clean_dict(payload)
+            funder = Funding.objects.get_or_create(**payload)
         except TypeError:
             raise ParseError(detail="Could not convert funding to internal object ...", code=400)
+        except ValidationError:
+            raise ParseError(detail="Invalid funding payload ...", code=400)
+
         return funder[0]
 
 
