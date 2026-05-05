@@ -130,10 +130,6 @@ class FundingsDynamicRelationField(DynamicRelationField):
         for keys in rel_cfg.get("lookup_order", ()):
             if all(rel_data.get(k) not in (None, "") for k in keys):
                 lookup = {k: rel_data[k] for k in keys}
-                instance = model.objects.filter(**lookup).first()
-                if instance:
-                    return instance
-
                 defaults = {k: v for k, v in rel_data.items() if k not in lookup}
                 try:
                     return model.objects.get_or_create(**lookup, defaults=defaults)[0]
