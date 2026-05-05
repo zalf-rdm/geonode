@@ -351,6 +351,38 @@ class FundingsDynamicRelationFieldTests(TestCase):
         with self.assertRaises(ParseError):
             self.field.to_internal_value_single(payload, serializer=None)
 
+    def test_resolves_nested_organization_id_sent_as_string(self):
+        org = Organization.objects.create(
+            organization="European Commission",
+            ror="https://ror.org/998nnx307",
+            abbreviation="EC",
+        )
+        payload = {
+            "organization": str(org.pk),
+            "award_title": "Research on Agricultural Innovation",
+            "award_number": "H2020-123456",
+            "award_uri": "https://cordis.europa.eu/project/id/123456",
+        }
+
+        funding = self.field.to_internal_value_single(payload, serializer=None)
+        self.assertEqual(funding.organization.pk, org.pk)
+
+    def test_resolves_funding_id_sent_as_string(self):
+        org = Organization.objects.create(
+            organization="NSF",
+            ror="https://ror.org/01sjfss47",
+            abbreviation="NSF",
+        )
+        funding = Funding.objects.create(
+            organization=org,
+            award_title="Data Integration",
+            award_number="NSF-2024-5678",
+            award_uri="https://nsf.gov/awardsearch/showAward",
+        )
+
+        resolved = self.field.to_internal_value_single({"id": str(funding.pk)}, serializer=None)
+        self.assertEqual(resolved.pk, funding.pk)
+
 
 class RenderMenuTagTest(GeoNodeBaseTestSupport):
     """

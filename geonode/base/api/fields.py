@@ -18,7 +18,7 @@
 #########################################################################
 import json
 
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, MultipleObjectsReturned
 
 from rest_framework.exceptions import ParseError
 from dynamic_rest.fields.fields import DynamicRelationField
@@ -92,9 +92,15 @@ class FundingsDynamicRelationField(DynamicRelationField):
         if isinstance(rel_raw, model):
             return rel_raw
 
-        if isinstance(rel_raw, int):
+        if isinstance(rel_raw, (int, str)):
+            rel_raw_id = rel_raw
+            if isinstance(rel_raw, str):
+                rel_raw_id = rel_raw.strip()
+                if not rel_raw_id.isdigit():
+                    rel_raw_id = None
             try:
-                return model.objects.get(pk=rel_raw)
+                if rel_raw_id is not None:
+                    return model.objects.get(pk=int(rel_raw_id))
             except model.DoesNotExist:
                 raise ParseError(detail=f"Object with id={rel_raw} for '{rel_name}' not found", code=400)
 
@@ -131,10 +137,14 @@ class FundingsDynamicRelationField(DynamicRelationField):
                 defaults = {k: v for k, v in rel_data.items() if k not in lookup}
                 return model.objects.get_or_create(**lookup, defaults=defaults)[0]
 
-        instance = model.objects.filter(**rel_data).first()
-        if instance:
+        try:
+            instance, _ = model.objects.get_or_create(**rel_data)
             return instance
-        return model.objects.create(**rel_data)
+        except MultipleObjectsReturned:
+            instance = model.objects.filter(**rel_data).first()
+            if instance:
+                return instance
+            raise
 
     def to_internal_value_single(self, data, serializer):
         try:
@@ -174,9 +184,12 @@ class FundingsDynamicRelationField(DynamicRelationField):
                     payload.pop(alias, None)
 
             payload = self._clean_dict(payload)
-            funder = Funding.objects.filter(**payload).first()
-            if not funder:
-                funder = Funding.objects.create(**payload)
+            try:
+                funder, _ = Funding.objects.get_or_create(**payload)
+            except MultipleObjectsReturned:
+                funder = Funding.objects.filter(**payload).first()
+                if not funder:
+                    raise
         except TypeError:
             raise ParseError(detail="Could not convert funding to internal object ...", code=400)
         except ValidationError:
