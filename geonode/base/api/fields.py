@@ -116,7 +116,7 @@ class FundingsDynamicRelationField(DynamicRelationField):
         if rel_data.get("id"):
             try:
                 return model.objects.get(pk=rel_data["id"])
-            except model.DoesNotExist:
+            except (ValueError, TypeError, model.DoesNotExist):
                 raise ParseError(detail=f"Object with id={rel_data['id']} for '{rel_name}' not found", code=400)
 
         rel_data = self._clean_dict(rel_data)
@@ -163,7 +163,7 @@ class FundingsDynamicRelationField(DynamicRelationField):
         if funding_id:
             try:
                 return Funding.objects.get(pk=funding_id)
-            except Funding.DoesNotExist:
+            except (ValueError, TypeError, Funding.DoesNotExist):
                 raise ParseError(detail=f"Funding with id={funding_id} not found", code=400)
 
         try:

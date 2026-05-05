@@ -383,6 +383,20 @@ class FundingsDynamicRelationFieldTests(TestCase):
         resolved = self.field.to_internal_value_single({"id": str(funding.pk)}, serializer=None)
         self.assertEqual(resolved.pk, funding.pk)
 
+    def test_raises_parse_error_for_non_numeric_funding_id_string(self):
+        with self.assertRaises(ParseError):
+            self.field.to_internal_value_single({"id": "abc"}, serializer=None)
+
+    def test_raises_parse_error_for_non_numeric_nested_organization_id_string(self):
+        payload = {
+            "organization": {"id": "abc"},
+            "award_title": "Any",
+            "award_number": "X-1",
+            "award_uri": "https://example.org/award",
+        }
+        with self.assertRaises(ParseError):
+            self.field.to_internal_value_single(payload, serializer=None)
+
 
 class RenderMenuTagTest(GeoNodeBaseTestSupport):
     """
