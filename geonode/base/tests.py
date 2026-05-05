@@ -387,6 +387,24 @@ class FundingsDynamicRelationFieldTests(TestCase):
         with self.assertRaises(ParseError):
             self.field.to_internal_value_single({"id": "abc"}, serializer=None)
 
+    def test_raises_parse_error_for_id_plus_update_fields(self):
+        org = Organization.objects.create(
+            organization="NSF",
+            ror="https://ror.org/01sjfss47",
+            abbreviation="NSF",
+        )
+        funding = Funding.objects.create(
+            organization=org,
+            award_title="Data Integration",
+            award_number="NSF-2024-5678",
+            award_uri="https://nsf.gov/awardsearch/showAward",
+        )
+        with self.assertRaises(ParseError):
+            self.field.to_internal_value_single(
+                {"id": funding.pk, "award_title": "Attempted inline update"},
+                serializer=None,
+            )
+
     def test_raises_parse_error_for_non_numeric_nested_organization_id_string(self):
         payload = {
             "organization": {"id": "abc"},

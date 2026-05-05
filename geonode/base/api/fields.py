@@ -134,13 +134,13 @@ class FundingsDynamicRelationField(DynamicRelationField):
                 try:
                     return model.objects.get_or_create(**lookup, defaults=defaults)[0]
                 except MultipleObjectsReturned:
-                    return model.objects.filter(**lookup).first()
+                    return model.objects.filter(**lookup).order_by("pk").first()
 
         try:
             instance, _ = model.objects.get_or_create(**rel_data)
             return instance
         except MultipleObjectsReturned:
-            return model.objects.filter(**rel_data).first()
+            return model.objects.filter(**rel_data).order_by("pk").first()
 
     def to_internal_value_single(self, data, serializer):
         try:
@@ -157,6 +157,13 @@ class FundingsDynamicRelationField(DynamicRelationField):
         # Reuse existing funding if id is explicitly provided.
         funding_id = payload.get("id")
         if funding_id:
+            extra_fields = {k: v for k, v in payload.items() if k != "id" and v not in (None, "")}
+            if extra_fields:
+                raise ParseError(
+                    detail="Funding payload with 'id' cannot include update fields. "
+                    "Use either an id reference or a full nested object without id.",
+                    code=400,
+                )
             try:
                 return Funding.objects.get(pk=funding_id)
             except (ValueError, TypeError, Funding.DoesNotExist):
@@ -183,7 +190,7 @@ class FundingsDynamicRelationField(DynamicRelationField):
             try:
                 funder, _ = Funding.objects.get_or_create(**payload)
             except MultipleObjectsReturned:
-                funder = Funding.objects.filter(**payload).first()
+                funder = Funding.objects.filter(**payload).order_by("pk").first()
         except TypeError:
             raise ParseError(detail="Could not convert funding to internal object ...", code=400)
         except ValidationError:
