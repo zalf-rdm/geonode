@@ -37,6 +37,7 @@ from django.contrib.auth import get_user_model
 from geonode.storage.manager import storage_manager
 from django.test import Client, TestCase, override_settings, SimpleTestCase
 from rest_framework.test import APITestCase
+from rest_framework.exceptions import ParseError
 from django.shortcuts import reverse
 from django.utils import translation
 from django.core.files import File
@@ -221,6 +222,58 @@ class TestCreationOfContactRolesByDifferentInputTypes(ThumbnailTests):
         self.rb.owner = user
         self.rb.metadata_author = profile_list
         self.rb.poc = profile_list
+        self.rb.publisher = profile_list
+        self.rb.custodian = profile_list
+        self.rb.distributor = profile_list
+        self.rb.resource_user = profile_list
+        self.rb.resource_provider = profile_list
+        self.rb.originator = profile_list
+        self.rb.principal_investigator = profile_list
+        self.rb.processor = profile_list
+
+        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.metadata_author])
+        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.poc])
+        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.publisher])
+        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.custodian])
+        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.distributor])
+        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.resource_user])
+        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.resource_provider])
+        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.originator])
+        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.principal_investigator])
+        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.processor])
+
+    """
+    Test that contact roles can be set as queryset
+    """
+
+    def test_set_contact_role_as_queryset(self):
+        user, _ = get_user_model().objects.get_or_create(username="zlatan_i")
+        user2, _ = get_user_model().objects.get_or_create(username="sven_z")
+
+        query = get_user_model().objects.filter(username__in=["zlatan_i", "sven_z"])
+
+        self.rb.owner = user
+        self.rb.metadata_author = query
+        self.rb.poc = query
+        self.rb.publisher = query
+        self.rb.custodian = query
+        self.rb.distributor = query
+        self.rb.resource_user = query
+        self.rb.resource_provider = query
+        self.rb.originator = query
+        self.rb.principal_investigator = query
+        self.rb.processor = query
+
+        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.metadata_author])
+        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.poc])
+        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.publisher])
+        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.custodian])
+        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.distributor])
+        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.resource_user])
+        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.resource_provider])
+        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.originator])
+        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.principal_investigator])
+        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.processor])
 
 
 class FundingsDynamicRelationFieldTests(TestCase):
@@ -283,58 +336,20 @@ class FundingsDynamicRelationFieldTests(TestCase):
 
         self.assertEqual(funding.organization.pk, org.pk)
         self.assertEqual(Organization.objects.filter(ror="https://ror.org/01sjfss47").count(), 1)
-        self.rb.publisher = profile_list
-        self.rb.custodian = profile_list
-        self.rb.distributor = profile_list
-        self.rb.resource_user = profile_list
-        self.rb.resource_provider = profile_list
-        self.rb.originator = profile_list
-        self.rb.principal_investigator = profile_list
-        self.rb.processor = profile_list
 
-        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.metadata_author])
-        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.poc])
-        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.publisher])
-        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.custodian])
-        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.distributor])
-        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.resource_user])
-        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.resource_provider])
-        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.originator])
-        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.principal_investigator])
-        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.processor])
+    def test_raises_parse_error_for_invalid_funding_id(self):
+        with self.assertRaises(ParseError):
+            self.field.to_internal_value_single({"id": 999999}, serializer=None)
 
-    """
-    Test that contact roles can be set as queryset
-    """
-
-    def test_set_contact_role_as_queryset(self):
-        user, _ = get_user_model().objects.get_or_create(username="zlatan_i")
-        user2, _ = get_user_model().objects.get_or_create(username="sven_z")
-
-        query = get_user_model().objects.filter(username__in=["zlatan_i", "sven_z"])
-
-        self.rb.owner = user
-        self.rb.metadata_author = query
-        self.rb.poc = query
-        self.rb.publisher = query
-        self.rb.custodian = query
-        self.rb.distributor = query
-        self.rb.resource_user = query
-        self.rb.resource_provider = query
-        self.rb.originator = query
-        self.rb.principal_investigator = query
-        self.rb.processor = query
-
-        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.metadata_author])
-        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.poc])
-        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.publisher])
-        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.custodian])
-        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.distributor])
-        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.resource_user])
-        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.resource_provider])
-        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.originator])
-        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.principal_investigator])
-        self.assertTrue("zlatan_i" and "sven_z" in [cr.username for cr in self.rb.processor])
+    def test_raises_parse_error_for_invalid_nested_organization_id(self):
+        payload = {
+            "organization": {"id": 999999},
+            "award_title": "Any",
+            "award_number": "X-1",
+            "award_uri": "https://example.org/award",
+        }
+        with self.assertRaises(ParseError):
+            self.field.to_internal_value_single(payload, serializer=None)
 
 
 class RenderMenuTagTest(GeoNodeBaseTestSupport):

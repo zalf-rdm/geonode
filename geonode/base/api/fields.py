@@ -93,7 +93,10 @@ class FundingsDynamicRelationField(DynamicRelationField):
             return rel_raw
 
         if isinstance(rel_raw, int):
-            return model.objects.get(pk=rel_raw)
+            try:
+                return model.objects.get(pk=rel_raw)
+            except model.DoesNotExist:
+                raise ParseError(detail=f"Object with id={rel_raw} for '{rel_name}' not found", code=400)
 
         if not isinstance(rel_raw, dict):
             raise ParseError(
@@ -105,7 +108,10 @@ class FundingsDynamicRelationField(DynamicRelationField):
 
         # Allow direct reference by id when clients already have it.
         if rel_data.get("id"):
-            return model.objects.get(pk=rel_data["id"])
+            try:
+                return model.objects.get(pk=rel_data["id"])
+            except model.DoesNotExist:
+                raise ParseError(detail=f"Object with id={rel_data['id']} for '{rel_name}' not found", code=400)
 
         rel_data = self._clean_dict(rel_data)
         if not rel_data:
@@ -125,7 +131,10 @@ class FundingsDynamicRelationField(DynamicRelationField):
                 defaults = {k: v for k, v in rel_data.items() if k not in lookup}
                 return model.objects.get_or_create(**lookup, defaults=defaults)[0]
 
-        return model.objects.get_or_create(**rel_data)[0]
+        instance = model.objects.filter(**rel_data).first()
+        if instance:
+            return instance
+        return model.objects.create(**rel_data)
 
     def to_internal_value_single(self, data, serializer):
         try:
@@ -142,7 +151,10 @@ class FundingsDynamicRelationField(DynamicRelationField):
         # Reuse existing funding if id is explicitly provided.
         funding_id = payload.get("id")
         if funding_id:
-            return Funding.objects.get(pk=funding_id)
+            try:
+                return Funding.objects.get(pk=funding_id)
+            except Funding.DoesNotExist:
+                raise ParseError(detail=f"Funding with id={funding_id} not found", code=400)
 
         try:
             for rel_name, rel_cfg in self.nested_relations.items():
@@ -162,13 +174,15 @@ class FundingsDynamicRelationField(DynamicRelationField):
                     payload.pop(alias, None)
 
             payload = self._clean_dict(payload)
-            funder = Funding.objects.get_or_create(**payload)
+            funder = Funding.objects.filter(**payload).first()
+            if not funder:
+                funder = Funding.objects.create(**payload)
         except TypeError:
             raise ParseError(detail="Could not convert funding to internal object ...", code=400)
         except ValidationError:
             raise ParseError(detail="Invalid funding payload ...", code=400)
 
-        return funder[0]
+        return funder
 
 
 class KeywordsDynamicRelationField(DynamicRelationField):
