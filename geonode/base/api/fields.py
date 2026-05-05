@@ -135,16 +135,16 @@ class FundingsDynamicRelationField(DynamicRelationField):
                     return instance
 
                 defaults = {k: v for k, v in rel_data.items() if k not in lookup}
-                return model.objects.get_or_create(**lookup, defaults=defaults)[0]
+                try:
+                    return model.objects.get_or_create(**lookup, defaults=defaults)[0]
+                except MultipleObjectsReturned:
+                    return model.objects.filter(**lookup).first()
 
         try:
             instance, _ = model.objects.get_or_create(**rel_data)
             return instance
         except MultipleObjectsReturned:
-            instance = model.objects.filter(**rel_data).first()
-            if instance:
-                return instance
-            raise
+            return model.objects.filter(**rel_data).first()
 
     def to_internal_value_single(self, data, serializer):
         try:
@@ -188,8 +188,6 @@ class FundingsDynamicRelationField(DynamicRelationField):
                 funder, _ = Funding.objects.get_or_create(**payload)
             except MultipleObjectsReturned:
                 funder = Funding.objects.filter(**payload).first()
-                if not funder:
-                    raise
         except TypeError:
             raise ParseError(detail="Could not convert funding to internal object ...", code=400)
         except ValidationError:
