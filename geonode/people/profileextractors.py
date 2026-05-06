@@ -19,7 +19,13 @@
 
 """Profile extractor utilities for social account providers"""
 
+import logging
+
 from django.conf import settings
+
+from geonode.base.models import Organization
+
+logger = logging.getLogger(__name__)
 
 
 class BaseExtractor:
@@ -206,3 +212,64 @@ class OpenIDGroupRoleMapper:
     def is_manager(self, role_name):
         _role_name = role_name or ""
         return "manager" in _role_name.lower()
+
+
+class OrcidExtractor(OpenIDExtractor):
+    def extract_first_name(self, data):
+        return data.get("given_name", None)
+
+    def extract_last_name(self, data):
+        return data.get("family_name", None)
+
+    def extract_organization(self, data):
+        affiliation = data.get("affiliation") or {}
+        org_name = affiliation.get("organization").get("name") if affiliation.get("organization") else None
+        if not org_name:
+            logger.debug("end processing affiliation information, because no org_name is found.")
+            return None
+        org_ror = (
+            affiliation.get("organization")
+            .get("disambiguated-organization")
+            .get("disambiguated-organization-identifier")
+            if affiliation.get("organization")
+            and affiliation.get("organization").get("disambiguated-organization")
+            and affiliation.get("organization").get("disambiguated-organization").get("disambiguation-source")
+            and affiliation.get("organization").get("disambiguated-organization").get("disambiguation-source") == "ROR"
+            else None
+        )
+        logger.debug(f"Found affiliation: '{org_name}' ('{org_ror}')")
+        organization = (
+            Organization.objects.filter(ror=org_ror).first()
+            if org_ror
+            else Organization.objects.filter(organization=org_name).first()
+        )
+        logger.debug(
+            f"{'Found' if organization else 'Could not find'} organization by name '{org_name}' or ror '{org_ror}': '{organization}'"
+        )
+        # FIXME using an fk field results in issues with allauth internal implementation:
+        #  [...]
+        #    adapter.populate_user(request, sociallogin, common_fields)
+        #  File "/usr/src/geonode/geonode/people/adapters.py", line 227, in populate_user
+        #    update_profile(sociallogin)
+        #  File "/usr/src/geonode/geonode/people/adapters.py", line 109, in update_profile
+        #    user_field(user, field, value)
+        #   File "/usr/local/lib/python3.10/dist-packages/allauth/account/utils.py", line 102, in user_field
+        #    v = v[0:max_length]
+        # TypeError: 'Organization' object is not subscriptable
+        #
+        # Hence, the correctly found object is not returned here!
+        # return organization
+        return None
+
+    def extract_groups(self, data):
+        """
+        Filters the groups during extraction,
+        if settings.SOCIALACCOUNT_GROUPNAME_PREFIX is configured
+        """
+        groups = data.get("groups", None)
+        prefix = getattr(settings, "SOCIALACCOUNT_GROUPNAME_PREFIX", None)
+        if prefix and groups:
+            logger.debug(f"Filtering groups '{groups}' by prefix '{prefix}'")
+            groups = [g.removeprefix(prefix) for g in groups if g.startswith(prefix)]
+        logger.debug(f"Groups: '{groups}'" if groups else "No groups found")
+        return groups

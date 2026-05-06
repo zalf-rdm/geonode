@@ -32,7 +32,8 @@ from geonode.base.api.permissions import UserHasPerms
 from geonode.base.api.views import ApiPresetsInitializer
 from geonode.layers.api.exceptions import GeneralDatasetException, InvalidDatasetException, InvalidMetadataException
 from geonode.layers.metadata import parse_metadata
-from geonode.layers.models import Dataset
+from geonode.layers.models import Dataset, Attribute
+from geonode.geoserver.helpers import get_attribute_statistics, is_dataset_attribute_aggregable
 from geonode.maps.api.serializers import SimpleMapLayerSerializer, SimpleMapSerializer
 from geonode.resource.utils import update_resource
 from geonode.resource.manager import resource_manager
@@ -57,8 +58,281 @@ if check_ogc_backend(geoserver.BACKEND_PACKAGE):
     from geonode.geoserver.helpers import get_time_info
 
 import logging
+import re
+import json
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+NUMERIC_TYPE_RE = re.compile(r"(int|integer|float|double|decimal|numeric|number)", re.IGNORECASE)
+DATE_TYPE_RE = re.compile(r"xsd:(date|dateTime)", re.IGNORECASE)
+_DATE_FORMATS = [
+    "%Y-%m-%d",
+    "%Y-%m-%d %H:%M:%S",
+    "%Y-%m-%dT%H:%M:%S",
+    "%Y-%m-%dT%H:%M:%S.%f",
+    "%d.%m.%Y %H:%M:%S",
+    "%d.%m.%Y %H:%M",
+    "%d.%m.%Y",
+    "%d.%m.%y",
+]
+
+
+def _get_store_type(subtype):
+    return {
+        "vector": "dataStore",
+        "vector_time": "dataStore",
+        "tabular": "dataStore",
+        "tileStore": "dataStore",
+        "raster": "coverageStore",
+        "remote": "remoteStore",
+    }.get(subtype, subtype)
+
+
+def _has_any_stats(attr):
+    return any(
+        [
+            _parse_stat(attr.min) is not None,
+            _parse_stat(attr.max) is not None,
+            _parse_stat(attr.average) is not None,
+            _parse_stat(attr.median) is not None,
+            _parse_stat(attr.stddev) is not None,
+            _parse_stat(attr.sum) is not None,
+            bool(attr.unique_values and attr.unique_values not in ("", "NA")),
+        ]
+    )
+
+
+def _needs_attribute_stats_refresh(attr):
+    unique_values = (attr.unique_values or "").strip() if isinstance(attr.unique_values, str) else ""
+    has_legacy_unique_values = bool(unique_values and unique_values not in ("NA", "") and not unique_values.startswith("["))
+    numeric_stats_missing = all(
+        [
+            _parse_stat(attr.min) is None,
+            _parse_stat(attr.max) is None,
+            _parse_stat(attr.average) is None,
+            _parse_stat(attr.median) is None,
+            _parse_stat(attr.stddev) is None,
+            _parse_stat(attr.sum) is None,
+        ]
+    )
+    return has_legacy_unique_values and (
+        numeric_stats_missing or (attr.attribute_type or "").lower() in ("xsd:string", "xsd:int", "xsd:double")
+    )
+
+
+def _backfill_attribute_stats(dataset, attr):
+    """Compute and persist missing stats on demand for a single attribute."""
+    store_type = _get_store_type(dataset.subtype)
+    is_aggregable = is_dataset_attribute_aggregable(store_type, attr.attribute, attr.attribute_type)
+    # For vectors/tabular datasets we also backfill non-numeric fields to expose
+    # useful summaries (count + unique values / geometry types).
+    if not is_aggregable and store_type != "dataStore":
+        return attr
+
+    result = get_attribute_statistics(
+        dataset.alternate or dataset.typename,
+        attr.attribute,
+        store_type=store_type,
+        field_type=attr.attribute_type,
+    )
+    if not result:
+        return attr
+
+    attr.count = result.get("Count")
+    attr.min = result.get("Min")
+    attr.max = result.get("Max")
+    attr.average = result.get("Average")
+    attr.median = result.get("Median")
+    attr.stddev = result.get("StandardDeviation")
+    attr.sum = result.get("Sum")
+    attr.unique_values = result.get("unique_values")
+    inferred_field_type = result.get("inferred_field_type")
+    if inferred_field_type:
+        attr.attribute_type = inferred_field_type
+    attr.save()
+    return attr
+
+
+def _parse_stat(value, as_float=True):
+    """Convert a stored stat string to float or None."""
+    if value in (None, "NA", ""):
+        return None
+    try:
+        return float(value) if as_float else value
+    except (ValueError, TypeError):
+        return None
+
+
+def _to_number(value):
+    if value in (None, ""):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    try:
+        return float(str(value).strip().replace(",", "."))
+    except (ValueError, TypeError):
+        return None
+
+
+def _parse_date_value(value):
+    if value in (None, ""):
+        return None
+    text = str(value).strip()
+    for fmt in _DATE_FORMATS:
+        try:
+            return datetime.strptime(text, fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def _infer_attribute_type(attribute_type, raw_unique_values, min_val=None, max_val=None):
+    current = attribute_type or "xsd:string"
+    if NUMERIC_TYPE_RE.search(current) or DATE_TYPE_RE.search(current):
+        return current
+
+    numeric_markers = [_to_number(min_val), _to_number(max_val)]
+    if any(v is not None for v in numeric_markers):
+        return "xsd:double"
+
+    if not raw_unique_values:
+        return current
+
+    sample = raw_unique_values[:50]
+    numeric_count = sum(1 for v in sample if _to_number(v) is not None)
+    date_count = sum(1 for v in sample if _parse_date_value(v) is not None)
+    size = len(sample)
+
+    if size and (numeric_count / size) >= 0.8:
+        numeric_values = [_to_number(v) for v in sample]
+        numeric_values = [v for v in numeric_values if v is not None]
+        if numeric_values and all(float(v).is_integer() for v in numeric_values):
+            return "xsd:int"
+        return "xsd:double"
+
+    if size and (date_count / size) >= 0.8:
+        has_time = any((str(v).find("T") > -1 or str(v).find(":") > -1) for v in sample)
+        return "xsd:dateTime" if has_time else "xsd:date"
+
+    return current
+
+
+def _build_attribute_stats(attr):
+    """Build a structured stats dict from an Attribute model instance."""
+    min_stat = _parse_stat(attr.min)
+    max_stat = _parse_stat(attr.max)
+
+    # Parse unique_values into a sorted list (stored as comma-separated string)
+    raw_unique = []
+    unique_vals = None
+    total_unique = None
+    if attr.unique_values and attr.unique_values not in ("NA", ""):
+        parsed_json = None
+        if isinstance(attr.unique_values, str):
+            text = attr.unique_values.strip()
+            if text.startswith("["):
+                try:
+                    parsed_json = json.loads(text)
+                except json.JSONDecodeError:
+                    parsed_json = None
+
+        if isinstance(parsed_json, list):
+            raw_unique = [str(v).strip() for v in parsed_json if str(v).strip()]
+        else:
+            raw_unique = [v.strip() for v in attr.unique_values.split(",") if v.strip()]
+
+    effective_type = _infer_attribute_type(attr.attribute_type, raw_unique, attr.min, attr.max)
+    is_numeric = NUMERIC_TYPE_RE.search(effective_type) is not None
+    is_date = DATE_TYPE_RE.search(effective_type) is not None
+
+    if raw_unique:
+        total_unique = len(set(raw_unique))
+        if is_numeric:
+            parsed = []
+            for v in raw_unique:
+                num = _to_number(v)
+                if num is not None:
+                    parsed.append(num)
+            unique_vals = sorted(parsed) if parsed else None
+        elif is_date:
+            parsed = [(value, _parse_date_value(value)) for value in raw_unique]
+            parsed = [item for item in parsed if item[1] is not None]
+            parsed = sorted(parsed, key=lambda item: item[1])
+            unique_vals = [value for value, _ in parsed][:50] if parsed else None
+        else:
+            unique_vals = sorted(set(raw_unique))[:50]  # cap at 50 for strings
+
+    if is_date and (min_stat is None or max_stat is None) and raw_unique:
+        parsed_dates = [_parse_date_value(v) for v in raw_unique]
+        parsed_dates = [d for d in parsed_dates if d is not None]
+        if parsed_dates:
+            min_stat = min(parsed_dates).date().isoformat()
+            max_stat = max(parsed_dates).date().isoformat()
+
+    if is_numeric and unique_vals:
+        if min_stat is None:
+            min_stat = min(unique_vals)
+        if max_stat is None:
+            max_stat = max(unique_vals)
+
+    # Build histogram bins from unique numeric values if available
+    histogram = None
+    histogram_estimated = False
+    if is_numeric and unique_vals and len(unique_vals) >= 2:
+        mn = _parse_stat(attr.min) if _parse_stat(attr.min) is not None else min(unique_vals)
+        mx = _parse_stat(attr.max) if _parse_stat(attr.max) is not None else max(unique_vals)
+        if mn is not None and mx is not None and mx > mn:
+            bin_count = min(10, len(unique_vals))
+            bin_size = (mx - mn) / bin_count
+            bins = []
+            for i in range(bin_count):
+                low = mn + i * bin_size
+                high = mn + (i + 1) * bin_size
+                count = sum(1 for v in unique_vals if low <= v < high)
+                bins.append({"range": [round(low, 4), round(high, 4)], "count": count})
+            histogram = bins
+
+    # Fallback for numeric layers (e.g. raster) when we only have range/count.
+    # This provides an estimated distribution instead of no chart at all.
+    if histogram is None and is_numeric:
+        mn = _parse_stat(attr.min) if _parse_stat(attr.min) is not None else (min(unique_vals) if unique_vals else None)
+        mx = _parse_stat(attr.max) if _parse_stat(attr.max) is not None else (max(unique_vals) if unique_vals else None)
+        total_count = int(attr.count or 0)
+        if mn is not None and mx is not None and mx > mn:
+            bin_count = 10
+            bin_size = (mx - mn) / bin_count
+            base = total_count // bin_count if total_count > 0 else 0
+            remainder = total_count % bin_count if total_count > 0 else 0
+            bins = []
+            for i in range(bin_count):
+                low = mn + i * bin_size
+                high = mn + (i + 1) * bin_size
+                estimated_count = base + (1 if i < remainder else 0)
+                bins.append({"range": [round(low, 4), round(high, 4)], "count": estimated_count})
+            histogram = bins
+            histogram_estimated = True
+
+    return {
+        "attribute": attr.attribute,
+        "attribute_label": attr.attribute_label,
+        "attribute_type": effective_type,
+        "attribute_unit": attr.attribute_unit,
+        "count": attr.count,
+        "min": min_stat,
+        "max": max_stat,
+        "mean": _parse_stat(attr.average),
+        "median": _parse_stat(attr.median),
+        "stddev": _parse_stat(attr.stddev),
+        "sum": _parse_stat(attr.sum),
+        "unique_values": unique_vals,
+        "total_unique": total_unique,
+        "groups": None,
+        "histogram": histogram,
+        "histogram_estimated": histogram_estimated,
+        "last_stats_updated": attr.last_stats_updated,
+        "has_stats": is_numeric or (unique_vals is not None),
+    }
 
 
 class DatasetViewSet(ApiPresetsInitializer, DynamicModelViewSet, AdvertisedListMixin):

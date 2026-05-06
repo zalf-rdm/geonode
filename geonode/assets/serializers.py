@@ -60,6 +60,11 @@ class AssetSubclassField(DynamicComputedField):
         return None
 
 
+class AssetSizeBytesField(DynamicComputedField):
+    def get_attribute(self, instance):
+        return get_asset_size_bytes(instance)
+
+
 class AssetSerializer(DynamicModelSerializer):
     owner = SimpleUserSerializer(embed=False)
     asset_type = ClassTypeField()

@@ -27,6 +27,12 @@ import errno
 import logging
 import datetime
 import traceback
+<<<<<<< HEAD
+=======
+import dataclasses
+import tempfile
+import math
+>>>>>>> be305361bfef7eb91876f42d60f939e2d79aa903
 
 from itertools import cycle
 from collections import defaultdict
@@ -37,7 +43,7 @@ import xml.etree.ElementTree as ET
 
 from django.conf import settings
 from django.utils import timezone
-from django.db import transaction
+from django.db import transaction, connections
 from django.utils.module_loading import import_string
 from django.core.exceptions import ImproperlyConfigured
 from django.template.loader import render_to_string
@@ -1085,15 +1091,27 @@ def set_attributes_from_geoserver(layer, overwrite=False):
             attribute_map = []
     # Get attribute statistics & package for call to really_set_attributes()
     attribute_stats = defaultdict(dict)
+
+    # Map subtype to store_type for aggregable check
+    store_type_map = {
+        "vector": "dataStore",
+        "vector_time": "dataStore",
+        "tabular": "dataStore",
+        "tileStore": "dataStore",
+        "raster": "coverageStore",
+        "remote": "remoteStore",
+    }
+    store_type = store_type_map.get(layer.subtype, layer.subtype)
+
     # Add new layer attributes if they don't already exist
     for attribute in attribute_map:
         field, ftype = attribute
         if field is not None:
             if Attribute.objects.filter(dataset=layer, attribute=field).exists():
                 continue
-            elif is_dataset_attribute_aggregable(layer.subtype, field, ftype):
+            elif is_dataset_attribute_aggregable(store_type, field, ftype):
                 logger.debug("Generating layer attribute statistics")
-                result = get_attribute_statistics(layer.alternate or layer.typename, field)
+                result = get_attribute_statistics(layer.alternate or layer.typename, field, store_type=store_type)
             else:
                 result = None
             attribute_stats[layer.name][field] = result
@@ -1276,15 +1294,22 @@ def save_style(gs_style, layer):
 
 def is_dataset_attribute_aggregable(store_type, field_name, field_type):
     """
-    Decipher whether layer attribute is suitable for statistical derivation
+    Decipher whether layer attribute is suitable for statistical derivation.
+    Supports both vector (dataStore) and raster (coverageStore) layers.
     """
 
-    # must be vector layer
-    if store_type != "dataStore":
+    # Must be either vector or raster layer
+    if store_type not in ("dataStore", "coverageStore"):
         return False
-    # must be a numeric data type
+
+    # For raster data, field_type is typically 'raster' - always aggregable
+    if field_type == "raster":
+        return True
+
+    # For vector data, must be a numeric data type
     if field_type not in LAYER_ATTRIBUTE_NUMERIC_DATA_TYPES:
         return False
+
     # must not be an identifier type field
     if field_name.lower() in {"id", "identifier"}:
         return False
@@ -1292,7 +1317,227 @@ def is_dataset_attribute_aggregable(store_type, field_name, field_type):
     return True
 
 
-def get_attribute_statistics(dataset_name, field):
+def wps_execute_raster_statistics(dataset_name, band_name):
+    """
+    Derive raster statistics from WCS DescribeCoverage.
+
+    For raster coverages, we extract per-band allowed value intervals from
+    `swe:field/swe:AllowedValues/swe:interval` and estimate total pixel count
+    from the grid envelope high/low coordinates.
+    """
+
+    logger.debug("Deriving raster statistics for band %s from %s", band_name, dataset_name)
+
+    ows_url = urljoin(ogc_server_settings.LOCATION, "ows")
+    coverage_id = (dataset_name or "").replace(":", "__", 1)
+    query = urlencode(
+        {
+            "service": "WCS",
+            "request": "DescribeCoverage",
+            "version": "2.0.1",
+            "coverageid": coverage_id,
+        }
+    )
+    describe_url = f"{ows_url}?{query}"
+
+    req, body = http_client.get(describe_url, user=_user)
+    if req.status_code >= 400 or not body:
+        logger.debug("DescribeCoverage request failed for %s: status=%s", coverage_id, req.status_code)
+        return None
+
+    exml = dlxml.fromstring(body.encode())
+    ns = {
+        "swe": "http://www.opengis.net/swe/2.0",
+        "gml": "http://www.opengis.net/gml/3.2",
+    }
+
+    # Pick the matching band field first, fallback to first available field.
+    selected_field = None
+    selected_band_idx = 1
+    fields = exml.xpath(".//swe:field", namespaces=ns)
+    for idx, f in enumerate(fields, start=1):
+        if (f.attrib.get("name") or "").lower() == (band_name or "").lower():
+            selected_field = f
+            selected_band_idx = idx
+            break
+    if selected_field is None and fields:
+        selected_field = fields[0]
+        selected_band_idx = 1
+
+    min_val = None
+    max_val = None
+    if selected_field is not None:
+        interval_nodes = selected_field.xpath(".//swe:AllowedValues/swe:interval", namespaces=ns)
+        if interval_nodes and interval_nodes[0].text:
+            parts = [p for p in interval_nodes[0].text.replace(",", " ").split() if p]
+            if len(parts) >= 2:
+                try:
+                    min_val = float(parts[0])
+                    max_val = float(parts[1])
+                except (TypeError, ValueError):
+                    min_val = None
+                    max_val = None
+
+    # Estimate pixel count from grid envelope limits if available.
+    count = 0
+    low_nodes = exml.xpath(".//gml:GridEnvelope/gml:low", namespaces=ns)
+    high_nodes = exml.xpath(".//gml:GridEnvelope/gml:high", namespaces=ns)
+    if low_nodes and high_nodes and low_nodes[0].text and high_nodes[0].text:
+        try:
+            lows = [int(v) for v in low_nodes[0].text.split()]
+            highs = [int(v) for v in high_nodes[0].text.split()]
+            if lows and len(lows) == len(highs):
+                count = 1
+                for low, high in zip(lows, highs):
+                    count *= max(0, high - low + 1)
+        except (TypeError, ValueError):
+            count = 0
+
+    # Default response from metadata only (fallback when full stats are not possible).
+    fallback_result = {
+        "Min": min_val,
+        "Max": max_val,
+        "Average": "NA",
+        "Median": "NA",
+        "StandardDeviation": "NA",
+        "Sum": "NA",
+        "Count": count,
+        "unique_values": "NA",
+    }
+
+    # If no numeric range at all, no stats can be derived.
+    if min_val is None and max_val is None:
+        return None
+
+    # Try to compute real stats from raster pixels via WCS GetCoverage.
+    # This path runs in background tasks / on-demand backfill.
+    try:
+        import numpy as np
+        from osgeo import gdal
+
+        coverage_query = urlencode(
+            {
+                "service": "WCS",
+                "request": "GetCoverage",
+                "version": "2.0.1",
+                "coverageid": coverage_id,
+                "format": "image/tiff",
+            }
+        )
+        coverage_url = f"{ows_url}?{coverage_query}"
+        cov_req, cov_body = http_client.get(coverage_url, user=_user)
+        if cov_req.status_code >= 400 or not cov_body:
+            return fallback_result
+
+        with tempfile.NamedTemporaryFile(suffix=".tif", delete=True) as tmp:
+            tmp.write(cov_body.encode() if isinstance(cov_body, str) else cov_body)
+            tmp.flush()
+
+            ds = gdal.Open(tmp.name, gdal.GA_ReadOnly)
+            if ds is None:
+                return fallback_result
+
+            band = ds.GetRasterBand(selected_band_idx)
+            if band is None:
+                return fallback_result
+
+            nodata = band.GetNoDataValue()
+            xsize = band.XSize
+            ysize = band.YSize
+            bx, by = band.GetBlockSize()
+            if not bx or bx <= 0:
+                bx = min(512, xsize)
+            if not by or by <= 0:
+                by = min(512, ysize)
+
+            total_count = 0
+            total_sum = 0.0
+            total_sq = 0.0
+            pix_min = None
+            pix_max = None
+
+            # Pass 1: min/max/count/sum/std accumulators
+            for yoff in range(0, ysize, by):
+                ys = min(by, ysize - yoff)
+                for xoff in range(0, xsize, bx):
+                    xs = min(bx, xsize - xoff)
+                    arr = band.ReadAsArray(xoff, yoff, xs, ys)
+                    if arr is None:
+                        continue
+                    data = arr.astype(np.float64, copy=False).ravel()
+                    if nodata is not None:
+                        data = data[data != nodata]
+                    data = data[np.isfinite(data)]
+                    if data.size == 0:
+                        continue
+
+                    c = int(data.size)
+                    s = float(data.sum())
+                    sq = float((data * data).sum())
+                    mn = float(data.min())
+                    mx = float(data.max())
+
+                    total_count += c
+                    total_sum += s
+                    total_sq += sq
+                    pix_min = mn if pix_min is None else min(pix_min, mn)
+                    pix_max = mx if pix_max is None else max(pix_max, mx)
+
+            if total_count == 0:
+                return fallback_result
+
+            mean = total_sum / total_count
+            variance = max((total_sq / total_count) - (mean * mean), 0.0)
+            stddev = math.sqrt(variance)
+
+            # Pass 2: approximate median via histogram bins.
+            bins = 2048
+            if pix_max is None or pix_min is None or pix_max <= pix_min:
+                median = mean
+            else:
+                hist = np.zeros(bins, dtype=np.int64)
+                edges = np.linspace(pix_min, pix_max, bins + 1)
+
+                for yoff in range(0, ysize, by):
+                    ys = min(by, ysize - yoff)
+                    for xoff in range(0, xsize, bx):
+                        xs = min(bx, xsize - xoff)
+                        arr = band.ReadAsArray(xoff, yoff, xs, ys)
+                        if arr is None:
+                            continue
+                        data = arr.astype(np.float64, copy=False).ravel()
+                        if nodata is not None:
+                            data = data[data != nodata]
+                        data = data[np.isfinite(data)]
+                        if data.size == 0:
+                            continue
+                        h, _ = np.histogram(data, bins=edges)
+                        hist += h
+
+                cumulative = np.cumsum(hist)
+                mid = (total_count - 1) / 2.0
+                idx = int(np.searchsorted(cumulative, mid, side="left"))
+                idx = max(0, min(idx, bins - 1))
+                median = float((edges[idx] + edges[idx + 1]) / 2.0)
+
+            return {
+                "Min": pix_min,
+                "Max": pix_max,
+                "Average": mean,
+                "Median": median,
+                "StandardDeviation": stddev,
+                "Sum": total_sum,
+                "Count": total_count,
+                "unique_values": "NA",
+            }
+    except Exception:
+        tb = traceback.format_exc()
+        logger.debug(tb)
+        logger.exception("Could not compute full raster statistics, using fallback range stats")
+        return fallback_result
+
+
+def get_attribute_statistics(dataset_name, field, store_type=None, field_type=None):
     """
     Generate statistics (range, mean, median, standard deviation, unique values)
     for layer attribute
@@ -1300,14 +1545,304 @@ def get_attribute_statistics(dataset_name, field):
 
     logger.debug("Deriving aggregate statistics for attribute %s", field)
 
-    if not ogc_server_settings.WPS_ENABLED:
-        return None
+    if store_type == "coverageStore":
+        try:
+            return wps_execute_raster_statistics(dataset_name, field)
+        except Exception:
+            tb = traceback.format_exc()
+            logger.debug(tb)
+            logger.exception("Error generating raster aggregate statistics")
+            return None
+
+    if ogc_server_settings.WPS_ENABLED and field_type in LAYER_ATTRIBUTE_NUMERIC_DATA_TYPES:
+        try:
+            return wps_execute_dataset_attribute_statistics(dataset_name, field)
+        except Exception:
+            tb = traceback.format_exc()
+            logger.debug(tb)
+            logger.exception("Error generating layer aggregate statistics via WPS")
+
+    # Fallback path for vector/tabular datasets when WPS is disabled or fails.
     try:
-        return wps_execute_dataset_attribute_statistics(dataset_name, field)
+        return _postgis_attribute_statistics(dataset_name, field, field_type=field_type)
     except Exception:
         tb = traceback.format_exc()
         logger.debug(tb)
-        logger.exception("Error generating layer aggregate statistics")
+        logger.exception("Error generating layer aggregate statistics via PostGIS")
+        return None
+
+
+def _quote_pg_ident(identifier):
+    safe = str(identifier).replace('"', '""')
+    return f'"{safe}"'
+
+
+def _resolve_postgis_table(cursor, dataset_name):
+    if not dataset_name:
+        return None
+
+    workspace = None
+    table = dataset_name
+    if ":" in dataset_name:
+        workspace, table = dataset_name.split(":", 1)
+
+    candidates = []
+    if workspace:
+        candidates.append((workspace, table))
+    candidates.append(("public", table))
+    candidates.append((None, table))
+
+    for schema, name in candidates:
+        if schema is None:
+            cursor.execute(
+                """
+                SELECT table_schema, table_name
+                FROM information_schema.tables
+                WHERE table_name = %s
+                ORDER BY CASE WHEN table_schema = 'public' THEN 0 ELSE 1 END
+                LIMIT 1
+                """,
+                [name],
+            )
+            row = cursor.fetchone()
+            if row:
+                return row[0], row[1]
+        else:
+            cursor.execute(
+                """
+                SELECT table_schema, table_name
+                FROM information_schema.tables
+                WHERE table_schema = %s AND table_name = %s
+                LIMIT 1
+                """,
+                [schema, name],
+            )
+            row = cursor.fetchone()
+            if row:
+                return row[0], row[1]
+
+    return None
+
+
+def _postgis_attribute_statistics(dataset_name, field, field_type=None):
+    db_alias = getattr(ogc_server_settings, "DATASTORE", None) or "default"
+    if db_alias not in connections:
+        db_alias = "default"
+
+    conn = connections[db_alias]
+    if conn.vendor != "postgresql":
+        logger.debug("PostGIS fallback skipped: database vendor is %s", conn.vendor)
+        return None
+
+    with conn.cursor() as cursor:
+        resolved = _resolve_postgis_table(cursor, dataset_name)
+        if not resolved:
+            logger.debug("PostGIS fallback: table not found for dataset %s", dataset_name)
+            return None
+
+        schema, table = resolved
+        table_sql = f"{_quote_pg_ident(schema)}.{_quote_pg_ident(table)}"
+        field_sql = _quote_pg_ident(field)
+
+        cursor.execute(
+            """
+            SELECT data_type
+            FROM information_schema.columns
+            WHERE table_schema = %s AND table_name = %s AND column_name = %s
+            LIMIT 1
+            """,
+            [schema, table, field],
+        )
+        col_row = cursor.fetchone()
+        column_data_type = (col_row[0] if col_row else "") or ""
+        is_textual_column = column_data_type in ("character varying", "character", "text")
+        is_temporal_column = column_data_type in (
+            "date",
+            "timestamp without time zone",
+            "timestamp with time zone",
+            "time without time zone",
+            "time with time zone",
+        )
+
+        normalized_type = (field_type or "").lower()
+        is_numeric = normalized_type in LAYER_ATTRIBUTE_NUMERIC_DATA_TYPES
+        is_geometry = "geometry" in normalized_type or normalized_type.startswith("gml:")
+        is_temporal = is_temporal_column or normalized_type in ("xsd:date", "xsd:datetime")
+        inferred_field_type = None
+
+        # Detect numeric values stored as strings (e.g. decimal comma such as "12,34").
+        trimmed_text_expr = f"TRIM({field_sql}::text)"
+        non_empty_text_expr = f"NULLIF({trimmed_text_expr}, '')"
+        numeric_like_expr = (
+            f"{non_empty_text_expr} IS NOT NULL "
+            f"AND {trimmed_text_expr} ~ '^[-+]?(?:[0-9]+(?:[\\.,][0-9]+)?|[\\.,][0-9]+)$'"
+        )
+        normalized_numeric_expr = f"NULLIF(REPLACE(TRIM({field_sql}::text), ',', '.'), '')::double precision"
+        numeric_value_expr = field_sql
+
+        if is_textual_column and not is_geometry:
+            cursor.execute(
+                f"""
+                SELECT
+                    COUNT(*) FILTER (WHERE {field_sql} IS NOT NULL)::bigint,
+                    COUNT(*) FILTER (WHERE {non_empty_text_expr} IS NOT NULL)::bigint,
+                    COUNT(*) FILTER (WHERE {numeric_like_expr})::bigint,
+                    COUNT(*) FILTER (WHERE {numeric_like_expr} AND POSITION(',' IN {trimmed_text_expr}) > 0)::bigint,
+                    COUNT(*) FILTER (WHERE {numeric_like_expr} AND POSITION('.' IN {trimmed_text_expr}) > 0)::bigint
+                FROM {table_sql}
+                """
+            )
+            total_non_null, total_non_empty, numeric_like_count, comma_decimal_count, dot_decimal_count = cursor.fetchone()
+            ratio = (float(numeric_like_count) / float(total_non_empty)) if total_non_empty else 0.0
+            if total_non_empty and ratio >= 0.8:
+                is_numeric = True
+                numeric_value_expr = (
+                    f"CASE WHEN {numeric_like_expr} THEN {normalized_numeric_expr} ELSE NULL END"
+                )
+                inferred_field_type = "xsd:int" if not comma_decimal_count and not dot_decimal_count else "xsd:double"
+            elif is_numeric:
+                # Stored type says numeric but DB values are textual and not mostly numeric.
+                # Avoid invalid casts and fallback to string stats.
+                is_numeric = False
+                inferred_field_type = "xsd:string"
+
+        if is_temporal and not is_geometry and not is_numeric:
+            inferred_field_type = "xsd:dateTime" if "time" in column_data_type or "timestamp" in column_data_type else "xsd:date"
+            cursor.execute(
+                f"""
+                SELECT
+                    COUNT({field_sql})::bigint,
+                    MIN({field_sql})::text,
+                    MAX({field_sql})::text
+                FROM {table_sql}
+                WHERE {field_sql} IS NOT NULL
+                """
+            )
+            count, min_v, max_v = cursor.fetchone()
+            avg_v = median_v = stddev_v = sum_v = "NA"
+        elif is_numeric:
+            cursor.execute(
+                f"""
+                SELECT
+                    COUNT({numeric_value_expr})::bigint,
+                    MIN({numeric_value_expr})::double precision,
+                    MAX({numeric_value_expr})::double precision,
+                    AVG({numeric_value_expr})::double precision,
+                    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY {numeric_value_expr})::double precision,
+                    STDDEV_POP({numeric_value_expr})::double precision,
+                    SUM({numeric_value_expr})::double precision
+                FROM {table_sql}
+                WHERE {numeric_value_expr} IS NOT NULL
+                """
+            )
+            count, min_v, max_v, avg_v, median_v, stddev_v, sum_v = cursor.fetchone()
+        else:
+            cursor.execute(
+                f"""
+                SELECT COUNT({field_sql})::bigint
+                FROM {table_sql}
+                WHERE {field_sql} IS NOT NULL
+                """
+            )
+            count = (cursor.fetchone() or [0])[0]
+            min_v = max_v = avg_v = median_v = stddev_v = sum_v = "NA"
+
+        if not count:
+            return {
+                "Min": "NA",
+                "Max": "NA",
+                "Average": "NA",
+                "Median": "NA",
+                "StandardDeviation": "NA",
+                "Sum": "NA",
+                "Count": 0,
+                "unique_values": "NA",
+                "total_unique": 0,
+                "groups": [],
+            }
+
+        value_expr = field_sql
+        if is_geometry:
+            value_expr = f"ST_GeometryType({field_sql})"
+            cursor.execute(
+                f"""
+                SELECT {value_expr}::text
+                FROM {table_sql}
+                WHERE {field_sql} IS NOT NULL
+                GROUP BY {value_expr}
+                ORDER BY {value_expr}
+                LIMIT 50
+                """
+            )
+        elif is_numeric:
+            value_expr = numeric_value_expr
+            cursor.execute(
+                f"""
+                SELECT {value_expr}::text
+                FROM {table_sql}
+                WHERE {value_expr} IS NOT NULL
+                GROUP BY {value_expr}
+                ORDER BY {value_expr}
+                LIMIT 200
+                """
+            )
+        else:
+            cursor.execute(
+                f"""
+                SELECT {value_expr}::text
+                FROM {table_sql}
+                WHERE {value_expr} IS NOT NULL
+                GROUP BY {value_expr}
+                ORDER BY {value_expr}
+                LIMIT 200
+                """
+            )
+        unique_values = [row[0] for row in cursor.fetchall() if row and row[0] is not None]
+        unique_values_payload = json.dumps(unique_values, ensure_ascii=False) if unique_values else "NA"
+
+        cursor.execute(
+            f"""
+            SELECT COUNT(*)::bigint
+            FROM (
+                SELECT {value_expr}
+                FROM {table_sql}
+                WHERE {value_expr} IS NOT NULL
+                GROUP BY {value_expr}
+            ) AS distinct_values
+            """
+        )
+        total_unique = int((cursor.fetchone() or [0])[0] or 0)
+
+        cursor.execute(
+            f"""
+            SELECT {value_expr}::text, COUNT(*)::bigint AS group_count
+            FROM {table_sql}
+            WHERE {value_expr} IS NOT NULL
+            GROUP BY {value_expr}
+            HAVING COUNT(*) > 1
+            ORDER BY group_count DESC, {value_expr}::text ASC
+            LIMIT 50
+            """
+        )
+        groups = [
+            {"value": row[0], "count": int(row[1])}
+            for row in cursor.fetchall()
+            if row and row[0] is not None
+        ]
+
+        return {
+            "Min": min_v,
+            "Max": max_v,
+            "Average": avg_v,
+            "Median": median_v,
+            "StandardDeviation": stddev_v,
+            "Sum": sum_v,
+            "Count": int(count),
+            "unique_values": unique_values_payload,
+            "total_unique": total_unique,
+            "groups": groups,
+            "inferred_field_type": inferred_field_type,
+        }
 
 
 def get_wcs_record(instance, retry=True):
@@ -1590,7 +2125,8 @@ def wps_execute_dataset_attribute_statistics(dataset_name, field):
     # generate statistics using WPS
     url = urljoin(ogc_server_settings.LOCATION, "ows")
 
-    request = render_to_string("layers/wps_execute_gs_aggregate.xml", {"dataset_name": dataset_name, "field": field})
+    # Keep context key aligned with template placeholder {{ layer_name }}.
+    request = render_to_string("datasets/wps_execute_gs_aggregate.xml", {"layer_name": dataset_name, "field": field})
     u = urlsplit(url)
 
     headers = {

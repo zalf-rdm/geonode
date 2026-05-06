@@ -291,6 +291,10 @@ class Profile(AbstractUser):
     def can_publish(self, resource):
         return permissions_registry.user_can_publish(self, resource)
 
+    def can_publish_data_collection(self):
+        allowed_groups = getattr(settings, "PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS")
+        return self.is_superuser or self.groups.filter(name__in=allowed_groups).exists()
+
     def can_feature(self, resource):
         return permissions_registry.user_can_feature(self, resource)
 

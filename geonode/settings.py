@@ -18,6 +18,7 @@
 #########################################################################
 
 # Django settings for the GeoNode project.
+import json as _json
 import os
 import re
 import ast
@@ -718,13 +719,13 @@ LOGGING = {
     },
     "filters": {"require_debug_false": {"()": "django.utils.log.RequireDebugFalse"}},
     "handlers": {
-        "console": {"level": "ERROR", "class": "logging.StreamHandler", "formatter": "simple"},
+        "console": {"level": "INFO", "class": "logging.StreamHandler", "formatter": "simple"},
         "mail_admins": {
             "level": "ERROR",
             "filters": ["require_debug_false"],
             "class": "django.utils.log.AdminEmailHandler",
         },
-        "br": {"level": "DEBUG", "class": "logging.StreamHandler", "formatter": "br"},
+        "br": {"level": "INFO", "class": "logging.StreamHandler", "formatter": "br"},
     },
     "loggers": {
         "django": {
@@ -740,13 +741,13 @@ LOGGING = {
         },
         "geonode.br": {"level": "INFO", "handlers": ["br"], "propagate": False},
         "geoserver-restconfig.catalog": {
-            "level": "ERROR",
+            "level": "INFO",
         },
         "owslib": {
-            "level": "ERROR",
+            "level": "INFO",
         },
         "pycsw": {
-            "level": "ERROR",
+            "level": "INFO",
         },
         "celery": {
             "level": "WARN",
@@ -1237,6 +1238,9 @@ PYCSW = {
             "allowed_ips": "*",
             # 'csw_harvest_pagesize': '10',
         },
+        "logging": {
+            "level": "WARNING",
+        },
         "metadata": {
             "inspire": {
                 "enabled": True,
@@ -1312,6 +1316,7 @@ DOWNLOAD_FORMATS_METADATA = [
     "ebRIM",
     "FGDC",
     "ISO",
+    "DataCite",
 ]
 DOWNLOAD_FORMATS_VECTOR = [
     "JPEG",
@@ -1407,8 +1412,15 @@ if GEONODE_CLIENT_LAYER_PREVIEW_LIBRARY == "mapstore":
 
     def get_geonode_catalogue_service():
         if PYCSW:
-            pycsw_config = PYCSW["CONFIGURATION"]
+            pycsw_config = PYCSW.get("CONFIGURATION", {})
             if pycsw_config:
+                # Safely get the title, defaulting to "GeoNode Catalogue" if not found
+                title = pycsw_config.get("metadata", {}).get("identification", {}).get("title", "GeoNode Catalogue")
+
+                # Check for old style metadata:main as fallback
+                if "metadata:main" in pycsw_config:
+                    title = pycsw_config["metadata:main"].get("identification_title", title)
+
                 pycsw_catalogue = {
                     f"{pycsw_config['metadata']['identification']}": {
                         "url": CATALOGUE["default"]["URL"],
@@ -2227,3 +2239,129 @@ UPSERT_LOG_LOCATION = os.getenv("UPSERT_LOG_LOCATION", "/tmp")
 
 FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o777
 FILE_UPLOAD_PERMISSIONS = 0o777
+
+CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split()
+
+# =============================================================================
+# ORCID
+# =============================================================================
+# NOTE: This is a sample configuration for ORCID integration using django-allauth and a generic OIDC provider.
+import logging
+logger = logging.getLogger("geonode")  # Use the configured geonode logger
+# logger.error("SSL certificate verifikation disabled - ENABLE in production!!!")
+
+# import requests
+# old_session_init = requests.Session.__init__
+
+# def no_ssl_verify_init(self, *k, **kw):
+#     old_session_init(self, *k, **kw)
+#     self.verify = False
+
+# requests.Session.__init__ = no_ssl_verify_init
+
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_AUTHENTICATION_METHOD = "email"
+#
+#   Used internally to reference the configuration of allauth
+#
+SOCIALACCOUNT_PROVIDER = os.environ.get("SOCIALACCOUNT_PROVIDER", "oidc")
+#
+#   Used as name of the configuration
+#
+SOCIALACCOUNT_PROVIDER_CONNECTOR_NAME = os.environ.get("SOCIALACCOUNT_CONNECTOR_NAME", "ORCID")
+#
+#   MUST match keycloak configuration
+#
+SOCIALACCOUNT_PROVIDER_REALM = os.environ.get("SOCIALACCOUNT_PROVIDER_REALM", "ORCID")
+#
+#   protocol, hostname and port required to access the keycloak instance
+#
+SOCIALACCOUNT_PROVIDER_HOST = os.environ.get(
+    "SOCIALACCOUNT_PROVIDER_HOST", "https://host.docker.internal:8008/"
+)
+SOCIALACCOUNT_PROVIDER_ROOT = f"{SOCIALACCOUNT_PROVIDER_HOST}realms/{SOCIALACCOUNT_PROVIDER_REALM}/"
+#
+#   client id
+#
+SOCIALACCOUNT_CLIENT_ID = os.environ.get("SOCIALACCOUNT_CLIENT_ID")
+if not SOCIALACCOUNT_CLIENT_ID:
+    logger.error("SOCIALACCOUNT_CLIENT_ID not set in environment")
+#
+#   client secret
+#
+SOCIALACCOUNT_CLIENT_SECRET = os.environ.get("SOCIALACCOUNT_CLIENT_SECRET")
+if not SOCIALACCOUNT_CLIENT_SECRET:
+    logger.error("SOCIALACCOUNT_CLIENT_SECRET not set in environment")
+
+SOCIALACCOUNT_PROVIDERS = {
+    #
+    # We use openid_connect, hence all services use ZALF's keycloak instance, which
+    # connects to ORCID or else
+    #
+    # see https://docs.allauth.org/en/latest/socialaccount/providers/openid_connect.html
+    #
+    "openid_connect": {
+        # Optional PKCE defaults to False, but may be required by your provider
+        # Can be set globally, or per app (settings).
+        "OAUTH_PKCE_ENABLED": True,
+        "APPS": [
+            {
+                "provider_id": SOCIALACCOUNT_PROVIDER,
+                "name": SOCIALACCOUNT_PROVIDER_CONNECTOR_NAME,
+                "client_id": SOCIALACCOUNT_CLIENT_ID,
+                "secret": SOCIALACCOUNT_CLIENT_SECRET,
+                "settings": {
+                    "server_url": urljoin(
+                        SOCIALACCOUNT_PROVIDER_ROOT, ".well-known/openid-configuration"
+                    ),
+                },
+            },
+        ],
+    }
+}
+SOCIALACCOUNT_LOGOUT_REDIRECT_URL = os.environ.get("SOCIALACCOUNT_LOGOUT_REDIRECT_URL", "https://sandbox.orcid.org/signout")
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+INSTALLED_APPS += ('allauth.socialaccount.providers.openid_connect',)
+AUTHENTICATION_BACKENDS += ('allauth.account.auth_backends.AuthenticationBackend',)
+SOCIALACCOUNT_PROFILE_EXTRACTOR = os.environ.get("SOCIALACCOUNT_PROFILE_EXTRACTOR", "geonode.people.profileextractors.OrcidExtractor")
+SOCIALACCOUNT_PROFILE_EXTRACTORS = {
+    SOCIALACCOUNT_PROVIDER: SOCIALACCOUNT_PROFILE_EXTRACTOR,
+}
+SOCIALACCOUNT_GROUPNAME_PREFIX = os.environ.get("SOCIALACCOUNT_GROUPNAME_PREFIX","gn_")
+# =============================================================================
+# END OF "ORCID"
+# =============================================================================
+
+INSTALLED_APPS += ("geonode.zalf",)
+
+
+
+ZALF_DATACITE_BASE_URL = os.getenv("ZALF_DATACITE_BASE_URL", "https://api.datacite.org/")
+ZALF_DATACITE_AGENT = os.getenv(
+    "ZALF_DATACITE_AGENT", "BonaRes Repository (https://repository.zalf.de; mailto:dataservice@zalf.de)"
+)
+
+# ---------------------------------------------------------------------------
+# DataCite accounts — maps DataCite repository credentials to allowed groups.
+#
+# Configure via the JSON env var ZALF_DATACITE_ACCOUNTS:
+#
+#   ZALF_DATACITE_ACCOUNTS='[
+#     {"username": "TIB.BONARES", "password": "...", "groups": ["data_stewards"]},
+#     {"username": "TIB.OTHER",   "password": "...", "groups": ["other_project"]}
+#   ]'
+#
+# Each entry:
+#   username (str)  – DataCite repository ID (e.g. "TIB.BONARES")
+#   password (str)  – DataCite repository password
+#   groups   (list) – Django group names whose members may use this account
+#
+# The DOI prefixes available for each account are fetched dynamically from the
+# DataCite API at runtime (GET /clients/{username}/prefixes).
+# Superusers (admins) can always use all accounts / prefixes.
+# ---------------------------------------------------------------------------
+ZALF_DATACITE_ACCOUNTS = _json.loads(os.getenv("ZALF_DATACITE_ACCOUNTS", "[]"))
+
+# Allowed groups for publishing data collections (derived from accounts).
+# Admins can always publish regardless of group membership.
+PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS = sorted({g for acct in ZALF_DATACITE_ACCOUNTS for g in acct.get("groups", [])})
