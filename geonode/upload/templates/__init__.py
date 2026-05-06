@@ -1,10 +1,6 @@
 #########################################################################
 #
-<<<<<<<< HEAD:geonode/people/forms/recaptcha.py
 # Copyright (C) 2019 Open Source Geospatial Foundation - all rights reserved
-========
-# Copyright (C) 2024 OSGeo
->>>>>>>> 9a6e5d0159d01ef1a0490a3a5e29f3a8568016f8:geonode/upload/templates/__init__.py
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

@@ -58,23 +58,7 @@ from geonode.thumbs.exceptions import ThumbnailError
 from geonode.thumbs.thumbnails import create_thumbnail
 from geonode.thumbs.utils import _decode_base64, BASE64_PATTERN, remove_thumb
 from geonode.groups.conf import settings as groups_settings
-from geonode.base.models import (
-    HierarchicalKeyword,
-    Region,
-    ResourceBase,
-    TopicCategory,
-    ThesaurusKeyword,
-    ThesaurusKeywordLabel,
-    License,
-    RelationType,
-    RelatedIdentifierType,
-    ResourceTypeGeneral,
-    RelatedIdentifier,
-    Organization,
-    Funding,
-    RelatedProject,
-    RestrictionCodeType,
-)
+from geonode.base.models import HierarchicalKeyword, Region, ResourceBase, TopicCategory, ThesaurusKeyword
 from geonode.base.api.filters import (
     DynamicSearchFilter,
     ExtentFilter,
@@ -114,18 +98,8 @@ from .serializers import (
     OwnerSerializer,
     HierarchicalKeywordSerializer,
     TopicCategorySerializer,
-    FullLicenseSerializer,
-    RestrictionCodeTypeSerializer,
-    RelationTypeSerializer,
-    RelatedIdentifierTypeSerializer,
-    ResourceTypeGeneralSerializer,
-    OrganizationSerializer,
-    FundingSerializer,
-    RelatedIdentifierSerializer,
-    RelatedProjectSerializer,
     RegionSerializer,
     ThesaurusKeywordSerializer,
-    SimpleThesaurusKeywordLabelSerializer,
     ExtraMetadataSerializer,
     LinkedResourceSerializer,
 )
@@ -258,20 +232,6 @@ class ThesaurusKeywordViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveM
     pagination_class = GeoNodeApiPagination
 
 
-class ThesaurusKeywordLabelViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
-    """
-    API endpoint that lists Thesaurus keyword labels
-    """
-
-    permission_classes = [
-        AllowAny,
-    ]
-    filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter]
-    queryset = ThesaurusKeywordLabel.objects.all()
-    serializer_class = SimpleThesaurusKeywordLabelSerializer
-    pagination_class = GeoNodeApiPagination
-
-
 class TopicCategoryViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
     """
     API endpoint that lists categories.
@@ -283,140 +243,6 @@ class TopicCategoryViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveMode
     filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter, FacetVisibleResourceFilter]
     queryset = TopicCategory.objects.all()
     serializer_class = TopicCategorySerializer
-    pagination_class = GeoNodeApiPagination
-
-
-class LicenseViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
-    """
-    API endpoint that lists licenses.
-    """
-
-    permission_classes = [
-        AllowAny,
-    ]
-    filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter]
-    permission_classes = [IsAuthenticatedOrReadOnly, UserHasPerms]
-
-    queryset = License.objects.all()
-    serializer_class = FullLicenseSerializer
-    pagination_class = GeoNodeApiPagination
-
-
-class RestrictionCodeTypeViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
-    """
-    API endpoint that lists RestrictCodeType.
-    """
-
-    permission_classes = [
-        AllowAny,
-    ]
-    filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter]
-    permission_classes = [IsAuthenticatedOrReadOnly, UserHasPerms]
-
-    queryset = RestrictionCodeType.objects.all()
-    serializer_class = RestrictionCodeTypeSerializer
-    pagination_class = GeoNodeApiPagination
-
-
-class RelationTypeViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
-    """
-    API endpoint that lists relationtype.
-    """
-
-    permission_classes = [
-        AllowAny,
-    ]
-    filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter]
-    permission_classes = [IsAuthenticatedOrReadOnly, UserHasPerms]
-
-    queryset = RelationType.objects.all()
-    serializer_class = RelationTypeSerializer
-    pagination_class = GeoNodeApiPagination
-
-
-class RelatedIdentifierTypeViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
-    """
-    API endpoint that lists relatedidentifiertypes.
-    """
-
-    permission_classes = [
-        AllowAny,
-    ]
-    filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter]
-    permission_classes = [IsAuthenticatedOrReadOnly, UserHasPerms]
-
-    queryset = RelatedIdentifierType.objects.all()
-    serializer_class = RelatedIdentifierTypeSerializer
-    pagination_class = GeoNodeApiPagination
-
-
-class RelatedIdentifierViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
-    """
-    API endpoint that lists relatedidentifier.
-    """
-
-    permission_classes = [
-        AllowAny,
-    ]
-    filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter]
-    queryset = RelatedIdentifier.objects.all()
-    serializer_class = RelatedIdentifierSerializer
-    pagination_class = GeoNodeApiPagination
-
-
-class ResourceTypeGeneralViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
-    """
-    API endpoint that lists resourcetypegenerals (DataCite controlled vocabulary).
-    """
-
-    permission_classes = [
-        AllowAny,
-    ]
-    filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter]
-    queryset = ResourceTypeGeneral.objects.all()
-    serializer_class = ResourceTypeGeneralSerializer
-    pagination_class = GeoNodeApiPagination
-
-
-class OrganizationViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
-    """
-    API endpoint that lists Organizations, which are used as Funders and Organizations people are related to.
-    """
-
-    permission_classes = [
-        AllowAny,
-    ]
-    filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter]
-    queryset = Organization.objects.all()
-    serializer_class = OrganizationSerializer
-    pagination_class = GeoNodeApiPagination
-
-
-class FundingViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
-    """
-    API endpoint that lists Fundings.
-    """
-
-    permission_classes = [
-        AllowAny,
-    ]
-    filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter]
-    queryset = Funding.objects.all()
-    serializer_class = FundingSerializer
-    pagination_class = GeoNodeApiPagination
-
-
-class RelatedProjectViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
-    """
-    API endpoint that lists relatedprojects.
-    """
-
-    permission_classes = [
-        AllowAny,
-    ]
-    filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter]
-    queryset = RelatedProject.objects.all()
-    serializer_class = RelatedProjectSerializer
     pagination_class = GeoNodeApiPagination
 
 
@@ -454,20 +280,6 @@ class ApiPresetsInitializer(APIView):
     Replaces the `api_preset` query params with the configured params
     """
 
-    @staticmethod
-    def _deduplicate_and_remove_ancestor_fields(values):
-        """
-        Dynamic REST field parser fails when both a parent field and one of
-        its nested children are requested (e.g. `foo` and `foo.bar`).
-        Keep the most specific fields and drop ancestor-only duplicates.
-        """
-        ordered_unique = list(dict.fromkeys(values))
-        return [
-            field
-            for field in ordered_unique
-            if not any(other != field and other.startswith(f"{field}.") for other in ordered_unique)
-        ]
-
     def initialize_request(self, request, *args, **kwargs):
         self.replace_presets(request)
         return super().initialize_request(request, *args, **kwargs)
@@ -483,16 +295,8 @@ class ApiPresetsInitializer(APIView):
                     return
                 for param_name in presets.keys():
                     for param_value in presets.get(param_name):
-                        if param_value not in request.GET.getlist(param_name):
+                        if param_value not in request.GET.get(param_name, []):
                             request.GET.appendlist(param_name, param_value)
-
-            # Normalize request field parameters after all presets are merged.
-            # This prevents dynamic_rest from raising when parent and nested
-            # fields are present together.
-            for param_name in ["include[]", "exclude[]"]:
-                values = request.GET.getlist(param_name)
-                if values:
-                    request.GET.setlist(param_name, self._deduplicate_and_remove_ancestor_fields(values))
         finally:
             request.GET._mutable = False
 
@@ -509,7 +313,6 @@ class ResourceBaseViewSet(ApiPresetsInitializer, DynamicModelViewSet, Advertised
         DynamicFilterBackend,
         DynamicSortingFilter,
         DynamicSearchFilter,
-        DjangoFilterBackend,
         ExtentFilter,
         ResourceBasePermissionsFilter,
         FavoriteFilter,
@@ -517,7 +320,6 @@ class ResourceBaseViewSet(ApiPresetsInitializer, DynamicModelViewSet, Advertised
     queryset = ResourceBase.objects.select_related("owner").order_by("-created")
     serializer_class = ResourceBaseSerializer
     pagination_class = GeoNodeApiPagination
-    filterset_fields = {"id": ["in", "exact"]}
 
     def _filtered(self, request, filter):
         paginator = GeoNodeApiPagination()

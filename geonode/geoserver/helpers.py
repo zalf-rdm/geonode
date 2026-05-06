@@ -27,12 +27,6 @@ import errno
 import logging
 import datetime
 import traceback
-<<<<<<< HEAD
-=======
-import dataclasses
-import tempfile
-import math
->>>>>>> be305361bfef7eb91876f42d60f939e2d79aa903
 
 from itertools import cycle
 from collections import defaultdict
