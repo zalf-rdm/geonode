@@ -6,7 +6,6 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("upload", "0043_alter_uploadparallelismlimit_max_number_and_more"),
         ("upload", "0053_drop_celery_results_tables"),
     ]
 
