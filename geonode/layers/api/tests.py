@@ -40,11 +40,14 @@ logger = logging.getLogger(__name__)
 class DatasetsApiTests(APITestCase):
     fixtures = ["initial_data.json", "group_test_data.json", "default_oauth_apps.json"]
 
-    def setUp(self):
-        self.exml_path = f"{settings.PROJECT_ROOT}/base/fixtures/test_xml.xml"
+    @classmethod
+    def setUpTestData(cls):
         create_models(b"document")
         create_models(b"map")
         create_models(b"dataset")
+
+    def setUp(self):
+        self.exml_path = f"{settings.PROJECT_ROOT}/base/fixtures/test_xml.xml"
 
     def test_datasets(self):
         """
@@ -596,7 +599,7 @@ class DatasetsApiTests(APITestCase):
         url = reverse("datasets-replace-metadata", args=(layer.id,))
 
         response = self.client.put(url)
-        self.assertEqual(403, response.status_code)
+        self.assertEqual(401, response.status_code)
 
     def test_unsupported_file_throws_error(self):
         layer = Dataset.objects.first()
@@ -679,11 +682,7 @@ class DatasetsApiTests(APITestCase):
         response = self.client.get(url)
         self.assertTrue(response.status_code == 200)
         data = response.json()["dataset"]
-        download_url_data = data["download_urls"][0]
-        download_url = reverse("dataset_download", args=[dataset.alternate])
-        self.assertEqual(download_url_data["default"], True)
-        self.assertEqual(download_url_data["ajax_safe"], True)
-        self.assertEqual(download_url_data["url"], download_url)
+        self.assertEqual(data["download_urls"], [])
 
         link = Link(link_type="original", url="https://myoriginal.org", resource=dataset)
         link.save()
@@ -691,7 +690,6 @@ class DatasetsApiTests(APITestCase):
         response = self.client.get(url)
         data = response.json()["dataset"]
         download_url_data = data["download_urls"][0]
-        download_url = reverse("dataset_download", args=[dataset.alternate])
         self.assertEqual(download_url_data["default"], True)
         self.assertEqual(download_url_data["ajax_safe"], False)
         self.assertEqual(download_url_data["url"], "https://myoriginal.org")

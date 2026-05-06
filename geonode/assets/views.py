@@ -23,12 +23,9 @@ from django.shortcuts import get_object_or_404
 from dynamic_rest.viewsets import DynamicModelViewSet
 from dynamic_rest.filters import DynamicFilterBackend, DynamicSortingFilter
 
-from oauth2_provider.contrib.rest_framework import OAuth2Authentication
-
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
-from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 
 from geonode.assets.handlers import asset_handler_registry
 from geonode.assets.serializers import AssetSerializer
@@ -48,7 +45,6 @@ class AssetViewSet(DynamicModelViewSet):
     API endpoint that allows Assets to be viewed or edited.
     """
 
-    authentication_classes = [SessionAuthentication, BasicAuthentication, OAuth2Authentication]
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [
         DynamicFilterBackend,
@@ -94,7 +90,7 @@ class AssetViewSet(DynamicModelViewSet):
 
     @action(
         detail=False,
-        url_path="(?P<pk>\d+)/download(?:/(?P<path>.*))?",  # noqa
+        url_path=r"(?P<pk>\d+)/download(?:/(?P<path>.*))?",
         # url_name="asset-download",
         methods=["get"],
     )
@@ -103,7 +99,7 @@ class AssetViewSet(DynamicModelViewSet):
 
     @action(
         detail=False,
-        url_path="(?P<pk>\d+)/link(?:/(?P<path>.*))?",  # noqa
+        url_path=r"(?P<pk>\d+)/link(?:/(?P<path>.*))?",
         # url_name="asset-link",
         methods=["get"],
     )

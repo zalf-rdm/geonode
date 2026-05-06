@@ -23,8 +23,7 @@ from django.contrib import admin
 from modeltranslation.admin import TabbedTranslationAdmin
 
 from geonode.maps.models import Map, MapLayer
-from geonode.base.admin import ResourceBaseAdminForm
-from geonode.base.admin import metadata_batch_edit
+from geonode.base.admin import ResourceBaseAdminForm, SparseInline
 
 
 class MapLayerInline(admin.TabularInline):
@@ -41,10 +40,11 @@ class MapAdminForm(ResourceBaseAdminForm):
 
 
 class MapAdmin(TabbedTranslationAdmin):
-    inlines = [
+    inlines = (
         MapLayerInline,
-    ]
-    exclude = ("ll_bbox_polygon", "bbox_polygon", "srid")
+        SparseInline,
+    )
+    exclude = ("ll_bbox_polygon", "bbox_polygon", "srid", "tkeywords")
     list_display_links = ("title",)
     list_display = (
         "id",
@@ -81,7 +81,6 @@ class MapAdmin(TabbedTranslationAdmin):
     )
     readonly_fields = ("geographic_bounding_box",)
     form = MapAdminForm
-    actions = [metadata_batch_edit]
 
     def delete_queryset(self, request, queryset):
         """

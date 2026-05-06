@@ -17,6 +17,7 @@
 #
 #########################################################################
 
+import logging
 import os
 from owslib.etree import etree as dlxml
 from django.conf import settings
@@ -24,7 +25,9 @@ from owslib.iso import MD_Metadata
 from pycsw import server
 from geonode.catalogue.backends.generic import CatalogueBackend as GenericCatalogueBackend
 from geonode.catalogue.backends.generic import METADATA_FORMATS
-from shapely.errors import WKBReadingError, WKTReadingError
+from shapely.errors import ShapelyError
+
+logger = logging.getLogger(__name__)
 
 true_value = "true"
 false_value = "false"
@@ -46,26 +49,27 @@ CONFIGURATION = {
         "encoding": "UTF-8",
         "language": settings.LANGUAGE_CODE,
         "maxrecords": "10",
-        #  'loglevel': 'DEBUG',
-        #  'logfile': '/tmp/pycsw.log',
-        #  'federatedcatalogues': 'http://geo.data.gov/geoportal/csw/discovery',
         "pretty_print": "true",
         "domainquerytype": "range",
         "domaincounts": "true",
-        "profiles": "apiso,ebrim",
+    },
+    "profiles": {"apiso", "ebrim"},
+    "logging": {
+        "level": "INFO",
     },
     "repository": {
         "source": "geonode.catalogue.backends.pycsw_plugin.GeoNodeRepository",
         "filter": "uuid IS NOT NULL",
         "mappings": os.path.join(os.path.dirname(__file__), "pycsw_local_mappings.py"),
     },
+    "logging": {"level": "ERROR"},
 }
 
 
 class CatalogueBackend(GenericCatalogueBackend):
     def __init__(self, *args, **kwargs):
         GenericCatalogueBackend.__init__(CatalogueBackend, self, *args, **kwargs)
-        self.catalogue.formats = ["Atom", "DIF", "Dublin Core", "ebRIM", "FGDC", "ISO"]
+        self.catalogue.formats = ["Atom", "DataCite", "DIF", "Dublin Core", "ebRIM", "FGDC", "ISO"]
         self.catalogue.local = True
 
     def remove_record(self, uuid):
@@ -95,6 +99,45 @@ class CatalogueBackend(GenericCatalogueBackend):
         record.links["download"] = self.catalogue.extract_links(record)
         return record
 
+    def get_datacite_record(self, uuid):
+        """Get DataCite XML metadata for a resource by UUID.
+
+        Returns the inner <resource> DataCite XML element serialised as a
+        string, unwrapped from the CSW GetRecordByIdResponse envelope that
+        pycsw wraps around every record.
+        """
+        DATACITE_NS = "http://datacite.org/schema/kernel-4"
+
+        response = self._csw_local_dispatch(
+            identifier=uuid,
+            outputschema=METADATA_FORMATS["DataCite"][1],
+        )
+        if not response or len(response) < 1:
+            return None
+
+        # response is the serialised CSW envelope; unwrap it to get the inner
+        # DataCite <resource> element.
+        logger.debug(f"get_datacite_record raw pycsw response for {uuid}: {response[:2000] if response else None}")
+        try:
+            parser = dlxml.XMLParser(resolve_entities=False, no_network=True)
+            root = dlxml.fromstring(
+                response if isinstance(response, bytes) else response.encode("utf-8"), parser=parser
+            )
+        except dlxml.XMLSyntaxError as exc:
+            logger.warning(f"get_datacite_record: failed to parse pycsw response for {uuid}: {exc}")
+            return None
+
+        # pycsw wraps the record inside <csw:GetRecordByIdResponse>
+        # Try to find the DataCite <resource> element directly.
+        resource_el = root.find(f"{{{DATACITE_NS}}}resource")
+        if resource_el is None:
+            # Fallback: search anywhere in the tree
+            resource_el = root.find(f".//{{{DATACITE_NS}}}resource")
+        if resource_el is None:
+            return None
+
+        return dlxml.tostring(resource_el, encoding="unicode")
+
     def search_records(self, keywords, start, limit, bbox):
         with self.catalogue:
             lresults = self._csw_local_dispatch(keywords, keywords, start + 1, limit, bbox)
@@ -118,7 +161,51 @@ class CatalogueBackend(GenericCatalogueBackend):
 
             return result
 
-    def _csw_local_dispatch(self, keywords=None, start=0, limit=10, bbox=None, identifier=None):
+    @staticmethod
+    def _flatten_pycsw_config(mdict):
+        """Flatten GeoNode's nested PYCSW config into pycsw's expected format.
+
+        pycsw's configparser only accepts a two-level dict (sections → options)
+        where every option value is a plain string.  GeoNode's settings nest
+        sub-sections under 'metadata' (inspire, identification, …) which must
+        be promoted to top-level sections named 'metadata:inspire', etc.
+        Booleans → 'true'/'false', lists → comma-separated strings.
+        """
+
+        def _to_str(v):
+            if isinstance(v, bool):
+                return "true" if v else "false"
+            if isinstance(v, (list, tuple)):
+                return ",".join(str(i) for i in v)
+            return str(v)
+
+        flat = {}
+        for section, options in mdict.items():
+            if not isinstance(options, dict):
+                continue
+            section_opts = {}
+            for k, v in options.items():
+                if isinstance(v, dict):
+                    # Promote nested dict to a new top-level section "section:k"
+                    sub_opts = {}
+                    for kk, vv in v.items():
+                        if isinstance(vv, dict):
+                            # Serialize nested dicts (e.g. temp_extent: {begin, end})
+                            # as "begin/end" — the format pycsw APISO plugin expects.
+                            if "begin" in vv and "end" in vv:
+                                sub_opts[kk] = f"{vv['begin']}/{vv['end']}"
+                            else:
+                                sub_opts[kk] = ",".join(f"{kkk}={vvv}" for kkk, vvv in vv.items())
+                        else:
+                            sub_opts[kk] = _to_str(vv)
+                    flat[f"{section}:{k}"] = sub_opts
+                else:
+                    section_opts[k] = _to_str(v)
+            if section_opts:
+                flat[section] = section_opts
+        return flat
+
+    def _csw_local_dispatch(self, keywords=None, start=0, limit=10, bbox=None, identifier=None, outputschema=None):
         """
         HTTP-less CSW
         """
@@ -127,6 +214,14 @@ class CatalogueBackend(GenericCatalogueBackend):
         if "server" in settings.PYCSW["CONFIGURATION"]:
             # override server system defaults with user specified directives
             mdict["server"].update(settings.PYCSW["CONFIGURATION"]["server"])
+
+        # Ensure ogc_schemas_base is set (required by the APISO profile)
+        mdict.setdefault("server", {}).setdefault("ogc_schemas_base", "https://schemas.opengis.net")
+
+        # Flatten nested sections and stringify all leaf values so that
+        # pycsw's configparser receives the two-level string-only structure
+        # it requires.
+        mdict = self._flatten_pycsw_config(mdict)
 
         # fake HTTP environment variable
         os.environ["QUERY_STRING"] = ""
@@ -162,14 +257,14 @@ class CatalogueBackend(GenericCatalogueBackend):
                 "version": "2.0.2",
                 "request": "GetRecordById",
                 "id": identifier,
-                "outputschema": "http://www.isotc211.org/2005/gmd",
+                "outputschema": outputschema or "http://www.isotc211.org/2005/gmd",
             }
             # FIXME(Ariel): Remove this try/except block when pycsw deals with
             # empty geometry fields better.
             # https://gist.github.com/ingenieroariel/717bb720a201030e9b3a
             try:
                 response = csw.dispatch()
-            except (WKBReadingError, WKTReadingError):
+            except ShapelyError:
                 return []
 
         if isinstance(response, list):  # pycsw 2.0+

@@ -62,13 +62,6 @@ class BBOXHelper:
         return DjangoPolygon.from_bbox((self.xmin, self.ymin, self.xmax, self.ymax))
 
 
-def normalize_x_value(value):
-    """
-    Normalise x-axis value/longtitude to fall within [-180, 180]
-    """
-    return ((value + 180) % 360) - 180
-
-
 def polygon_from_bbox(bbox, srid=4326):
     """
     Constructs a Polygon object with srid from a provided bbox.
@@ -126,7 +119,7 @@ def translate_polygons(
     """
     ref.: https://towardsdatascience.com/around-the-world-in-80-lines-crossing-the-antimeridian-with-python-and-shapely-c87c9b6e1513
     """
-    for polygon in geometry_collection:
+    for polygon in [geometry_collection]:
         (minx, _, maxx, _) = polygon.bounds
         if minx < -180:
             geo_polygon = affinity.translate(polygon, xoff=360)

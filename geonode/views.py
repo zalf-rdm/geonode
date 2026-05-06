@@ -20,12 +20,12 @@ from django.contrib.auth.decorators import login_required
 from geonode.client.hooks import hookset
 import json
 
+from django.shortcuts import render
 from django import forms
 from django.apps import apps
 from django.db.models import Q
 from django.urls import reverse
 from django.conf import settings
-from django.shortcuts import render
 from django.template.response import TemplateResponse
 from geonode.base.templatetags.base_tags import facets
 from django.http import HttpResponse, HttpResponseRedirect
@@ -100,27 +100,19 @@ def err403(request, exception):
         return TemplateResponse(request, "401.html", {}, status=401).render()
 
 
-def handler404(request, exception, template_name="404.html"):
-    response = render(request, template_name)
-    response.status_code = 404
-    return response
-
-
-def handler500(request, template_name="500.html"):
-    response = render(request, template_name)
-    response.status_code = 500
-    return response
+def err500(request):
+    return render(request, "500.html", status=500)
 
 
 def ident_json(request):
     site_url = settings.SITEURL.rstrip("/") if settings.SITEURL.startswith("http") else settings.SITEURL
     json_data = {}
     json_data["siteurl"] = site_url
-    json_data["name"] = settings.PYCSW["CONFIGURATION"]["metadata:main"]["identification_title"]
+    json_data["name"] = settings.PYCSW["CONFIGURATION"]["metadata"]["identification"]["title"]
 
     json_data["poc"] = {
-        "name": settings.PYCSW["CONFIGURATION"]["metadata:main"]["contact_name"],
-        "email": settings.PYCSW["CONFIGURATION"]["metadata:main"]["contact_email"],
+        "name": settings.PYCSW["CONFIGURATION"]["metadata"]["contact"]["name"],
+        "email": settings.PYCSW["CONFIGURATION"]["metadata"]["contact"]["email"],
         "twitter": f"https://twitter.com/{settings.TWITTER_SITE}",
     }
 

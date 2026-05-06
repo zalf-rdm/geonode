@@ -37,19 +37,24 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.utils.module_loading import import_string
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ObjectDoesNotExist, ValidationError, FieldDoesNotExist
+from django.core.exceptions import ValidationError, FieldDoesNotExist
 
-
+from geonode.assets.utils import create_asset_and_link_dict, rollback_asset_and_link, copy_assets_and_links, create_link
 from geonode.base.models import ResourceBase, LinkedResource
+from geonode.documents.tasks import create_document_thumbnail
+from geonode.metadata.manager import metadata_manager
 from geonode.thumbs.thumbnails import _generate_thumbnail_name
 from geonode.thumbs.utils import ThumbnailAlgorithms
-from geonode.documents.tasks import create_document_thumbnail
 from geonode.security.permissions import PermSpecCompact, DATA_STYLABLE_RESOURCES_SUBTYPES
-from geonode.security.utils import perms_as_set, get_user_groups, skip_registered_members_common_group
+from geonode.security.utils import (
+    perms_as_set,
+    get_user_groups,
+    skip_registered_members_common_group,
+)
+from geonode.security.registry import permissions_registry
 
 from . import settings as rm_settings
-from .utils import update_resource, resourcebase_post_save
-from geonode.assets.utils import create_asset_and_link_dict, rollback_asset_and_link, copy_assets_and_links, create_link
+from .utils import update_resource, resourcebase_post_save, is_remote_resource
 
 from ..base import enumerations
 from ..security.utils import AdvancedSecurityWorkflowManager
@@ -58,6 +63,7 @@ from ..documents.models import Document
 from ..layers.models import Dataset, Attribute
 from ..maps.models import Map
 from ..storage.manager import storage_manager
+
 
 logger = logging.getLogger(__name__)
 
@@ -125,33 +131,6 @@ class ResourceManagerInterface(metaclass=ABCMeta):
         - It is possible to pass initial default values, like the 'files' from the 'storage_manager' trhgouh the 'vals' dictionary
         - The 'xml_file' parameter allows to fetch metadata values from a file
         - The 'notify' parameter allows to notify the members that the resource has been updated
-        """
-        pass
-
-    @abstractmethod
-    def copy(
-        self, instance: ResourceBase, /, uuid: str = None, owner: settings.AUTH_USER_MODEL = None, defaults: dict = {}
-    ) -> ResourceBase:
-        """The method makes a copy of the existing resource.
-
-        - It makes a copy of the files
-        - It creates a new layer on the GIS backend in the case the ResourceType is a Dataset
-        """
-        pass
-
-    @abstractmethod
-    def append(self, instance: ResourceBase, vals: dict = {}) -> ResourceBase:
-        """The method appends data to an existing resource.
-
-        - It assumes any GIS backend resource (e.g. layers on GeoServer) already exist.
-        """
-        pass
-
-    @abstractmethod
-    def replace(self, instance: ResourceBase, vals: dict = {}) -> ResourceBase:
-        """The method replaces data of an existing resource.
-
-        - It assumes any GIS backend resource (e.g. layers on GeoServer) already exist.
         """
         pass
 
@@ -225,8 +204,11 @@ class ResourceManager(ResourceManagerInterface):
         uuid = uuid or _resource.uuid
         if _resource and ResourceBase.objects.filter(uuid=uuid).exists():
             try:
+                permissions_registry.delete_resource_permissions_cache(instance=_resource)
                 _resource.set_processing_state(enumerations.STATE_RUNNING)
+                _resource.set_dirty_state()
                 try:
+
                     if isinstance(_resource.get_real_instance(), Dataset):
                         """
                         - Remove any associated style to the dataset, if it is not used by other datasets.
@@ -380,6 +362,10 @@ class ResourceManager(ResourceManagerInterface):
                         vals=vals,
                         extra_metadata=extra_metadata,
                     )
+
+                    if ji := custom.get("jsoninstance", None):
+                        metadata_manager.update_schema_instance_partial(_resource, ji, user=None)
+
                     _resource = self._concrete_resource_manager.update(uuid, instance=_resource, notify=notify)
 
                     # The following is only a demo proof of concept for a pluggable WF subsystem
@@ -435,6 +421,8 @@ class ResourceManager(ResourceManagerInterface):
                     _resource.owner = owner or instance.get_real_instance().owner
                     _resource.pk = _resource.id = None
                     _resource.uuid = uuid or str(uuid4())
+                    # Ensure that the featured flag is set to False
+                    _resource.featured = False
                     try:
                         # Avoid Integrity errors...
                         _resource.get_real_instance()._meta.get_field("name")
@@ -475,7 +463,14 @@ class ResourceManager(ResourceManagerInterface):
                     if files:
                         to_update = {"files": files}
 
-                    _resource = self._concrete_resource_manager.copy(instance, uuid=_resource.uuid, defaults=to_update)
+                    assets_and_links = copy_assets_and_links(instance, target=_resource)
+                    # we're just merging all the files together: it won't work once we have multiple assets per resource
+                    # TODO: get the files from the proper Asset, or make the _concrete_resource_manager.copy use assets
+                    to_update = {}
+
+                    files = list(itertools.chain.from_iterable([asset.location for asset, _ in assets_and_links]))
+                    if files:
+                        to_update = {"files": files}
 
             except Exception as e:
                 logger.exception(e)
@@ -495,47 +490,6 @@ class ResourceManager(ResourceManagerInterface):
                     _resource.set_processing_state(enumerations.STATE_PROCESSED)
         return _resource
 
-    def append(self, instance: ResourceBase, vals: dict = {}, *args, **kwargs):
-        if self._validate_resource(instance.get_real_instance(), "append"):
-            self._concrete_resource_manager.append(instance.get_real_instance(), vals=vals)
-            to_update = vals.copy()
-            if instance:
-                if "user" in to_update:
-                    to_update.pop("user")
-                return self.update(instance.uuid, instance.get_real_instance(), vals=to_update, *args, **kwargs)
-        return instance
-
-    def replace(self, instance: ResourceBase, vals: dict = {}, *args, **kwargs):
-        if self._validate_resource(instance.get_real_instance(), "replace"):
-            if vals.get("files", None) and kwargs.get("store_spatial_files", True):
-                vals.update(storage_manager.replace(instance.get_real_instance(), vals.get("files")))
-            self._concrete_resource_manager.replace(instance.get_real_instance(), vals=vals, *args, **kwargs)
-            to_update = vals.copy()
-            if instance:
-                if "user" in to_update:
-                    to_update.pop("user")
-                return self.update(instance.uuid, instance.get_real_instance(), vals=to_update, *args, **kwargs)
-        return instance
-
-    def _validate_resource(self, instance: ResourceBase, action_type: str) -> bool:
-        if not isinstance(instance, Dataset) and action_type == "append":
-            raise Exception("Append data is available only for Layers")
-
-        if isinstance(instance, Document) and action_type == "replace":
-            return True
-
-        exists = self._concrete_resource_manager.exists(instance.uuid, instance)
-
-        if exists and action_type == "append":
-            if isinstance(instance, Dataset):
-                if instance.is_vector():
-                    is_valid = True
-        elif exists and action_type == "replace":
-            is_valid = True
-        else:
-            raise ObjectDoesNotExist("Resource does not exists")
-        return is_valid
-
     @transaction.atomic
     def exec(self, method: str, uuid: str, /, instance: ResourceBase = None, **kwargs) -> ResourceBase:
         _resource = instance or ResourceManager._get_instance(uuid)
@@ -545,17 +499,33 @@ class ResourceManager(ResourceManagerInterface):
                 return _method(method, uuid, instance=_resource, **kwargs)
         return instance
 
+    def transfer_ownership(self, instance, new_owner, previous_owner):
+        """
+        This method updates the resource’s ownership and adjusts permissions accordingly removing the previous owner's access and assigning it to the new owner.
+        """
+        try:
+            instance.set_dirty_state()
+            perms = permissions_registry.get_perms(instance=instance, include_virtual=False)
+            if previous_owner and not previous_owner.is_superuser:
+                perms["users"].pop(previous_owner, None)
+            self.set_permissions(instance.uuid, instance, owner=new_owner, permissions=perms)
+        except Exception as e:
+            logger.exception(e)
+        finally:
+            instance.clear_dirty_state()
+
     def remove_permissions(self, uuid: str, /, instance: ResourceBase = None) -> bool:
         """Remove object permissions on given resource.
         If is a layer removes the layer specific permissions then the
         resourcebase permissions.
         """
+
         _resource = instance or ResourceManager._get_instance(uuid)
         if _resource:
+            permissions_registry.delete_resource_permissions_cache(instance=_resource)
             _resource.set_processing_state(enumerations.STATE_RUNNING)
             try:
                 with transaction.atomic():
-                    logger.debug(f"Removing all permissions on {_resource}")
                     from geonode.layers.models import Dataset
 
                     _dataset = (
@@ -581,8 +551,16 @@ class ResourceManager(ResourceManagerInterface):
                         content_type=ContentType.objects.get_for_model(_resource.get_self_resource()),
                         object_pk=_resource.id,
                     ).delete()
-                    if not self._concrete_resource_manager.remove_permissions(uuid, instance=_resource):
-                        raise Exception("Could not complete concrete manager operation successfully!")
+                    if is_remote_resource(_resource):
+                        # Remote resources live on external GeoServers, no GeoFence rules to remove
+                        logger.debug("Skipping remove_permissions for remote resource %s", _resource)
+                    else:
+                        success = self._concrete_resource_manager.remove_permissions(
+                            uuid,
+                            instance=_resource,
+                        )
+                        if not success:
+                            raise Exception(f"Could not remove permissions for local resource {_resource}")
                 _resource.set_processing_state(enumerations.STATE_PROCESSED)
                 return True
             except Exception as e:
@@ -605,6 +583,7 @@ class ResourceManager(ResourceManagerInterface):
     ) -> bool:
         _resource = instance or ResourceManager._get_instance(uuid)
         if _resource:
+            permissions_registry.delete_resource_permissions_cache(instance=_resource)
             _resource = _resource.get_real_instance()
             _resource.set_processing_state(enumerations.STATE_RUNNING)
             logger.debug(f"Finalizing (permissions and notifications) on resource {instance}")
@@ -628,7 +607,7 @@ class ResourceManager(ResourceManagerInterface):
 
                     # Gathering and validating the current permissions (if any has been passed)
                     if not created and permissions is None:
-                        permissions = _resource.get_all_level_info()
+                        permissions = permissions_registry.get_perms(instance=_resource, include_virtual=False)
 
                     if permissions:
                         if PermSpecCompact.validate(permissions):
@@ -638,14 +617,16 @@ class ResourceManager(ResourceManagerInterface):
                     else:
                         _permissions = None
 
-                    # Fixup Advanced Workflow permissions
-                    _perm_spec = AdvancedSecurityWorkflowManager.get_permissions(
-                        _resource.uuid,
-                        instance=_resource,
-                        permissions=_permissions,
+                    """
+                    Align _perm_spec based on the permissions handlers
+                    """
+                    _perm_spec = permissions_registry.fixup_perms(
+                        _resource,
+                        _permissions,
                         created=created,
                         approval_status_changed=approval_status_changed,
                         group_status_changed=group_status_changed,
+                        include_virtual=False,
                     )
 
                     """
@@ -854,15 +835,20 @@ class ResourceManager(ResourceManagerInterface):
                         )
 
                     # Fixup GIS Backend Security Rules Accordingly
-                    if not self._concrete_resource_manager.set_permissions(
-                        uuid,
-                        instance=_resource,
-                        owner=owner,
-                        permissions=_resource.get_all_level_info(),
-                        created=created,
-                    ):
-                        # This might not be a severe error. E.g. for datasets outside of local GeoServer
-                        logger.error(Exception("Could not complete concrete manager operation successfully!"))
+                    if is_remote_resource(_resource):
+                        # Remote resources live on external GeoServers, no GeoFence sync needed
+                        logger.debug("Skipping set_permissions for remote resource %s", _resource)
+                    else:
+                        # Local resources need GeoFence / GeoServer permission sync
+                        success = self._concrete_resource_manager.set_permissions(
+                            uuid,
+                            instance=_resource,
+                            owner=owner,
+                            permissions=permissions_registry.get_perms(instance=_resource),
+                            created=created,
+                        )
+                        if not success:
+                            logger.warning("Could not sync permissions to GeoServer for resource %s", _resource)
                 _resource.set_processing_state(enumerations.STATE_PROCESSED)
                 return True
             except Exception as e:

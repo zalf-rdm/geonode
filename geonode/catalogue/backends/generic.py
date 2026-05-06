@@ -28,12 +28,14 @@ from owslib.util import http_post
 from owslib.etree import etree as dlxml
 from owslib.fes import PropertyIsLike, BBox
 from geonode.catalogue.backends.base import BaseCatalogueBackend
+from geonode.metadata.manager import metadata_manager
 
 logger = logging.getLogger(__name__)
 
 TIMEOUT = 10
 METADATA_FORMATS = {
     "Atom": ("atom:entry", "http://www.w3.org/2005/Atom"),
+    "DataCite": ("csw:Record", "http://datacite.org/schema/kernel-4"),
     "DIF": ("dif:DIF", "http://gcmd.gsfc.nasa.gov/Aboutus/xml/dif/"),
     "Dublin Core": ("csw:Record", "http://www.opengis.net/cat/csw/2.0.2"),
     "ebRIM": ("rim:RegistryObject", "urn:oasis:names:tc:ebxml-regrep:xsd:rim:3.0"),
@@ -129,6 +131,7 @@ class Catalogue(CatalogueServiceWeb):
         ctx = {
             "CATALOG_METADATA_TEMPLATE": settings.CATALOG_METADATA_TEMPLATE,
             "layer": layer,
+            "metadata": metadata_manager.build_schema_instance(layer),
             "SITEURL": site_url,
             "id_pname": id_pname,
             "LICENSES_METADATA": getattr(settings, "LICENSES", dict()).get("METADATA", "never"),

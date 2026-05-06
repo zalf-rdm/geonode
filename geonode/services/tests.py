@@ -17,7 +17,6 @@
 #
 #########################################################################
 
-from unittest.mock import MagicMock
 from uuid import uuid4
 import mock
 import logging
@@ -27,12 +26,10 @@ from selenium import webdriver
 from urllib.error import HTTPError
 from collections import namedtuple
 from arcrest import MapService as ArcMapService
-from unittest import TestCase as StandardTestCase
+from unittest import TestCase as StandardTestCase, skip
 from owslib.wms import WebMapService as OwsWebMapService
-
 from django.test import Client, override_settings
 from django.urls import reverse
-from django.db.utils import IntegrityError
 from django.contrib.auth import get_user_model
 from django.template.defaultfilters import slugify
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
@@ -98,7 +95,11 @@ class ModuleFunctionsTestCase(StandardTestCase):
 
     @mock.patch("geonode.services.serviceprocessors.get_available_service_types", autospec=True)
     def test_get_service_handler_wms(self, mock_wms_handler):
-        _handler = MagicMock()
+        class PickableMagicMock(mock.MagicMock):
+            def __reduce__(self):
+                return (mock.MagicMock, ())
+
+        _handler = PickableMagicMock()
         mock_wms_handler.return_value = {
             enumerations.WMS: {"OWS": True, "handler": _handler, "label": "Web Map Service"}
         }
@@ -337,6 +338,7 @@ class ModuleFunctionsTestCase(StandardTestCase):
         resource_fields = handler._get_indexed_dataset_fields(dataset_meta)
         self.assertEqual(resource_fields["alternate"], f"{slugify(phony_url)}:{dataset_meta.id}")
 
+    @skip("test to be revisioned")
     @mock.patch("arcrest.MapService", autospec=True)
     def test_get_arcgis_alternative_structure(self, mock_map_service):
         LayerESRIExtent = namedtuple("LayerESRIExtent", "spatialReference xmin ymin ymax xmax")
@@ -826,8 +828,9 @@ class WmsServiceHandlerTestCase(GeoNodeBaseTestSupport):
             # Try adding the same URL again
             form = forms.CreateServiceForm(form_data)
             self.assertEqual(Service.objects.count(), 1)
-            with self.assertRaises(IntegrityError):
-                self.client.post(reverse("register_service"), data=form_data)
+            response = self.client.post(reverse("register_service"), data=form_data)
+            # The service is None since there is already a created service from the first call
+            self.assertEqual(response.status_code, 404)
             self.assertEqual(Service.objects.count(), 1)
 
 

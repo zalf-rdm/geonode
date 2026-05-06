@@ -1,0 +1,130 @@
+{% extends "geonode_base.html" %}
+{% load i18n %}
+
+{% block title %}
+    {% trans "Data Policy" %} — {{ block.super }}
+{% endblock %}
+
+{% block body_outer %}
+
+<div class="page-header">
+    <h2>{% trans "Data Policy of the ZALF Repository" %}</h2>
+</div>
+
+<p>
+    {% trans "This Data Policy describes the principles, responsibilities, and rules that govern the submission, storage, publication, and reuse of datasets in the ZALF Repository. The policy follows international best practices for Research Data Management (RDM) and the FAIR principles (Findable, Accessible, Interoperable, Reusable)." %}
+</p>
+
+<hr>
+
+<h3>{% trans "1. Purpose and Scope" %}</h3>
+<p>
+    {% trans "The ZALF Repository provides a central platform for sharing, preserving, and managing research data generated within ZALF or associated projects. Its purpose is to ensure long-term accessibility, reproducibility, and quality of research outputs." %}
+</p>
+
+<ul>
+    <li>{% trans "This policy applies to all datasets uploaded, curated, or published through the repository." %}</li>
+    <li>{% trans "It concerns both public datasets and those restricted for internal or controlled access." %}</li>
+    <li>{% trans "It covers metadata, documentation, and any associated supplementary material." %}</li>
+</ul>
+
+<hr>
+
+<h3>{% trans "2. Responsibilities of Data Contributors" %}</h3>
+<p>{% trans "Individuals who upload data to the repository must ensure that:" %}</p>
+
+<ul>
+    <li>{% trans "They have the right to publish and share the submitted data." %}</li>
+    <li>{% trans "The dataset does not contain confidential, personal, or sensitive information unless explicit permission exists." %}</li>
+    <li>{% trans "The data and metadata are accurate, complete, and comply with ethical and legal requirements." %}</li>
+    <li>{% trans "All relevant documentation, methods, and descriptions are included so that others can understand and reuse the data." %}</li>
+    <li>{% trans "Licensing and access conditions are correctly defined during upload." %}</li>
+</ul>
+
+<hr>
+
+<h3>{% trans "3. Licensing and Access Levels" %}</h3>
+<p>
+    {% trans "Datasets in the ZALF Repository must be assigned a license indicating how they may be accessed and reused. Contributors may select from a range of open and restricted options." %}
+</p>
+
+<ul>
+    <li><strong>{% trans "Open Access" %}</strong> – {% trans "Data may be freely accessed and reused under an openly accepted license (e.g., CC-BY, CC0)." %}</li>
+    <li><strong>{% trans "Restricted Access" %}</strong> – {% trans "Data may require approval before use or may be limited to specific groups or collaborators." %}</li>
+    <li><strong>{% trans "Internal Access" %}</strong> – {% trans "Data are accessible only within ZALF or associated project teams." %}</li>
+</ul>
+
+<p>
+    {% trans "Contributors are responsible for selecting a license that reflects legal obligations, project agreements, and intended reuse." %}
+</p>
+
+<hr>
+
+<h3>{% trans "4. Data Quality and Metadata Standards" %}</h3>
+<p>
+    {% trans "All datasets must be accompanied by sufficient metadata to ensure discoverability and reuse. The repository encourages the use of standardized formats, controlled vocabularies, and consistent documentation." %}
+</p>
+
+<ul>
+    <li>{% trans "Titles, descriptions, and keywords must clearly represent the content." %}</li>
+    <li>{% trans "Spatial, temporal, and methodological information must be provided when applicable." %}</li>
+    <li>{% trans "Datasets should follow discipline-specific standards where available (e.g., ISO, INSPIRE, domain ontologies)." %}</li>
+    <li>{% trans "Quality assurance steps, limitations, and uncertainties should be documented transparently." %}</li>
+</ul>
+
+<hr>
+
+<h3>{% trans "5. Data Preservation and Retention" %}</h3>
+<p>
+    {% trans "The repository ensures long-term preservation of datasets using stable storage infrastructure and versioning mechanisms. Once published, datasets are maintained for long-term access unless legally required to be removed." %}
+</p>
+
+<ul>
+    <li>{% trans "Published datasets receive persistent identifiers to guarantee long-term referencing." %}</li>
+    <li>{% trans "Updated versions can be uploaded, but previous versions remain archived for reproducibility." %}</li>
+    <li>{% trans "Files may only be removed in cases of legal, ethical, or documented scientific errors." %}</li>
+</ul>
+
+<hr>
+
+<h3>{% trans "6. Ethical and Legal Compliance" %}</h3>
+<p>
+    {% trans "All data contributors must ensure compliance with ethical standards, data protection regulations, and contractual obligations. Sensitive datasets may require anonymization or restricted sharing conditions." %}
+</p>
+
+<ul>
+    <li>{% trans "Personal data must not be uploaded unless fully anonymized or explicitly permitted by applicable regulations." %}</li>
+    <li>{% trans "Data derived from third parties must respect original licensing terms and copyright." %}</li>
+    <li>{% trans "Ethical approval must be documented where relevant." %}</li>
+</ul>
+
+<hr>
+
+<h3>{% trans "7. Reuse of Repository Data" %}</h3>
+<p>
+    {% trans "Users must follow the specified license of each dataset when downloading or reusing data. Proper citation of the dataset and its contributors is mandatory." %}
+</p>
+
+<ul>
+    <li>{% trans "Citations should include the dataset title, authors, publication year, repository name, and persistent identifier." %}</li>
+    <li>{% trans "Reuse for commercial or derivative purposes must respect license-specific conditions." %}</li>
+</ul>
+
+<hr>
+
+<h3>{% trans "8. Changes to this Policy" %}</h3>
+<p>
+    {% trans "The Data Policy may be updated over time to reflect evolving standards, legal requirements, and institutional guidelines. Significant changes will be communicated to users." %}
+</p>
+
+<hr>
+
+<h3>{% trans "Contact" %}</h3>
+<p>
+    {% trans "For questions related to data publication, licensing, or RDM practices, please contact the ZALF research data management support team." %}
+</p>
+
+{% endblock %}
+{% block footer %}
+    {% include 'geonode-mapstore-client/snippets/footer.html' %}
+{% endblock %}

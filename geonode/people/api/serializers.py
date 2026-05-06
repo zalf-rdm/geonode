@@ -60,6 +60,7 @@ class UserSerializer(base_serializers.DynamicModelSerializer):
             "first_name",
             "last_name",
             "department",
+            "orcid_identifier",
             "avatar",
             "organization",
             "perms",

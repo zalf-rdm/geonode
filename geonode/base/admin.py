@@ -25,7 +25,6 @@ from django.urls import path
 from dal import autocomplete
 from taggit.forms import TagField
 from django.core.management import call_command
-from slugify import slugify
 from django.contrib import messages
 
 from treebeard.admin import TreeAdmin
@@ -33,6 +32,7 @@ from treebeard.forms import movenodeform_factory
 
 from modeltranslation.admin import TabbedTranslationAdmin
 
+from geonode.base.management.commands.thesaurus_subcommands.load import ACTION_UPDATE
 from geonode.base.models import (
     TopicCategory,
     SpatialRepresentationType,
@@ -59,31 +59,9 @@ from geonode.base.models import (
     ThesaurusKeywordLabel,
 )
 
-from geonode.base.forms import BatchEditForm, ThesaurusImportForm, UserAndGroupPermissionsForm
+from geonode.base.forms import ThesaurusImportForm, UserAndGroupPermissionsForm
 from geonode.base.widgets import TaggitSelect2Custom
-
-
-def metadata_batch_edit(modeladmin, request, queryset):
-    ids = ",".join(str(element.pk) for element in queryset)
-    resource = queryset[0].class_name.lower()
-    form = BatchEditForm({"ids": ids})
-    name_space_mapper = {
-        "dataset": "dataset_batch_metadata",
-        "map": "map_batch_metadata",
-        "document": "document_batch_metadata",
-    }
-
-    try:
-        name_space = name_space_mapper[resource]
-    except KeyError:
-        name_space = None
-
-    return render(
-        request, "base/batch_edit.html", context={"form": form, "ids": ids, "model": resource, "name_space": name_space}
-    )
-
-
-metadata_batch_edit.short_description = "Metadata batch edit"
+from geonode.metadata.models import SparseField
 
 
 def set_user_and_group_dataset_permission(modeladmin, request, queryset):
@@ -313,11 +291,33 @@ class ConfigurationAdmin(admin.ModelAdmin):
         return form
 
 
+class ThesaurusLModelForm(forms.ModelForm):
+    class Meta:
+        model = ThesaurusLabel
+        fields = "__all__"
+        widgets = {
+            "lang": forms.TextInput(attrs={"style": "width: 60px !important;"}),
+            "label": forms.TextInput(attrs={"style": "width: 800px !important;"}),
+        }
+
+
+class ThesaurusLInline(admin.TabularInline):
+    model = ThesaurusLabel
+    form = ThesaurusLModelForm
+
+
 class ThesaurusAdmin(admin.ModelAdmin):
     change_list_template = "admin/thesauri/change_list.html"
 
     model = Thesaurus
-    list_display = ("id", "identifier")
+    inlines = (ThesaurusLInline,)
+
+    list_display = (
+        "id",
+        "identifier",
+        "about",
+        "title",
+    )
     list_display_links = ("id", "identifier")
     ordering = ("identifier",)
 
@@ -330,8 +330,7 @@ class ThesaurusAdmin(admin.ModelAdmin):
         if request.method == "POST":
             try:
                 rdf_file = request.FILES["rdf_file"]
-                name = slugify(rdf_file.name)
-                call_command("load_thesaurus", file=rdf_file, name=name)
+                call_command("thesaurus", "load", action=ACTION_UPDATE, file=rdf_file)
                 self.message_user(request, "Your RDF file has been imported", messages.SUCCESS)
                 return redirect("..")
             except Exception as e:
@@ -356,8 +355,24 @@ class ThesaurusLabelAdmin(admin.ModelAdmin):
     thesaurus_id.admin_order_field = "thesaurus__identifier"
 
 
+class ThesaurusKLModelForm(forms.ModelForm):
+    class Meta:
+        model = ThesaurusKeywordLabel
+        fields = "__all__"
+        widgets = {
+            "lang": forms.TextInput(attrs={"style": "width: 60px !important;"}),
+            "label": forms.TextInput(attrs={"style": "width: 800px !important;"}),
+        }
+
+
+class ThesaurusKLInline(admin.TabularInline):
+    model = ThesaurusKeywordLabel
+    form = ThesaurusKLModelForm
+
+
 class ThesaurusKeywordAdmin(admin.ModelAdmin):
     model = ThesaurusKeyword
+    inlines = (ThesaurusKLInline,)
 
     list_display = (
         "thesaurus_id",
@@ -373,6 +388,7 @@ class ThesaurusKeywordAdmin(admin.ModelAdmin):
         "alt_label",
     )
     list_filter = ("thesaurus_id",)
+    search_fields = ("about",)
 
     def thesaurus_id(self, obj):
         return obj.thesaurus.identifier
@@ -442,3 +458,19 @@ class ResourceBaseAdminForm(autocomplete.FutureModelForm):
 
     class Meta:
         pass
+
+
+class SparseInlineForm(forms.ModelForm):
+    class Meta:
+        model = SparseField
+        fields = "__all__"
+        widgets = {
+            "name": forms.TextInput(attrs={"style": "width: 200px !important;"}),
+            "value": forms.TextInput(attrs={"style": "width: 900px !important;"}),
+        }
+
+
+class SparseInline(admin.TabularInline):
+    model = SparseField
+    form = SparseInlineForm
+    extra = 0

@@ -22,10 +22,12 @@ from django.utils.translation import gettext_lazy as _
 
 class ExecutionRequestAction(enum.Enum):
     IMPORT = _("import")
+    UPLOAD = _("upload")
     CREATE = _("create")
     COPY = _("copy")
     DELETE = _("delete")
     PERMISSIONS = _("permissions")
     UPDATE = _("update")
     INGEST = _("ingest")
+    HARVEST = _("harvest")
     UNKNOWN = _("unknown")

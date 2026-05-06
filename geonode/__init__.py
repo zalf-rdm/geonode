@@ -19,7 +19,8 @@
 
 import os
 
-__version__ = (4, 4, 3, "final", 0)
+__version__ = (5, 0, 2, 'final', 0)
+__version_str__ = '5.0.2'
 
 
 def get_version():
@@ -28,7 +29,7 @@ def get_version():
     return geonode.version.get_version(__version__)
 
 
-def main(global_settings, **settings):
+def main(_, **settings):
     from django.core.wsgi import get_wsgi_application
 
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", settings.get("django_settings"))
