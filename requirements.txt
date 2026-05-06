@@ -84,11 +84,9 @@ geonode-dynamic-rest==2.3.0.1
 frictionless>=5.17.0
 
 # mapstore client package
-# TODO: re-enable after porting zalf-rdm/geonode-mapstore-client to 5.x
-# -e git+https://github.com/zalf-rdm/geonode-mapstore-client.git@main#egg=django-geonode-mapstore-client
+# zalf_django_geonode_mapstore_client==4.4.3.post13
+django-geonode-mapstore-client==5.0.1
 
-# gn importer package
-geonode-importer==1.1.2
 
 geonode-pinax-notifications==6.0.0.3
 

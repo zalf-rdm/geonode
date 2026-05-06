@@ -1,21 +1,19 @@
 COMPOSE_PROJECT_NAME=geonode
-DOCKER_HOST_IP=
 DOCKER_ENV=production
+# See https://github.com/geosolutions-it/geonode-generic/issues/28
+# to see why we force API version to 1.24
+DOCKER_API_VERSION="1.24"
 BACKUPS_VOLUME_DRIVER=local
 
 C_FORCE_ROOT=1
 FORCE_REINIT=false
 INVOKE_LOG_STDOUT=true
 
-# LANGUAGE_CODE=pt
-# LANGUAGES=(('en','English'),('pt','Portuguese'))
+# LANGUAGE_CODE=it-it
+# LANGUAGES=(('en-us','English'),('it-it','Italiano'))
 
 DJANGO_SETTINGS_MODULE=geonode.settings
 GEONODE_INSTANCE_NAME=geonode
-GEONODE_LB_HOST_IP=
-GEONODE_LB_PORT=
-
-PROXY_URL="/proxy/?url="
 
 # #################
 # backend
@@ -37,37 +35,34 @@ GEODATABASE_URL=postgis://geonode_data:geonode_data@db:5432/geonode_data
 GEONODE_DB_CONN_MAX_AGE=0
 GEONODE_DB_CONN_TOUT=5
 DEFAULT_BACKEND_DATASTORE=datastore
-BROKER_URL=redis://redis:6379/0
-CELERY_RESULT_BACKEND=redis://redis:6379/1
+BROKER_URL=redis://redis4geonode:6379/0
+CELERY_RESULT_BACKEND=redis://redis4geonode:6379/1
 CELERY_BEAT_SCHEDULER=celery.beat:PersistentScheduler
 ASYNC_SIGNALS=True
 
-SITEURL=http://localhost:8000/
-PROXY_URL="/proxy/?url="
-ALLOWED_HOSTS="['django', '*']"
+SITEURL=http://geonode.docker/
+
+ALLOWED_HOSTS="['django', 'geonode.docker', 'localhost']"
 
 # Data Uploader
 DEFAULT_BACKEND_UPLOADER=geonode.importer
 TIME_ENABLED=True
 MOSAIC_ENABLED=False
-HAYSTACK_SEARCH=False
-HAYSTACK_ENGINE_URL=http://elasticsearch:9200/
-HAYSTACK_ENGINE_INDEX_NAME=haystack
-HAYSTACK_SEARCH_RESULTS_PER_PAGE=200
 
 # #################
 # nginx
 # HTTPD Server
 # #################
-GEONODE_LB_HOST_IP=localhost
-GEONODE_LB_PORT=80
+GEONODE_LB_HOST_IP=django
+GEONODE_LB_PORT=8000
+NGINX_BASE_URL=${SITEURL}
 
 # IP or domain name and port where the server can be reached on HTTPS (leave HOST empty if you want to use HTTP only)
 # port where the server can be reached on HTTPS
-HTTP_HOST=localhost
+HTTP_HOST=geonode.docker
 HTTPS_HOST=
 
-HTTP_PORT=8010
+HTTP_PORT=80
 HTTPS_PORT=443
 
 # Let's Encrypt certificates for https encryption. You must have a domain name as HTTPS_HOST (doesn't work
@@ -84,9 +79,11 @@ RESOLVER=127.0.0.11
 # #################
 # geoserver
 # #################
-GEOSERVER_WEB_UI_LOCATION=http://localhost:8080/geoserver/
-GEOSERVER_PUBLIC_LOCATION=http://localhost:8080/geoserver/
-GEOSERVER_LOCATION=http://geoserver:8080/geoserver/
+GEOSERVER_LB_HOST_IP=geoserver
+GEOSERVER_LB_PORT=8080
+GEOSERVER_WEB_UI_LOCATION=${SITEURL}geoserver/
+GEOSERVER_PUBLIC_LOCATION=${SITEURL}geoserver/
+GEOSERVER_LOCATION=http://${GEOSERVER_LB_HOST_IP}:${GEOSERVER_LB_PORT}/geoserver/
 GEOSERVER_ADMIN_USER=admin
 GEOSERVER_ADMIN_PASSWORD=geoserver
 
@@ -99,17 +96,9 @@ OGC_REQUEST_POOL_CONNECTIONS=10
 # Java Options & Memory
 ENABLE_JSONP=true
 outFormat=text/javascript
-GEOSERVER_JAVA_OPTS="-Djava.awt.headless=true -Xms2G -Xmx4G -Dgwc.context.suffix=gwc -XX:+UnlockDiagnosticVMOptions -XX:+LogVMOutput -XX:LogFile=/var/log/jvm.log -XX:PerfDataSamplingInterval=500 -XX:SoftRefLRUPolicyMSPerMB=36000 -XX:-UseGCOverheadLimit -XX:+UseConcMarkSweepGC -XX:ParallelGCThreads=4 -Dfile.encoding=UTF8 -Djavax.servlet.request.encoding=UTF-8 -Djavax.servlet.response.encoding=UTF-8 -Duser.timezone=GMT -Dorg.geotools.shapefile.datetime=false -DGS-SHAPEFILE-CHARSET=UTF-8 -DGEOSERVER_CSRF_DISABLED=true -DPRINT_BASE_URL=http://geoserver:8080/geoserver/pdf -DALLOW_ENV_PARAMETRIZATION=true -Xbootclasspath/a:/usr/local/tomcat/webapps/geoserver/WEB-INF/lib/marlin-0.9.3-Unsafe.jar -Dsun.java2d.renderer=org.marlin.pisces.MarlinRenderingEngine"
+GEOSERVER_JAVA_OPTS=-Djava.awt.headless=true -Xms2G -Xmx4G -Dgwc.context.suffix=gwc -XX:+UnlockDiagnosticVMOptions -XX:+LogVMOutput -XX:LogFile=/var/log/jvm.log -XX:PerfDataSamplingInterval=500 -XX:SoftRefLRUPolicyMSPerMB=36000 -XX:-UseGCOverheadLimit -XX:ParallelGCThreads=4 -Dfile.encoding=UTF8 -Djavax.servlet.request.encoding=UTF-8 -Djavax.servlet.response.encoding=UTF-8 -Duser.timezone=GMT -Dorg.geotools.shapefile.datetime=false -DGS-SHAPEFILE-CHARSET=UTF-8 -DGEOSERVER_CSRF_DISABLED=true -DPRINT_BASE_URL=${SITEURL}geoserver/pdf -DALLOW_ENV_PARAMETRIZATION=true -Xbootclasspath/a:/usr/local/tomcat/webapps/geoserver/WEB-INF/lib/marlin-0.9.3-Unsafe.jar -Dsun.java2d.renderer=org.marlin.pisces.MarlinRenderingEngine
 
-# #################
-# Security
-# #################
 # Admin Settings
-#
-# ADMIN_PASSWORD is used to overwrite the GeoNode admin password **ONLY** the first time
-# GeoNode is run. If you need to overwrite it again, you need to set the env var FORCE_REINIT,
-# otherwise the invoke updateadmin task will be skipped and the current password already stored
-# in DB will honored.
 
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=admin
@@ -128,11 +117,16 @@ DEFAULT_FROM_EMAIL='GeoNode <no-reply@geonode.org>'
 
 # Session/Access Control
 LOCKDOWN_GEONODE=False
-CORS_ALLOW_ALL_ORIGINS=True
 X_FRAME_OPTIONS="SAMEORIGIN"
 SESSION_EXPIRED_CONTROL_ENABLED=True
 DEFAULT_ANONYMOUS_VIEW_PERMISSION=True
 DEFAULT_ANONYMOUS_DOWNLOAD_PERMISSION=True
+
+CORS_ALLOW_ALL_ORIGINS=True
+GEOSERVER_CORS_ENABLED=True
+GEOSERVER_CORS_ALLOWED_ORIGINS=*
+GEOSERVER_CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,HEAD,OPTIONS
+GEOSERVER_CORS_ALLOWED_HEADERS=*
 
 # Users Registration
 ACCOUNT_OPEN_SIGNUP=True
@@ -140,8 +134,11 @@ ACCOUNT_EMAIL_REQUIRED=True
 ACCOUNT_APPROVAL_REQUIRED=False
 ACCOUNT_CONFIRM_EMAIL_ON_GET=False
 ACCOUNT_EMAIL_VERIFICATION=none
+ACCOUNT_EMAIL_CONFIRMATION_EMAIL=False
+ACCOUNT_EMAIL_CONFIRMATION_REQUIRED=False
 ACCOUNT_AUTHENTICATION_METHOD=username_email
 AUTO_ASSIGN_REGISTERED_MEMBERS_TO_REGISTERED_MEMBERS_GROUP_NAME=True
+AUTO_ASSIGN_REGISTERED_MEMBERS_TO_CONTRIBUTORS=True
 
 # OAuth2
 OAUTH2_API_KEY=
@@ -152,34 +149,39 @@ OAUTH2_CLIENT_SECRET=rCnp5txobUo83EpQEblM8fVj3QT5zb5qRfxNsuPzCqZaiRyIoxM4jdgMiZK
 API_LOCKDOWN=False
 TASTYPIE_APIKEY=
 
-# #################
-# Production and
-# Monitoring
-# #################
-DEBUG=True
-DEBUG_STATIC=True
+##################
+# Production and #
+# Monitoring     #
+##################
+DEBUG=False
 
 SECRET_KEY='myv-y4#7j-d*p-__@j#*3z@!y24fz8%^z2v6atuy4bo9vqr1_a'
 
-# STATIC_ROOT=/mnt/volumes/statics/static/
-# MEDIA_ROOT=/mnt/volumes/statics/uploaded/
-# GEOIP_PATH=/mnt/volumes/statics/geoip.db
+STATIC_ROOT=/mnt/volumes/statics/static/
+MEDIA_ROOT=/mnt/volumes/statics/uploaded/
+ASSETS_ROOT=/mnt/volumes/statics/assets/
+GEOIP_PATH=/mnt/volumes/statics/geoip.db
 
 CACHE_BUSTING_STATIC_ENABLED=False
 
 MEMCACHED_ENABLED=False
 MEMCACHED_BACKEND=django.core.cache.backends.memcached.PyLibMCCache
-MEMCACHED_LOCATION=127.0.0.1:11211
+MEMCACHED_LOCATION=memcached:11211
 MEMCACHED_LOCK_EXPIRE=3600
 MEMCACHED_LOCK_TIMEOUT=10
+#
+# Options for memcached binary, e.g. -vvv to log all requests and cache hits
+#
+MEMCACHED_OPTIONS=
 
-MAX_DOCUMENT_SIZE=2
+MAX_DOCUMENT_SIZE=200
 CLIENT_RESULTS_LIMIT=5
 API_LIMIT_PER_PAGE=1000
 
 # GIS Client
 GEONODE_CLIENT_LAYER_PREVIEW_LIBRARY=mapstore
 MAPBOX_ACCESS_TOKEN=
+BING_API_KEY=
 GOOGLE_API_KEY=
 
 # Monitoring
@@ -198,11 +200,23 @@ EXIF_ENABLED=True
 CREATE_LAYER=True
 FAVORITE_ENABLED=True
 
-CATALOG_METADATA_TEMPLATE="catalogue/zalf_metadata.xml"
+# Advanced Workflow
+RESOURCE_PUBLISHING=False
+ADMIN_MODERATE_UPLOADS=False
 
-<<<<<<< HEAD
-# Allow the MapStore2 webpack dev server as a trusted CSRF origin
-CSRF_TRUSTED_ORIGINS=http://localhost:8000,http://localhost:8081
-=======
-CSRF_TRUSTED_ORIGINS=http://localhost:8000,http://localhost:8081
->>>>>>> fd2422e0c67433134ef1066ddbe4c1cbb4caa692
+# LDAP
+LDAP_ENABLED=False
+
+# PostgreSQL
+POSTGRESQL_MAX_CONNECTIONS=200
+
+# Common containers restart policy
+RESTART_POLICY_CONDITION="on-failure"
+RESTART_POLICY_DELAY="5s"
+RESTART_POLICY_MAX_ATTEMPTS="3"
+RESTART_POLICY_WINDOW=120s
+
+DEFAULT_MAX_UPLOAD_SIZE=5368709120
+DEFAULT_MAX_PARALLEL_UPLOADS_PER_USER=5
+
+# FORCE_READ_ONLY_MODE=False Override the read-only value saved in the configuration

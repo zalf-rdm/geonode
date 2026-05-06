@@ -1304,7 +1304,6 @@ SRID = {
     "DETAIL": "never",
 }
 
-
 # Available download formats
 DOWNLOAD_FORMATS_METADATA = [
     "Atom",

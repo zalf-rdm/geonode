@@ -203,11 +203,11 @@ class Profile(AbstractUser):
     @property
     def name_long(self):
         if self.first_name and self.last_name:
-            return f"{self.first_name} {self.last_name} ({self.username})"
+            return f"{self.first_name} {self.last_name}"
         elif (not self.first_name) and self.last_name:
-            return f"{self.last_name} ({self.username})"
+            return self.last_name
         elif self.first_name and (not self.last_name):
-            return f"{self.first_name} ({self.username})"
+            return self.first_name
         else:
             return self.username
 
