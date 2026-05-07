@@ -1,5 +1,5 @@
 # native dependencies
-Pillow==10.4.0
+Pillow==12.2.0
 lxml==6.1.0
 psycopg2==2.9.9
 Django==4.2.30
@@ -10,7 +10,7 @@ beautifulsoup4==4.12.3
 httplib2<0.22.1
 hyperlink==21.0.0
 idna>=2.5,<4
-urllib3==1.26.18
+urllib3==2.6.3
 Paver==1.3.4
 python-slugify==8.0.4
 decorator==5.1.1
@@ -32,7 +32,7 @@ zipstream-ng==1.8.0
 sentry-sdk
 
 # Django Apps
-django-allauth==0.63.6
+django-allauth==65.16.1
 django-appconf==1.0.6
 django-celery-results==2.5.1
 django-filter==24.2
@@ -83,7 +83,7 @@ drf-extensions==0.7.1
 drf-writable-nested==0.7.0
 drf-spectacular==0.27.2
 dynamic-rest==2.3.0
-Markdown==3.6
+Markdown==3.8.1
 
 # ---- GeoNode dependencies -----
 
@@ -132,7 +132,7 @@ jdcal==1.4.1
 mock<6.0.0
 python-dateutil==2.9.0.post0
 pytz==2024.1
-requests==2.31.0
+requests==2.33.0
 timeout-decorator==0.5.0
 pylibmc==1.6.3
 sherlock==0.4.1
@@ -158,7 +158,7 @@ invoke==2.2.0
 coverage==7.5.1
 requests-toolbelt==1.0.0
 flake8==7.0.0
-black==24.4.2
+black==26.3.1
 pytest==8.2.0
 pytest-bdd==7.1.2
 splinter==0.21.0
