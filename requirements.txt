@@ -2,7 +2,7 @@
 Pillow==10.4.0
 lxml==5.2.1
 psycopg2==2.9.9
-Django==4.2.17
+Django==4.2.30
 
 # Other
 amqp==5.2.0
@@ -32,7 +32,7 @@ zipstream-ng==1.8.0
 sentry-sdk
 
 # Django Apps
-django-allauth==0.63.6
+django-allauth==65.16.1
 django-appconf==1.0.6
 django-celery-results==2.5.1
 django-filter==24.2
@@ -76,7 +76,7 @@ django-invitations<2.1.1
 django-recaptcha==4.0.0
 
 # REST
-djangorestframework==3.14.0
+djangorestframework==3.15.2
 djangorestframework-gis==1.0
 djangorestframework-guardian==0.3.0
 drf-extensions==0.7.1
@@ -132,7 +132,7 @@ jdcal==1.4.1
 mock<6.0.0
 python-dateutil==2.9.0.post0
 pytz==2024.1
-requests==2.31.0
+requests==2.33.0
 timeout-decorator==0.5.0
 pylibmc==1.6.3
 sherlock==0.4.1
@@ -164,7 +164,7 @@ pytest-bdd==7.1.2
 splinter==0.21.0
 pytest-splinter==3.3.2
 pytest-django==4.8.0
-pip==25.0.1
+pip==26.1
 setuptools>=70.2.0,<70.3.0
 pixelmatch==0.3.0
 factory-boy==3.3.0
