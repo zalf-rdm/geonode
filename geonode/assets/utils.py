@@ -10,7 +10,6 @@ from geonode.assets.models import Asset
 from geonode.base.models import ResourceBase, Link
 from geonode.security.utils import get_visible_resources
 
-
 logger = logging.getLogger(__name__)
 
 

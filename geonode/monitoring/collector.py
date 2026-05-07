@@ -63,7 +63,6 @@ from geonode.monitoring.aggregation import (
 from geonode.base.models import ResourceBase
 from geonode.utils import parse_datetime
 
-
 log = logging.getLogger(__name__)
 
 
@@ -805,7 +804,7 @@ class CollectorAPI:
                     "sum(mv.value_num), min(mv.value_num)",
                     "max(mv.value_num)",
                 ],
-                "from": [("join monitoring_monitoredresource mr " "on (mv.resource_id = mr.id)")],
+                "from": ["join monitoring_monitoredresource mr " "on (mv.resource_id = mr.id)"],
                 "where": ["and mv.resource_id is not NULL"],
                 "order_by": ["val desc"],
                 "group_by": ["mr.id", "mr.type", "mr.name"],
@@ -824,7 +823,7 @@ class CollectorAPI:
                     "sum(mv.value_num), min(mv.value_num)",
                     "max(mv.value_num)",
                 ],
-                "from": [("join monitoring_monitoredresource mr " "on (mv.resource_id = mr.id)")],
+                "from": ["join monitoring_monitoredresource mr " "on (mv.resource_id = mr.id)"],
                 "where": ["and mv.resource_id is not NULL"],
                 "order_by": ["val desc"],
                 "group_by": ["mr.id", "mr.type", "mr.name"],
@@ -841,7 +840,7 @@ class CollectorAPI:
                         "max(mv.value_num)"
                     )
                 ],
-                "from": [("join monitoring_monitoredresource mr " "on (mv.resource_id = mr.id)")],
+                "from": ["join monitoring_monitoredresource mr " "on (mv.resource_id = mr.id)"],
                 "where": ["and mr.id is not NULL"],
                 "order_by": ["val desc"],
                 "group_by": [],
@@ -912,7 +911,7 @@ class CollectorAPI:
                         "sum(mv.value_num), min(mv.value_num), max(mv.value_num)"
                     )
                 ],
-                "from": [("join monitoring_monitoredresource mr " "on (mv.resource_id = mr.id)")],
+                "from": ["join monitoring_monitoredresource mr " "on (mv.resource_id = mr.id)"],
                 # 'from': [], do we want to retrieve also events not related to a monitored resource?
                 "where": ["and ml.user is not NULL"],
                 "order_by": ["val desc"],
@@ -927,7 +926,7 @@ class CollectorAPI:
                     "sum(mv.value_num), min(mv.value_num)",
                     "max(mv.value_num)",
                 ],
-                "from": [("join monitoring_monitoredresource mr " "on (mv.resource_id = mr.id)")],
+                "from": ["join monitoring_monitoredresource mr " "on (mv.resource_id = mr.id)"],
                 "where": ["and ml.user is not NULL"],
                 "order_by": ["val desc"],
                 "group_by": ["ml.user"],
@@ -942,7 +941,7 @@ class CollectorAPI:
                         "sum(mv.value_num), min(mv.value_num), max(mv.value_num)"
                     )
                 ],
-                "from": [("join monitoring_monitoredresource mr " "on (mv.resource_id = mr.id)")],
+                "from": ["join monitoring_monitoredresource mr " "on (mv.resource_id = mr.id)"],
                 "where": [],  # ["and mv.resource_id is NULL or (mr.type = '')"],
                 "order_by": ["val desc"],
                 "group_by": [],

@@ -29,7 +29,6 @@ from django.utils.deprecation import MiddlewareMixin
 from geonode.monitoring.models import Service, Host
 from geonode.monitoring.utils import MonitoringHandler
 
-
 FILTER_URLS = (
     settings.MEDIA_URL,
     settings.STATIC_URL,

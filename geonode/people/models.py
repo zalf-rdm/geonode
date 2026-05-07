@@ -126,10 +126,8 @@ class Profile(AbstractUser):
     keywords = TaggableManager(
         _("keywords"),
         blank=True,
-        help_text=_(
-            "commonly used word(s) or formalised word(s) or phrase(s) used to describe the subject \
-            (space or comma-separated"
-        ),
+        help_text=_("commonly used word(s) or formalised word(s) or phrase(s) used to describe the subject \
+            (space or comma-separated"),
     )
     language = models.CharField(_("language"), max_length=10, choices=LANGUAGES, default=settings.LANGUAGE_CODE)
     timezone = models.CharField(

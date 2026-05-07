@@ -79,15 +79,11 @@ logger = logging.getLogger("geonode.layers.views")
 
 DEFAULT_SEARCH_BATCH_SIZE = 10
 MAX_SEARCH_BATCH_SIZE = 25
-GENERIC_UPLOAD_ERROR = _(
-    "There was an error while attempting to upload your data. \
-Please try again, or contact and administrator if the problem continues."
-)
+GENERIC_UPLOAD_ERROR = _("There was an error while attempting to upload your data. \
+Please try again, or contact and administrator if the problem continues.")
 
-METADATA_UPLOADED_PRESERVE_ERROR = _(
-    "Note: this dataset's orginal metadata was \
-populated and preserved by importing a metadata XML file. This metadata cannot be edited."
-)
+METADATA_UPLOADED_PRESERVE_ERROR = _("Note: this dataset's orginal metadata was \
+populated and preserved by importing a metadata XML file. This metadata cannot be edited.")
 
 _PERMISSION_MSG_DELETE = _("You are not permitted to delete this dataset")
 _PERMISSION_MSG_GENERIC = _("You do not have permissions for this dataset.")

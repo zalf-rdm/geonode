@@ -32,8 +32,8 @@ or return response objects.
 State is stored in a UploaderSession object stored in the user's session.
 This needs to be made more stateful by adding a model.
 """
-import logging
 
+import logging
 
 logger = logging.getLogger(__name__)
 

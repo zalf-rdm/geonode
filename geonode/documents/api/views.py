@@ -48,7 +48,6 @@ from .permissions import DocumentPermissionsFilter
 
 import logging
 
-
 logger = logging.getLogger(__name__)
 
 

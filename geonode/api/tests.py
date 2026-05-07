@@ -51,7 +51,6 @@ from geonode.base.auth import get_or_create_token
 from geonode.tests.base import GeoNodeBaseTestSupport
 from geonode.base.populate_test_data import all_public, create_models, remove_models
 
-
 logger = logging.getLogger(__name__)
 
 

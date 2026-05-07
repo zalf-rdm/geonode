@@ -605,12 +605,10 @@ class ResourceBaseForm(TranslationModelForm, LinkedResourceForm):
     extra_metadata = forms.CharField(
         required=False,
         widget=forms.Textarea,
-        help_text=_(
-            'Additional metadata, must be in format [\
+        help_text=_('Additional metadata, must be in format [\
                 {"metadata_key": "metadata_value"},\
                 {"metadata_key": "metadata_value"} \
-            ]'
-        ),
+            ]'),
     )
 
     def __init__(self, *args, **kwargs):

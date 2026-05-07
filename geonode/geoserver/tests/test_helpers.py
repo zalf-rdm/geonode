@@ -41,7 +41,6 @@ from geonode.geoserver.helpers import (
 )
 from geonode.geoserver.ows import _wcs_link, _wfs_link, _wms_link
 
-
 logger = logging.getLogger(__name__)
 
 

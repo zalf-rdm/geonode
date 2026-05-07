@@ -306,10 +306,8 @@ class GroupMember(models.Model):
 def group_pre_delete(instance, sender, **kwargs):
     """Make sure that the anonymous group is not deleted"""
     if instance.name == "anonymous":
-        raise Exception(
-            "Deletion of the anonymous group is\
-         not permitted as will break the geonode permissions system"
-        )
+        raise Exception("Deletion of the anonymous group is\
+         not permitted as will break the geonode permissions system")
 
 
 signals.pre_delete.connect(group_pre_delete, sender=Group)

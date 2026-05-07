@@ -38,7 +38,6 @@ from geonode.geoserver.helpers import geofence, gf_utils, gs_catalog
 from geonode.groups.models import GroupProfile
 from geonode.utils import get_dataset_workspace
 
-
 logger = logging.getLogger(__name__)
 
 

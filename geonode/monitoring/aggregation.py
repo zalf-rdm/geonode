@@ -37,7 +37,6 @@ from geonode.monitoring.models import (
     EventType,
 )
 
-
 log = logging.getLogger(__name__)
 
 

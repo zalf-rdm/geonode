@@ -22,6 +22,7 @@ This file demonstrates writing tests using the unittest module. These will pass
 when you run "manage.py test".
 
 """
+
 import os
 import io
 import json
@@ -61,7 +62,6 @@ from geonode.base.populate_test_data import all_public, create_models, create_si
 from geonode.upload.api.exceptions import FileUploadLimitException
 
 from .forms import DocumentCreateForm
-
 
 TEST_GIF = os.path.join(os.path.dirname(__file__), "tests/data/img.gif")
 
