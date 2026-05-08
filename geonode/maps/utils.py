@@ -303,7 +303,7 @@ def sync_metadata(map_obj, resource, field_names=None):
             logger.warning("Could not sync field %s to resource %s", field_name, resource.pk)
 
     if simple_fields:
-        resource.save()
+        resource.save(notify=True)
 
     # 2. M2M fields
     for field_name in m2m_fields:
