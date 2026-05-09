@@ -58,4 +58,4 @@ def en_browser(browser, bdd_server):
 def pytestbdd_feature_base_dir():
     """Feature files base directory."""
 
-    return os.path.join(os.path.dirname(bdd_path), "features")
+    return os.path.join(os.path.dirname(__file__), "features")

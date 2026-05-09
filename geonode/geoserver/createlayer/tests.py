@@ -62,7 +62,7 @@ class CreateLayerCoreTest(GeoNodeBaseTestSupport):
         """
         internal_apps_tests = os.environ.get("TEST_RUN_INTERNAL_APPS", None)
         if not internal_apps_tests:
-            internal_apps_tests = settings.internal_apps_tests
+            internal_apps_tests = settings.INTERNAL_APPS_TESTS
         else:
             dataset_name = "point_dataset"
             dataset_title = "A layer for points"
@@ -111,7 +111,7 @@ class CreateLayerCoreTest(GeoNodeBaseTestSupport):
         """
         internal_apps_tests = os.environ.get("TEST_RUN_INTERNAL_APPS", None)
         if not internal_apps_tests:
-            internal_apps_tests = settings.internal_apps_tests
+            internal_apps_tests = settings.INTERNAL_APPS_TESTS
 
         else:
             attributes = """

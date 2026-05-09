@@ -263,7 +263,7 @@ community."
         with self.settings(FREETEXT_KEYWORDS_READONLY=True):
             response = self.client.get(url)
             self.assertTrue(admin_user.is_superuser)
-            self.assertFalse(response.context["form"]["keywords"].field.disabled)
+            self.assertFalse(response.context["map_form"]["keywords"].field.disabled)
 
     def test_that_keyword_multiselect_is_disabled_for_non_admin_users(self):
         """
@@ -278,7 +278,7 @@ community."
             response = self.client.get(url)
             self.assertFalse(self.not_admin.is_superuser)
             self.assertEqual(response.status_code, 200)
-            self.assertTrue(response.context["form"]["keywords"].field.disabled)
+            self.assertTrue(response.context["map_form"]["keywords"].field.disabled)
 
     def test_that_non_admin_user_cannot_create_edit_keyword(self):
         """
@@ -332,7 +332,7 @@ community."
             response = self.client.get(url)
             self.assertFalse(self.not_admin.is_superuser)
             self.assertEqual(response.status_code, 200)
-            self.assertFalse(response.context["form"]["keywords"].field.disabled)
+            self.assertFalse(response.context["map_form"]["keywords"].field.disabled)
 
     def test_that_non_admin_user_can_create_edit_keyword_when_freetext_keywords_readonly_istrue(self):
         """

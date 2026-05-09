@@ -734,7 +734,7 @@ def test_integration(options):
     settings = options.get("settings", "")
     success = False
     try:
-        call_task("setup", options={"settings": settings, "force_exec": True})
+        call_task("setup", options={"settings": settings})
 
         if not settings:
             settings = "REUSE_DB=1 DJANGO_SETTINGS_MODULE=geonode.settings"
@@ -742,7 +742,7 @@ def test_integration(options):
         if name and name in ("geonode.tests.csw", "geonode.tests.integration", "geonode.geoserver.tests.integration"):
             call_task("sync", options={"settings": settings})
             if local:
-                call_task("start_geoserver", options={"settings": settings, "force_exec": True})
+                call_task("start_geoserver", options={"settings": settings})
                 call_task("start", options={"settings": settings})
             if integration_server_tests:
                 call_task("setup_data", options={"settings": settings})
@@ -898,7 +898,50 @@ def setup_data(options):
         info("media root not available, creating...")
         os.makedirs(geonode_settings.MEDIA_ROOT, exist_ok=True)
 
-    sh(f"{settings} python -W ignore manage.py importlayers -v2 -hh {geonode_settings.SITEURL} {data_dir}")
+    # Start Django development server in background so importlayers can connect to the API
+    info("Starting Django server for importlayers...")
+    import subprocess
+    import time
+    import socket
+
+    log_file = open('/tmp/django_runserver.log', 'w')
+    server_process = subprocess.Popen(
+        [sys.executable, "manage.py", "runserver", "0.0.0.0:8000"],
+        stdout=log_file,
+        stderr=subprocess.STDOUT
+    )
+    
+    # Wait for server to start by checking port 8000
+    server_started = False
+    for i in range(30):
+        try:
+            with socket.create_connection(("localhost", 8000), timeout=1):
+                server_started = True
+                break
+        except (socket.timeout, ConnectionRefusedError):
+            time.sleep(1)
+    
+    if not server_started:
+        info("Django server failed to start within 30 seconds. Checking logs:")
+        sh("cat /tmp/django_runserver.log", ignore_error=True)
+        server_process.terminate()
+        return
+
+    info("Django server started successfully!")
+
+    try:
+        sh(f"{settings} python -W ignore manage.py importlayers -v2 -hh {geonode_settings.SITEURL} {data_dir}")
+    except Exception:
+        info("importlayers failed. Dumping Django server logs:")
+        log_file.flush()
+        with open(log_file.name, "r") as f:
+            print(f.read())
+        raise
+    finally:
+        # Stop the Django server
+        server_process.terminate()
+        server_process.wait()
+        log_file.close()
 
 
 @needs(["package"])

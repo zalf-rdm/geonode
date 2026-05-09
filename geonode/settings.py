@@ -739,16 +739,16 @@ LOGGING = {
 #
 # Test Settings
 #
-on_travis = ast.literal_eval(os.environ.get("ON_TRAVIS", "False"))
-core_tests = ast.literal_eval(os.environ.get("TEST_RUN_CORE", "False"))
-internal_apps_tests = ast.literal_eval(os.environ.get("TEST_RUN_INTERNAL_APPS", "False"))
-integration_tests = ast.literal_eval(os.environ.get("TEST_RUN_INTEGRATION", "False"))
-integration_server_tests = ast.literal_eval(os.environ.get("TEST_RUN_INTEGRATION_SERVER", "False"))
-integration_upload_tests = ast.literal_eval(os.environ.get("TEST_RUN_INTEGRATION_UPLOAD", "False"))
-integration_monitoring_tests = ast.literal_eval(os.environ.get("TEST_RUN_INTEGRATION_MONITORING", "False"))
-integration_csw_tests = ast.literal_eval(os.environ.get("TEST_RUN_INTEGRATION_CSW", "False"))
-integration_bdd_tests = ast.literal_eval(os.environ.get("TEST_RUN_INTEGRATION_BDD", "False"))
-selenium_tests = ast.literal_eval(os.environ.get("TEST_RUN_SELENIUM", "False"))
+ON_TRAVIS = ast.literal_eval(os.environ.get("ON_TRAVIS", "False"))
+CORE_TESTS = ast.literal_eval(os.environ.get("TEST_RUN_CORE", "False"))
+INTERNAL_APPS_TESTS = ast.literal_eval(os.environ.get("TEST_RUN_INTERNAL_APPS", "False"))
+INTEGRATION_TESTS = ast.literal_eval(os.environ.get("TEST_RUN_INTEGRATION", "False"))
+INTEGRATION_SERVER_TESTS = ast.literal_eval(os.environ.get("TEST_RUN_INTEGRATION_SERVER", "False"))
+INTEGRATION_UPLOAD_TESTS = ast.literal_eval(os.environ.get("TEST_RUN_INTEGRATION_UPLOAD", "False"))
+INTEGRATION_MONITORING_TESTS = ast.literal_eval(os.environ.get("TEST_RUN_INTEGRATION_MONITORING", "False"))
+INTEGRATION_CSW_TESTS = ast.literal_eval(os.environ.get("TEST_RUN_INTEGRATION_CSW", "False"))
+INTEGRATION_BDD_TESTS = ast.literal_eval(os.environ.get("TEST_RUN_INTEGRATION_BDD", "False"))
+SELENIUM_TESTS = ast.literal_eval(os.environ.get("TEST_RUN_SELENIUM", "False"))
 
 # Django 1.11 ParallelTestSuite
 # TEST_RUNNER = 'geonode.tests.suite.runner.GeoNodeBaseSuiteDiscoverRunner'
@@ -861,7 +861,7 @@ SECURE_REFERRER_POLICY = os.environ.get("SECURE_REFERRER_POLICY", "strict-origin
 # Replacement of the default authentication backend in order to support
 # permissions per object.
 AUTHENTICATION_BACKENDS = (
-    # 'oauth2_provider.backends.OAuth2Backend',
+    "oauth2_provider.backends.OAuth2Backend",
     "django.contrib.auth.backends.ModelBackend",
     "guardian.backends.ObjectPermissionBackend",
     "allauth.account.auth_backends.AuthenticationBackend",

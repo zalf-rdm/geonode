@@ -109,6 +109,7 @@ class Client(DjangoTestClient):
         if self.response_cookies:
             self._session.headers["cookie"] = self.response_cookies
 
+        response = None
         if data:
             for name, value in data.items():
                 if isinstance(value, IOBase):
@@ -149,6 +150,9 @@ class Client(DjangoTestClient):
                     _not_done = True
                 finally:
                     _retry += 1
+
+        if response is None:
+            raise HTTPError(url, 500, f"No response from {url} after retries", {}, None)
 
         try:
             response.raise_for_status()

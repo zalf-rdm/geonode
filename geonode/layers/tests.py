@@ -983,7 +983,7 @@ class TestLayerDetailMapViewRights(GeoNodeBaseTestSupport):
         self.client.login(username=self.not_admin.username, password="very-secret")
         with self.settings(FREETEXT_KEYWORDS_READONLY=True):
             response = self.client.get(url)
-            self.assertTrue(response.context["form"]["keywords"].field.disabled, self.test_dataset.alternate)
+            self.assertTrue(response.context["dataset_form"]["keywords"].field.disabled, self.test_dataset.alternate)
 
     def test_that_keyword_multiselect_is_not_disabled_for_admin_users(self):
         """
@@ -1002,7 +1002,7 @@ class TestLayerDetailMapViewRights(GeoNodeBaseTestSupport):
         self.client.login(username=admin.username, password="very-secret")
         with self.settings(FREETEXT_KEYWORDS_READONLY=True):
             response = self.client.get(url)
-            self.assertFalse(response.context["form"]["keywords"].field.disabled, self.test_dataset.alternate)
+            self.assertFalse(response.context["dataset_form"]["keywords"].field.disabled, self.test_dataset.alternate)
 
     def test_that_featured_enabling_and_disabling_for_users(self):
         self.test_dataset = resource_manager.create(
@@ -1015,12 +1015,12 @@ class TestLayerDetailMapViewRights(GeoNodeBaseTestSupport):
         response = self.client.get(url)
         self.assertFalse(self.not_admin.is_superuser)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.context["form"]["featured"].field.disabled)
+        self.assertTrue(response.context["dataset_form"]["featured"].field.disabled)
         # Admin
         self.client.login(username="admin", password="admin")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.context["form"]["featured"].field.disabled)
+        self.assertFalse(response.context["dataset_form"]["featured"].field.disabled)
 
     def test_that_non_admin_user_cannot_create_edit_keyword(self):
         """
@@ -1051,7 +1051,7 @@ class TestLayerDetailMapViewRights(GeoNodeBaseTestSupport):
         self.client.login(username=self.not_admin.username, password="very-secret")
         with self.settings(FREETEXT_KEYWORDS_READONLY=False):
             response = self.client.get(url)
-            self.assertFalse(response.context["form"]["keywords"].field.disabled, self.test_dataset.alternate)
+            self.assertFalse(response.context["dataset_form"]["keywords"].field.disabled, self.test_dataset.alternate)
 
         response = self.client.get(reverse("dataset_embed", args=(self.layer.alternate,)))
         self.assertIsNotNone(response.context["resource"])
@@ -1833,7 +1833,7 @@ class TestDatasetDownloadHandler(GeoNodeBaseTestSupport):
         user = get_user_model().objects.first()
         request = RequestFactory().get("http://test_url.com")
         request.user = user
-        self.dataset = create_single_dataset("test_dataset_for_download")
+        self.dataset = create_single_dataset("test_dataset_for_download", owner=user)
         self.sut = DatasetDownloadHandler(request, self.dataset.alternate)
 
     def test_download_url_without_original_link(self):

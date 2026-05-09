@@ -149,6 +149,35 @@ If you encounter database connection errors:
    docker compose -f docker-compose-test.yml restart db
    ```
 
+### Upload Size Limit Issues
+
+If you encounter `Total upload size exceeds 1 byte` errors:
+
+1. Check the `UploadSizeLimit` in the database:
+   ```bash
+   docker compose -f docker-compose-test.yml exec django python -c "from geonode.upload.models import UploadSizeLimit; print(UploadSizeLimit.objects.all().values())"
+   ```
+
+2. If the limit is too small, update it:
+   ```bash
+   docker compose -f docker-compose-test.yml exec django python -c "from geonode.upload.models import UploadSizeLimit; UploadSizeLimit.objects.update(max_size=104857600)"
+   ```
+
+### Source Code Sync Issues
+
+If local changes are not reflected in the container:
+
+1. Ensure the source code is mounted in `docker-compose-test.yml`:
+   ```yaml
+   volumes:
+     - .:/usr/src/geonode
+   ```
+
+2. Restart the Django container to apply changes:
+   ```bash
+   docker compose -f docker-compose-test.yml restart django
+   ```
+
 ### Port Conflicts
 
 If you get port binding errors, ensure no other services are using the required ports:
