@@ -35,7 +35,14 @@ from geonode.compat import ensure_string
 from geonode.decorators import on_ogc_backend
 from geonode.maps.forms import MapForm
 from geonode.maps.models import Map, MapLayer
-from geonode.base.models import License, LinkedResource, Region
+from geonode.base.models import (
+    License,
+    LinkedResource,
+    Region,
+    RelatedIdentifier,
+    RelatedIdentifierType,
+    RelationType,
+)
 from geonode.tests.base import GeoNodeBaseTestSupport
 from geonode.tests.utils import NotificationsTestsHelper
 from geonode.maps.tests_populate_maplayers import create_maplayers
@@ -192,12 +199,39 @@ community."
     @patch("geonode.thumbs.thumbnails.create_thumbnail")
     def test_describe_map(self, thumbnail_mock):
         map_obj = Map.objects.all().first()
+        map_obj.data_lineage = "Lineage from upload tool"
+        map_obj.metadata_lineage = "Metadata lineage from upload tool"
+        map_obj.save()
+
+        related_identifier_type, _ = RelatedIdentifierType.objects.get_or_create(
+            label="DOI", defaults={"description": "DOI"}
+        )
+        relation_type, _ = RelationType.objects.get_or_create(
+            label="References", defaults={"description": "References"}
+        )
+        related_identifier, _ = RelatedIdentifier.objects.get_or_create(
+            related_identifier="https://doi.org/10.1234/upload-tool-test",
+            related_identifier_type=related_identifier_type,
+            relation_type=relation_type,
+            resource_type_general=None,
+            defaults={"description": "Reference from upload tool"},
+        )
+        map_obj.related_identifier.add(related_identifier)
+
         map_obj.set_default_permissions()
         response = self.client.get(reverse("map_metadata_detail", args=(map_obj.id,)))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Approved", count=1, status_code=200, msg_prefix="", html=False)
         self.assertContains(response, "Published", count=1, status_code=200, msg_prefix="", html=False)
         self.assertContains(response, "Featured", count=1, status_code=200, msg_prefix="", html=False)
+        self.assertContains(response, "Lineage from upload tool", status_code=200, msg_prefix="", html=False)
+        self.assertContains(response, "Metadata lineage from upload tool", status_code=200, msg_prefix="", html=False)
+        self.assertContains(response, "https://doi.org/10.1234/upload-tool-test", status_code=200, msg_prefix="", html=False)
+        self.assertContains(response, "Reference from upload tool", status_code=200, msg_prefix="", html=False)
+        map_obj.project_leader = map_obj.owner
+        response = self.client.get(reverse("map_metadata_detail", args=(map_obj.id,)))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Project Leader", status_code=200, msg_prefix="", html=False)
         self.assertContains(response, "<dt>Group</dt>", count=0, status_code=200, msg_prefix="", html=False)
 
         # ... now assigning a Group to the map
