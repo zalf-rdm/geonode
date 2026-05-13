@@ -73,6 +73,7 @@ from geonode.base.models import (
     RelatedIdentifierType,
     RelationType,
     ResourceTypeGeneral,
+    Organization,
 )
 from geonode.base.middleware import ReadOnlyMiddleware, MaintenanceMiddleware
 from geonode.base.templatetags.base_tags import get_visibile_resources, facets
@@ -580,6 +581,47 @@ class DeleteResourcesCommandTests(GeoNodeBaseTestSupport):
 
         # delete the config file
         os.remove(config_file_path)
+
+
+class UpdateRorOrganizationsCommandTests(GeoNodeBaseTestSupport):
+    @patch("geonode.base.management.commands.update_ror_organizations.requests.get")
+    def test_fetch_all_uses_items_response_key(self, mock_get):
+        command = import_string("geonode.base.management.commands.update_ror_organizations.Command")()
+        first_response = Mock()
+        first_response.json.return_value = {
+            "items": [{"id": "https://ror.org/01", "name": "First", "acronyms": ["F"]}] * 100
+        }
+        second_response = Mock()
+        second_response.json.return_value = {
+            "items": [{"id": "https://ror.org/02", "name": "Second", "acronyms": ["S"]}]
+        }
+        mock_get.side_effect = [first_response, second_response]
+
+        organizations = command.fetch_from_ror_api()
+
+        self.assertEqual(101, len(organizations))
+        self.assertEqual("https://ror.org/02", organizations[-1]["id"])
+        self.assertEqual(2, mock_get.call_count)
+
+    @patch("geonode.base.management.commands.update_ror_organizations.requests.get")
+    def test_update_clears_existing_abbreviation_when_ror_has_no_acronym(self, mock_get):
+        Organization.objects.create(
+            organization="Existing Organization",
+            ror="01",
+            abbreviation="OLD",
+        )
+        response = Mock()
+        response.json.return_value = {
+            "id": "https://ror.org/01",
+            "name": "Existing Organization",
+            "acronyms": [],
+        }
+        mock_get.return_value = response
+
+        call_command("update_ror_organizations", ror_ids=["01"])
+
+        org = Organization.objects.get(ror="01")
+        self.assertEqual("", org.abbreviation)
 
 
 class ConfigurationTest(GeoNodeBaseTestSupport):

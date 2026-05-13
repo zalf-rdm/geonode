@@ -83,20 +83,21 @@ class Command(BaseCommand):
                     response.raise_for_status()
                     data = response.json()
                     
-                    if not data.get("organizations"):
+                    items = data.get("items", [])
+                    if not items:
                         break
-                    
-                    organizations.extend(data["organizations"])
+
+                    organizations.extend(items)
                     page += 1
-                    
+
                     self.stdout.write(
                         self.style.SUCCESS(
-                            f"✓ Fetched page {page - 1} ({len(data['organizations'])} orgs)"
+                            f"✓ Fetched page {page - 1} ({len(items)} orgs)"
                         )
                     )
-                    
+
                     # Stop if we've fetched all
-                    if len(data["organizations"]) < per_page:
+                    if len(items) < per_page:
                         break
                 except requests.exceptions.RequestException as e:
                     self.stdout.write(self.style.ERROR(f"✗ Failed to fetch page {page}: {e}"))
@@ -186,8 +187,8 @@ class Command(BaseCommand):
                     if org.organization != name:
                         org.organization = name
                         updated = True
-                    if abbreviation and org.abbreviation != abbreviation:
-                        org.abbreviation = abbreviation
+                    if org.abbreviation != (abbreviation or ""):
+                        org.abbreviation = abbreviation or ""
                         updated = True
 
                     if updated:
