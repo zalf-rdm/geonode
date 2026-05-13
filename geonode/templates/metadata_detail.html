@@ -93,6 +93,17 @@
               </div>
             {% endfor %}
           {% endif %}
+
+          {% if resource.project_leader %}
+            <h5 class="fw-medium mt-3">{% trans "Project Leader" %}</h5>
+            {% for project_leader in resource.project_leader %}
+              <div class="metadata-block p-3 mb-3">
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Name' %}</div><div class="col-sm-9">{{ project_leader.name_long|default:"-" }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Email' %}</div><div class="col-sm-9">{{ project_leader.email|default:"-" }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Organization' %}</div><div class="col-sm-9">{{ project_leader.organization|default:"-" }}</div></div>
+              </div>
+            {% endfor %}
+          {% endif %}
         </div>
       </div>
     </div>
@@ -177,6 +188,8 @@
             <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Edition" %}</div><div class="col-sm-9">{{ resource.edition|default:"-" }}</div></div>
             <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Language" %}</div><div class="col-sm-9">{{ resource.language|default:"-" }}</div></div>
             <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Data Quality" %}</div><div class="col-sm-9">{{ resource.data_quality_statement }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Data Lineage" %}</div><div class="col-sm-9">{{ resource.data_lineage|default:"-" }}</div></div>
+            <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Metadata Lineage" %}</div><div class="col-sm-9">{{ resource.metadata_lineage|default:"-" }}</div></div>
             <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Supplemental Information" %}</div><div class="col-sm-9">{{ resource.supplemental_information|sanitize_html|safe }}</div></div>
           </div>
           <div class="metadata-block p-3 mb-3">
@@ -194,6 +207,17 @@
       </div>
       <div id="collapse-references" class="panel-collapse collapse">
         <div class="panel-body p-3 metadata-block">
+          {% if resource.related_identifier.exists %}
+            {% for rel in resource.related_identifier.all %}
+              {% if rel.relation_type.label == "References" %}
+                <div class="metadata-block p-3 mb-3">
+                  <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Reference" %}</div><div class="col-sm-9">{{ rel.related_identifier }}</div></div>
+                  <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Identifier Type" %}</div><div class="col-sm-9">{{ rel.related_identifier_type|default:"-" }}</div></div>
+                  <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Description" %}</div><div class="col-sm-9">{{ rel.description|default:"-" }}</div></div>
+                </div>
+              {% endif %}
+            {% endfor %}
+          {% endif %}
           <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Link Online" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}">{{ resource.get_absolute_url }}</a></div></div>
           <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Metadata Page" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}/metadata_detail">{{ resource.get_absolute_url }}/metadata_detail</a></div></div>
         </div>
@@ -268,6 +292,23 @@
         {% endif %}
 
       </div>
+      <h3 class="fw-medium">{% trans "Project Leader" %}</h3><hr>
+        {% if resource.project_leader %}
+          {% for project_leader in resource.project_leader %}
+            <div class="metadata-block p-3 mb-3">
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Name' %}</div><div class="col-sm-9">{{ project_leader.name_long|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Email' %}</div><div class="col-sm-9">{{ project_leader.email|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Position' %}</div><div class="col-sm-9">{{ project_leader.position|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Organization' %}</div><div class="col-sm-9">{{ project_leader.organization|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Location' %}</div><div class="col-sm-9">{{ project_leader.location|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Voice' %}</div><div class="col-sm-9">{{ project_leader.voice|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Fax' %}</div><div class="col-sm-9">{{ project_leader.fax|default:"-" }}</div></div>
+              {% if project_leader.keyword_list %}
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans 'Keywords' %}</div><div class="col-sm-9">{% for keyword in project_leader.keyword_list %}{{ keyword }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        {% endif %}
       <h3 class="fw-medium">{% trans "Metadata Author" %}</h3><hr>
         {% if resource.metadata_author %}
           {% for metadata_author in resource.metadata_author %}
@@ -346,6 +387,8 @@
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Edition" %}</div><div class="col-sm-9">{{ resource.edition|default:"-" }}</div></div>
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Language" %}</div><div class="col-sm-9">{{ resource.language|default:"-" }}</div></div>
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Data Quality" %}</div><div class="col-sm-9">{{ resource.data_quality_statement }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Data Lineage" %}</div><div class="col-sm-9">{{ resource.data_lineage|default:"-" }}</div></div>
+        <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Metadata Lineage" %}</div><div class="col-sm-9">{{ resource.metadata_lineage|default:"-" }}</div></div>
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Supplemental Information" %}</div><div class="col-sm-9">{{ resource.supplemental_information|sanitize_html|safe }}</div></div>
         
       </div>
@@ -365,7 +408,18 @@
     <div class="tab-pane" id="tab-references">
       <h3 class="fw-medium">{% trans "References" %}</h3><hr>
       <div class="metadata-block p-3 my-3">
-        
+        {% if resource.related_identifier.exists %}
+          {% for rel in resource.related_identifier.all %}
+            {% if rel.relation_type.label == "References" %}
+            <div class="metadata-block p-3 my-3">
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Reference" %}</div><div class="col-sm-9">{{ rel.related_identifier }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Identifier Type" %}</div><div class="col-sm-9">{{ rel.related_identifier_type|default:"-" }}</div></div>
+              <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Description" %}</div><div class="col-sm-9">{{ rel.description|default:"-" }}</div></div>
+            </div>
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Link Online" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}">{{ resource.get_absolute_url }}</a></div></div>
         <div class="row mb-2"><div class="col-sm-3 fw-semibold">{% trans "Metadata Page" %}</div><div class="col-sm-9"><a href="{{ resource.get_absolute_url }}/metadata_detail">{{ resource.get_absolute_url }}/metadata_detail</a></div></div>
         {% if resource.doc_file %}
