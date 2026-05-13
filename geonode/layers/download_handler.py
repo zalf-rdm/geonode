@@ -117,7 +117,7 @@ class DatasetDownloadHandler:
             logger.error("The format provided is not valid for the selected resource")
             return JsonResponse({"error": "The format provided is not valid for the selected resource"}, status=500)
 
-        _format = "application/zip" if resource.is_vector() else "image/tiff"
+        _format = getattr(settings, "DEFAULT_VECTOR_DOWNLOAD_FORMAT", "application/zip") if resource.is_vector() else "image/tiff"
         if resource.subtype == "tabular":
             _format = "text/csv"
         # getting default payload
@@ -167,4 +167,15 @@ class DatasetDownloadHandler:
             response.headers,
         )
         return_response.headers["Content-Type"] = download_format or _format
+        # Override Content-Disposition to use the layer name as filename
+        _mime = download_format or _format
+        _ext_map = {
+            "application/json": "geojson",
+            "application/zip": "zip",
+            "image/tiff": "tif",
+            "text/csv": "csv",
+        }
+        _ext = _ext_map.get(_mime, "zip")
+        _filename = f"{resource.alternate.split(':')[-1]}.{_ext}"
+        return_response.headers["Content-Disposition"] = f'attachment; filename="{_filename}"'
         return return_response

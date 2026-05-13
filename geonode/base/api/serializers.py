@@ -1282,6 +1282,25 @@ class LinkedResourceSerializer(DynamicModelSerializer):
         model = LinkedResource
         fields = ("internal",)
 
+    def _get_download_url(self, item: ResourceBase):
+        """
+        Derive download URL from ResourceBase fields, avoiding get_real_instance()
+        to prevent N+1 queries.
+        """
+        if item.resource_type == "document":
+            try:
+                return build_absolute_uri(reverse("document_download", args=(item.pk,)))
+            except NoReverseMatch:
+                return None
+        if item.resource_type == "dataset":
+            if not item.alternate:
+                return None
+            try:
+                return build_absolute_uri(reverse("dataset_download", args=(item.alternate,)))
+            except NoReverseMatch:
+                return None
+        return None
+
     def to_representation(self, instance: LinkedResource):
         data = super().to_representation(instance)
         item: ResourceBase = instance.target if self.serialize_target else instance.source
@@ -1292,6 +1311,7 @@ class LinkedResourceSerializer(DynamicModelSerializer):
                 "resource_type": item.resource_type,
                 "detail_url": item.detail_url,
                 "thumbnail_url": item.thumbnail_url,
+                "download_url": self._get_download_url(item),
             }
         )
         return data

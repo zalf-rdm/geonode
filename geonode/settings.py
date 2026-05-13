@@ -2377,6 +2377,11 @@ DEFAULT_DATASET_DOWNLOAD_HANDLER = "geonode.layers.download_handler.DatasetDownl
 
 DATASET_DOWNLOAD_HANDLERS = ast.literal_eval(os.getenv("DATASET_DOWNLOAD_HANDLERS", "[]"))
 
+# Default WPS output format for vector dataset downloads.
+# Use "application/zip" (Shapefile) for upstream-compatible behaviour,
+# or "application/json" (GeoJSON) to serve raw files without an archive.
+DEFAULT_VECTOR_DOWNLOAD_FORMAT = os.getenv("DEFAULT_VECTOR_DOWNLOAD_FORMAT", "application/json")
+
 AUTO_ASSIGN_REGISTERED_MEMBERS_TO_CONTRIBUTORS = ast.literal_eval(
     os.getenv("AUTO_ASSIGN_REGISTERED_MEMBERS_TO_CONTRIBUTORS", "True")
 )
