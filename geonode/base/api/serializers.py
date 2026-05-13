@@ -1285,6 +1285,7 @@ class LinkedResourceSerializer(DynamicModelSerializer):
     def to_representation(self, instance: LinkedResource):
         data = super().to_representation(instance)
         item: ResourceBase = instance.target if self.serialize_target else instance.source
+        real_item = item.get_real_instance()
         data.update(
             {
                 "pk": item.pk,
@@ -1292,6 +1293,7 @@ class LinkedResourceSerializer(DynamicModelSerializer):
                 "resource_type": item.resource_type,
                 "detail_url": item.detail_url,
                 "thumbnail_url": item.thumbnail_url,
+                "download_url": getattr(real_item, "download_url", None),
             }
         )
         return data
