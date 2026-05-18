@@ -765,6 +765,10 @@ class ResourceManagementField(serializers.BooleanField):
 
 
 class ResourceBaseSerializer(DynamicModelSerializer):
+        authors = serializers.SerializerMethodField(read_only=True)
+        def get_authors(self, obj):
+            # Busca todos os contatos com papel 'Author' e retorna apenas os nomes
+            return list(obj.contactrole_set.filter(role=Roles.METADATA_AUTHOR.role_value).values_list('contact__first_name', flat=True))
     pk = serializers.CharField(read_only=True)
     uuid = serializers.CharField(read_only=True)
     resource_type = serializers.CharField(required=False)
@@ -928,6 +932,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "owner",
             "poc",
             "author",
+            "authors",
             "processor",
             "publisher",
             "custodian",
