@@ -768,8 +768,19 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     authors = serializers.SerializerMethodField(read_only=True)
 
     def get_authors(self, obj):
-        # Busca todos os contatos com papel 'Author' e retorna apenas os nomes
-        return list(obj.contactrole_set.filter(role=Roles.METADATA_AUTHOR.role_value).values_list('contact__first_name', flat=True))
+        # Busca todos os contatos com papel 'Author' e retorna apenas first_name + last_name
+        authors = []
+        for cr in obj.contactrole_set.filter(role=Roles.METADATA_AUTHOR.role_value).select_related("contact"):
+            contact = cr.contact
+            name = (contact.first_name or "").strip()
+            last = (contact.last_name or "").strip()
+            if name and last:
+                full = f"{name} {last}"
+            else:
+                full = name or last or ""
+            if full:
+                authors.append(full)
+        return authors
 
     pk = serializers.CharField(read_only=True)
     uuid = serializers.CharField(read_only=True)
