@@ -1285,15 +1285,7 @@ class LinkedResourceSerializer(DynamicModelSerializer):
     def to_representation(self, instance: LinkedResource):
         data = super().to_representation(instance)
         item: ResourceBase = instance.target if self.serialize_target else instance.source
-        # Build download_url from ResourceBase attributes only to avoid an
-        # N+1 query caused by get_real_instance() inside the serializer.
-        # The /api/v2/resources/{pk}/download/ endpoint resolves the correct
-        # handler at request time without needing the concrete subclass here.
-        from django.urls import reverse
-        try:
-            download_url = reverse("base-resources-download", kwargs={"pk": item.pk})
-        except Exception:
-            download_url = None
+        real_item = item.get_real_instance()
         data.update(
             {
                 "pk": item.pk,
@@ -1301,7 +1293,7 @@ class LinkedResourceSerializer(DynamicModelSerializer):
                 "resource_type": item.resource_type,
                 "detail_url": item.detail_url,
                 "thumbnail_url": item.thumbnail_url,
-                "download_url": download_url,
+                "download_url": getattr(real_item, "download_url", None),
             }
         )
         return data
