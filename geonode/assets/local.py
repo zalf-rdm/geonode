@@ -269,8 +269,9 @@ class LocalAssetDownloadHandler(AssetDownloadHandlerInterface):
 
         match attachment:
             case True:
-                logger.info(f"Zipping file '{localfile}' with name '{orig_base}'")
-                zs = ZipStream(sized=True).from_path(LocalAssetHandler._get_managed_dir(asset), arcname="/")
+                managed_dir = LocalAssetHandler._get_managed_dir(asset)
+                logger.info(f"Zipping managed directory '{managed_dir}' for asset {asset.id} (requested file: '{localfile}')")
+                zs = ZipStream(sized=True).from_path(managed_dir, arcname="/")
                 return StreamingHttpResponse(
                     zs,
                     content_type="application/zip",

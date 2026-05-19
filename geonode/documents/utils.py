@@ -82,7 +82,5 @@ def get_download_response(request, docid, attachment=False):
     filename = slugify(os.path.splitext(os.path.basename(document.title))[0])
 
     asset = get_default_asset(document)
-    if attachment:
-        return RawLocalAssetDownloadHandler().create_response(asset, attachment=True, basename=filename)
     asset_handler = asset_handler_registry.get_handler(asset)
     return asset_handler.get_download_handler(asset).create_response(asset, attachment, basename=filename)
