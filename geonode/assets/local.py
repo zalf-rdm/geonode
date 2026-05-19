@@ -238,10 +238,6 @@ class LocalAssetDownloadHandler(AssetDownloadHandlerInterface):
             localfile = file0
 
         else:  # a specific file is requested
-            if "/../" in path:  # we may want to improve fraudolent request detection
-                logger.warning(f"Tentative path traversal for asset {asset.id}")
-                return HttpResponse(f"File not found for asset {asset.id}", status=400)
-
             if os.path.isfile(file0):
                 dir0 = os.path.dirname(file0)
             elif os.path.isdir(file0):
@@ -249,7 +245,16 @@ class LocalAssetDownloadHandler(AssetDownloadHandlerInterface):
             else:
                 return HttpResponse(f"Unexpected internal location '{file0}' for asset {asset.id}", status=500)
 
-            localfile = os.path.join(dir0, path)
+            if os.path.isabs(path):
+                logger.warning(f"Absolute path traversal attempt for asset {asset.id}")
+                return HttpResponse(f"File not found for asset {asset.id}", status=400)
+
+            base_dir = os.path.join(os.path.normpath(dir0), "")
+            localfile = os.path.normpath(os.path.join(base_dir, path))
+            if not localfile.startswith(base_dir):
+                logger.warning(f"Tentative path traversal for asset {asset.id}")
+                return HttpResponse(f"File not found for asset {asset.id}", status=400)
+
             logger.debug(f"Requested path {dir0} + {path}")
 
         if os.path.isfile(localfile):
@@ -258,8 +263,9 @@ class LocalAssetDownloadHandler(AssetDownloadHandlerInterface):
             outname = f"{basename or orig_base or 'file'}{ext}"
             match attachment:
                 case True:
-                    logger.info(f"Zipping file '{localfile}' with name '{orig_base}'")
-                    zs = ZipStream(sized=True).from_path(LocalAssetHandler._get_managed_dir(asset), arcname="/")
+                    managed_dir = LocalAssetHandler._get_managed_dir(asset)
+                    logger.info(f"Zipping managed directory '{managed_dir}' for asset {asset.id} (requested file: '{localfile}')")
+                    zs = ZipStream(sized=True).from_path(managed_dir, arcname="/")
                     # closing zip for all contents to be written
                     return StreamingHttpResponse(
                         zs,
