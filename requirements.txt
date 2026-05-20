@@ -92,7 +92,7 @@ Markdown==3.8.1
 frictionless>=5.17.0
 
 # mapstore client package
-zalf_django_geonode_mapstore_client==4.4.3.post13
+zalf_django_geonode_mapstore_client==4.4.3.post18
 
 # gn importer package
 geonode-importer==1.1.2
