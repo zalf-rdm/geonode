@@ -52,13 +52,14 @@ class KeycloakSilentSSOMiddleware:
 
         Extracts the SSO cookie domain from the site's URL, defaulting to localhost
         """
-
         site_url = (
             settings.SITE_URL
             if getattr(settings, "SITE_URL", False)
             else getattr(settings, "SITEURL", "localhost")
         )
-        sso_cookie_domain = f".{'.'.join(urlparse(site_url).netloc.split(':')[0].split('.')[1:])}"
+        host = urlparse(site_url).netloc.split(':')[0]
+        parts = host.split('.')
+        sso_cookie_domain = f".{'.'.join(parts[1:])}" if len(parts) > 2 else host
         logger.debug(f"Domain for cookie: '{sso_cookie_domain}'")
         return sso_cookie_domain
 
