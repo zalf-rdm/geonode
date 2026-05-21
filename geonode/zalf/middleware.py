@@ -64,6 +64,7 @@ class KeycloakSilentSSOMiddleware:
 
     def __init__(self, get_response):
         self.get_response = get_response
+        self.sso_cookie_domain = self._get_sso_cookie_domain()
 
     def __call__(self, request):
         response = self.get_response(request)
@@ -74,7 +75,7 @@ class KeycloakSilentSSOMiddleware:
             and request.COOKIES.get("sso_hint") == "true"
         ):
             logger.debug("deleting cookie")
-            response.delete_cookie("sso_hint", domain=self._sso_cookie_domain(), path="/")
+            response.delete_cookie("sso_hint", domain=self.sso_cookie_domain, path="/")
 
         elif (
             request.user.is_authenticated
@@ -85,7 +86,7 @@ class KeycloakSilentSSOMiddleware:
             response.set_cookie(
                 "sso_hint",
                 "true",
-                domain=self._sso_cookie_domain(),
+                domain=self.sso_cookie_domain,
                 max_age=sso_cookie_max_age,
                 samesite="Lax",
                 path="/",
