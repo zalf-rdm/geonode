@@ -83,4 +83,7 @@ def get_download_response(request, docid, attachment=False):
 
     asset = get_default_asset(document)
     asset_handler = asset_handler_registry.get_handler(asset)
-    return asset_handler.get_download_handler(asset).create_response(asset, attachment, basename=filename)
+    download_handler = asset_handler.get_download_handler(asset)
+    if attachment and hasattr(download_handler, 'create_raw_response'):
+        return download_handler.create_raw_response(asset, basename=filename)
+    return download_handler.create_response(asset, attachment, basename=filename)

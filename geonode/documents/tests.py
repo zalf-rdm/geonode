@@ -44,6 +44,8 @@ from django.template.defaultfilters import filesizeformat
 from guardian.shortcuts import get_anonymous_user
 
 from geonode.assets.utils import create_asset_and_link, get_default_asset
+from geonode.assets.local import LocalAssetDownloadHandler
+from geonode.assets.handlers import asset_handler_registry
 from geonode.base.forms import LinkedResourceForm
 from geonode.maps.models import Map
 from geonode.layers.models import Dataset
@@ -847,3 +849,120 @@ class DocumentViewTestCase(GeoNodeBaseTestSupport):
         # create original link to external
         doc.link_set.create(resource=doc.resourcebase_ptr, link_type="original", url="http://google.com/test")
         self.assertEqual(doc.download_url, "http://google.com/test")
+
+
+class TestDocumentGetDownloadResponse(GeoNodeBaseTestSupport):
+    """Tests for documents.utils.get_download_response(), focusing on the
+    create_raw_response registry-dispatch path added in the download feature."""
+
+    fixtures = ["initial_data.json", "group_test_data.json", "default_oauth_apps.json"]
+
+    def setUp(self):
+        self.admin = get_user_model().objects.get(username="admin")
+        self.client.login(username="admin", password="admin")
+        self.doc = resource_manager.create(
+            None,
+            resource_type=Document,
+            defaults=dict(files=[TEST_GIF], owner=self.admin, title="dl_test_doc", is_approved=True),
+        )
+        self.url = reverse("document_download", kwargs={"docid": self.doc.pk})
+
+    def tearDown(self):
+        self.doc.delete()
+
+    def test_download_requires_login(self):
+        self.client.logout()
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 401)
+
+    def test_download_with_login_returns_200(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_attachment_uses_create_raw_response_when_available(self):
+        """When the download handler exposes create_raw_response, it must be
+        called for attachment=True, yielding a direct file (not a ZIP)."""
+        from geonode.documents.utils import get_download_response
+        from django.test import RequestFactory
+
+        request = RequestFactory().get(self.url)
+        request.user = self.admin
+
+        with patch.object(
+            LocalAssetDownloadHandler,
+            "create_raw_response",
+            wraps=LocalAssetDownloadHandler().create_raw_response,
+        ) as mock_raw:
+            get_download_response(request, self.doc.pk, attachment=True)
+            mock_raw.assert_called_once()
+
+    def test_non_attachment_uses_create_response(self):
+        """Without attachment=True, create_response must be called instead."""
+        from geonode.documents.utils import get_download_response
+        from django.test import RequestFactory
+
+        request = RequestFactory().get(self.url)
+        request.user = self.admin
+
+        with patch.object(
+            LocalAssetDownloadHandler,
+            "create_raw_response",
+        ) as mock_raw:
+            with patch.object(
+                LocalAssetDownloadHandler,
+                "create_response",
+                wraps=LocalAssetDownloadHandler().create_response,
+            ) as mock_create:
+                get_download_response(request, self.doc.pk, attachment=False)
+                mock_raw.assert_not_called()
+                mock_create.assert_called_once()
+
+    def tearDown(self):
+        self.doc.delete()
+
+    def test_download_requires_login(self):
+        self.client.logout()
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 401)
+
+    def test_download_with_login_returns_200(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_attachment_uses_create_raw_response_when_available(self):
+        """When the download handler exposes create_raw_response, it must be
+        called for attachment=True, yielding a direct file (not a ZIP)."""
+        from geonode.documents.utils import get_download_response
+        from django.test import RequestFactory
+
+        request = RequestFactory().get(self.url)
+        request.user = self.admin
+
+        with patch.object(
+            LocalAssetDownloadHandler,
+            "create_raw_response",
+            wraps=LocalAssetDownloadHandler().create_raw_response,
+        ) as mock_raw:
+            get_download_response(request, self.doc.pk, attachment=True)
+            mock_raw.assert_called_once()
+
+    def test_non_attachment_uses_create_response(self):
+        """Without attachment=True, create_response must be called instead."""
+        from geonode.documents.utils import get_download_response
+        from django.test import RequestFactory
+
+        request = RequestFactory().get(self.url)
+        request.user = self.admin
+
+        with patch.object(
+            LocalAssetDownloadHandler,
+            "create_raw_response",
+        ) as mock_raw:
+            with patch.object(
+                LocalAssetDownloadHandler,
+                "create_response",
+                wraps=LocalAssetDownloadHandler().create_response,
+            ) as mock_create:
+                get_download_response(request, self.doc.pk, attachment=False)
+                mock_raw.assert_not_called()
+                mock_create.assert_called_once()
