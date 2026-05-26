@@ -25,6 +25,7 @@ import os
 import logging
 
 from geonode.assets.handlers import asset_handler_registry
+from geonode.assets.local import RawLocalAssetDownloadHandler
 from geonode.assets.utils import get_default_asset
 from geonode.storage.manager import storage_manager
 

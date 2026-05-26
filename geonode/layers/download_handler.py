@@ -117,7 +117,11 @@ class DatasetDownloadHandler:
             logger.error("The format provided is not valid for the selected resource")
             return JsonResponse({"error": "The format provided is not valid for the selected resource"}, status=500)
 
+<<<<<<< HEAD
         _format = getattr(settings, "DEFAULT_VECTOR_DOWNLOAD_FORMAT", "application/zip") if resource.is_vector() else "image/tiff"
+=======
+        _format = "application/json" if resource.is_vector() else "image/tiff"
+>>>>>>> 46bf6fee38b889ca77dfa550562cb9533730365d
         if resource.subtype == "tabular":
             _format = "text/csv"
         # getting default payload
