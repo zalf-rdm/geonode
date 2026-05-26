@@ -229,13 +229,8 @@ class LocalAssetDownloadHandler(AssetDownloadHandlerInterface):
                 return HttpResponse(f"Default file not found for asset {asset.id}", status=400)
             localfile = file0
         else:
-<<<<<<< HEAD
-            if os.path.isabs(path):
-                logger.warning(f"Absolute path traversal attempt for asset {asset.id}")
-=======
             if "/../" in path:
                 logger.warning(f"Tentative path traversal for asset {asset.id}")
->>>>>>> 46bf6fee38b889ca77dfa550562cb9533730365d
                 return HttpResponse(f"File not found for asset {asset.id}", status=400)
             if os.path.isfile(file0):
                 dir0 = os.path.dirname(file0)
@@ -243,15 +238,7 @@ class LocalAssetDownloadHandler(AssetDownloadHandlerInterface):
                 dir0 = file0
             else:
                 return HttpResponse(f"Unexpected internal location '{file0}' for asset {asset.id}", status=500)
-<<<<<<< HEAD
-            base_dir = os.path.join(os.path.normpath(dir0), "")
-            localfile = os.path.normpath(os.path.join(base_dir, path))
-            if not localfile.startswith(base_dir):
-                logger.warning(f"Tentative path traversal for asset {asset.id}")
-                return HttpResponse(f"File not found for asset {asset.id}", status=400)
-=======
             localfile = os.path.join(dir0, path)
->>>>>>> 46bf6fee38b889ca77dfa550562cb9533730365d
             logger.debug(f"Requested path {dir0} + {path}")
 
         if not os.path.isfile(localfile):
@@ -283,11 +270,7 @@ class LocalAssetDownloadHandler(AssetDownloadHandlerInterface):
         match attachment:
             case True:
                 managed_dir = LocalAssetHandler._get_managed_dir(asset)
-<<<<<<< HEAD
-                logger.info(f"Zipping managed dir '{managed_dir}' with name '{orig_base}'")
-=======
                 logger.info(f"Zipping managed directory '{managed_dir}' for asset {asset.id} (requested file: '{localfile}')")
->>>>>>> 46bf6fee38b889ca77dfa550562cb9533730365d
                 zs = ZipStream(sized=True).from_path(managed_dir, arcname="/")
                 return StreamingHttpResponse(
                     zs,
@@ -304,42 +287,12 @@ class LocalAssetDownloadHandler(AssetDownloadHandlerInterface):
                     _asset_storage_manager.open(localfile).file, basename=f"{outname}", attachment=False
                 )
 
-<<<<<<< HEAD
-    def create_raw_response(
-        self, asset: LocalAsset, basename: str = None, path: str = None
-    ) -> HttpResponse:
-        """Serve the original file as a direct attachment, without zipping."""
-        asset = asset.get_real_instance()
-        if not isinstance(asset, LocalAsset):
-            raise TypeError("Only localasset are allowed")
-        if not asset.location:
-            return HttpResponse("Asset does not contain any data", status=500)
-        result = self._resolve_file(asset, path)
-        if isinstance(result, HttpResponse):
-            return result
-        localfile, orig_base, ext = result
-        outname = f"{basename or orig_base or 'file'}{ext}"
-        logger.info(f"Returning raw file '{localfile}' with name '{outname}'")
-        return DownloadResponse(
-            _asset_storage_manager.open(localfile).file,
-            basename=outname,
-            attachment=True,
-        )
-
 
 class RawLocalAssetDownloadHandler(LocalAssetDownloadHandler):
     """
     Serves the original file directly instead of packaging it in a ZIP archive.
     """
 
-=======
-
-class RawLocalAssetDownloadHandler(LocalAssetDownloadHandler):
-    """
-    Serves the original file directly instead of packaging it in a ZIP archive.
-    """
-
->>>>>>> 46bf6fee38b889ca77dfa550562cb9533730365d
     def create_response(
         self, asset: LocalAsset, attachment: bool = False, basename: str = None, path: str = None
     ) -> HttpResponse:
