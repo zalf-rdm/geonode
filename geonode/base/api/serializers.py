@@ -28,7 +28,6 @@ from django.contrib.auth.models import Group
 from django.forms.models import model_to_dict
 from django.contrib.auth import get_user_model
 from django.db.models.query import QuerySet
-from django.urls import reverse
 from geonode.assets.utils import get_default_asset
 from geonode.people import Roles
 from django.http import QueryDict
@@ -1286,10 +1285,15 @@ class LinkedResourceSerializer(DynamicModelSerializer):
     def to_representation(self, instance: LinkedResource):
         data = super().to_representation(instance)
         item: ResourceBase = instance.target if self.serialize_target else instance.source
-        # Avoid N+1 query: build download_url from pk only, no get_real_instance().
-        # The download endpoint resolves the correct handler at request time.
+        # Build download_url using resource-type-specific URL patterns.
+        # All required fields (pk, alternate, resource_type) are on ResourceBase directly.
         try:
-            download_url = reverse("base-resources-download", kwargs={"pk": item.pk})
+            if item.resource_type == "document":
+                download_url = reverse("document_download", kwargs={"docid": item.pk})
+            elif item.resource_type == "dataset" and item.alternate:
+                download_url = reverse("dataset_download", kwargs={"layername": item.alternate})
+            else:
+                download_url = None
         except Exception:
             download_url = None
         data.update(
