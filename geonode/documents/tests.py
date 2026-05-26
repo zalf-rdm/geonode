@@ -915,7 +915,7 @@ class TestDocumentGetDownloadResponse(GeoNodeBaseTestSupport):
                 get_download_response(request, self.doc.pk, attachment=False)
                 mock_raw.assert_not_called()
                 mock_create.assert_called_once()
-
+    
 
     def test_non_attachment_uses_create_response(self):
         """Without attachment=True, create_response must be called instead."""
