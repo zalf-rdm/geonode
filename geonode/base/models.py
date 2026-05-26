@@ -1347,6 +1347,14 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         return self._remove_html_tags(self.data_quality_statement)
 
     @property
+    def uuid_url(self):
+        """Return the server-side permalink path for this resource, based on UUID.
+        Use this instead of get_absolute_url() in metadata contexts to avoid
+        SPA hash-fragment URLs (e.g. /catalogue/#/map/2).
+        """
+        return reverse("resource_uuid_redirect", args=[self.uuid])
+
+    @property
     def detail_url(self):
         return self.get_absolute_url()
 
