@@ -915,25 +915,3 @@ class TestDocumentGetDownloadResponse(GeoNodeBaseTestSupport):
                 get_download_response(request, self.doc.pk, attachment=False)
                 mock_raw.assert_not_called()
                 mock_create.assert_called_once()
-    
-
-    def test_non_attachment_uses_create_response(self):
-        """Without attachment=True, create_response must be called instead."""
-        from geonode.documents.utils import get_download_response
-        from django.test import RequestFactory
-
-        request = RequestFactory().get(self.url)
-        request.user = self.admin
-
-        with patch.object(
-            LocalAssetDownloadHandler,
-            "create_raw_response",
-        ) as mock_raw:
-            with patch.object(
-                LocalAssetDownloadHandler,
-                "create_response",
-                wraps=LocalAssetDownloadHandler().create_response,
-            ) as mock_create:
-                get_download_response(request, self.doc.pk, attachment=False)
-                mock_raw.assert_not_called()
-                mock_create.assert_called_once()
