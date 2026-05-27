@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+    <!-- European Union Flag -->
+    <rect width="200" height="100" fill="#003399" />
+    <circle cx="35" cy="30" r="6" fill="#FFD700" />
+    <circle cx="70" cy="20" r="6" fill="#FFD700" />
+    <circle cx="105" cy="15" r="6" fill="#FFD700" />
+    <circle cx="140" cy="20" r="6" fill="#FFD700" />
+    <circle cx="165" cy="30" r="6" fill="#FFD700" />
+    <circle cx="175" cy="50" r="6" fill="#FFD700" />
+    <circle cx="165" cy="70" r="6" fill="#FFD700" />
+    <circle cx="140" cy="80" r="6" fill="#FFD700" />
+    <circle cx="105" cy="85" r="6" fill="#FFD700" />
+    <circle cx="70" cy="80" r="6" fill="#FFD700" />
+    <circle cx="35" cy="70" r="6" fill="#FFD700" />
+    <circle cx="25" cy="50" r="6" fill="#FFD700" />
+    <text x="100" y="100" font-size="8" text-anchor="middle" fill="white"
+        font-family="Arial, sans-serif">EU</text>
+</svg>

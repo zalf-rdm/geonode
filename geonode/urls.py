@@ -51,10 +51,8 @@ js_info_dict = {"domain": "djangojs", "packages": "geonode"}
 
 sitemaps = {"dataset": DatasetSitemap, "map": MapSitemap}
 
-homepage = register_url_event()(TemplateView.as_view(template_name="index.html"))
-
 urlpatterns = [
-    re_path(r"^$", homepage, name="home"),
+    re_path(r"^$", register_url_event()(TemplateView.as_view(template_name="home.html")), name="home"),
     re_path(r"^help/$", TemplateView.as_view(template_name="help.html"), name="help"),
     re_path(r"^developer/$", TemplateView.as_view(template_name="developer.html"), name="developer"),
     # Extra Pages

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+    <!-- FAO - Food and Agriculture Organization -->
+    <rect width="200" height="100" fill="none" />
+    <circle cx="100" cy="50" r="40" fill="#c41e3a" />
+    <text x="100" y="58" font-size="28" font-weight="bold" text-anchor="middle" fill="white"
+        font-family="Arial, sans-serif">
+        FAO
+    </text>
+</svg>

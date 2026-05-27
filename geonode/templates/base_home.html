@@ -1,0 +1,61 @@
+
+{% load i18n static %}
+{% load client_version %}
+<!DOCTYPE html>
+<html lang="en" class="{% block html_class %}{% endblock %}">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="{% block meta_description %}ZALF Repository — Discover, visualize, and share high-quality geospatial datasets.{% endblock %}">
+
+    <title>{% block title %}{{ SITE_NAME }}{% endblock %}</title>
+
+    <link rel="shortcut icon" href="{% static 'geonode/img/favicon.ico' %}" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Vendored Font Awesome 4 -->
+    <link rel="stylesheet" href="{% static 'geonode/css/font-awesome.min.css' %}">
+
+    {% block head %}
+    <!-- MapStore theme (same CSS used by /catalogue/ — includes navbar, footer, variables) -->
+    <link href="{% static 'mapstore/dist/themes/geonode.css' %}?{% client_version %}" rel="stylesheet" />
+    <!-- Homepage-specific -->
+    <link rel="stylesheet" href="{% static 'geonode/css/home.css' %}">
+    <link rel="stylesheet" href="{% static 'geonode/css/zalf_theme.css' %}">
+    {% endblock head %}
+
+    {% block extra_head %}
+    {% include 'geonode-mapstore-client/snippets/custom_theme.html' %}
+    {% endblock extra_head %}
+  </head>
+
+  <body class="{% block body_class %}{% endblock %} {% block body_extra_class %}{% endblock %}">
+
+    {% block navbar %}
+    <header class="gn-main-header" style="min-height: 68px;">
+      {% include 'geonode-mapstore-client/snippets/brand_navbar.html' with id='gn-brand-navbar' %}
+    </header>
+    {% endblock navbar %}
+
+    <div id="wrap">
+      {% block middle %}{% endblock middle %}
+    </div>
+
+    {% block footer %}
+      {% include 'geonode-mapstore-client/snippets/footer.html' %}
+    {% endblock footer %}
+
+    {% block extra_script %}{% endblock extra_script %}
+
+    <!-- Vendored GSAP 3 + ScrollTrigger -->
+    <script src="{% static 'geonode/vendor/gsap/gsap.min.js' %}"></script>
+    <script src="{% static 'geonode/vendor/gsap/ScrollTrigger.min.js' %}"></script>
+    <script src="{% static 'geonode/js/base/main.js' %}"></script>
+
+  </body>
+</html>

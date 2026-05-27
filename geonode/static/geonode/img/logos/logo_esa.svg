@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+    <!-- ESA - European Space Agency (Blue) -->
+    <rect width="200" height="100" fill="none" />
+    <circle cx="100" cy="50" r="40" fill="#0066cc" />
+    <text x="100" y="58" font-size="32" font-weight="bold" text-anchor="middle" fill="white"
+        font-family="Arial, sans-serif">
+        ESA
+    </text>
+</svg>

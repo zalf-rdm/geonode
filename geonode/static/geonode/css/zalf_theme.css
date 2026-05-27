@@ -107,6 +107,7 @@ body.msgapi .hero-svg {
     transform: translateX(-50%);
     /* opcional: não interfere em cliques */
 }
+
 /* Particles (visual style only; movement handled by GSAP) */
 body.msgapi .particle {
     position: absolute;

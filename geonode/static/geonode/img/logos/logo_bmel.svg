@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+    <!-- BMEL - Federal Ministry of Food and Agriculture -->
+    <rect width="200" height="100" fill="none" />
+    <text x="100" y="55" font-size="24" font-weight="bold" text-anchor="middle" fill="#2d5016"
+        font-family="Arial, sans-serif">
+        BMEL
+    </text>
+    <text x="100" y="75" font-size="10" text-anchor="middle" fill="#666"
+        font-family="Arial, sans-serif">
+        Agriculture
+    </text>
+</svg>

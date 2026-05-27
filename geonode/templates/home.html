@@ -1,0 +1,228 @@
+{% extends "base_home.html" %}
+{% load i18n static %}
+{% block body_class %}msgapi{% endblock %}
+
+{% block title %}ZALF Repository — {% trans "Home" %}{% endblock %}
+
+{% block middle %}
+
+  {# ─── HERO ─── #}
+  <section class="zl-hero" role="banner">
+    <div class="zl-hero__bg" aria-hidden="true">
+      {# Floating particles (GSAP-animated) #}
+      <span class="particle" style="left:8%; top:22%"></span>
+      <span class="particle p2" style="left:18%; top:58%"></span>
+      <span class="particle" style="left:38%; top:18%"></span>
+      <span class="particle p2" style="left:64%; top:32%"></span>
+      <span class="particle" style="left:78%; top:66%"></span>
+      <span class="particle p2" style="left:90%; top:24%"></span>
+      <span class="particle" style="left:50%; top:75%"></span>
+      <span class="particle p2" style="left:25%; top:40%"></span>
+
+      {# Abstract SVG landscape #}
+      <svg class="hero-svg" viewBox="0 0 1600 380" preserveAspectRatio="xMidYMax slice">
+        <defs>
+          <linearGradient id="g1" x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0%" stop-color="#5fbf72" stop-opacity=".35" />
+            <stop offset="100%" stop-color="#87c5c6" stop-opacity=".35" />
+          </linearGradient>
+          <linearGradient id="g2" x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0%" stop-color="#2e7d32" stop-opacity=".10" />
+            <stop offset="100%" stop-color="#7cb342" stop-opacity=".10" />
+          </linearGradient>
+        </defs>
+        <path id="ridge1" d="M0,240 C220,180 420,260 640,210 C840,166 1060,260 1260,230 C1420,205 1600,250 1600,250 L1600,380 L0,380 Z" fill="url(#g1)" />
+        <path id="ridge2" d="M0,270 C260,250 460,300 680,260 C900,220 1120,300 1320,280 C1480,265 1600,300 1600,300 L1600,380 L0,380 Z" fill="url(#g2)" />
+      </svg>
+    </div>
+
+    <div class="container zl-hero__inner">
+      <h1 class="zl-hero__title">
+        {% trans "ZALF Repository" %}
+      </h1>
+      <p class="zl-hero__sub">
+        {% trans "Discover, visualize and share high-quality geospatial datasets powering open science, policy and innovation." %}
+      </p>
+
+      <form role="search" class="zl-search" id="zl-search-form" data-search-url="{% url 'home' %}catalogue/#/search">
+        <div class="zl-search__wrap">
+          <i class="fa fa-search zl-search__icon"></i>
+          <input id="zl-q" type="search" class="zl-search__input"
+                 placeholder="{% trans 'Search datasets, maps, documents…' %}">
+          <button type="submit" class="zl-search__btn">{% trans "Search" %}</button>
+        </div>
+      </form>
+
+      <div class="zl-hero__actions">
+        <a href="{% url 'home' %}catalogue/#/datasets" class="zl-btn zl-btn--primary">
+          <i class="fa fa-database"></i> {% trans "Explore Datasets" %}
+        </a>
+        <a href="{% url 'home' %}catalogue/#/maps" class="zl-btn zl-btn--outline">
+          <i class="fa fa-map"></i> {% trans "Browse Maps" %}
+        </a>
+      </div>
+
+      <div class="zl-stats" aria-label="{% trans 'Repository statistics' %}">
+        <div class="zl-stat">
+          <div class="zl-stat__num" data-count="{{ datasets_count|default:1280 }}">0</div>
+          <div class="zl-stat__label">{% trans "Datasets" %}</div>
+        </div>
+        <div class="zl-stat">
+          <div class="zl-stat__num" data-count="{{ users_count|default:540 }}">0</div>
+          <div class="zl-stat__label">{% trans "Users" %}</div>
+        </div>
+        <div class="zl-stat">
+          <div class="zl-stat__num" data-count="{{ countries_count|default:24 }}">0</div>
+          <div class="zl-stat__label">{% trans "Countries" %}</div>
+        </div>
+        <div class="zl-stat">
+          <div class="zl-stat__num" data-count="{{ maps_count|default:310 }}">0</div>
+          <div class="zl-stat__label">{% trans "Maps" %}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ─── CATEGORIES ─── #}
+  <section class="zl-section" aria-labelledby="cats-heading">
+    <div class="container">
+      <h2 id="cats-heading" class="zl-section__title fade-up">{% trans "Explore by Topic" %}</h2>
+      <p class="zl-section__sub fade-up">{% trans "Curated collections spanning core research areas at ZALF." %}</p>
+
+      <div class="zl-grid zl-grid--3">
+        <a href="{% url 'home' %}catalogue/#/search?q=soil" class="zl-cat fade-up">
+          <div class="zl-cat__icon"><i class="fa fa-pagelines"></i></div>
+          <h3 class="zl-cat__title">{% trans "Soil" %}</h3>
+          <p class="zl-cat__desc">{% trans "Profiles, chemistry and functions across landscapes." %}</p>
+          <span class="zl-cat__arrow"><i class="fa fa-arrow-right"></i></span>
+        </a>
+        <a href="{% url 'home' %}catalogue/#/search?q=water" class="zl-cat fade-up">
+          <div class="zl-cat__icon"><i class="fa fa-tint"></i></div>
+          <h3 class="zl-cat__title">{% trans "Water" %}</h3>
+          <p class="zl-cat__desc">{% trans "Hydrology, quality and availability for resilient ecosystems." %}</p>
+          <span class="zl-cat__arrow"><i class="fa fa-arrow-right"></i></span>
+        </a>
+        <a href="{% url 'home' %}catalogue/#/search?q=climate" class="zl-cat fade-up">
+          <div class="zl-cat__icon"><i class="fa fa-sun-o"></i></div>
+          <h3 class="zl-cat__title">{% trans "Climate" %}</h3>
+          <p class="zl-cat__desc">{% trans "Weather, extremes and long-term trends impacting agriculture." %}</p>
+          <span class="zl-cat__arrow"><i class="fa fa-arrow-right"></i></span>
+        </a>
+        <a href="{% url 'home' %}catalogue/#/search?q=biodiversity" class="zl-cat fade-up">
+          <div class="zl-cat__icon"><i class="fa fa-leaf"></i></div>
+          <h3 class="zl-cat__title">{% trans "Biodiversity" %}</h3>
+          <p class="zl-cat__desc">{% trans "Species, habitats and ecosystem services in agro-landscapes." %}</p>
+          <span class="zl-cat__arrow"><i class="fa fa-arrow-right"></i></span>
+        </a>
+        <a href="{% url 'home' %}catalogue/#/search?q=landscape" class="zl-cat fade-up">
+          <div class="zl-cat__icon"><i class="fa fa-globe"></i></div>
+          <h3 class="zl-cat__title">{% trans "Landscape" %}</h3>
+          <p class="zl-cat__desc">{% trans "Land use, spatial patterns and agro-landscape structure." %}</p>
+          <span class="zl-cat__arrow"><i class="fa fa-arrow-right"></i></span>
+        </a>
+        <a href="{% url 'home' %}catalogue/#/search?q=agriculture" class="zl-cat fade-up">
+          <div class="zl-cat__icon"><i class="fa fa-envira"></i></div>
+          <h3 class="zl-cat__title">{% trans "Agriculture" %}</h3>
+          <p class="zl-cat__desc">{% trans "Crop systems, management and yield monitoring." %}</p>
+          <span class="zl-cat__arrow"><i class="fa fa-arrow-right"></i></span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  {# ─── DATA SPOTLIGHT ─── #}
+  <section class="zl-section zl-section--alt" aria-labelledby="spot-heading">
+    <div class="container">
+      <h2 id="spot-heading" class="zl-section__title fade-up">{% trans "Data Spotlight" %}</h2>
+      <p class="zl-section__sub fade-up">{% trans "Featured datasets selected for scientific relevance and reusability." %}</p>
+
+      <div class="zl-grid zl-grid--3">
+        <article class="zl-card fade-up" itemscope itemtype="https://schema.org/Dataset">
+          <div class="zl-card__thumb zl-card__thumb--soil"></div>
+          <div class="zl-card__body">
+            <div class="zl-card__tag">GeoTIFF</div>
+            <h3 class="zl-card__title" itemprop="name">{% trans "Soil Organic Carbon in Brandenburg" %}</h3>
+            <p class="zl-card__desc" itemprop="description">{% trans "High-resolution soil organic carbon estimates for agricultural landscapes." %}</p>
+          </div>
+          <div class="zl-card__foot">
+            <a class="zl-btn zl-btn--sm zl-btn--primary" href="#" title="{% trans 'Link to be implemented' %}">{% trans "View" %}</a>
+            <a class="zl-btn zl-btn--sm zl-btn--ghost" href="#" title="{% trans 'Link to be implemented' %}">{% trans "Download" %}</a>
+          </div>
+        </article>
+
+        <article class="zl-card fade-up" itemscope itemtype="https://schema.org/Dataset">
+          <div class="zl-card__thumb zl-card__thumb--climate"></div>
+          <div class="zl-card__body">
+            <div class="zl-card__tag">NetCDF</div>
+            <h3 class="zl-card__title" itemprop="name">{% trans "Multi-year Precipitation Anomalies" %}</h3>
+            <p class="zl-card__desc" itemprop="description">{% trans "Monthly anomalies supporting climate impact assessments and modelling." %}</p>
+          </div>
+          <div class="zl-card__foot">
+            <a class="zl-btn zl-btn--sm zl-btn--primary" href="#" title="{% trans 'Link to be implemented' %}">{% trans "View" %}</a>
+            <a class="zl-btn zl-btn--sm zl-btn--ghost" href="#" title="{% trans 'Link to be implemented' %}">{% trans "Download" %}</a>
+          </div>
+        </article>
+
+        <article class="zl-card fade-up" itemscope itemtype="https://schema.org/Dataset">
+          <div class="zl-card__thumb zl-card__thumb--bio"></div>
+          <div class="zl-card__body">
+            <div class="zl-card__tag">GeoPackage</div>
+            <h3 class="zl-card__title" itemprop="name">{% trans "Biodiversity Monitoring Plots" %}</h3>
+            <p class="zl-card__desc" itemprop="description">{% trans "Spatial data on species richness and habitat structure across plots." %}</p>
+          </div>
+          <div class="zl-card__foot">
+            <a class="zl-btn zl-btn--sm zl-btn--primary" href="#" title="{% trans 'Link to be implemented' %}">{% trans "View" %}</a>
+            <a class="zl-btn zl-btn--sm zl-btn--ghost" href="#" title="{% trans 'Link to be implemented' %}">{% trans "Download" %}</a>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  {# ─── PARTNERS ─── #}
+  <section class="zl-partners" aria-label="{% trans 'Partners' %}">
+    <div class="container">
+      <h2 class="zl-section__title fade-up">{% trans "Trusted By" %}</h2>
+      <p class="zl-section__sub fade-up">{% trans "Collaborating with leading research institutions and global organizations." %}</p>
+      <div class="zl-logos-wrap fade-up">
+        <div class="zl-logos" id="logos">
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_zalf_square.jpg' %}" alt="ZALF"></div>
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_bonares_hires.svg' %}" alt="BonaRes"></div>
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_ejp_soil_hires.svg' %}" alt="EJP SOIL"></div>
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_leibniz.svg' %}" alt="Leibniz"></div>
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_bmbf.svg' %}" alt="BMBF"></div>
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_bmel.svg' %}" alt="BMEL"></div>
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_dfg.svg' %}" alt="DFG"></div>
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_eu.svg' %}" alt="EU"></div>
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_esa.svg' %}" alt="ESA"></div>
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_nasa.svg' %}" alt="NASA"></div>
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_fao.svg' %}" alt="FAO"></div>
+          <div class="zl-logo"><img src="{% static 'geonode/img/logos/logo_unep.svg' %}" alt="UNEP"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ─── CTA BANNER ─── #}
+  <section class="zl-cta fade-up">
+    <div class="container">
+      <div class="zl-cta__inner">
+        <h2 class="zl-cta__title">{% trans "Ready to contribute?" %}</h2>
+        <p class="zl-cta__sub">{% trans "Upload your datasets, create maps, and collaborate with researchers worldwide." %}</p>
+        <div class="zl-cta__actions">
+          <a href="https://upload-e.dataservice.zalf.de/" class="zl-btn zl-btn--white" target="_blank" rel="noopener noreferrer">
+            <i class="fa fa-cloud-upload"></i> {% trans "Upload Dataset" %}
+          </a>
+          <a href="{% url 'account_signup' %}" class="zl-btn zl-btn--white-outline">
+            <i class="fa fa-user-plus"></i> {% trans "Create Account" %}
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+{% endblock %}
+
+{% block extra_script %}
+  {{ block.super }}
+{% endblock %}
