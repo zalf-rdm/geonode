@@ -44,7 +44,7 @@ class KeycloakSilentSSOMiddleware:
     before allauth.account.middleware.AccountMiddleware
     """
 
-    def _sso_cookie_domain(self):
+    def _get_sso_cookie_domain(self):
         """
         django.conf.settings.SITE_URL and .SITEURL are not standardized, hence both are possible:
 
