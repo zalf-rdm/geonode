@@ -51,7 +51,8 @@ js_info_dict = {"domain": "djangojs", "packages": "geonode"}
 
 sitemaps = {"dataset": DatasetSitemap, "map": MapSitemap}
 
-homepage = register_url_event()(TemplateView.as_view(template_name="index.html"))
+#homepage = register_url_event()(TemplateView.as_view(template_name="index.html"))
+homepage = register_url_event()(TemplateView.as_view(template_name="zalf/index.html"))
 
 urlpatterns = [
     re_path(r"^$", homepage, name="home"),
