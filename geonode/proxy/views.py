@@ -89,9 +89,7 @@ def _increment_download_count_for_ows_request(request, raw_url, request_body, us
 
     if service == "WFS" and req_type == "GETFEATURE":
         # WFS GetFeature: extract typeName / typeNames (case-insensitive key lookup)
-        type_name = (
-            params.get("typename", params.get("typenames", [""]))[0]
-        )
+        type_name = params.get("typename", params.get("typenames", [""]))[0]
         if type_name:
             layer_name = type_name.split(",")[0].strip()
 
