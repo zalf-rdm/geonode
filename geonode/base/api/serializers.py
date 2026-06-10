@@ -1282,9 +1282,39 @@ class LinkedResourceSerializer(DynamicModelSerializer):
         model = LinkedResource
         fields = ("internal",)
 
+    def _get_download_url(self, item: ResourceBase):
+        """
+        Derive download URL from ResourceBase fields, avoiding get_real_instance()
+        to prevent N+1 queries.
+        """
+        if item.resource_type == "document":
+            try:
+                return build_absolute_uri(reverse("document_download", args=(item.pk,)))
+            except NoReverseMatch:
+                return None
+        if item.resource_type == "dataset":
+            if not item.alternate:
+                return None
+            try:
+                return build_absolute_uri(reverse("dataset_download", args=(item.alternate,)))
+            except NoReverseMatch:
+                return None
+        return None
+
     def to_representation(self, instance: LinkedResource):
         data = super().to_representation(instance)
         item: ResourceBase = instance.target if self.serialize_target else instance.source
+        # Build download_url using resource-type-specific URL patterns.
+        # All required fields (pk, alternate, resource_type) are on ResourceBase directly.
+        try:
+            if item.resource_type == "document":
+                download_url = reverse("document_download", kwargs={"docid": item.pk})
+            elif item.resource_type == "dataset" and item.alternate:
+                download_url = reverse("dataset_download", kwargs={"layername": item.alternate})
+            else:
+                download_url = None
+        except Exception:
+            download_url = None
         data.update(
             {
                 "pk": item.pk,
@@ -1292,6 +1322,7 @@ class LinkedResourceSerializer(DynamicModelSerializer):
                 "resource_type": item.resource_type,
                 "detail_url": item.detail_url,
                 "thumbnail_url": item.thumbnail_url,
+                "download_url": download_url,
             }
         )
         return data

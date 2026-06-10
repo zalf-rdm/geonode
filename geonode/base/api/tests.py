@@ -63,6 +63,7 @@ from geonode.assets.handlers import asset_handler_registry
 
 from geonode.base import enumerations
 from geonode.base.api.serializers import ResourceBaseSerializer
+from geonode.base.api.serializers import LinkedResourceSerializer
 from geonode.groups.models import GroupMember, GroupProfile
 from geonode.thumbs.exceptions import ThumbnailError
 from geonode.layers.utils import get_files
@@ -3299,6 +3300,98 @@ class TestApiLinkedResources(GeoNodeBaseTestSupport):
         finally:
             for d in _d:
                 d.delete()
+
+
+class TestLinkedResourceSerializerDownloadUrl(GeoNodeBaseTestSupport):
+    """Unit tests for LinkedResourceSerializer._get_download_url()."""
+
+    fixtures = ["initial_data.json", "group_test_data.json", "default_oauth_apps.json"]
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.dataset = create_single_dataset("lr_test_layer")
+        cls.map = create_single_map("lr_test_map")
+        cls.doc = create_single_doc("lr_test_doc")
+
+    def _serializer(self):
+        return LinkedResourceSerializer(serialize_source=False)
+
+    def test_document_returns_document_download_url(self):
+        sut = self._serializer()
+        url = sut._get_download_url(self.doc.resourcebase_ptr)
+        self.assertIsNotNone(url)
+        self.assertIn(f"/documents/{self.doc.pk}/download", url)
+
+    def test_dataset_with_alternate_returns_dataset_download_url(self):
+        sut = self._serializer()
+        url = sut._get_download_url(self.dataset.resourcebase_ptr)
+        self.assertIsNotNone(url)
+        self.assertIn(self.dataset.alternate, url)
+
+    def test_map_returns_none(self):
+        sut = self._serializer()
+        url = sut._get_download_url(self.map.resourcebase_ptr)
+        self.assertIsNone(url)
+
+    def test_dataset_without_alternate_returns_none(self):
+        sut = self._serializer()
+        resource = self.dataset.resourcebase_ptr
+        original_alternate = resource.alternate
+        try:
+            resource.alternate = None
+            url = sut._get_download_url(resource)
+            self.assertIsNone(url)
+        finally:
+            resource.alternate = original_alternate
+
+    def test_linked_resources_response_contains_download_url_for_document(self):
+        """The linked_resources API endpoint includes download_url for document targets."""
+        LinkedResource.objects.create(source_id=self.map.id, target_id=self.doc.id)
+        self.client.force_login(get_user_model().objects.get(username="admin"))
+        url = reverse("base-resources-linked_resources", args=[self.map.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        doc_entry = next(
+            (r for r in data.get("linked_to", []) if r["pk"] == self.doc.id),
+            None,
+        )
+        self.assertIsNotNone(doc_entry, "Document not found in linked_to list")
+        self.assertIsNotNone(doc_entry.get("download_url"))
+        self.assertIn(f"/documents/{self.doc.pk}/download", doc_entry["download_url"])
+
+    def test_linked_resources_response_contains_download_url_for_dataset(self):
+        """The linked_resources API endpoint includes download_url for dataset targets."""
+        LinkedResource.objects.create(source_id=self.map.id, target_id=self.dataset.id)
+        self.client.force_login(get_user_model().objects.get(username="admin"))
+        url = reverse("base-resources-linked_resources", args=[self.map.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        ds_entry = next(
+            (r for r in data.get("linked_to", []) if r["pk"] == self.dataset.id),
+            None,
+        )
+        self.assertIsNotNone(ds_entry, "Dataset not found in linked_to list")
+        self.assertIsNotNone(ds_entry.get("download_url"))
+        self.assertIn(self.dataset.alternate, ds_entry["download_url"])
+
+    def test_linked_resources_response_download_url_none_for_map(self):
+        """Maps have no download_url in linked_resources response."""
+        map2 = create_single_map("lr_test_map2")
+        LinkedResource.objects.create(source_id=self.doc.id, target_id=map2.id)
+        self.client.force_login(get_user_model().objects.get(username="admin"))
+        url = reverse("base-resources-linked_resources", args=[self.doc.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        map_entry = next(
+            (r for r in data.get("linked_to", []) if r["pk"] == map2.id),
+            None,
+        )
+        self.assertIsNotNone(map_entry, "Map not found in linked_to list")
+        self.assertIsNone(map_entry.get("download_url"))
 
 
 class TestApiAdditionalBBoxCalculation(GeoNodeBaseTestSupport):
