@@ -931,11 +931,71 @@ class DatasetsTest(GeoNodeBaseTestSupport):
             response = self.client.get(url)
             self.assertTrue(response.status_code == 200)
         """
-        Evaluate that the context used by the template contains the right mimetype for the resource
+        Evaluate that the context used by the template contains the right mimetype for the resource.
+        DEFAULT_VECTOR_DOWNLOAD_FORMAT defaults to application/json (set in settings.py).
         """
         self.assertTupleEqual(
-            ({"alternate": layer.alternate, "download_format": "application/zip"},), pathed_template.mock_calls[1].args
+            ({"alternate": layer.alternate, "download_format": "application/json"},), pathed_template.mock_calls[1].args
         )
+
+    @override_settings(USE_GEOSERVER=True, DEFAULT_VECTOR_DOWNLOAD_FORMAT="application/json")
+    @patch("geonode.layers.download_handler.get_template")
+    def test_dataset_download_vector_uses_default_format_from_setting(self, pathed_template):
+        """DEFAULT_VECTOR_DOWNLOAD_FORMAT setting is passed as download_format to WPS."""
+        _response = MagicMock(status_code=200, text="", headers={"Content-Type": ""})
+        dataset = Dataset.objects.filter(subtype="vector").first()
+        layer = create_dataset(dataset.title, dataset.title, dataset.owner, "Point")
+        with patch("geonode.layers.download_handler.HttpClient.request") as mocked_catalog:
+            mocked_catalog.return_value = _response, ""
+            url = reverse("dataset_download", args=[layer.alternate])
+            self.client.get(url)
+        self.assertTupleEqual(
+            ({"alternate": layer.alternate, "download_format": "application/json"},),
+            pathed_template.mock_calls[1].args,
+        )
+
+    @override_settings(USE_GEOSERVER=True, DEFAULT_VECTOR_DOWNLOAD_FORMAT="application/json")
+    @patch("geonode.layers.download_handler.get_template")
+    def test_dataset_download_content_disposition_uses_layer_name_geojson(self, pathed_template):
+        """Content-Disposition filename must be '<layername>.geojson' for application/json format."""
+        _response = MagicMock(status_code=200, text="", headers={"Content-Type": ""})
+        dataset = Dataset.objects.filter(subtype="vector").first()
+        layer = create_dataset(dataset.title, dataset.title, dataset.owner, "Point")
+        with patch("geonode.layers.download_handler.HttpClient.request") as mocked_catalog:
+            mocked_catalog.return_value = _response, ""
+            url = reverse("dataset_download", args=[layer.alternate])
+            response = self.client.get(url)
+        expected_name = f"{layer.alternate.split(':')[-1]}.geojson"
+        self.assertIn(expected_name, response.get("Content-Disposition", ""))
+
+    @override_settings(USE_GEOSERVER=True, DEFAULT_VECTOR_DOWNLOAD_FORMAT="application/zip")
+    @patch("geonode.layers.download_handler.get_template")
+    def test_dataset_download_content_disposition_uses_layer_name_zip(self, pathed_template):
+        """Content-Disposition filename must be '<layername>.zip' for application/zip format."""
+        _response = MagicMock(status_code=200, text="", headers={"Content-Type": ""})
+        dataset = Dataset.objects.filter(subtype="vector").first()
+        layer = create_dataset(dataset.title, dataset.title, dataset.owner, "Point")
+        with patch("geonode.layers.download_handler.HttpClient.request") as mocked_catalog:
+            mocked_catalog.return_value = _response, ""
+            url = reverse("dataset_download", args=[layer.alternate])
+            response = self.client.get(url)
+        expected_name = f"{layer.alternate.split(':')[-1]}.zip"
+        self.assertIn(expected_name, response.get("Content-Disposition", ""))
+
+    @override_settings(USE_GEOSERVER=True)
+    @patch("geonode.layers.download_handler.get_template")
+    def test_dataset_download_content_disposition_raster_uses_tif(self, pathed_template):
+        """Raster datasets must always produce a .tif filename."""
+        _response = MagicMock(status_code=200, text="", headers={"Content-Type": ""})
+        dataset = Dataset.objects.filter(subtype="raster").first()
+        layer = create_dataset(dataset.title, dataset.title, dataset.owner, "Point")
+        Dataset.objects.filter(alternate=layer.alternate).update(subtype="raster")
+        with patch("geonode.layers.download_handler.HttpClient.request") as mocked_catalog:
+            mocked_catalog.return_value = _response, ""
+            url = reverse("dataset_download", args=[layer.alternate])
+            response = self.client.get(url)
+        expected_name = f"{layer.alternate.split(':')[-1]}.tif"
+        self.assertIn(expected_name, response.get("Content-Disposition", ""))
 
 
 class TestLayerDetailMapViewRights(GeoNodeBaseTestSupport):

@@ -218,6 +218,37 @@ class LocalAssetHandler(AssetHandlerInterface):
 
 
 class LocalAssetDownloadHandler(AssetDownloadHandlerInterface):
+    def _resolve_file(self, asset: LocalAsset, path: str = None):
+        """
+        Returns (localfile, orig_base, ext) or an HttpResponse error.
+        """
+        file0 = asset.location[0]
+        if not path:
+            if not os.path.isfile(file0):
+                logger.warning(f"Default file {file0} not found for asset {asset.id}")
+                return HttpResponse(f"Default file not found for asset {asset.id}", status=400)
+            localfile = file0
+        else:
+            if "/../" in path:
+                logger.warning(f"Tentative path traversal for asset {asset.id}")
+                return HttpResponse(f"File not found for asset {asset.id}", status=400)
+            if os.path.isfile(file0):
+                dir0 = os.path.dirname(file0)
+            elif os.path.isdir(file0):
+                dir0 = file0
+            else:
+                return HttpResponse(f"Unexpected internal location '{file0}' for asset {asset.id}", status=500)
+            localfile = os.path.join(dir0, path)
+            logger.debug(f"Requested path {dir0} + {path}")
+
+        if not os.path.isfile(localfile):
+            logger.warning(f"Internal file {localfile} not found for asset {asset.id}")
+            return HttpResponse(f"Internal file not found for asset {asset.id}", status=404 if path else 500)
+
+        filename = os.path.basename(localfile)
+        orig_base, ext = os.path.splitext(filename)
+        return localfile, orig_base, ext
+
     def create_response(
         self, asset: LocalAsset, attachment: bool = False, basename: str = None, path: str = None
     ) -> HttpResponse:
@@ -230,54 +261,63 @@ class LocalAssetDownloadHandler(AssetDownloadHandlerInterface):
         if len(asset.location) > 1:
             logger.warning("TODO: Asset contains more than one file. Download needs to be implemented")
 
-        file0 = asset.location[0]
-        if not path:  # use the file definition
-            if not os.path.isfile(file0):
-                logger.warning(f"Default file {file0} not found for asset {asset.id}")
-                return HttpResponse(f"Default file not found for asset {asset.id}", status=400)
-            localfile = file0
+        result = self._resolve_file(asset, path)
+        if isinstance(result, HttpResponse):
+            return result
+        localfile, orig_base, ext = result
+        outname = f"{basename or orig_base or 'file'}{ext}"
 
-        else:  # a specific file is requested
-            if "/../" in path:  # we may want to improve fraudolent request detection
-                logger.warning(f"Tentative path traversal for asset {asset.id}")
-                return HttpResponse(f"File not found for asset {asset.id}", status=400)
+        match attachment:
+            case True:
+                managed_dir = LocalAssetHandler._get_managed_dir(asset)
+                logger.info(
+                    f"Zipping managed directory '{managed_dir}' for asset {asset.id} (requested file: '{localfile}')"
+                )
+                zs = ZipStream(sized=True).from_path(managed_dir, arcname="/")
+                return StreamingHttpResponse(
+                    zs,
+                    content_type="application/zip",
+                    headers={
+                        "Content-Disposition": f"attachment; filename={orig_base}.zip",
+                        "Content-Length": len(zs),
+                        "Last-Modified": zs.last_modified,
+                    },
+                )
+            case False:
+                logger.info(f"Returning file '{localfile}' with name '{outname}'")
+                return DownloadResponse(
+                    _asset_storage_manager.open(localfile).file, basename=f"{outname}", attachment=False
+                )
 
-            if os.path.isfile(file0):
-                dir0 = os.path.dirname(file0)
-            elif os.path.isdir(file0):
-                dir0 = file0
-            else:
-                return HttpResponse(f"Unexpected internal location '{file0}' for asset {asset.id}", status=500)
 
-            localfile = os.path.join(dir0, path)
-            logger.debug(f"Requested path {dir0} + {path}")
+class RawLocalAssetDownloadHandler(LocalAssetDownloadHandler):
+    """
+    Serves the original file directly instead of packaging it in a ZIP archive.
+    """
 
-        if os.path.isfile(localfile):
-            filename = os.path.basename(localfile)
-            orig_base, ext = os.path.splitext(filename)
-            outname = f"{basename or orig_base or 'file'}{ext}"
-            match attachment:
-                case True:
-                    logger.info(f"Zipping file '{localfile}' with name '{orig_base}'")
-                    zs = ZipStream(sized=True).from_path(LocalAssetHandler._get_managed_dir(asset), arcname="/")
-                    # closing zip for all contents to be written
-                    return StreamingHttpResponse(
-                        zs,
-                        content_type="application/zip",
-                        headers={
-                            "Content-Disposition": f"attachment; filename={orig_base}.zip",
-                            "Content-Length": len(zs),
-                            "Last-Modified": zs.last_modified,
-                        },
-                    )
-                case False:
-                    logger.info(f"Returning file '{localfile}' with name '{outname}'")
-                    return DownloadResponse(
-                        _asset_storage_manager.open(localfile).file, basename=f"{outname}", attachment=False
-                    )
-        else:
-            logger.warning(f"Internal file {localfile} not found for asset {asset.id}")
-            return HttpResponse(f"Internal file not found for asset {asset.id}", status=404 if path else 500)
+    def create_response(
+        self, asset: LocalAsset, attachment: bool = False, basename: str = None, path: str = None
+    ) -> HttpResponse:
+        asset = asset.get_real_instance()
+        if not isinstance(asset, LocalAsset):
+            raise TypeError("Only localasset are allowed")
+        if not asset.location:
+            return HttpResponse("Asset does not contain any data", status=500)
+
+        if len(asset.location) > 1:
+            logger.warning("TODO: Asset contains more than one file. Download needs to be implemented")
+
+        result = self._resolve_file(asset, path)
+        if isinstance(result, HttpResponse):
+            return result
+        localfile, orig_base, ext = result
+        outname = f"{basename or orig_base or 'file'}{ext}"
+        logger.info(f"Returning raw file '{localfile}' with name '{outname}'")
+        return DownloadResponse(
+            _asset_storage_manager.open(localfile).file,
+            basename=outname,
+            attachment=attachment,
+        )
 
 
 asset_handler_registry.register(LocalAssetHandler)
