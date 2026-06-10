@@ -270,7 +270,9 @@ class LocalAssetDownloadHandler(AssetDownloadHandlerInterface):
         match attachment:
             case True:
                 managed_dir = LocalAssetHandler._get_managed_dir(asset)
-                logger.info(f"Zipping managed directory '{managed_dir}' for asset {asset.id} (requested file: '{localfile}')")
+                logger.info(
+                    f"Zipping managed directory '{managed_dir}' for asset {asset.id} (requested file: '{localfile}')"
+                )
                 zs = ZipStream(sized=True).from_path(managed_dir, arcname="/")
                 return StreamingHttpResponse(
                     zs,
