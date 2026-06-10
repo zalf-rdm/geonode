@@ -29,6 +29,7 @@ from dateutil.parser import isoparse
 from datetime import datetime, timedelta
 
 # Django functionality
+from django.db import models as db_models
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -213,3 +214,14 @@ def remove_country_from_languagecode(language: str):
 
     lang, _, _ = language.lower().partition("-")
     return lang
+
+
+def increment_download_count(resource_id, user):
+    """Increment download_count on ResourceBase, skipping superusers and the owner."""
+    if user is not None and getattr(user, "is_superuser", False):
+        return
+
+    qs = ResourceBase.objects.filter(id=resource_id)
+    if user is not None and getattr(user, "is_authenticated", False):
+        qs = qs.exclude(owner=user)
+    qs.update(download_count=db_models.F("download_count") + 1)

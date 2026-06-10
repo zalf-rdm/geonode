@@ -20,13 +20,14 @@
 import logging
 import xml.etree.ElementTree as ET
 
-from django.db import models as db_models
 from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.template.loader import get_template
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
+
 from geonode.base.auth import get_or_create_token
+from geonode.base.utils import increment_download_count
 from geonode.geoserver.helpers import wps_format_is_supported
 from geonode.layers.views import _resolve_dataset
 from geonode.proxy.views import fetch_response_headers
@@ -56,13 +57,8 @@ class DatasetDownloadHandler:
         if not resource:
             raise Http404("Resource requested is not available")
         response = self.process_dowload(resource)
-        if not self.request.user.is_superuser:
-            from geonode.layers.models import Dataset
 
-            qs = Dataset.objects.filter(id=resource.id)
-            if self.request.user.is_authenticated:
-                qs = qs.exclude(owner=self.request.user)
-            qs.update(download_count=db_models.F("download_count") + 1)
+        increment_download_count(resource.id, self.request.user)
         return response
 
     @property

@@ -28,7 +28,6 @@ from django.conf import settings
 from django.contrib import messages as django_messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db.models import F
 from django.forms.models import modelformset_factory
 from django.http import Http404, HttpResponse, HttpResponseNotAllowed, HttpResponseRedirect, HttpResponseServerError
 from django.shortcuts import render
@@ -56,6 +55,7 @@ from geonode.base.models import (
     ContactRole,
 )
 from geonode.base.views import batch_modify
+from geonode.base.utils import increment_download_count
 from geonode.client.hooks import hookset
 from geonode.resource.manager import resource_manager
 from geonode.decorators import check_keyword_write_perms
@@ -582,11 +582,7 @@ def map_download(request, mapid, template="maps/map_download.html"):
     site_url = settings.SITEURL.rstrip("/") if settings.SITEURL.startswith("http") else settings.SITEURL
 
     register_event(request, EventType.EVENT_DOWNLOAD, map_obj)
-    if not request.user.is_superuser:
-        qs = Map.objects.filter(id=map_obj.id)
-        if request.user.is_authenticated:
-            qs = qs.exclude(owner=request.user)
-        qs.update(download_count=F("download_count") + 1)
+    increment_download_count(map_obj.id, request.user)
 
     return render(
         request,

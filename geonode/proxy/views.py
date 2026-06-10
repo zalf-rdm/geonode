@@ -30,13 +30,13 @@ from urllib.parse import urlparse, urlsplit, urljoin, parse_qs
 from django.conf import settings
 from django.template import loader
 from django.http import HttpResponse, StreamingHttpResponse
-from django.db import models
 from django.db.models import signals
 from django.views.generic import View
 from django.http.request import validate_host
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import requires_csrf_token
 
+from geonode.base.utils import increment_download_count
 from geonode.layers.models import Dataset
 from geonode.upload.models import Upload
 from geonode.base.models import ResourceBase
@@ -111,13 +111,11 @@ def _increment_download_count_for_ows_request(request, raw_url, request_body, us
         return
 
     try:
+        from geonode.base.utils import increment_download_count
+
         dataset = Dataset.objects.get(alternate=layer_name)
         _user = user or (request.user if hasattr(request, "user") else None)
-        if _user is None or not getattr(_user, "is_superuser", False):
-            qs = Dataset.objects.filter(id=dataset.id)
-            if _user is not None and getattr(_user, "is_authenticated", False):
-                qs = qs.exclude(owner=_user)
-            qs.update(download_count=models.F("download_count") + 1)
+        increment_download_count(dataset.id, _user)
     except Dataset.DoesNotExist:
         pass
     except Exception as e:
@@ -331,11 +329,7 @@ def download(request, resourceid, sender=Dataset):
             # ZIP everything and return
             target_file_name = "".join([instance.name, ".zip"])
             register_event(request, "download", instance)
-            if not request.user.is_superuser:
-                qs = sender.objects.filter(id=instance.id)
-                if request.user.is_authenticated:
-                    qs = qs.exclude(owner=request.user)
-                qs.update(download_count=models.F("download_count") + 1)
+            increment_download_count(instance.id, request.user)
             folder = os.path.dirname(dataset_files[0])
 
             zs = ZipStream.from_path(folder, arcname="/")
