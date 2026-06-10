@@ -55,6 +55,7 @@ from geonode.base.models import (
     ContactRole,
 )
 from geonode.base.views import batch_modify
+from geonode.base.utils import increment_download_count
 from geonode.client.hooks import hookset
 from geonode.resource.manager import resource_manager
 from geonode.decorators import check_keyword_write_perms
@@ -581,6 +582,7 @@ def map_download(request, mapid, template="maps/map_download.html"):
     site_url = settings.SITEURL.rstrip("/") if settings.SITEURL.startswith("http") else settings.SITEURL
 
     register_event(request, EventType.EVENT_DOWNLOAD, map_obj)
+    increment_download_count(map_obj.id, request.user)
 
     return render(
         request,
