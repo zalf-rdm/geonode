@@ -44,6 +44,8 @@ from geonode.utils import check_ogc_backend
 from geonode.base import register_url_event
 from .people.views import CustomSignupView, CustomLoginView
 from oauth2_provider.urls import app_name as oauth2_app_name, base_urlpatterns, oidc_urlpatterns
+from wagtail.admin import urls as wagtailadmin_urls
+from wagtail.documents import urls as wagtaildocs_urls
 
 admin.autodiscover()
 
@@ -142,6 +144,7 @@ urlpatterns += [
     re_path(r"^api/v2/api-auth/", include("rest_framework.urls", namespace="geonode_rest_framework")),
     re_path(r"^api/v2/", include("geonode.facets.urls")),
     re_path(r"^api/v2/", include("geonode.assets.urls")),
+    re_path(r"^api/v2/zalf-cms/", include("geonode.zalf_cms.api.urls")),
     # metadata views
     re_path(r"^api/v2/", include("geonode.metadata.api.urls")),
     re_path(r"", include(api.urls)),
@@ -160,6 +163,8 @@ if "django_select2" in settings.INSTALLED_APPS:
 
 urlpatterns += i18n_patterns(
     re_path(r"^admin/", admin.site.urls, name="admin"),
+    re_path(r"^cms/documents/", include(wagtaildocs_urls)),
+    re_path(r"^cms/", include(wagtailadmin_urls)),
 )
 
 # Internationalization Javascript

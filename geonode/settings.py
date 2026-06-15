@@ -493,6 +493,18 @@ INSTALLED_APPS = (
     "widget_tweaks",
     "markdownify",
     "django_user_agents",
+    # Wagtail CMS
+    "wagtail.contrib.forms",
+    "wagtail.embeds",
+    "wagtail.sites",
+    "wagtail.users",
+    "wagtail.snippets",
+    "wagtail.documents",
+    "wagtail.images",
+    "wagtail.search",
+    "wagtail.admin",
+    "wagtail",
+    "modelcluster",
     # REST APIs
     "rest_framework",
     "rest_framework_gis",
@@ -2332,7 +2344,13 @@ SOCIALACCOUNT_GROUPNAME_PREFIX = os.environ.get("SOCIALACCOUNT_GROUPNAME_PREFIX"
 # END OF "ORCID"
 # =============================================================================
 
-INSTALLED_APPS += ("geonode.zalf",)
+INSTALLED_APPS += (
+    "geonode.zalf",
+    "geonode.zalf_cms.apps.ZalfCmsConfig",
+)
+
+WAGTAIL_SITE_NAME = os.getenv("WAGTAIL_SITE_NAME", "BonaRes Repository")
+WAGTAILADMIN_BASE_URL = os.getenv("WAGTAILADMIN_BASE_URL", SITEURL)
 
 
 
