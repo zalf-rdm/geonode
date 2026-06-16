@@ -10,33 +10,13 @@
             {% include 'geonode-mapstore-client/snippets/custom_theme.html' %}
         {% endblock %}
 
-        {% block extra_style %}
-            <style>
-                html, body, .gn-page-wrapper, .gn-theme.gn-homepage {
-                    min-height: 100%;
-                }
-
-                .gn-theme.gn-homepage #ms-container {
-                    min-height: 100vh;
-                    display: flex;
-                    flex-direction: column;
-                }
-
-                .gn-theme.gn-homepage #ms-action-navbar {
-                    position: sticky;
-                    top: 0;
-                    z-index: 1000;
-                }
-            </style>
-        {% endblock %}
-
         {% block extra_head %}
         {% endblock %}
     </head>
     <body class="msgapi ms2" data-ms2-container="ms2">
         <div class="gn-page-wrapper {% if request.user_agent.is_mobile %}gn-mobile{% else %}gn-desktop{% endif %}">
             <div class="gn-theme gn-homepage">
-                {% include 'geonode-mapstore-client/_geonode_config.html' with plugins_config_key='zalf_home' %}
+                {% include 'geonode-mapstore-client/_geonode_config.html' with plugins_config_key='zalf_faq' %}
 
                 {% block header %}
                     {% include 'geonode-mapstore-client/snippets/header.html' with show_hero=False %}
@@ -57,7 +37,7 @@
                     window.addEventListener('mapstore:ready', function(event) {
                         const msAPI = event.detail;
                         msAPI.setPluginsConfig((localConfig) => {
-                            return localConfig?.plugins?.zalf_home || [];
+                            return localConfig?.plugins?.zalf_faq || [];
                         });
                     });
                 </script>
