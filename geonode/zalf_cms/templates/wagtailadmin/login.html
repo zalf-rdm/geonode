@@ -1,0 +1,20 @@
+{% extends "wagtailadmin/login.html" %}
+{% load static i18n %}
+
+{% block titletag %}{% trans "Sign in" %} - ZALF CMS{% endblock %}
+
+{% block branding_login %}Sign in to ZALF CMS{% endblock %}
+
+{% block branding_logo %}
+    <div class="login-logo">
+        <span class="zalf-wagtail-brand">
+            <span class="zalf-wagtail-brand__media">
+                <img class="zalf-wagtail-brand__logo" src="{% static 'zalf_cms/img/logo_zalf_white_half.png' %}" alt="ZALF" />
+            </span>
+            <span class="zalf-wagtail-brand__copy">
+                <span class="zalf-wagtail-brand__title">ZALF CMS</span>
+                <span class="zalf-wagtail-brand__subtitle">BonaRes editorial workspace</span>
+            </span>
+        </span>
+    </div>
+{% endblock %}

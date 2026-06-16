@@ -1,0 +1,14 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static i18n %}
+
+{% block branding_logo %}
+    <a class="sidebar-custom-branding zalf-wagtail-brand" href="{% url 'wagtailadmin_home' %}" aria-label="{% trans 'ZALF CMS dashboard' %}">
+        <span class="zalf-wagtail-brand__media">
+            <img class="zalf-wagtail-brand__logo" src="{% static 'zalf_cms/img/logo_zalf_white_half.png' %}" alt="ZALF" />
+        </span>
+        <span class="zalf-wagtail-brand__copy">
+            <span class="zalf-wagtail-brand__title">ZALF CMS</span>
+            <span class="zalf-wagtail-brand__subtitle">BonaRes editorial workspace</span>
+        </span>
+    </a>
+{% endblock %}

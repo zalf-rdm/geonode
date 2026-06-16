@@ -7,9 +7,11 @@ from geonode.zalf_cms.api.views import (
     NewsPageListView,
     TrainingPageDetailView,
     TrainingPageListView,
+    ZalfCmsRootView,
 )
 
 urlpatterns = [
+    path("", ZalfCmsRootView.as_view(), name="zalf-cms-root"),
     path("banners/", BannerListView.as_view(), name="zalf-cms-banners"),
     path("highlight-cases/", HighlightCaseListView.as_view(), name="zalf-cms-highlight-cases"),
     path("trainings/", TrainingPageListView.as_view(), name="zalf-cms-trainings"),

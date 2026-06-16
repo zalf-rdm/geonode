@@ -26,6 +26,7 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.conf.urls.static import static
 from geonode.sitemap import DatasetSitemap, MapSitemap
 from django.views.generic import TemplateView
+from django.views.generic import RedirectView
 from django.contrib import admin
 from django.conf.urls.i18n import i18n_patterns
 from django.views.i18n import JavaScriptCatalog
@@ -152,6 +153,27 @@ urlpatterns += [
         r"uploads/upload",
         ImporterViewSet.as_view({"post": "create"}),
         name="importer_upload",
+    ),
+]
+
+# Wagtail's admin can still generate some auxiliary URLs with the short "en"
+# locale prefix even when the site locale is configured as "en-us".
+# Redirect those requests to the canonical "en-us" CMS URLs.
+urlpatterns += [
+    re_path(
+        r"^en/cms/jsi18n/$",
+        RedirectView.as_view(url="/en-us/cms/jsi18n/", permanent=False, query_string=True),
+        name="wagtail-jsi18n-en-redirect",
+    ),
+    re_path(
+        r"^en/cms/(?P<path>.*)$",
+        RedirectView.as_view(url="/en-us/cms/%(path)s", permanent=False, query_string=True),
+        name="wagtail-cms-en-redirect",
+    ),
+    re_path(
+        r"^en/jsi18n/$",
+        RedirectView.as_view(url="/jsi18n/", permanent=False, query_string=True),
+        name="javascript-catalog-en-redirect",
     ),
 ]
 

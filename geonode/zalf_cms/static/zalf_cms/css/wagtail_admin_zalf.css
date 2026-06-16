@@ -1,0 +1,272 @@
+:root {
+    --w-color-primary: #5d9d46;
+    --w-color-secondary: #b8cf1f;
+    --w-color-surface-page: #f5f7fa;
+    --w-color-surface-header: #ffffff;
+    --w-color-surface-field: #ffffff;
+    --w-color-surface-button-default: #ffffff;
+    --w-color-surface-button-hover: #edf5f0;
+    --w-color-border-furniture: rgba(19, 34, 56, 0.12);
+    --w-color-border-field-default: rgba(19, 34, 56, 0.14);
+    --w-color-text-label: #132238;
+    --w-color-text-context: #4c6177;
+    --w-color-text-link-default: #2d6f35;
+    --w-color-text-link-hover: #5d9d46;
+    --w-color-surface-menus: #07131f;
+    --w-color-surface-menu-item-active: #6d8f2c;
+    --w-color-text-label-menus-default: rgba(248, 251, 255, 0.84);
+    --w-color-text-label-menus-active: #ffffff;
+    --w-color-box-shadow-md: rgba(7, 19, 31, 0.14);
+    --w-login-fullscreen-background:
+        radial-gradient(circle at 18% 18%, rgba(164, 182, 41, 0.18), transparent 24%),
+        radial-gradient(circle at 82% 10%, rgba(93, 157, 70, 0.24), transparent 26%),
+        linear-gradient(135deg, #07131f 0%, #163028 55%, #2d6f35 100%);
+}
+
+body#wagtail {
+    background: linear-gradient(180deg, #f5f7fa 0%, #edf5f0 100%);
+    color: #132238;
+}
+
+body#wagtail,
+body#wagtail input,
+body#wagtail textarea,
+body#wagtail select,
+body#wagtail button {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+.sidebar {
+    background:
+        radial-gradient(circle at 14% 12%, rgba(184, 207, 31, 0.16), transparent 18%),
+        linear-gradient(180deg, #07131f 0%, #10271d 100%);
+    box-shadow: 24px 0 48px rgba(7, 19, 31, 0.22);
+}
+
+.sidebar-menu-item__link,
+.sidebar-footer__account,
+.sidebar-wagtail-branding,
+.sidebar-custom-branding {
+    border-radius: 14px;
+}
+
+.sidebar-menu-item,
+.sidebar-sub-menu-panel,
+.sidebar-footer {
+    color: var(--w-color-text-label-menus-default);
+}
+
+.sidebar-menu-item__link:hover,
+.sidebar-menu-item__link:focus,
+.sidebar-menu-item--active > .sidebar-menu-item__link,
+.sidebar-sub-menu-item--open > .sidebar-menu-item__link,
+.sidebar-footer__account:hover,
+.sidebar-footer__account:focus {
+    background: linear-gradient(135deg, #5d9d46 0%, #7bb23e 100%);
+    color: #ffffff;
+}
+
+.sidebar__collapse-toggle {
+    border-radius: 999px;
+    color: rgba(248, 251, 255, 0.84);
+}
+
+.sidebar__collapse-toggle:hover,
+.sidebar__collapse-toggle:focus {
+    background: rgba(184, 207, 31, 0.18);
+    color: #ffffff;
+}
+
+.sidebar-sub-menu-panel {
+    background: linear-gradient(180deg, #10271d 0%, #07131f 100%);
+    border-inline-start: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-menu-item--active .icon,
+.sidebar-sub-menu-item--open .icon,
+.sidebar-menu-item__link:hover .icon,
+.sidebar-menu-item__link:focus .icon {
+    color: #ffffff;
+}
+
+.zalf-wagtail-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 68px;
+    padding: 14px 16px;
+    margin: 6px 0 14px;
+    background: linear-gradient(135deg, rgba(93, 157, 70, 0.24) 0%, rgba(184, 207, 31, 0.12) 100%);
+    border: 1px solid rgba(184, 207, 31, 0.2);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.sidebar--slim .zalf-wagtail-brand {
+    justify-content: center;
+    min-height: 58px;
+    padding: 10px 0;
+}
+
+.zalf-wagtail-brand__logo {
+    display: block;
+    width: 86px;
+    height: auto;
+}
+
+.sidebar--slim .zalf-wagtail-brand__logo {
+    width: 42px;
+}
+
+.zalf-wagtail-brand__copy {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.sidebar--slim .zalf-wagtail-brand__copy {
+    display: none;
+}
+
+.zalf-wagtail-brand__title {
+    color: #ffffff;
+    font-size: 0.98rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    line-height: 1.1;
+}
+
+.zalf-wagtail-brand__subtitle {
+    color: rgba(248, 251, 255, 0.74);
+    font-size: 0.72rem;
+    line-height: 1.3;
+    margin-top: 4px;
+}
+
+.content-wrapper,
+.login .content-wrapper {
+    border-radius: 22px;
+    box-shadow: 0 20px 48px rgba(7, 19, 31, 0.1);
+}
+
+.w-header,
+.w-slim-header {
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(14px);
+}
+
+.w-header__title,
+.w-h1,
+.w-h2,
+.w-h3 {
+    color: #132238;
+}
+
+.w-panel,
+.w-summary,
+.w-dialog,
+.w-tabs,
+.w-field,
+.object,
+.help-block,
+.messages,
+.w-box {
+    border-radius: 18px;
+}
+
+.button,
+.button-secondary,
+.w-header-button,
+.button-longrunning {
+    border-radius: 999px;
+}
+
+.button,
+.button-longrunning,
+.w-header-button {
+    background: linear-gradient(135deg, #5d9d46 0%, #7bb23e 100%);
+    border-color: transparent;
+    color: #ffffff;
+    box-shadow: 0 12px 24px rgba(93, 157, 70, 0.22);
+}
+
+.button:hover,
+.button:focus,
+.button-longrunning:hover,
+.button-longrunning:focus,
+.w-header-button:hover,
+.w-header-button:focus {
+    background: linear-gradient(135deg, #6aa54f 0%, #8abc49 100%);
+    color: #ffffff;
+}
+
+.button-secondary,
+.button.button-secondary {
+    background: linear-gradient(135deg, #d8db3a 0%, #b8cf1f 100%);
+    color: #132238;
+    box-shadow: 0 12px 24px rgba(184, 207, 31, 0.18);
+}
+
+.button-secondary:hover,
+.button-secondary:focus,
+.button.button-secondary:hover,
+.button.button-secondary:focus {
+    color: #07131f;
+}
+
+input,
+textarea,
+select,
+.w-field__input,
+.tagit,
+.Draftail-Editor {
+    border-radius: 12px;
+}
+
+input:focus,
+textarea:focus,
+select:focus,
+.w-field__input:focus,
+.Draftail-Editor:focus-within {
+    border-color: #7bb23e;
+    box-shadow: 0 0 0 3px rgba(123, 178, 62, 0.16);
+}
+
+.login .content-wrapper {
+    background: rgba(255, 255, 255, 0.96);
+}
+
+.login h1 {
+    color: #132238;
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.login .login-logo {
+    width: 100%;
+    margin: 0 0 1.5rem;
+    text-align: center;
+}
+
+.login .zalf-wagtail-brand {
+    display: inline-flex;
+    justify-content: center;
+    width: auto;
+    min-width: 240px;
+    padding: 18px 24px;
+    margin: 0;
+}
+
+.login .zalf-wagtail-brand__logo {
+    width: 116px;
+}
+
+.login .zalf-wagtail-brand__subtitle {
+    max-width: 18ch;
+}
+
+.messages li.success,
+.messages li.warning,
+.messages li.error {
+    border-radius: 12px;
+}

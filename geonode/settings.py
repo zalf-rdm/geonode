@@ -2344,10 +2344,16 @@ SOCIALACCOUNT_GROUPNAME_PREFIX = os.environ.get("SOCIALACCOUNT_GROUPNAME_PREFIX"
 # END OF "ORCID"
 # =============================================================================
 
-INSTALLED_APPS += (
-    "geonode.zalf",
-    "geonode.zalf_cms.apps.ZalfCmsConfig",
-)
+if "geonode.zalf" not in INSTALLED_APPS:
+    INSTALLED_APPS += ("geonode.zalf",)
+
+if "geonode.zalf_cms.apps.ZalfCmsConfig" not in INSTALLED_APPS:
+    wagtail_admin_index = INSTALLED_APPS.index("wagtail.admin") if "wagtail.admin" in INSTALLED_APPS else len(INSTALLED_APPS)
+    INSTALLED_APPS = (
+        INSTALLED_APPS[:wagtail_admin_index]
+        + ("geonode.zalf_cms.apps.ZalfCmsConfig",)
+        + INSTALLED_APPS[wagtail_admin_index:]
+    )
 
 WAGTAIL_SITE_NAME = os.getenv("WAGTAIL_SITE_NAME", "BonaRes Repository")
 WAGTAILADMIN_BASE_URL = os.getenv("WAGTAILADMIN_BASE_URL", SITEURL)
