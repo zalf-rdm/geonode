@@ -41,6 +41,14 @@ class HighlightCaseListView(generics.ListAPIView):
         return HighlightCase.objects.filter(is_active=True).order_by("order", "title")
 
 
+class HighlightCaseDetailView(generics.RetrieveAPIView):
+    serializer_class = HighlightCaseSerializer
+    lookup_field = "slug"
+
+    def get_queryset(self):
+        return HighlightCase.objects.filter(is_active=True)
+
+
 class TrainingPageListView(generics.ListAPIView):
     serializer_class = TrainingPageSerializer
 

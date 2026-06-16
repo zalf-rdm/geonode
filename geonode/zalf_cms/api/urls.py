@@ -2,6 +2,7 @@ from django.urls import path
 
 from geonode.zalf_cms.api.views import (
     BannerListView,
+    HighlightCaseDetailView,
     HighlightCaseListView,
     NewsPageDetailView,
     NewsPageListView,
@@ -14,6 +15,7 @@ urlpatterns = [
     path("", ZalfCmsRootView.as_view(), name="zalf-cms-root"),
     path("banners/", BannerListView.as_view(), name="zalf-cms-banners"),
     path("highlight-cases/", HighlightCaseListView.as_view(), name="zalf-cms-highlight-cases"),
+    path("highlight-cases/<slug:slug>/", HighlightCaseDetailView.as_view(), name="zalf-cms-highlight-case-detail"),
     path("trainings/", TrainingPageListView.as_view(), name="zalf-cms-trainings"),
     path("trainings/<slug:slug>/", TrainingPageDetailView.as_view(), name="zalf-cms-training-detail"),
     path("news/", NewsPageListView.as_view(), name="zalf-cms-news"),

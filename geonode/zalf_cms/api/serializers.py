@@ -44,6 +44,10 @@ def linked_page_url(page, request):
     return public_url or ""
 
 
+def highlight_case_url(obj, request):
+    return reverse("zalf-cms-highlight-case-detail", kwargs={"slug": obj.slug}, request=request)
+
+
 class BannerSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
     url = serializers.SerializerMethodField()
@@ -63,16 +67,22 @@ class BannerSerializer(serializers.ModelSerializer):
 
 
 class HighlightCaseSerializer(serializers.ModelSerializer):
+    slug = serializers.CharField(read_only=True)
     image = serializers.SerializerMethodField()
+    url = serializers.SerializerMethodField()
 
     class Meta:
         model = HighlightCase
-        fields = ("id", "title", "subtitle", "description", "image", "link", "button_text", "order")
+        fields = ("id", "title", "slug", "subtitle", "description", "image", "link", "url", "button_text", "order")
 
     def get_image(self, obj):
         if obj.image:
             obj.image._serializer_request = self.context.get("request")
         return image_url(obj.image)
+
+    def get_url(self, obj):
+        request = self.context.get("request")
+        return highlight_case_url(obj, request)
 
 
 class TrainingPageSerializer(serializers.ModelSerializer):

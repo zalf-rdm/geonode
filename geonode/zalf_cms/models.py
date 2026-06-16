@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils.text import slugify
 
 from wagtail import blocks
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel, PageChooserPanel
@@ -205,6 +206,7 @@ class Banner(models.Model):
 
 
 class HighlightCase(models.Model):
+    slug = models.SlugField(max_length=180, unique=True, null=True, blank=True)
     title = models.CharField(max_length=160)
     subtitle = models.CharField(max_length=255, blank=True)
     description = models.TextField(blank=True)
@@ -237,6 +239,17 @@ class HighlightCase(models.Model):
 
     class Meta:
         ordering = ("order", "title")
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(self.title) or "highlight-case"
+            slug_candidate = base_slug
+            counter = 2
+            while HighlightCase.objects.exclude(pk=self.pk).filter(slug=slug_candidate).exists():
+                slug_candidate = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug_candidate
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.title
