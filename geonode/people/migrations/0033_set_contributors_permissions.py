@@ -23,10 +23,14 @@ def assign_permissions_to_contributors(apps, schema_editor):
             )
             contr_obj.permissions.add(perm)
             contr_obj.save()
-            contr_obj.permissions.filter(codename='base_addresourcebase').delete()
+            # Remove the obsolete group-permission relation without deleting the Permission row.
+            contr_obj.permissions.remove(
+                *contr_obj.permissions.filter(codename='base_addresourcebase')
+            )
         except IntegrityError:
             pass
-    Permission.objects.filter(codename='base_addresourcebase').delete()
+    with schema_editor.connection.cursor() as cursor:
+        cursor.execute("DELETE FROM auth_permission WHERE codename = %s", ["base_addresourcebase"])
 
 
 class Migration(migrations.Migration):

@@ -40,6 +40,8 @@ class EditorialPage(Page):
         blank=True,
         on_delete=models.SET_NULL,
         related_name="+",
+        verbose_name="Training Thumbnail (300x300px)",
+        help_text="Recommended size for the homepage: 300x300 px.",
     )
     body = StreamField(ContentBodyBlock(), blank=True, use_json_field=True)
 
@@ -102,7 +104,7 @@ class NewsIndexPage(Page):
 class TrainingPage(EditorialPage):
     level = models.CharField(max_length=80, blank=True)
     duration = models.CharField(max_length=80, blank=True)
-    source = models.CharField(max_length=120, blank=True)
+    source = models.CharField("Owner//Partner", max_length=120, blank=True)
     external_link = models.URLField(blank=True)
     is_featured = models.BooleanField(default=False)
 
