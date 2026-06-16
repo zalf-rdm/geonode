@@ -81,6 +81,8 @@ urlpatterns += [
     # ResourceBase views
     re_path(r"^base/", include("geonode.base.urls")),
     re_path(r"^resources/", include("geonode.base.base_urls")),
+    re_path(r"^trainings/(?P<slug>[^/]*)/?$", TemplateView.as_view(template_name="page.html"), name="training-detail"),
+    re_path(r"^highlight-cases/(?P<slug>[^/]*)/?$", TemplateView.as_view(template_name="page.html"), name="highlight-case-detail"),
     # Dataset views
     re_path(r"^datasets/", include("geonode.layers.urls")),
     # Remote Services views

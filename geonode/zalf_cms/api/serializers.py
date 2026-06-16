@@ -1,5 +1,5 @@
+from django.urls import reverse
 from rest_framework import serializers
-from rest_framework.reverse import reverse
 
 from geonode.zalf_cms.models import Banner, HighlightCase, NewsPage, TrainingPage
 
@@ -27,7 +27,8 @@ def page_url(obj, request, detail_route_name):
     public_url = obj.get_url(request=request)
     if public_url:
         return public_url
-    return reverse(detail_route_name, kwargs={"slug": obj.slug}, request=request)
+    path = reverse(detail_route_name, kwargs={"slug": obj.slug})
+    return request.build_absolute_uri(path) if request else path
 
 
 def linked_page_url(page, request):
@@ -45,7 +46,8 @@ def linked_page_url(page, request):
 
 
 def highlight_case_url(obj, request):
-    return reverse("zalf-cms-highlight-case-detail", kwargs={"slug": obj.slug}, request=request)
+    path = reverse("zalf-cms-highlight-case-detail", kwargs={"slug": obj.slug})
+    return request.build_absolute_uri(path) if request else path
 
 
 class BannerSerializer(serializers.ModelSerializer):
