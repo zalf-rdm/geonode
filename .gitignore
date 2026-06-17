@@ -98,3 +98,4 @@ scripts/spcgeonode/_volume_*
 
 .devcontainer/.env
 *.env
+testing/
