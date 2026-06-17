@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 from django.apps import AppConfig
 from django.urls import include, re_path
@@ -13,6 +14,14 @@ class UploadAppConfig(AppConfig):
     def run_setup_hooks():
         from django.conf import settings
         from geonode.urls import urlpatterns
+
+        project_templates_dir = str(Path(__file__).resolve().parents[1] / "templates")
+        template_dirs = settings.TEMPLATES[0].setdefault("DIRS", [])
+        if project_templates_dir in template_dirs:
+            settings.TEMPLATES[0]["DIRS"] = [
+                project_templates_dir,
+                *[template_dir for template_dir in template_dirs if template_dir != project_templates_dir]
+            ]
 
         if not getattr(settings, "ZALF_DATACITE_BASE_URL", None):
             logger.warning("Setting 'ZALF_DATACITE_BASE_URL' is not configured for DOI registration")

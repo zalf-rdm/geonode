@@ -1,0 +1,254 @@
+{% load i18n %}
+{% load static %}
+
+<div class="zalf-navigation-shell" data-zalf-source="server">
+    <header class="gn-main-header zalf-navigation" data-zalf-source="server" role="banner">
+        <div class="zalf-navigation__inner">
+            <a class="zalf-navigation__brand" href="/">
+                <img
+                    class="zalf-navigation__brand-logo"
+                    src="{% static 'img/logo_zalf_white_half.png' %}"
+                    alt="ZALF"
+                >
+            </a>
+
+            <button
+                type="button"
+                class="zalf-navigation__toggle"
+                aria-expanded="false"
+                aria-label="{% trans 'Toggle navigation menu' %}"
+            >
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+
+            <div class="zalf-navigation__content">
+                <nav class="zalf-navigation__primary" aria-label="{% trans 'Primary navigation' %}">
+                    <a class="zalf-navigation__link" href="/catalogue/">{% trans "All Data" %}</a>
+
+                    <div class="zalf-navigation__dropdown" data-zalf-dropdown>
+                        <button type="button" class="zalf-navigation__link zalf-navigation__dropdown-toggle" aria-expanded="false">
+                            {% trans "Topics" %}
+                            <span class="zalf-navigation__dropdown-caret">▾</span>
+                        </button>
+                        <div class="zalf-navigation__dropdown-menu is-wide">
+                            <div class="zalf-navigation__dropdown-column">
+                                <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Animals">{% trans "Animals" %}</a>
+                                <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Atmosphere">{% trans "Atmosphere" %}</a>
+                                <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Climate">{% trans "Climate" %}</a>
+                                <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Forest">{% trans "Forest" %}</a>
+                                <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Hydrology">{% trans "Hydrology" %}</a>
+                            </div>
+                            <div class="zalf-navigation__dropdown-column">
+                                <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Landscape">{% trans "Landscape" %}</a>
+                                <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Long%20Term%20Field%20Experiment">{% trans "Long Term Field Experiment" %}</a>
+                                <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Plants">{% trans "Plants" %}</a>
+                                <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Soil%20Profiles">{% trans "Soil Profiles" %}</a>
+                                <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Water">{% trans "Water" %}</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="zalf-navigation__dropdown" data-zalf-dropdown>
+                        <button type="button" class="zalf-navigation__link zalf-navigation__dropdown-toggle" aria-expanded="false">
+                            {% trans "Tools & Services" %}
+                            <span class="zalf-navigation__dropdown-caret">▾</span>
+                        </button>
+                        <div class="zalf-navigation__dropdown-menu">
+                            <a class="zalf-navigation__dropdown-link" href="https://tools.bonares.de/ltfe/" target="_blank" rel="noreferrer">{% trans "LTE Maps" %}</a>
+                            <a class="zalf-navigation__dropdown-link" href="https://tools.bonares.de/bp_db/" target="_blank" rel="noreferrer">{% trans "Soil Profiles" %}</a>
+                            <a class="zalf-navigation__dropdown-link" href="https://dqkit.bonares.de/" target="_blank" rel="noreferrer">{% trans "DQ Kit" %}</a>
+                        </div>
+                    </div>
+
+                    <a class="zalf-navigation__link" href="/upload">{% trans "Upload" %}</a>
+
+                    <div class="zalf-navigation__dropdown" data-zalf-dropdown>
+                        <button type="button" class="zalf-navigation__link zalf-navigation__dropdown-toggle" aria-expanded="false">
+                            {% trans "About" %}
+                            <span class="zalf-navigation__dropdown-caret">▾</span>
+                        </button>
+                        <div class="zalf-navigation__dropdown-menu">
+                            <a class="zalf-navigation__dropdown-link" href="/about">{% trans "About" %}</a>
+                            <a class="zalf-navigation__dropdown-link" href="/developer">{% trans "Developer" %}</a>
+                            <a class="zalf-navigation__dropdown-link" href="/ogc_and_api">{% trans "OGC Services and API" %}</a>
+                            <a class="zalf-navigation__dropdown-link" href="/faq">{% trans "FAQ" %}</a>
+                            <a class="zalf-navigation__dropdown-link" href="/data_policy">{% trans "Data Policy" %}</a>
+                            <a class="zalf-navigation__dropdown-link" href="/how_to_cite">{% trans "How to Cite Us" %}</a>
+                        </div>
+                    </div>
+                </nav>
+
+                <div class="zalf-navigation__tools">
+                    <div class="zalf-navigation__search-slot">
+                        {% include 'geonode-mapstore-client/snippets/search_bar.html' with search_bar_id='gn-search-bar' %}
+                    </div>
+                    <div class="zalf-navigation__utilities-slot">
+                        <ul class="gn-brand-navbar-right-menu-container ms-flex-box _flex _flex-gap-sm _flex-center-v">
+                            {% include 'geonode-mapstore-client/snippets/language_selector.html' with align_right=True %}
+                            {% include 'geonode-mapstore-client/snippets/brand_navbar_default_right_menu_items.html' %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+</div>
+
+{% if show_hero %}
+    {% include 'geonode-mapstore-client/snippets/hero.html' %}
+{% endif %}
+
+<script>
+    (function() {
+        const root = document.querySelector('.zalf-navigation-shell[data-zalf-source="server"]');
+        if (!root) {
+            return;
+        }
+
+        const toggle = root.querySelector('.zalf-navigation__toggle');
+        const content = root.querySelector('.zalf-navigation__content');
+        const dropdowns = Array.from(root.querySelectorAll('[data-zalf-dropdown]'));
+        const searchInput = root.querySelector('#gn-search-bar input');
+
+        if (searchInput) {
+            searchInput.placeholder = '{% trans "Search Datasets" %}';
+        }
+
+        function closeDropdowns(except) {
+            dropdowns.forEach((dropdown) => {
+                if (dropdown === except) {
+                    return;
+                }
+                dropdown.classList.remove('is-open');
+                const button = dropdown.querySelector('.zalf-navigation__dropdown-toggle');
+                if (button) {
+                    button.setAttribute('aria-expanded', 'false');
+                }
+                const menu = dropdown.querySelector('.zalf-navigation__dropdown-menu');
+                if (menu) {
+                    menu.classList.remove('is-open');
+                }
+            });
+        }
+
+        function setDropdownState(dropdown, isOpen) {
+            const button = dropdown.querySelector('.zalf-navigation__dropdown-toggle');
+            const menu = dropdown.querySelector('.zalf-navigation__dropdown-menu');
+            dropdown.classList.toggle('is-open', isOpen);
+            if (button) {
+                button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            }
+            if (menu) {
+                menu.classList.toggle('is-open', isOpen);
+            }
+        }
+
+        function closeMobileMenu() {
+            if (!toggle || !content) {
+                return;
+            }
+            toggle.classList.remove('is-open');
+            toggle.setAttribute('aria-expanded', 'false');
+            content.classList.remove('is-open');
+        }
+
+        function normalizeHref(href) {
+            if (!href) {
+                return '';
+            }
+            return href.replace(window.location.origin, '');
+        }
+
+        function isActiveLink(href) {
+            const normalizedHref = normalizeHref(href);
+            if (!normalizedHref || normalizedHref === '#') {
+                return false;
+            }
+            const currentPath = window.location.pathname;
+            const currentHash = window.location.hash || '';
+            const currentPathAndHash = currentPath + currentHash;
+
+            if (normalizedHref.indexOf('/catalogue/#/?q=') === 0) {
+                return currentPathAndHash === normalizedHref;
+            }
+            if (normalizedHref === '/catalogue/' || normalizedHref === '/catalogue') {
+                return currentPath === '/catalogue/' || currentPath === '/catalogue';
+            }
+            return currentPath === normalizedHref || currentPath === normalizedHref.replace(/\/$/, '');
+        }
+
+        function updateActiveLinks() {
+            const navLinks = Array.from(root.querySelectorAll('.zalf-navigation__link[href]'));
+            navLinks.forEach((link) => {
+                link.classList.toggle('is-active', isActiveLink(link.getAttribute('href')));
+            });
+
+            dropdowns.forEach((dropdown) => {
+                const button = dropdown.querySelector('.zalf-navigation__dropdown-toggle');
+                const hasActiveItem = Array.from(dropdown.querySelectorAll('.zalf-navigation__dropdown-link'))
+                    .some((link) => isActiveLink(link.getAttribute('href')));
+                if (button) {
+                    button.classList.toggle('is-active', hasActiveItem);
+                }
+            });
+        }
+
+        if (toggle && content) {
+            toggle.addEventListener('click', function() {
+                const isOpen = content.classList.toggle('is-open');
+                toggle.classList.toggle('is-open', isOpen);
+                toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+        }
+
+        dropdowns.forEach((dropdown) => {
+            const button = dropdown.querySelector('.zalf-navigation__dropdown-toggle');
+            if (!button) {
+                return;
+            }
+            button.addEventListener('click', function(event) {
+                event.preventDefault();
+                const isOpen = dropdown.classList.contains('is-open');
+                closeDropdowns(dropdown);
+                setDropdownState(dropdown, !isOpen);
+            });
+            dropdown.addEventListener('mouseenter', function() {
+                if (window.innerWidth < 992) {
+                    return;
+                }
+                closeDropdowns(dropdown);
+                setDropdownState(dropdown, true);
+            });
+            dropdown.addEventListener('mouseleave', function() {
+                if (window.innerWidth < 992) {
+                    return;
+                }
+                setDropdownState(dropdown, false);
+            });
+        });
+
+        document.addEventListener('click', function(event) {
+            if (!root.contains(event.target)) {
+                closeDropdowns();
+            }
+        });
+
+        window.addEventListener('hashchange', function() {
+            closeDropdowns();
+            closeMobileMenu();
+            updateActiveLinks();
+        });
+
+        window.addEventListener('resize', function() {
+            closeDropdowns();
+            if (window.innerWidth >= 992) {
+                closeMobileMenu();
+            }
+            updateActiveLinks();
+        });
+
+        updateActiveLinks();
+    })();
+</script>
