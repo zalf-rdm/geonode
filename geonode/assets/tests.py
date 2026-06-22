@@ -26,16 +26,16 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.http import StreamingHttpResponse
+from django.http import HttpResponse, StreamingHttpResponse
 from django.urls import reverse
+from django_downloadview import DownloadResponse
 
 
 from rest_framework.test import APITestCase
 from geonode.tests.base import GeoNodeBaseTestSupport
 
 from geonode.assets.handlers import asset_handler_registry
-from geonode.assets.local import LocalAssetHandler
+from geonode.assets.local import LocalAssetDownloadHandler, LocalAssetHandler, RawLocalAssetDownloadHandler
 from geonode.assets.models import Asset, LocalAsset
 from geonode.assets.utils import create_asset, create_asset_and_link, unlink_asset
 from geonode.base.models import ResourceBase, Link
@@ -451,6 +451,7 @@ class AssetsDownloadTests(APITestCase):
         return asset
 
 
+<<<<<<< HEAD
 class AssetCreationTests(GeoNodeBaseTestSupport):
 
     def setUp(self):
@@ -600,3 +601,131 @@ class DeleteAssetTests(GeoNodeBaseTestSupport):
         self.assertFalse(Asset.objects.filter(pk=asset_pk).exists())
         self.assertFalse(Link.objects.filter(pk=self.link1.pk).exists())
         self.assertFalse(os.path.exists(asset_file_path))
+=======
+class LocalAssetDownloadHandlerTests(APITestCase):
+    """Tests for LocalAssetDownloadHandler._resolve_file() and create_raw_response()."""
+
+    fixtures = ["initial_data.json", "group_test_data.json", "default_oauth_apps.json"]
+
+    def setUp(self):
+        self.user, _ = get_user_model().objects.get_or_create(username="admin")
+        asset_handler = asset_handler_registry.get_default_handler()
+        self.asset = asset_handler.create(
+            title="Test Asset",
+            description="Download handler test asset",
+            type="NeverMind",
+            owner=self.user,
+            files=[ONE_JSON],
+            clone_files=True,
+        )
+        self.asset.save()
+        self.handler = LocalAssetDownloadHandler()
+
+    def tearDown(self):
+        self.asset.delete()
+
+    # --- _resolve_file ---
+
+    def test_resolve_file_no_path_returns_default_file(self):
+        result = self.handler._resolve_file(self.asset, path=None)
+        self.assertIsInstance(result, tuple)
+        localfile, orig_base, ext = result
+        self.assertTrue(os.path.isfile(localfile))
+        self.assertEqual(ext, ".json")
+
+    def test_resolve_file_relative_path_returns_file(self):
+        result = self.handler._resolve_file(self.asset, path="one.json")
+        self.assertIsInstance(result, tuple)
+        localfile, orig_base, ext = result
+        self.assertTrue(os.path.isfile(localfile))
+
+    def test_resolve_file_absolute_path_returns_400(self):
+        """Absolute paths must be blocked (path traversal protection)."""
+        response = self.handler._resolve_file(self.asset, path="/etc/passwd")
+        self.assertIsInstance(response, HttpResponse)
+        self.assertEqual(response.status_code, 400)
+
+    def test_resolve_file_dotdot_traversal_returns_400(self):
+        """Directory traversal via '../' sequences must be blocked."""
+        response = self.handler._resolve_file(self.asset, path="../../etc/passwd")
+        self.assertIsInstance(response, HttpResponse)
+        self.assertEqual(response.status_code, 400)
+
+    def test_resolve_file_missing_path_returns_404(self):
+        """Requesting a file that doesn't exist under the asset dir returns 404."""
+        response = self.handler._resolve_file(self.asset, path="nonexistent.bin")
+        self.assertIsInstance(response, HttpResponse)
+        self.assertEqual(response.status_code, 404)
+
+    # --- create_raw_response ---
+
+    def test_create_raw_response_returns_download_response(self):
+        response = self.handler.create_raw_response(self.asset)
+        self.assertIsInstance(response, DownloadResponse)
+
+    def test_create_raw_response_attachment_header(self):
+        response = self.handler.create_raw_response(self.asset)
+        content_disposition = response.get("Content-Disposition", "")
+        self.assertIn("attachment", content_disposition)
+
+    def test_create_raw_response_uses_original_filename(self):
+        response = self.handler.create_raw_response(self.asset)
+        content_disposition = response.get("Content-Disposition", "")
+        self.assertIn("one.json", content_disposition)
+
+    def test_create_raw_response_custom_basename(self):
+        response = self.handler.create_raw_response(self.asset, basename="my_doc")
+        content_disposition = response.get("Content-Disposition", "")
+        self.assertIn("my_doc.json", content_disposition)
+
+    def test_create_raw_response_not_zip(self):
+        """Raw response must NOT be a ZIP stream."""
+        response = self.handler.create_raw_response(self.asset)
+        content_type = response.get("Content-Type", "")
+        self.assertNotIn("application/zip", content_type)
+
+    def test_create_raw_response_traversal_blocked(self):
+        response = self.handler.create_raw_response(self.asset, path="/etc/passwd")
+        self.assertIsInstance(response, HttpResponse)
+        self.assertEqual(response.status_code, 400)
+
+
+class RawLocalAssetDownloadHandlerTests(APITestCase):
+    """Tests for RawLocalAssetDownloadHandler.create_response()."""
+
+    fixtures = ["initial_data.json", "group_test_data.json", "default_oauth_apps.json"]
+
+    def setUp(self):
+        self.user, _ = get_user_model().objects.get_or_create(username="admin")
+        asset_handler = asset_handler_registry.get_default_handler()
+        self.asset = asset_handler.create(
+            title="Test Raw Asset",
+            description="Raw download handler test asset",
+            type="NeverMind",
+            owner=self.user,
+            files=[ONE_JSON],
+            clone_files=True,
+        )
+        self.asset.save()
+        self.handler = RawLocalAssetDownloadHandler()
+
+    def tearDown(self):
+        self.asset.delete()
+
+    def test_create_response_returns_download_response(self):
+        response = self.handler.create_response(self.asset, attachment=True)
+        self.assertIsInstance(response, DownloadResponse)
+
+    def test_create_response_not_zip(self):
+        response = self.handler.create_response(self.asset, attachment=True)
+        content_type = response.get("Content-Type", "")
+        self.assertNotIn("application/zip", content_type)
+
+    def test_create_response_traversal_blocked(self):
+        response = self.handler.create_response(self.asset, path="/etc/passwd")
+        self.assertIsInstance(response, HttpResponse)
+        self.assertEqual(response.status_code, 400)
+
+    def test_create_response_inherits_from_local_handler(self):
+        self.assertIsInstance(self.handler, LocalAssetDownloadHandler)
+>>>>>>> main

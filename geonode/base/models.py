@@ -1153,6 +1153,7 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         null=True, default='<gmd:MD_Metadata xmlns:gmd="http://www.isotc211.org/2005/gmd"/>', blank=True
     )
     popular_count = models.IntegerField(default=0)
+    download_count = models.IntegerField(default=0)
     share_count = models.IntegerField(default=0)
     featured = models.BooleanField(
         _("Featured"), default=False, help_text=_("Should this resource be advertised in home page?")

@@ -31,7 +31,7 @@ from geonode.assets.handlers import asset_handler_registry
 from geonode.assets.serializers import AssetSerializer
 from geonode.assets.utils import get_perms_response
 from geonode.assets.models import Asset
-
+from geonode.base.utils import increment_download_count
 from geonode.base.api.filters import (
     DynamicSearchFilter,
 )
@@ -86,6 +86,8 @@ class AssetViewSet(DynamicModelViewSet):
             return bad_response
         asset_handler = asset_handler_registry.get_handler(asset)
         # TODO: register_event(request, EventType.EVENT_DOWNLOAD, asset)
+        if attachment and asset.resource_id:
+            increment_download_count(asset.resource_id, request.user)
         return asset_handler.get_download_handler(asset).create_response(asset, path=path, attachment=attachment)
 
     @action(
