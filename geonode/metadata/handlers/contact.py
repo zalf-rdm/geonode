@@ -90,10 +90,12 @@ class ContactHandler(MetadataHandler):
             if role == Roles.OWNER:
                 continue
             rolename = ROLE_NAMES_MAP[role]
-            role_choices.append({
-                "const": rolename,
-                "title": self._localize_label(context, lang, role.label),
-            })
+            role_choices.append(
+                {
+                    "const": rolename,
+                    "title": self._localize_label(context, lang, role.label),
+                }
+            )
 
         # Owner — separate single-value field
         owner_schema = {
@@ -184,9 +186,11 @@ class ContactHandler(MetadataHandler):
             rolename = ROLE_NAMES_MAP[role]
             if role.is_required:
                 required_rolenames.add(rolename)
-            crs = ContactRole.objects.filter(
-                role=role.role_value, resource=resource
-            ).select_related("contact").order_by("order")
+            crs = (
+                ContactRole.objects.filter(role=role.role_value, resource=resource)
+                .select_related("contact")
+                .order_by("order")
+            )
             users = [__create_user_entry(cr.contact) for cr in crs]
             if users or role.is_required:
                 contact_roles.append({"role": rolename, "users": users})
@@ -205,8 +209,7 @@ class ContactHandler(MetadataHandler):
                 errors,
                 ["contacts", "owner"],
                 self.localize_message(
-                    context, "metadata_contact_error_missing_role",
-                    {"fieldname": field_name, "role": "owner"}
+                    context, "metadata_contact_error_missing_role", {"fieldname": field_name, "role": "owner"}
                 ),
             )
         else:
@@ -253,9 +256,7 @@ class ContactHandler(MetadataHandler):
                 try:
                     uid = u["id"] if isinstance(u, dict) else u
                     user = get_user_model().objects.get(pk=uid)
-                    ContactRole.objects.create(
-                        role=role_value, resource=resource, contact=user, order=idx
-                    )
+                    ContactRole.objects.create(role=role_value, resource=resource, contact=user, order=idx)
                 except get_user_model().DoesNotExist:
                     uid = u.get("id") if isinstance(u, dict) else u
                     logger.warning(f"User with id {uid} not found for role '{rolename}'")
