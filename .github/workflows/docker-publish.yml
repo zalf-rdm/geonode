@@ -2,7 +2,7 @@ name: Docker Build and Push
 
 on:
   push:
-    branches: [ "GeoNode-v4.4.3-zalf00X" ]
+    branches: [ "GeoNode-v4.4.3-zalf002" ]
   workflow_dispatch:
 
 env:
