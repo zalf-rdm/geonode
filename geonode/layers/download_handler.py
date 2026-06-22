@@ -18,8 +18,11 @@
 #########################################################################
 
 import logging
+import xml.etree.ElementTree as ET
 
-from django.http import Http404
+from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
+from django.template.loader import get_template
+from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 
@@ -27,6 +30,8 @@ from geonode.base.auth import get_or_create_token
 from geonode.base.utils import increment_download_count
 from geonode.geoserver.helpers import wps_format_is_supported
 from geonode.layers.views import _resolve_dataset
+from geonode.proxy.views import fetch_response_headers
+from geonode.utils import HttpClient
 
 logger = logging.getLogger("geonode.layers.download_handler")
 

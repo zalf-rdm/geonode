@@ -40,7 +40,7 @@ from django.utils.text import slugify
 from geonode.documents.models import Document
 from geonode.base import register_event
 from geonode.base.utils import increment_download_count
-from geonode.monitoring.models import EventType
+from geonode.base.enumerations import EventType
 
 
 logger = logging.getLogger(__name__)
