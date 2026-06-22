@@ -24,6 +24,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Count
 
 from geonode.facets.models import FacetProvider, DEFAULT_FACET_PAGE_SIZE, FACET_TYPE_USER
+from geonode.people import Roles
 
 logger = logging.getLogger(__name__)
 
@@ -107,3 +108,86 @@ class OwnerFacetProvider(FacetProvider):
     @classmethod
     def register(cls, registry, **kwargs) -> None:
         registry.register_facet_provider(OwnerFacetProvider(**kwargs))
+
+
+class AuthorFacetProvider(FacetProvider):
+    """
+    Implements faceting for metadata authors of the resources.
+    """
+
+    @property
+    def name(self) -> str:
+        return "author"
+
+    def get_info(self, lang="en", **kwargs) -> dict:
+        return {
+            "name": "author",
+            "filter": "filter{author.pk.in}",
+            "label": _("Authors"),
+            "type": FACET_TYPE_USER,
+        }
+
+    def get_facet_items(
+        self,
+        queryset=None,
+        start: int = 0,
+        end: int = DEFAULT_FACET_PAGE_SIZE,
+        lang="en",
+        topic_contains: str = None,
+        keys: set = {},
+        **kwargs,
+    ) -> (int, list):
+        logger.debug("Retrieving facets for AUTHOR")
+
+        filters = {
+            "contacts__contactrole__role": Roles.METADATA_AUTHOR.role_value,
+        }
+
+        if topic_contains:
+            filters["contacts__username__icontains"] = topic_contains
+
+        if keys:
+            logger.debug("Filtering by keys %r", keys)
+            filters["contacts__in"] = keys
+
+        q = (
+            queryset.values("contacts", "contacts__username")
+            .filter(**filters)
+            .annotate(count=Count("contacts", distinct=True))
+            .order_by("-count")
+        )
+
+        cnt = q.count()
+
+        logger.info("Found %d facets for %s", cnt, self.name)
+        logger.debug(" ---> %s\n\n", q.query)
+        logger.debug(" ---> %r\n\n", q.all())
+
+        topics = [
+            {
+                "key": r["contacts"],
+                "label": r["contacts__username"],
+                "count": r["count"],
+            }
+            for r in q[start:end]
+        ]
+
+        return cnt, topics
+
+    def get_topics(self, keys: list, lang="en", **kwargs) -> list:
+        q = get_user_model().objects.filter(id__in=keys).values("id", "username")
+
+        logger.debug(" ---> %s\n\n", q.query)
+        logger.debug(" ---> %r\n\n", q.all())
+
+        return [
+            {
+                "key": r["id"],
+                "label": r["username"],
+            }
+            for r in q.all()
+        ]
+
+    @classmethod
+    def register(cls, registry, **kwargs) -> None:
+        registry.register_facet_provider(AuthorFacetProvider(**kwargs))
