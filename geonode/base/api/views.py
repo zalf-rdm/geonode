@@ -47,8 +47,8 @@ from rest_framework.decorators import action
 from rest_framework.parsers import JSONParser, MultiPartParser
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
-from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.mixins import CreateModelMixin, ListModelMixin, RetrieveModelMixin
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated, IsAuthenticatedOrReadOnly
 
 from geonode.maps.models import Map
 from geonode.layers.models import Dataset
@@ -318,7 +318,13 @@ class RelatedIdentifierTypeViewSet(WithDynamicViewSetMixin, ListModelMixin, Retr
     pagination_class = GeoNodeApiPagination
 
 
-class RelatedIdentifierViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
+class RelatedIdentifierViewSet(
+    WithDynamicViewSetMixin,
+    CreateModelMixin,
+    ListModelMixin,
+    RetrieveModelMixin,
+    GenericViewSet,
+):
     """
     API endpoint that lists relatedidentifier.
     """
@@ -328,6 +334,11 @@ class RelatedIdentifierViewSet(WithDynamicViewSetMixin, ListModelMixin, Retrieve
     queryset = RelatedIdentifier.objects.all()
     serializer_class = RelatedIdentifierSerializer
     pagination_class = GeoNodeApiPagination
+
+    def get_permissions(self):
+        if self.action == "create":
+            return [IsAdminUser()]
+        return [AllowAny()]
 
 
 class ResourceTypeGeneralViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
@@ -342,19 +353,36 @@ class ResourceTypeGeneralViewSet(WithDynamicViewSetMixin, ListModelMixin, Retrie
     pagination_class = GeoNodeApiPagination
 
 
-class OrganizationViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
+class OrganizationViewSet(
+    WithDynamicViewSetMixin,
+    CreateModelMixin,
+    ListModelMixin,
+    RetrieveModelMixin,
+    GenericViewSet,
+):
     """
     API endpoint that lists Organizations, which are used as Funders and Organizations people are related to.
     """
 
     permission_classes = [AllowAny]
     filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter]
-    queryset = Organization.objects.all()
+    queryset = Organization.objects.all().order_by("organization", "id")
     serializer_class = OrganizationSerializer
     pagination_class = GeoNodeApiPagination
 
+    def get_permissions(self):
+        if self.action == "create":
+            return [IsAdminUser()]
+        return [AllowAny()]
 
-class FundingViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):
+
+class FundingViewSet(
+    WithDynamicViewSetMixin,
+    CreateModelMixin,
+    ListModelMixin,
+    RetrieveModelMixin,
+    GenericViewSet,
+):
     """
     API endpoint that lists Fundings.
     """
@@ -364,6 +392,11 @@ class FundingViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin
     queryset = Funding.objects.all()
     serializer_class = FundingSerializer
     pagination_class = GeoNodeApiPagination
+
+    def get_permissions(self):
+        if self.action == "create":
+            return [IsAdminUser()]
+        return [AllowAny()]
 
 
 class RelatedProjectViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):

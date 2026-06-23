@@ -464,7 +464,7 @@ INSTALLED_APPS = (
     # 'django_admin_bootstrapped.bootstrap3',
     # 'django_admin_bootstrapped',
     # Apps bundled with Django
-    # "importer_datapackage",  # TODO: re-enable after porting to 5.0.2
+    "importer_datapackage",
     "modeltranslation",
     "dal",
     "dal_select2",
@@ -2161,11 +2161,10 @@ IMPORTER_HANDLERS = ast.literal_eval(os.getenv("IMPORTER_HANDLERS", "[]"))
 
 IMPORTER_ENABLE_DYN_MODELS = ast.literal_eval(os.environ.get("IMPORTER_ENABLE_DYN_MODELS", "True"))
 
-# TODO: re-enable after porting importer_datapackage to 5.0.2
-# IMPORTER_HANDLERS = [
-#     "importer_datapackage.handlers.datapackage.handler.DataPackageFileHandler",
-#     *IMPORTER_HANDLERS,
-# ]
+IMPORTER_HANDLERS = [
+    "importer_datapackage.handlers.datapackage.handler.DataPackageFileHandler",
+    *IMPORTER_HANDLERS,
+]
 
 
 INSTALLED_APPS += ("geonode.facets",)
