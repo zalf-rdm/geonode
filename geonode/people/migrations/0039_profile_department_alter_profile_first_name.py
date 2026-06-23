@@ -10,16 +10,23 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="profile",
-            name="department",
-            field=models.CharField(
-                blank=True,
-                help_text="Department name or structural unit name of the responsible organization or individual",
-                max_length=512,
-                null=True,
-                verbose_name="Department Name (Structural Unit)",
-            ),
+        # department column already exists in DB from ZALF 4.4.3 migration —
+        # update migration state only, skip DDL
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AddField(
+                    model_name="profile",
+                    name="department",
+                    field=models.CharField(
+                        blank=True,
+                        help_text="Department name or structural unit name of the responsible organization or individual",
+                        max_length=512,
+                        null=True,
+                        verbose_name="Department Name (Structural Unit)",
+                    ),
+                ),
+            ],
+            database_operations=[],
         ),
         migrations.AlterField(
             model_name="profile",
