@@ -1,0 +1,29 @@
+{% load static %}
+{% load client_lib_tags %}
+{% load client_version %}
+<!DOCTYPE html>
+<html>
+    <head>
+        {% include './snippets/head.html' %}
+        {% include './snippets/loader_style.html' %}
+
+        {% block custom_theme %}
+            {% include './snippets/custom_theme.html' %}
+        {% endblock %}
+
+        {% block extra_style %}
+            {% include './snippets/metadata_style.html' %}
+        {% endblock %}
+
+    </head>
+    <body class="msgapi ms2" data-ms2-container="ms2" >
+        <div class="gn-page-wrapper {% if request.user_agent.is_mobile %}gn-mobile{% else %}gn-desktop{% endif %}">
+            {% block gn_config %}
+                {% include './_geonode_config.html' with plugins_config_key='map_embed' is_embed='true' %}
+            {% endblock %}
+            <div class="gn-metadata-page">
+                {% include './snippets/metadata_view.html' with resource=resource metadata_groups=metadata_groups %}
+            </div>
+        </div>
+    </body>
+</html>

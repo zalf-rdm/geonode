@@ -1,0 +1,100 @@
+{% load i18n %}
+
+{% if not schema.type %}
+    {% if raw.type == 'thumbnail' %}
+        <img src="{{raw.value}}"/>
+    {% elif raw.type == 'link' %}
+        <a href="{{ raw.url }}" target="_blank" rel="noopener noreferrer">{{ raw.text }}</a>
+    {% else %}
+            {{raw}}
+    {% endif %} 
+{% elif schema.type == 'object' %}
+    {% if value.items|length == 2 and value.id and value.label %}
+        {{value.label.value}}
+    {% else %}
+        <ul>
+        {% for property_key, property in value.items %}
+            <li>
+                {% if property.schema.title %}
+                    <i>{{property.schema.title}} </i>:
+                {% else %}
+                    <i>{{property_key}} </i>:
+                {% endif %}
+                {% include 'geonode-mapstore-client/snippets/metadata_field_value.html' with name=name value=property.value schema=property.schema %}
+            </li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+{% elif schema.type == 'array' %}
+    {% with first_item=value|first %}
+    {% if name == 'fundings' or name == 'funders' or first_item.value.organization or first_item.value.award_title or first_item.value.award_number %}
+        <div class="gn-metadata-special-list gn-metadata-special-list--funders">
+        {% for property in value %}
+            <div class="gn-metadata-special-card gn-metadata-special-card--funder">
+                {% for property_key, child in property.value.items %}
+                    {% if forloop.first %}
+                        <div class="gn-metadata-funder-org">
+                            <span class="gn-metadata-funder-name">
+                                {% include 'geonode-mapstore-client/snippets/metadata_field_value.html' with name=property_key value=child.value schema=child.schema raw=child %}
+                            </span>
+                        </div>
+                    {% elif property_key == 'award_uri' or property_key == 'Award URI' %}
+                        <div class="gn-metadata-funder-link-wrap">
+                            {% include 'geonode-mapstore-client/snippets/metadata_field_value.html' with name=property_key value=child.value schema=child.schema raw=child %}
+                        </div>
+                    {% else %}
+                        <div class="gn-metadata-funder-award">
+                            <span class="gn-metadata-funder-award-label">{{ child.schema.title|default:property_key }}</span>
+                            <span class="{% if property_key == 'award_number' or property_key == 'Award Number' %}gn-metadata-funder-award-num{% else %}gn-metadata-funder-award-title{% endif %}">
+                                {% include 'geonode-mapstore-client/snippets/metadata_field_value.html' with name=property_key value=child.value schema=child.schema raw=child %}
+                            </span>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endfor %}
+        </div>
+    {% elif name == 'related_identifier' or name == 'related_identifiers' or name == 'relatedidentifiers' or first_item.value.identifier or first_item.value.related_identifier or first_item.value.related_identifier_type or first_item.value.relation_type %}
+        <div class="gn-metadata-special-list gn-metadata-special-list--related">
+        {% for property in value %}
+            <div class="gn-metadata-special-card gn-metadata-special-card--related">
+                {% for property_key, child in property.value.items %}
+                    {% if property_key == 'relation_type' or property_key == 'Relation Type' %}
+                        <span class="gn-metadata-related-rel">
+                            {% include 'geonode-mapstore-client/snippets/metadata_field_value.html' with name=property_key value=child.value schema=child.schema raw=child %}
+                        </span>
+                    {% elif property_key == 'identifier' or property_key == 'related_identifier' or property_key == 'Identifier' %}
+                        <div class="gn-metadata-related-main">
+                            {% include 'geonode-mapstore-client/snippets/metadata_field_value.html' with name=property_key value=child.value schema=child.schema raw=child %}
+                        </div>
+                    {% elif property_key == 'related_identifier_type' or property_key == 'Identifier Type' %}
+                        <span class="gn-metadata-related-type">
+                            {% include 'geonode-mapstore-client/snippets/metadata_field_value.html' with name=property_key value=child.value schema=child.schema raw=child %}
+                        </span>
+                    {% else %}
+                        <div class="gn-metadata-related-extra">
+                            <strong>{{ child.schema.title|default:property_key }}:</strong>
+                            {% include 'geonode-mapstore-client/snippets/metadata_field_value.html' with name=property_key value=child.value schema=child.schema raw=child %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endfor %}
+        </div>
+    {% else %}
+        <ul>
+        {% for property in value %}
+            <li>
+                {% include 'geonode-mapstore-client/snippets/metadata_field_value.html' with name=name value=property.value schema=property.schema %}
+            </li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+    {% endwith %}
+{% else %}
+    {% if schema.format == 'date-time' %}
+        {{value|date:"DATETIME_FORMAT"}}
+    {% else %}
+        {{value}}
+    {% endif %}
+{% endif %}
