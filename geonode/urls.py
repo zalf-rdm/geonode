@@ -32,6 +32,7 @@ from django.views.i18n import JavaScriptCatalog
 from django.contrib.sitemaps.views import sitemap
 
 import geonode.proxy.urls
+from geonode.upload.api.views import ImporterViewSet, ResourceImporter
 from . import views
 from . import version
 
@@ -41,7 +42,6 @@ from geonode.api.views import verify_token, user_info, roles, users, admin_role
 from geonode import geoserver
 from geonode.utils import check_ogc_backend
 from geonode.base import register_url_event
-from geonode.messaging.urls import urlpatterns as msg_urls
 from .people.views import CustomSignupView, CustomLoginView
 from oauth2_provider.urls import app_name as oauth2_app_name, base_urlpatterns, oidc_urlpatterns
 
@@ -57,13 +57,20 @@ urlpatterns = [
     re_path(r"^$", homepage, name="home"),
     re_path(r"^help/$", TemplateView.as_view(template_name="help.html"), name="help"),
     re_path(r"^developer/$", TemplateView.as_view(template_name="developer.html"), name="developer"),
+    # Extra Pages
     re_path(r"^about/$", TemplateView.as_view(template_name="about.html"), name="about"),
+    re_path(r"^upload/$", TemplateView.as_view(template_name="upload.html"), name="upload"),
+    re_path(r"^publications/$", TemplateView.as_view(template_name="publications.html"), name="publications"),
+    re_path(r"^data_policy/$", TemplateView.as_view(template_name="data_policy.html"), name="data_policy"),
+    re_path(r"^how_to_cite/$", TemplateView.as_view(template_name="how_to_cite.html"), name="how_to_cite"),
+    re_path(r"^imprint/$", TemplateView.as_view(template_name="imprint.html"), name="imprint"),
+    re_path(r"^privacy/$", TemplateView.as_view(template_name="privacy.html"), name="privacy"),
+    re_path(r"^ogc_and_api/$", TemplateView.as_view(template_name="ogc_and_api.html"), name="ogc_and_api"),
     re_path(r"^privacy_cookies/$", TemplateView.as_view(template_name="privacy-cookies.html"), name="privacy-cookies"),
     # Meta
     re_path(r"^sitemap\.xml$", sitemap, {"sitemaps": sitemaps}, name="sitemap"),
     re_path(r"^robots\.txt$", TemplateView.as_view(template_name="robots.txt"), name="robots"),
     re_path(r"(.*version\.txt)$", version.version, name="version"),
-    re_path(r"^messages/", include(msg_urls)),
 ]
 
 urlpatterns += [
@@ -100,7 +107,6 @@ urlpatterns += [
     re_path(r"^avatar/", include("avatar.urls")),
     re_path(r"^activity/", include("actstream.urls")),
     re_path(r"^announcements/", include("announcements.urls")),
-    re_path(r"^messages/", include("user_messages.urls")),
     re_path(r"^social/", include("geonode.social.urls")),
     re_path(r"^security/", include("geonode.security.urls")),
     # Accounts
@@ -124,20 +130,26 @@ urlpatterns += [
     re_path(r"^api/roles", roles, name="roles"),
     re_path(r"^api/adminRole", admin_role, name="adminRole"),
     re_path(r"^api/users", users, name="users"),
+    re_path(
+        r"api/v2/resources/(?P<pk>\w+)/copy",
+        ResourceImporter.as_view({"put": "copy"}),
+        name="importer_resource_copy",
+    ),
     re_path(r"^api/v2/", include(router.urls)),
     re_path(r"^api/v2/", include("geonode.api.urls")),
     re_path(r"^api/v2/", include("geonode.management_commands_http.urls")),
     re_path(r"^api/v2/api-auth/", include("rest_framework.urls", namespace="geonode_rest_framework")),
     re_path(r"^api/v2/", include("geonode.facets.urls")),
     re_path(r"^api/v2/", include("geonode.assets.urls")),
+    # metadata views
+    re_path(r"^api/v2/", include("geonode.metadata.api.urls")),
     re_path(r"", include(api.urls)),
+    re_path(
+        r"uploads/upload",
+        ImporterViewSet.as_view({"post": "create"}),
+        name="importer_upload",
+    ),
 ]
-
-# tinymce WYSIWYG HTML Editor
-if "tinymce" in settings.INSTALLED_APPS:
-    urlpatterns += [
-        re_path(r"^tinymce/", include("tinymce.urls")),
-    ]
 
 # django-select2 Widgets
 if "django_select2" in settings.INSTALLED_APPS:
@@ -146,7 +158,6 @@ if "django_select2" in settings.INSTALLED_APPS:
     ]
 
 urlpatterns += i18n_patterns(
-    re_path(r"^grappelli/", include("grappelli.urls")),
     re_path(r"^admin/", admin.site.urls, name="admin"),
 )
 
@@ -161,11 +172,6 @@ urlpatterns += [  # '',
 ]
 
 if check_ogc_backend(geoserver.BACKEND_PACKAGE):
-    if settings.CREATE_LAYER:
-        urlpatterns += [  # '',
-            re_path(r"^createlayer/", include("geonode.geoserver.createlayer.urls")),
-        ]
-
     from geonode.geoserver.views import get_capabilities
 
     # GeoServer Helper Views
@@ -196,19 +202,10 @@ urlpatterns += geonode.proxy.urls.urlpatterns
 # Serve static files
 urlpatterns += staticfiles_urlpatterns()
 urlpatterns += static(settings.LOCAL_MEDIA_URL, document_root=settings.MEDIA_ROOT)
-handler401 = "geonode.views.err403"
-handler403 = "geonode.views.err403"
-handler404 = "geonode.views.handler404"
-handler500 = "geonode.views.handler500"
-
-
-if settings.MONITORING_ENABLED:
-    urlpatterns += [
-        re_path(r"^monitoring/", include(("geonode.monitoring.urls", "geonode.monitoring"), namespace="monitoring"))
-    ]
-
 
 # Internationalization Javascript
 urlpatterns += [
     re_path(r"^metadata_update_redirect$", views.metadata_update_redirect, name="metadata_update_redirect"),
 ]
+
+handler500 = "geonode.views.err500"

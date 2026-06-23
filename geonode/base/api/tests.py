@@ -94,6 +94,10 @@ from geonode.base.populate_test_data import (
 )
 from geonode.resource.api.tasks import resouce_service_dispatcher
 from guardian.shortcuts import assign_perm
+from geonode.security.registry import permissions_registry
+
+from django.contrib.auth.models import AnonymousUser
+from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -103,8 +107,8 @@ test_image = Image.new("RGBA", size=(50, 50), color=(155, 0, 0))
 class BaseApiTests(APITestCase):
     fixtures = ["initial_data.json", "group_test_data.json", "default_oauth_apps.json", "test_thesaurus.json"]
 
-    def setUp(self):
-        self.maxDiff = None
+    @classmethod
+    def setUpTestData(cls):
         create_models(b"document")
         create_models(b"map")
         create_models(b"dataset")
@@ -178,7 +182,7 @@ class BaseApiTests(APITestCase):
             # Anonymous
             url = reverse("group-profiles-list")
             response = self.client.post(url, data=data, format="json")
-            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.status_code, 401)
 
             # Registered member
             self.assertTrue(self.client.login(username="bobby", password="bob"))
@@ -211,7 +215,7 @@ class BaseApiTests(APITestCase):
             # Anonymous
             url = f"{reverse('group-profiles-list')}/{group.id}/"
             response = self.client.patch(url, data=data, format="json")
-            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.status_code, 401)
 
             # Registered member
             self.assertTrue(self.client.login(username="bobby", password="bob"))
@@ -241,7 +245,7 @@ class BaseApiTests(APITestCase):
             # Anonymous
             url = f"{reverse('group-profiles-list')}/{group.id}/"
             response = self.client.delete(url, format="json")
-            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.status_code, 401)
 
             # Registered member
             self.assertTrue(self.client.login(username="bobby", password="bob"))
@@ -287,7 +291,7 @@ class BaseApiTests(APITestCase):
         url = reverse("users-list")
         # Anonymous
         response = self.client.get(url, format="json")
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
         # Authorized
         self.assertTrue(self.client.login(username="admin", password="admin"))
         response = self.client.get(url, format="json")
@@ -362,7 +366,15 @@ class BaseApiTests(APITestCase):
         response = self.client.get(url, format="json")
         self.assertEqual(response.status_code, 200)
         perms = response.json().get("resources", [])[0].get("perms")
-        self.assertSetEqual({"view_resourcebase", "change_resourcebase"}, set(perms))
+        self.assertSetEqual(
+            {
+                "view_resourcebase",
+                "change_resourcebase",
+                "can_manage_anonymous_permissions",
+                "can_manage_registered_member_permissions",
+            },
+            set(perms),
+        )  # if user has edit permission/owner, By default it("can_manage_anonymous_permissions","can_manage_registered_member_permissions") will get this permission unless rule changed on settings.
 
     def test_get_self_user_details_outside_registered_member(self):
         try:
@@ -411,7 +423,7 @@ class BaseApiTests(APITestCase):
         # Anonymous
         self.assertIsNone(self.client.logout())
         response = self.client.post(url, data={"username": "new_user_1"}, format="json")
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
 
     def test_acess_profile_edit(self):
         # Registered member
@@ -434,7 +446,7 @@ class BaseApiTests(APITestCase):
             data = {"first_name": "user", "password": "@!2XJSL_S&V^0nt", "email": "user@exampl2e.com"}
             # Anonymous
             response = self.client.patch(url, data=data, format="json")
-            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.status_code, 401)
             # Another registered user
             self.assertTrue(self.client.login(username="bobby", password="bob"))
             response = self.client.patch(url, data=data, format="json")
@@ -471,10 +483,10 @@ class BaseApiTests(APITestCase):
             url = reverse("users-detail", kwargs={"pk": user.pk})
             # Anonymous can't read
             response = self.client.get(url, format="json")
-            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.status_code, 401)
             # Anonymous can't delete user
             response = self.client.delete(url, format="json")
-            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.status_code, 401)
             # Bob can't delete user
             self.assertTrue(self.client.login(username="bobby", password="bob"))
             response = self.client.delete(url, format="json")
@@ -827,21 +839,6 @@ class BaseApiTests(APITestCase):
         self.assertIsNotNone(field)
         self.assertTrue(field.to_internal_value(True))
 
-    def test_resource_settings_field_non_admin(self):
-        """
-        Non-Admin is not able to change the is_published value
-        if he is not the owner of the resource
-        """
-        doc = create_single_doc("my_custom_doc")
-        factory = RequestFactory()
-        rq = factory.get("test")
-        rq.user = get_user_model().objects.get(username="bobby")
-        serializer = ResourceBaseSerializer(doc, context={"request": rq})
-        field = serializer.fields["is_published"]
-        self.assertIsNotNone(field)
-        # the original value was true, so it should not return false
-        self.assertTrue(field.to_internal_value(False))
-
     def test_delete_user_with_resource(self):
         owner, created = get_user_model().objects.get_or_create(username="delet-owner")
         Dataset(
@@ -1012,6 +1009,10 @@ class BaseApiTests(APITestCase):
         reversed_resource_titles = sorted(resource_titles.copy())
         self.assertNotEqual(resource_titles, reversed_resource_titles)
 
+    @override_settings(
+        EDITORS_CAN_MANAGE_ANONYMOUS_PERMISSIONS=True,
+        EDITORS_CAN_MANAGE_REGISTERED_MEMBERS_PERMISSIONS=True,
+    )
     def test_perms_resources(self):
         """
         Ensure we can Get & Set Permissions across the Resource Base list.
@@ -1167,7 +1168,9 @@ class BaseApiTests(APITestCase):
             resource_perm_spec,
         )
 
-        # Remove perms to Norman
+        # Remove perms to Norman by explicitly setting permissions to "none".
+        # Note: Omitting a user from the request preserves their existing permissions.
+        # To actually remove permissions, you must explicitly set them to "none".
         resource_perm_spec = {
             "uuid": resource.uuid,
             "users": [
@@ -1178,6 +1181,16 @@ class BaseApiTests(APITestCase):
                     "last_name": bobby.last_name,
                     "avatar": build_absolute_uri(avatar_url(bobby)),
                     "permissions": "owner",
+                    "is_staff": False,
+                    "is_superuser": False,
+                },
+                {
+                    "id": norman.id,
+                    "username": norman.username,
+                    "first_name": norman.first_name,
+                    "last_name": norman.last_name,
+                    "avatar": build_absolute_uri(avatar_url(bobby)),
+                    "permissions": "none",
                     "is_staff": False,
                     "is_superuser": False,
                 },
@@ -1274,11 +1287,11 @@ class BaseApiTests(APITestCase):
         self.assertIsNone(self.client.logout())
         # get perms
         response = self.client.get(get_perms_url, format="json")
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
         # set perms
         resource_perm_spec["uuid"] = resource.uuid
         response = self.client.put(set_perms_url, data=resource_perm_spec, format="json")
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
         # login resourse owner
         # get perms
         self.assertTrue(self.client.login(username="bobby", password="bob"))
@@ -1525,7 +1538,7 @@ class BaseApiTests(APITestCase):
         url = urljoin(f"{reverse('base-resources-list')}/", "favorites/")
         # Anonymous
         response = self.client.get(url, format="json")
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
         # Authenticated user
         bobby = get_user_model().objects.get(username="bobby")
         self.assertTrue(self.client.login(username="bobby", password="bob"))
@@ -1588,7 +1601,7 @@ class BaseApiTests(APITestCase):
         url = urljoin(f"{reverse('base-resources-list')}/", f"{dataset.pk}/favorite/")
         # Anonymous
         response = self.client.post(url, format="json")
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
         # Authenticated user
         self.assertTrue(self.client.login(username="bobby", password="bob"))
         response = self.client.post(url, format="json")
@@ -1956,7 +1969,7 @@ class BaseApiTests(APITestCase):
 
         # Anonymous user
         response = self.client.put(url, data=data, format="json")
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
 
         # Authenticated user
         self.assertTrue(self.client.login(username="admin", password="admin"))
@@ -2012,6 +2025,73 @@ class BaseApiTests(APITestCase):
                 )
                 self.assertEqual(response.status_code, 200)
 
+    @patch("geonode.base.api.views.remove_thumb")
+    def test_delete_thumbnail(self, mock_remove_thumb):
+
+        resource = Dataset.objects.first()
+
+        # Set a thumbnail url and path
+        resource.thumbnail_url = "http://example.com/thumb/test.png"
+        resource.thumbnail_path = "thumb/test.png"
+        resource.save()
+
+        url = reverse("base-resources-delete-thumbnail", kwargs={"resource_id": resource.id})
+
+        # Anonymous user
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 401)
+
+        # Authenticated user (admin)
+        self.assertTrue(self.client.login(username="admin", password="admin"))
+
+        # Valid thumbnail removal
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["message"], "Thumbnail deleted successfully.")
+        resource.refresh_from_db()
+        self.assertIsNone(resource.thumbnail_url)
+        self.assertIsNone(resource.thumbnail_path)
+        mock_remove_thumb.assert_called_once_with("test.png")
+
+        # Thumbnail already deleted
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["message"], "The thumbnail URL field is already empty.")
+        self.assertFalse(response.data["success"])
+
+        # Invalid image format
+        resource.thumbnail_url = "http://example.com/media/thumb/test.txt"
+        resource.thumbnail_path = "thumb/test.txt"
+        resource.save()
+
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("not a valid image", response.data)
+
+        # Resource does not exist
+        invalid_url = reverse("base-resources-delete-thumbnail", kwargs={"resource_id": 9999})
+        response = self.client.post(invalid_url)
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.data["message"], "Resource not found.")
+        self.assertFalse(response.data["success"])
+
+        # Check that a user without the permissions (norman) cannot delete the thumbnail of a bobby's resource
+        bobby = get_user_model().objects.get(username="bobby")
+
+        resource.owner = bobby
+        resource.thumbnail_url = "http://example.com/thumb/bobby_thumb.png"
+        resource.thumbnail_path = "thumb/bobby_thumb.png"
+        resource.save()
+
+        url = reverse("base-resources-delete-thumbnail", kwargs={"resource_id": resource.id})
+
+        # Connect as norman user
+        self.client.logout()
+        self.assertTrue(self.client.login(username="norman", password="norman"))
+
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 403)
+
     def test_set_thumbnail_from_bbox_from_Anonymous_user_raise_permission_error(self):
         """
         Given a request with Anonymous user, should raise an authentication error.
@@ -2025,7 +2105,7 @@ class BaseApiTests(APITestCase):
             "code": "not_authenticated",
         }
         response = self.client.post(url, format="json")
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
         self.assertEqual(expected, response.json())
 
     @patch("geonode.base.api.views.create_thumbnail")
@@ -2277,6 +2357,248 @@ class BaseApiTests(APITestCase):
             resource_perm_spec,
         )
 
+    @override_settings(
+        EDITORS_CAN_MANAGE_ANONYMOUS_PERMISSIONS=False,
+        EDITORS_CAN_MANAGE_REGISTERED_MEMBERS_PERMISSIONS=False,
+    )
+    def test_resource_service_permissions_with_restricted_settings(self):
+        """
+        Test that when EDITORS_CAN_MANAGE_ANONYMOUS_PERMISSIONS and
+        EDITORS_CAN_MANAGE_REGISTERED_MEMBERS_PERMISSIONS are set to False,
+        only staff/admin users can modify anonymous and registered members permissions.
+        Non-staff editors should not be able to modify these groups' permissions.
+        """
+        resource = Dataset.objects.filter(owner__username="admin").first()
+        bobby = get_user_model().objects.get(username="bobby")
+
+        # Give bobby edit permissions on the resource including permission to manage permissions
+        resource.set_permissions(
+            {
+                "users": {
+                    bobby: [
+                        "base.change_resourcebase",
+                        "base.change_resourcebase_metadata",
+                        "base.change_resourcebase_permissions",
+                    ]
+                }
+            }
+        )
+
+        # Login as bobby (non-staff editor)
+        self.assertTrue(self.client.login(username="bobby", password="bob"))
+
+        anonymous_group = Group.objects.get(name="anonymous")
+        registered_group = Group.objects.get(name="registered-members")
+
+        # Try to update permissions including anonymous and registered members groups
+        set_perms_url = urljoin(f"{reverse('base-resources-detail', kwargs={'pk': resource.pk})}/", "permissions")
+        perm_spec = {
+            "uuid": resource.uuid,
+            "groups": [
+                {
+                    "id": anonymous_group.id,
+                    "name": "anonymous",
+                    "permissions": "view",
+                },
+                {
+                    "id": registered_group.id,
+                    "name": "registered-members",
+                    "permissions": "download",
+                },
+            ],
+        }
+
+        response = self.client.put(set_perms_url, data=perm_spec, format="json")
+        self.assertEqual(response.status_code, 200)
+
+        resp_js = json.loads(response.content.decode("utf-8"))
+        execution_id = resp_js.get("execution_id", "")
+        status_url = resp_js.get("status_url", None)
+        self.assertIsNotNone(status_url)
+        self.assertIsNotNone(execution_id)
+
+        for _cnt in range(0, 10):
+            response = self.client.get(f"{status_url}")
+            self.assertEqual(response.status_code, 200)
+            resp_js = json.loads(response.content.decode("utf-8"))
+            if resp_js.get("status", "") == "finished":
+                break
+            else:
+                resouce_service_dispatcher.apply((execution_id,))
+                sleep(3.0)
+
+        # Get the current permissions to verify anonymous and registered groups were excluded
+        get_perms_url = urljoin(f"{reverse('base-resources-detail', kwargs={'pk': resource.pk})}/", "permissions")
+        response = self.client.get(get_perms_url, format="json")
+        self.assertEqual(response.status_code, 200)
+        resource_perm_spec = response.data
+
+        groups_in_response = {g["name"]: g["permissions"] for g in resource_perm_spec.get("groups", [])}
+
+        # The groups should still have their original permissions (not the ones bobby tried to set)
+        # Bobby tried to set anonymous to "view" and registered-members to "download"
+        # But since he lacks permissions, these changes should NOT have been applied
+        # Verify the permissions remain unchanged from their original state
+        self.assertIn("anonymous", groups_in_response)
+        self.assertIn("registered-members", groups_in_response)
+        # The permissions should NOT be what bobby tried to set
+        self.assertNotEqual(
+            groups_in_response.get("anonymous"), "view", "Bobby should not have been able to set anonymous to view"
+        )
+        self.assertNotEqual(
+            groups_in_response.get("registered-members"),
+            "download",
+            "Bobby should not have been able to set registered-members to download",
+        )
+
+        # login as admin (staff user) and verify admin can modify these permissions
+        self.assertTrue(self.client.login(username="admin", password="admin"))
+
+        perm_spec_admin = {
+            "uuid": resource.uuid,
+            "groups": [
+                {
+                    "id": anonymous_group.id,
+                    "name": "anonymous",
+                    "permissions": "view",
+                },
+                {
+                    "id": registered_group.id,
+                    "name": "registered-members",
+                    "permissions": "view",
+                },
+            ],
+        }
+
+        response = self.client.put(set_perms_url, data=perm_spec_admin, format="json")
+        self.assertEqual(response.status_code, 200)
+
+        # Wait for async task to complete
+        resp_js = json.loads(response.content.decode("utf-8"))
+        execution_id = resp_js.get("execution_id", "")
+        status_url = resp_js.get("status_url", None)
+
+        for _cnt in range(0, 10):
+            response = self.client.get(f"{status_url}")
+            self.assertEqual(response.status_code, 200)
+            resp_js = json.loads(response.content.decode("utf-8"))
+            if resp_js.get("status", "") == "finished":
+                break
+            else:
+                resouce_service_dispatcher.apply((execution_id,))
+                sleep(3.0)
+
+        # Verify admin successfully modified the permissions
+        response = self.client.get(get_perms_url, format="json")
+        self.assertEqual(response.status_code, 200)
+        resource_perm_spec = response.data
+
+        # Admin should have been able to set permissions for these groups
+        groups_in_response = {g["name"]: g["permissions"] for g in resource_perm_spec.get("groups", [])}
+        self.assertIn("anonymous", groups_in_response)
+        self.assertIn("registered-members", groups_in_response)
+        # Verify admin successfully changed the permissions to what was requested
+        self.assertEqual(
+            groups_in_response.get("anonymous"), "view", "Admin should have been able to set anonymous to view"
+        )
+        self.assertEqual(
+            groups_in_response.get("registered-members"),
+            "view",
+            "Admin should have been able to set registered-members to view",
+        )
+
+    @override_settings(
+        EDITORS_CAN_MANAGE_ANONYMOUS_PERMISSIONS=True,
+        EDITORS_CAN_MANAGE_REGISTERED_MEMBERS_PERMISSIONS=False,
+    )
+    def test_resource_service_permissions_with_partial_restriction(self):
+        """
+        Test that when only EDITORS_CAN_MANAGE_REGISTERED_MEMBERS_PERMISSIONS is False,
+        editors can modify anonymous permissions but not registered members permissions.
+        """
+        resource = Dataset.objects.filter(owner__username="admin").first()
+        bobby = get_user_model().objects.get(username="bobby")
+
+        # Give bobby edit permissions including permission to manage permissions
+        resource.set_permissions(
+            {
+                "users": {
+                    bobby: [
+                        "base.change_resourcebase",
+                        "base.change_resourcebase_metadata",
+                        "base.change_resourcebase_permissions",
+                    ]
+                }
+            }
+        )
+
+        # Login as bobby
+        self.assertTrue(self.client.login(username="bobby", password="bob"))
+
+        anonymous_group = Group.objects.get(name="anonymous")
+        registered_group = Group.objects.get(name="registered-members")
+
+        set_perms_url = urljoin(f"{reverse('base-resources-detail', kwargs={'pk': resource.pk})}/", "permissions")
+        perm_spec = {
+            "uuid": resource.uuid,
+            "groups": [
+                {
+                    "id": anonymous_group.id,
+                    "name": "anonymous",
+                    "permissions": "view",
+                },
+                {
+                    "id": registered_group.id,
+                    "name": "registered-members",
+                    "permissions": "download",
+                },
+            ],
+        }
+
+        response = self.client.put(set_perms_url, data=perm_spec, format="json")
+        self.assertEqual(response.status_code, 200)
+
+        resp_js = json.loads(response.content.decode("utf-8"))
+        execution_id = resp_js.get("execution_id", "")
+        status_url = resp_js.get("status_url", None)
+
+        for _cnt in range(0, 10):
+            response = self.client.get(f"{status_url}")
+            self.assertEqual(response.status_code, 200)
+            resp_js = json.loads(response.content.decode("utf-8"))
+            if resp_js.get("status", "") == "finished":
+                break
+            else:
+                resouce_service_dispatcher.apply((execution_id,))
+                sleep(3.0)
+
+        # Verify bobby could modify anonymous but not registered members
+        # The registered-members group should have been filtered out from bobby's request
+        get_perms_url = urljoin(f"{reverse('base-resources-detail', kwargs={'pk': resource.pk})}/", "permissions")
+        response = self.client.get(get_perms_url, format="json")
+        self.assertEqual(response.status_code, 200)
+        resource_perm_spec = response.data
+
+        groups_in_response = {g["name"]: g["permissions"] for g in resource_perm_spec.get("groups", [])}
+
+        # Bobby tried to set anonymous to "view" and registered-members to "download"
+        # Since EDITORS_CAN_MANAGE_ANONYMOUS_PERMISSIONS=True, anonymous should be changed
+        # Since EDITORS_CAN_MANAGE_REGISTERED_MEMBERS_PERMISSIONS=False, registered-members should NOT be changed
+        self.assertIn("anonymous", groups_in_response)
+        self.assertIn("registered-members", groups_in_response)
+
+        # Verify anonymous was successfully changed by bobby
+        self.assertEqual(
+            groups_in_response.get("anonymous"), "view", "Bobby should have been able to set anonymous to view"
+        )
+
+        # Verify registered-members was NOT changed by bobby
+        self.assertNotEqual(
+            groups_in_response.get("registered-members"),
+            "download",
+            "Bobby should not have been able to set registered-members to download",
+        )
+
     def test_resource_service_copy(self):
         files = os.path.join(gisdata.GOOD_DATA, "vector/single_point.shp")
         files_as_dict, _ = get_files(files)
@@ -2298,7 +2620,7 @@ class BaseApiTests(APITestCase):
         bobby = get_user_model().objects.get(username="bobby")
         copy_url = reverse("importer_resource_copy", kwargs={"pk": resource.pk})
         response = self.client.put(copy_url, data={"title": "cloned_resource"})
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
         # set perms to enable user clone resource
         self.assertTrue(self.client.login(username="admin", password="admin"))
         perm_spec = {
@@ -2324,6 +2646,16 @@ class BaseApiTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         cloned_resource = Dataset.objects.last()
         self.assertEqual(cloned_resource.owner.username, "admin")
+
+        # Check that the 'featured' flag is reset on clone
+        resource.refresh_from_db()
+        resource.featured = True
+        resource.save()
+        response = self.client.put(copy_url)
+        self.assertEqual(response.status_code, 200)
+        second_cloned = Dataset.objects.exclude(pk__in=[resource.pk, cloned_resource.pk]).latest("id")
+        self.assertFalse(second_cloned.featured, msg="Cloned resource should have featured=False")
+
         # clone dataset with invalid file
         # resource.files = ["/path/invalid_file.wrong"]
         # resource.save()
@@ -2389,7 +2721,9 @@ class BaseApiTests(APITestCase):
             }
             resource.set_permissions(_perms)
             # checking that bobby is in the original dataset perms list
-            self.assertTrue("bobby" in "bobby" in [x.username for x in resource.get_all_level_info().get("users", [])])
+            self.assertIn(
+                "bobby", [x.username for x in permissions_registry.get_perms(instance=resource).get("users", [])]
+            )
             # copying the resource, should remove the perms for bobby
             # only the default perms should be available
             copy_url = reverse("importer_resource_copy", kwargs={"pk": resource.pk})
@@ -2404,8 +2738,14 @@ class BaseApiTests(APITestCase):
         self.assertEqual("finished", self.client.get(response.json().get("status_url")).json().get("status"))
         _resource = Dataset.objects.filter(title__icontains="test_copy_with_perms").last()
         self.assertIsNotNone(_resource)
-        self.assertNotIn("bobby", [x.username for x in _resource.get_all_level_info().get("users", [])])
-        self.assertIn("admin", [x.username for x in _resource.get_all_level_info().get("users", [])])
+        self.assertNotIn(
+            "bobby",
+            [x.username for x in permissions_registry.get_perms(instance=_resource).get("users", [])],
+        )
+        self.assertIn(
+            "admin",
+            [x.username for x in permissions_registry.get_perms(instance=_resource).get("users", [])],
+        )
 
     def test_resource_service_copy_with_perms_doc(self):
         files = os.path.join(gisdata.GOOD_DATA, "vector/single_point.shp")
@@ -2424,17 +2764,9 @@ class BaseApiTests(APITestCase):
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_resource_service_copy_with_perms_map(self):
-        files = os.path.join(gisdata.GOOD_DATA, "vector/single_point.shp")
-        files_as_dict, _ = get_files(files)
-        resource = Document.objects.create(
-            owner=get_user_model().objects.get(username="admin"),
-            alternate="geonode:test_copy",
-            resource_type="map",
-            uuid=str(uuid4()),
-        )
-        _, _ = create_asset_and_link(
-            resource, get_user_model().objects.get(username="admin"), list(files_as_dict.values())
-        )
+
+        resource = create_single_map(name="test_copy")
+
         self._assertCloningWithPerms(resource)
 
     def _assertCloningWithPerms(self, resource):
@@ -2446,7 +2778,7 @@ class BaseApiTests(APITestCase):
         resource.set_permissions(_perms)
         copy_url = reverse("importer_resource_copy", kwargs={"pk": resource.pk})
         response = self.client.put(copy_url, data={"title": "cloned_resource"})
-        self.assertIn(response.status_code, [403, 404])
+        self.assertIn(response.status_code, [302, 403, 404])
         # set perms to enable user clone resource
         # bobby can copy the resource since he has all the perms needed
         _perms = {
@@ -2553,9 +2885,7 @@ class BaseApiTests(APITestCase):
         Ensure we can access the Resource Base list.
         """
         _dataset = Dataset.objects.first()
-        expected_payload = [
-            {"url": reverse("dataset_download", args=[_dataset.alternate]), "ajax_safe": True, "default": True}
-        ]
+        expected_payload = []
 
         # From resource base API
         json = self._get_for_object(_dataset, "base-resources-detail")
@@ -2734,7 +3064,7 @@ class BaseApiTests(APITestCase):
         self.assertTrue(self.client.login(username="bobby", password="bob"))
 
         payload = json.dumps({"metadata_uploaded_preserve": True})
-        # should return 403 since bobby doesn't have the perms to update the metadata
+        # should return 401 since bobby doesn't have the perms to update the metadata
         # on this resource
         response = self.client.patch(url, data=payload, content_type="application/json")
         self.assertEqual(403, response.status_code)
@@ -2816,7 +3146,7 @@ class TestExtraMetadataBaseApi(GeoNodeBaseTestSupport):
         resource_manager.remove_permissions(self.layer.uuid, instance=self.layer.get_self_resource())
         url = reverse("base-resources-extra-metadata", args=[self.layer.id])
         response = self.client.get(url, content_type="application/json")
-        self.assertTrue(403, response.status_code)
+        self.assertTrue(401, response.status_code)
 
         perm_spec = {"users": {"bobby": ["view_resourcebase"]}, "groups": {}}
         self.layer.set_permissions(perm_spec)
@@ -2840,16 +3170,16 @@ class TestApiLinkedResources(GeoNodeBaseTestSupport):
         self.assertEqual(response.status_code, 200)
 
         response = self.client.delete(url)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
 
         response = self.client.post(url)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
 
         response = self.client.patch(url)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
 
         response = self.client.put(url)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
 
     def test_insert_one_linked_resource(self):
         url = reverse("base-resources-linked_resources", args=[self.doc.id])
@@ -3536,13 +3866,15 @@ class TestBaseResourceBase(GeoNodeBaseTestSupport):
                         "view_resourcebase",
                         "change_resourcebase_metadata",
                         "change_resourcebase",
+                        "can_manage_anonymous_permissions",  # dynamic permission added from SpecialGroupPermissionsHandler
+                        "can_manage_registered_member_permissions",  # dynamic permission added from SpecialGroupPermissionsHandler
                     ]
                 )
             },
             "groups": {anonymous_group: set(["view_resourcebase"])},
         }
 
-        actual_perms = resource.get_all_level_info().copy()
+        actual_perms = permissions_registry.get_perms(instance=resource).copy()
         self.assertIsNotNone(actual_perms)
         self.assertTrue(self.user in actual_perms["users"].keys())
         self.assertTrue(anonymous_group in actual_perms["groups"].keys())
@@ -3616,3 +3948,382 @@ class TestBaseResourceBase(GeoNodeBaseTestSupport):
 
         request.user = AnonymousUser()
         return request
+
+
+class TestAPIPermissionCache(GeoNodeBaseTestSupport):
+    """
+    API tests to verify cache for user, group, resource operations
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.admin_user = get_user_model().objects.get(username="admin")
+        cls.test_user = get_user_model().objects.create_user(
+            username=f"test_user_{uuid4()}", email="test_user@example.com", password="testpass123"
+        )
+        cls.test_user_owner = get_user_model().objects.create_user(
+            username=f"test_user_owner{uuid4()}", email="test_user_owner@example.com", password="testpass123"
+        )
+        cls.test_group, _ = Group.objects.get_or_create(name="test-group")
+        cls.test_group_profile = GroupProfile.objects.create(
+            group=cls.test_group, title="Test Group", slug="test-group", access="public"
+        )
+        cls.anonymous_group, _ = Group.objects.get_or_create(name="anonymous")
+
+    def setUp(self):
+        cache.clear()
+        self.client.login(username="admin", password="admin")
+
+    def _create_test_resource(self, owner=None):
+        """Helper method to create a test resource with permissions"""
+        if owner is None:
+            owner = self.test_user_owner
+
+        resource = ResourceBase.objects.create(
+            title=f"test_resource_{uuid4()}",
+            uuid=str(uuid4()),
+            owner=owner,
+            abstract="Test resource for API testing",
+            subtype="vector",
+            is_approved=True,
+            is_published=True,
+        )
+
+        perm_spec = {
+            "users": {
+                self.test_user.username: [
+                    "view_resourcebase",
+                    "change_resourcebase",
+                    "delete_resourcebase",
+                ],
+                self.admin_user.username: [
+                    "view_resourcebase",
+                    "change_resourcebase",
+                ],
+            },
+            "groups": {
+                self.test_group.name: ["view_resourcebase"],
+                self.anonymous_group.name: ["view_resourcebase"],
+            },
+        }
+        resource.set_permissions(perm_spec)
+        return resource
+
+    def _populate_cache_for_resource(self, resource):
+        """Helper method to populate cache for a resource"""
+        cache_keys = {}
+
+        permissions_registry.get_perms(instance=resource, user=self.test_user, use_cache=True)
+        cache_keys["test_user"] = f"resource_perms:{resource.pk}:user:{self.test_user.pk}"
+
+        permissions_registry.get_perms(instance=resource, user=self.admin_user, use_cache=True)
+        cache_keys["admin_user"] = f"resource_perms:{resource.pk}:user:{self.admin_user.pk}"
+
+        anonymous_user = AnonymousUser()
+        permissions_registry.get_perms(instance=resource, user=anonymous_user, use_cache=True)
+        cache_keys["anonymous"] = f"resource_perms:{resource.pk}:anonymous"
+
+        permissions_registry.get_perms(instance=resource, group=self.test_group, use_cache=True)
+        cache_keys["group"] = f"resource_perms:{resource.pk}:group:{self.test_group.pk}"
+
+        permissions_registry.get_perms(instance=resource, use_cache=True)
+        cache_keys["all"] = f"resource_perms:{resource.pk}:__ALL__"
+
+        return cache_keys
+
+    def test_user_delete_api_cache_invalidation(self):
+        """Test that cache is properly invalidated when user is deleted via API"""
+        temp_user = get_user_model().objects.create_user(
+            username=f"temp_user_{uuid4()}", email="temp@example.com", password="temppass123"
+        )
+
+        resource = self._create_test_resource()
+        perm_spec = {"users": {temp_user.username: ["view_resourcebase", "change_resourcebase"]}, "groups": {}}
+        resource.set_permissions(perm_spec)
+
+        permissions_registry.get_perms(instance=resource, user=temp_user, use_cache=True)
+        temp_user_cache_key = f"resource_perms:{resource.pk}:user:{temp_user.pk}"
+
+        self.assertIsNotNone(cache.get(temp_user_cache_key))
+
+        other_cache_keys = self._populate_cache_for_resource(resource)
+        for key in other_cache_keys.values():
+            self.assertIsNotNone(cache.get(key))
+
+        response = self.client.delete(reverse("users-detail", kwargs={"pk": temp_user.pk}))
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertFalse(get_user_model().objects.filter(pk=temp_user.pk).exists())
+
+        self.assertIsNone(cache.get(temp_user_cache_key), "Cache should be cleared after user deletion via API")
+
+        for cache_type, cache_key in other_cache_keys.items():
+            self.assertIsNotNone(
+                cache.get(cache_key), f"Cache for {cache_type} should not be affected by user deletion"
+            )
+
+    def test_group_delete_api_cache_invalidation(self):
+        """Test that cache is properly invalidated when group is deleted via API"""
+        temp_group_profile = GroupProfile.objects.create(title="Temp Group", slug="temp-group-test", access="public")
+
+        temp_group = temp_group_profile.group
+
+        resource = self._create_test_resource()
+        new_perm_spec = {
+            "users": {},
+            "groups": {
+                f"{temp_group.name}": [
+                    "view_resourcebase",
+                    "change_resourcebase",
+                    "change_resourcebase_metadata",
+                    "change_resourcebase_permissions",
+                    "delete_resourcebase",
+                ],
+            },
+        }
+        resource.set_permissions(new_perm_spec)
+
+        permissions_registry.get_perms(instance=resource, group=temp_group, use_cache=True)
+        temp_group_cache_key = f"resource_perms:{resource.pk}:group:{temp_group.pk}"
+
+        self.assertIsNotNone(cache.get(temp_group_cache_key))
+
+        print(cache.get(temp_group_cache_key), "temp_group_cache_key")
+        print(temp_group_cache_key, "temp_group_cache_key")
+
+        other_cache_keys = self._populate_cache_for_resource(resource)
+        for key in other_cache_keys.values():
+            self.assertIsNotNone(cache.get(key))
+
+        response = self.client.post(reverse("group_remove", args=[temp_group_profile.slug]))
+
+        self.assertEqual(response.status_code, 302)
+
+        self.assertFalse(GroupProfile.objects.filter(pk=temp_group.pk).exists())
+
+        self.assertIsNone(cache.get(temp_group_cache_key), "Cache should be cleared after group deletion via API")
+
+        for cache_type, cache_key in other_cache_keys.items():
+            self.assertIsNotNone(
+                cache.get(cache_key), f"Cache for {cache_type} should not be affected by group deletion"
+            )
+
+    def test_resource_delete_api_cache_invalidation(self):
+        """Test that cache is properly invalidated when resource is deleted via API"""
+        resource = self._create_test_resource()
+
+        cache_keys = self._populate_cache_for_resource(resource)
+
+        for cache_type, cache_key in cache_keys.items():
+            self.assertIsNotNone(cache.get(cache_key), f"Cache for {cache_type} should exist before deletion")
+
+        other_resource = self._create_test_resource()
+        other_cache_key = f"resource_perms:{other_resource.pk}:user:{self.test_user.pk}"
+        permissions_registry.get_perms(instance=other_resource, user=self.test_user, use_cache=True)
+        self.assertIsNotNone(cache.get(other_cache_key))
+
+        response = self.client.delete(reverse("base-resources-detail", kwargs={"pk": resource.pk}))
+
+        self.assertEqual(response.status_code, 204)
+
+        self.assertFalse(ResourceBase.objects.filter(pk=resource.pk).exists())
+
+        for cache_type, cache_key in cache_keys.items():
+            self.assertIsNone(
+                cache.get(cache_key), f"Cache for {cache_type} should be cleared after resource deletion via API"
+            )
+
+        self.assertIsNotNone(cache.get(other_cache_key), "Cache for other resources should not be affected")
+
+    def tearDown(self):
+        cache.clear()
+        super().tearDown()
+
+    @classmethod
+    def tearDownClass(cls):
+        ResourceBase.objects.filter(owner=cls.test_user).delete()
+        cls.test_user.delete()
+        cls.test_user_owner.delete()
+        if hasattr(cls, "test_group_profile"):
+            cls.test_group_profile.delete()
+        if hasattr(cls, "test_group"):
+            cls.test_group.delete()
+        super().tearDownClass()
+
+
+class AssetDownloadPermissionTests(GeoNodeBaseTestSupport):
+
+    def setUp(self):
+        self.user_viewer = get_user_model().objects.create_user(username="viewer", password="viewer_password")
+        self.user_downloader = get_user_model().objects.create_user(
+            username="downloader", password="downloader_password"
+        )
+        self.dataset = create_single_dataset(name="test_dataset_for_download_permission")
+
+        dataset_files = [
+            f"{settings.PROJECT_ROOT}/assets/tests/data/one.json",
+        ]
+        create_asset_and_link(
+            self.dataset, get_user_model().objects.get(username="admin"), dataset_files, clone_files=False
+        )
+
+        perm_spec = {
+            "users": {
+                self.user_viewer.username: [
+                    "view_resourcebase",
+                ],
+                self.user_downloader.username: [
+                    "view_resourcebase",
+                    "download_resourcebase",
+                ],
+            },
+            "groups": {},
+        }
+        self.dataset.set_permissions(perm_spec)
+
+    def test_asset_download_link_permission(self):
+        """
+        Ensure that the download link is only visible to users with download permissions.
+        """
+        self.client.login(username="viewer", password="viewer_password")
+        url = f"/api/v2/datasets/{self.dataset.pk}"
+        response = self.client.get(f"{url}", format="json")
+        self.assertEqual(response.status_code, 200)
+
+        links = response.data.get("dataset").get("links", [])
+        asset_link = next((link for link in links if link.get("extras", {}).get("type") == "asset"), None)
+        self.assertIsNotNone(asset_link)
+        self.assertNotIn("download_url", asset_link.get("extras", {}).get("content", {}))
+
+        self.client.login(username="downloader", password="downloader_password")
+        response = self.client.get(f"{url}", format="json")
+        self.assertEqual(response.status_code, 200)
+
+        links = response.data.get("dataset").get("links", [])
+        asset_link = next((link for link in links if link.get("extras", {}).get("type") == "asset"), None)
+        self.assertIsNotNone(asset_link)
+        self.assertIn("download_url", asset_link.get("extras", {}).get("content", {}))
+
+
+class ResourceBaseMetadataXMLTest(GeoNodeBaseTestSupport):
+
+    def setUp(self):
+        self.dataset = create_single_dataset(name="test_dataset_for_metadata_xml")
+        self.dataset.metadata_xml = """
+            <gmd:MD_Metadata xmlns:gmd="test">
+                <gmd:fileIdentifier>
+                    <gco:CharacterString>test_dataset_for_metadata_xml</gco:CharacterString>
+                </gmd:fileIdentifier>
+            </gmd:MD_Metadata>
+            """
+        self.dataset.save()
+        self.anonymous_user = get_anonymous_user()
+        self.user1 = get_user_model().objects.create_user(username="test_user123", password="password")
+        self.user2 = get_user_model().objects.create_user(username="test_user_2", password="password")
+        self.anonymous_group, _ = Group.objects.get_or_create(name="anonymous")
+
+    def test_download_metadata_xml_anonymous_user_with_permission(self):
+        url = reverse("base-resources-detail", kwargs={"pk": self.dataset.pk})
+        url = f"{url}/iso_metadata_xml/"
+        perm_spec = {
+            "users": {},
+            "groups": {
+                self.anonymous_group.name: ["view_resourcebase"],
+            },
+        }
+        self.dataset.set_permissions(perm_spec)
+        response = self.client.get(url)
+        # user is not authenticated but has permission from anonymous group
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/xml")
+        self.assertIn(b"test_dataset_for_metadata_xml", response.content)
+
+    def test_download_metadata_xml_anonymous_user_without_permission(self):
+        url = reverse("base-resources-detail", kwargs={"pk": self.dataset.pk})
+        perm_spec = {
+            "users": {},
+            "groups": {
+                self.anonymous_group.name: [],
+            },
+        }
+        self.dataset.set_permissions(perm_spec)
+        url = f"{url}/iso_metadata_xml/"
+        response = self.client.get(url)
+        # user is not authenticated and dont have permission
+        self.assertEqual(response.status_code, 401)
+
+    def test_download_metadata_xml_authenticated_user_with_permission(self):
+        perm_spec = {
+            "users": {
+                self.user1: [
+                    "view_resourcebase",
+                ],
+            },
+            "groups": {},
+        }
+        self.dataset.set_permissions(perm_spec)
+        self.client.login(username="test_user123", password="password")
+        url = reverse("base-resources-detail", kwargs={"pk": self.dataset.pk})
+        url = f"{url}/iso_metadata_xml/"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/xml")
+        self.assertIn(b"test_dataset_for_metadata_xml", response.content)
+
+    def test_download_metadata_xml_authenticated_user_without_permission(self):
+        perm_spec = {
+            "users": {
+                self.user2: [],
+            },
+            "groups": {},
+        }
+        self.dataset.set_permissions(perm_spec)
+        self.client.login(username="test_user_2", password="password")
+        url = reverse("base-resources-detail", kwargs={"pk": self.dataset.pk})
+        url = f"{url}/iso_metadata_xml/"
+        response = self.client.get(url)
+        # user is authenticated but dont have permission
+        self.assertEqual(response.status_code, 403)
+
+
+class MapCachingTest(GeoNodeBaseTestSupport):
+
+    def setUp(self):
+        super().setUp()
+        self.user = get_user_model().objects.create_user(username="test_user_123", password="password")
+        self.map = create_single_map(owner=self.user, title="test map", name="test_map")
+        self.datasets = [create_single_dataset(name=f"dataset_{i}", owner=self.user) for i in range(5)]
+        for i, dataset in enumerate(self.datasets):
+            MapLayer.objects.create(map=self.map, name=dataset.name, dataset=dataset, order=i)
+            perm_spec = {
+                "users": {
+                    self.user.username: [
+                        "view_resourcebase",
+                    ]
+                },
+                "groups": {},
+            }
+            dataset.set_permissions(perm_spec)
+
+    def test_map_layer_permission_caching(self):
+        self.client.login(username="test_user_123", password="password")
+        url = f"/api/v2/maps/{self.map.pk}/?api_preset=viewer_common&api_preset=map_viewer"
+
+        # First call, should cache permissions
+        response1 = self.client.get(url)
+        self.assertEqual(response1.status_code, 200)
+        data1 = response1.json()
+
+        # Second call, should use cached permissions
+        response2 = self.client.get(url)
+        self.assertEqual(response2.status_code, 200)
+        data2 = response2.json()
+
+        # Check that the responses are the same
+        self.assertEqual(data1.keys(), data2.keys())
+
+        # Check that the permissions in the layers are the same
+        for layer1, layer2 in zip(data1["map"]["maplayers"], data2["map"]["maplayers"]):
+            self.assertEqual(layer1["dataset"]["perms"], layer2["dataset"]["perms"])

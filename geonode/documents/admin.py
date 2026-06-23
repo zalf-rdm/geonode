@@ -22,8 +22,7 @@ from django.contrib import admin
 from modeltranslation.admin import TabbedTranslationAdmin
 
 from geonode.documents.models import Document
-from geonode.base.admin import ResourceBaseAdminForm
-from geonode.base.admin import metadata_batch_edit
+from geonode.base.admin import ResourceBaseAdminForm, SparseInline
 
 
 class DocumentAdminForm(ResourceBaseAdminForm):
@@ -36,7 +35,8 @@ class DocumentAdminForm(ResourceBaseAdminForm):
 
 
 class DocumentAdmin(TabbedTranslationAdmin):
-    exclude = ("ll_bbox_polygon", "bbox_polygon", "srid")
+    inlines = (SparseInline,)
+    exclude = ("ll_bbox_polygon", "bbox_polygon", "srid", "tkeywords")
     list_display = (
         "id",
         "title",
@@ -69,7 +69,6 @@ class DocumentAdmin(TabbedTranslationAdmin):
     readonly_fields = ("geographic_bounding_box",)
     date_hierarchy = "date"
     form = DocumentAdminForm
-    actions = [metadata_batch_edit]
 
     def delete_queryset(self, request, queryset):
         """

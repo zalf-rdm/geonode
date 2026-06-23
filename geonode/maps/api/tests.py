@@ -36,19 +36,29 @@ logger = logging.getLogger(__name__)
 class MapsApiTests(APITestCase):
     fixtures = ["initial_data.json", "group_test_data.json", "default_oauth_apps.json"]
 
-    def setUp(self):
+    @classmethod
+    def setUpTestData(cls):
         create_models(b"document")
         create_models(b"map")
         create_models(b"dataset")
-        first_map = Map.objects.first()
-        first_map.blob = DUMMY_MAPDATA
-        first_map.save()
-        first_dataset = Dataset.objects.first()
+
+        try:
+            cls.map = Map.objects.get(pk=1)
+            cls.dataset = Dataset.objects.get(pk=1)
+        except (Map.DoesNotExist, Dataset.DoesNotExist):
+            cls.map = Map.objects.first()
+            cls.dataset = Dataset.objects.first()
+
+        # Update and save the class-level object
+        cls.map.blob = DUMMY_MAPDATA
+        cls.map.save()
+
+        # Create the MapLayer object
         MapLayer.objects.create(
-            map=first_map,
+            map=cls.map,
+            store=cls.dataset.store,
+            name=cls.dataset.alternate,
             extra_params={"foo": "bar"},
-            name=first_dataset.alternate,
-            store=first_dataset.store,
             current_style="some-style",
             local=True,
         )
@@ -269,6 +279,31 @@ class MapsApiTests(APITestCase):
         self.assertEqual(response_maplayer["current_style"], "some-style-first-layer")
         self.assertIsNotNone(response_maplayer["dataset"])
         self.assertIsNotNone(response.data["map"]["thumbnail_url"])
+
+    def test_create_map_featured_status_admin(self):
+        """
+        Post to maps/
+        User with perms should be able to change the value in the post payload
+        """
+        # Get Layers List (backgrounds)
+        url = reverse("maps-list")
+
+        data = {
+            "title": "Map should be approved",
+            "featured": True,
+            "is_approved": False,
+            "is_published": False,
+            "data": DUMMY_MAPDATA,
+            "maplayers": DUMMY_MAPLAYERS_DATA,
+        }
+        # if has perms, the user should be able to change the field
+        # featured/approved/published
+        self.client.login(username="admin", password="admin")
+        response = self.client.post(f"{url}?include[]=data", data=data, format="json")
+        self.assertEqual(response.status_code, 201)
+        self.assertFalse(response.json()["map"]["is_published"])
+        self.assertFalse(response.json()["map"]["is_approved"])
+        self.assertTrue(response.json()["map"]["featured"])
 
     def test_create_map_with_extra_maplayer_info(self):
         """

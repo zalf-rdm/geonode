@@ -1,5 +1,6 @@
 #########################################################################
 #
+# Copyright (C) 2024 OSGeo
 # Copyright (C) 2019 Open Source Geospatial Foundation - all rights reserved
 #
 # This program is free software: you can redistribute it and/or modify

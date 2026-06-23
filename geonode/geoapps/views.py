@@ -19,54 +19,28 @@
 import ast
 import json
 import logging
-import warnings
-import traceback
-import re
 
 from django.conf import settings
 from django.shortcuts import render
 from django.utils.translation import gettext_lazy as _
-from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, HttpResponseRedirect, Http404
-from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
-from django.forms.models import modelformset_factory
+from django.http import HttpResponse, Http404
 from django.views.decorators.clickjacking import xframe_options_sameorigin
-from geonode.base.enumerations import SOURCE_TYPE_LOCAL
+from django.core.exceptions import PermissionDenied
 
-from geonode.client.hooks import hookset
-from geonode.people.forms import ProfileForm
-from geonode.people.utils import get_user_display_name
-from geonode.base import register_event
 from geonode.groups.models import GroupProfile
-from geonode.monitoring.models import EventType
 from geonode.base.auth import get_or_create_token
 from geonode.security.views import _perms_info_json
-from geonode.security.utils import get_user_visible_groups
 from geonode.geoapps.models import GeoApp
 from geonode.resource.manager import resource_manager
-from geonode.decorators import check_keyword_write_perms
 
-from geonode.base.forms import (
-    CategoryForm,
-    TKeywordForm,
-    ThesaurusAvailableForm,
-    RelatedProjectForm,
-    ContactRoleFormSet,
-)
-from geonode.base.models import Thesaurus, TopicCategory, Funding, RelatedIdentifier, RelatedProject, ContactRole
 from geonode.utils import resolve_object
+from geonode.security.registry import permissions_registry
 
-from .forms import GeoAppForm
 
 logger = logging.getLogger("geonode.geoapps.views")
 
-_PERMISSION_MSG_DELETE = _("You are not permitted to delete this app.")
 _PERMISSION_MSG_GENERIC = _("You do not have permissions for this app.")
-_PERMISSION_MSG_LOGIN = _("You must be logged in to save this app")
-_PERMISSION_MSG_SAVE = _("You are not permitted to save or edit this app.")
-_PERMISSION_MSG_METADATA = _("You are not allowed to modify this app's metadata.")
 _PERMISSION_MSG_VIEW = _("You are not allowed to view this app.")
-_PERMISSION_MSG_UNKNOWN = _("An unknown error has occured.")
 
 
 def _resolve_geoapp(request, id, permission="base.change_resourcebase", msg=_PERMISSION_MSG_GENERIC, **kwargs):
@@ -77,28 +51,8 @@ def _resolve_geoapp(request, id, permission="base.change_resourcebase", msg=_PER
     return resolve_object(request, GeoApp, {"pk": id}, permission=permission, permission_msg=msg, **kwargs)
 
 
-@login_required
-def new_geoapp(request, template="apps/app_new.html"):
-    access_token = None
-    if request and request.user:
-        access_token = get_or_create_token(request.user)
-        if access_token and not access_token.is_expired():
-            access_token = access_token.token
-        else:
-            access_token = None
-
-    if request.method == "GET":
-        _ctx = {
-            "user": request.user,
-            "access_token": access_token,
-        }
-        return render(request, template, context=_ctx)
-
-    return HttpResponseRedirect(hookset.geoapp_list_url())
-
-
 @xframe_options_sameorigin
-def geoapp_edit(request, geoappid, template="apps/app_edit.html"):
+def geoapp_embed(request, geoappid, template="apps/app_embed.html"):
     """
     The view that returns the app composer opened to
     the app with the given app ID.
@@ -115,7 +69,7 @@ def geoapp_edit(request, geoappid, template="apps/app_edit.html"):
     # Call this first in order to be sure "perms_list" is correct
     permissions_json = _perms_info_json(geoapp_obj)
 
-    perms_list = geoapp_obj.get_user_perms(request.user)
+    perms_list = permissions_registry.get_perms(instance=geoapp_obj, user=request.user)
 
     group = None
     if geoapp_obj.group:
@@ -157,396 +111,3 @@ def geoapp_edit(request, geoappid, template="apps/app_edit.html"):
     }
 
     return render(request, template, context=_ctx)
-
-
-def geoapp_metadata_detail(request, geoappid, template="apps/app_metadata_detail.html", custom_metadata=None):
-    try:
-        geoapp_obj = _resolve_geoapp(request, geoappid, "view_resourcebase", _PERMISSION_MSG_METADATA)
-    except PermissionDenied:
-        return HttpResponse(_("Not allowed"), status=403)
-    except Exception:
-        raise Http404(_("Not found"))
-    if not geoapp_obj:
-        raise Http404(_("Not found"))
-
-    group = None
-    if geoapp_obj.group:
-        try:
-            group = GroupProfile.objects.get(slug=geoapp_obj.group.name)
-        except ObjectDoesNotExist:
-            group = None
-    site_url = settings.SITEURL.rstrip("/") if settings.SITEURL.startswith("http") else settings.SITEURL
-    register_event(request, EventType.EVENT_VIEW_METADATA, geoapp_obj)
-
-    return render(
-        request,
-        template,
-        context={
-            "resource": geoapp_obj,
-            "group": group,
-            "SITEURL": site_url,
-            "custom_metadata": custom_metadata,
-        },
-    )
-
-
-@login_required
-@check_keyword_write_perms
-def geoapp_metadata(
-    request,
-    geoappid,
-    template="apps/app_metadata.html",
-    ajax=True,
-    panel_template="layouts/app_panels.html",
-    custom_metadata=None,
-):
-    geoapp_obj = None
-    try:
-        geoapp_obj = _resolve_geoapp(request, geoappid, "base.change_resourcebase_metadata", _PERMISSION_MSG_METADATA)
-    except PermissionDenied:
-        return HttpResponse(_("Not allowed"), status=403)
-    except Exception:
-        raise Http404(_("Not found"))
-    if not geoapp_obj:
-        raise Http404(_("Not found"))
-
-    # Add metadata_author or poc if missing
-    geoapp_obj.add_missing_metadata_author_or_poc()
-    resource_type = geoapp_obj.resource_type
-
-    FundingFormset = modelformset_factory(
-        Funding,
-        fields=["organization", "award_number", "award_uri", "award_title"],
-        can_delete=True,
-        extra=0,
-        min_num=0,
-    )
-
-    RelatedIdentifierFormset = modelformset_factory(
-        RelatedIdentifier,
-        fields=[
-            "related_identifier",
-            "related_identifier_type",
-            "relation_type",
-            "resource_type_general",
-            "description",
-        ],
-        can_delete=True,
-        extra=0,
-        min_num=0,
-    )
-
-    topic_category = geoapp_obj.category
-    current_keywords = [keyword.name for keyword in geoapp_obj.keywords.all()]
-
-    topic_thesaurus = geoapp_obj.tkeywords.all()
-
-    if request.method == "POST":
-        geoapp_form = GeoAppForm(request.POST, instance=geoapp_obj, prefix="resource", user=request.user)
-
-        related_project_form = RelatedProjectForm(
-            request.POST,
-            instance=geoapp_obj,
-        )
-        if not related_project_form.is_valid():
-            logger.error(f"Dataset Related Project Fields are not valid: {related_project_form.errors}")
-            out = {
-                "success": False,
-                "errors": [re.sub(re.compile("<.*?>"), "", str(err)) for err in related_project_form.errors],
-            }
-            return HttpResponse(json.dumps(out), content_type="application/json", status=400)
-
-        funding_form = FundingFormset(
-            request.POST,
-            prefix="form_funding",
-        )
-
-        related_identifier_form = RelatedIdentifierFormset(
-            request.POST,
-            prefix="form_related_identifier",
-        )
-
-        contact_role_form = ContactRoleFormSet(
-            request.POST,
-            instance=geoapp_obj,
-            prefix="form_contact_role",
-        )
-
-        if not contact_role_form.is_valid():
-            logger.error(f"Contact Role formset is not valid: {contact_role_form.errors}")
-            error_list = []
-            role_choice_map = dict(ContactRoleFormSet.form.base_fields["role"].choices)
-            for idx, form in enumerate(contact_role_form.forms, start=1):
-                if not form.errors:
-                    continue
-                form_label = _("Contact role %(index)s") % {"index": idx}
-                for field_name, field_errors in form.errors.items():
-                    if field_name == "__all__":
-                        contact = form.cleaned_data.get("contact") if hasattr(form, "cleaned_data") else None
-                        role_value = form.cleaned_data.get("role") if hasattr(form, "cleaned_data") else None
-                        contact_label = get_user_display_name(contact) if contact else _("selected user")
-                        role_label = role_choice_map.get(role_value, role_value or _("selected role"))
-                        message = _(
-                            "%(form_label)s uses %(contact)s as %(role)s more than once. Each user can only appear once per role."
-                        ) % {
-                            "form_label": form_label,
-                            "contact": contact_label,
-                            "role": role_label,
-                        }
-                        error_list.append(message)
-                        continue
-
-                    field_label = form.fields.get(field_name).label if field_name in form.fields else field_name
-                    for field_error in field_errors:
-                        error_list.append(f"{form_label} - {field_label}: {field_error}")
-            for non_form_error in contact_role_form.non_form_errors():
-                error_list.append(str(non_form_error))
-            if not error_list:
-                error_list.append(_("Invalid contact role data."))
-            out = {"success": False, "errors": error_list}
-            return HttpResponse(json.dumps(out), content_type="application/json", status=400)
-
-        category_form = CategoryForm(
-            request.POST,
-            prefix="category_choice_field",
-            initial=(
-                int(request.POST["category_choice_field"])
-                if "category_choice_field" in request.POST and request.POST["category_choice_field"]
-                else None
-            ),
-        )
-
-        if hasattr(settings, "THESAURUS"):
-            tkeywords_form = TKeywordForm(request.POST)
-        else:
-            tkeywords_form = ThesaurusAvailableForm(request.POST, prefix="tkeywords")
-
-    else:
-        geoapp_form = GeoAppForm(instance=geoapp_obj, prefix="resource", user=request.user)
-        geoapp_form.disable_keywords_widget_for_non_superuser(request.user)
-
-        # projects_initial_values = list(layer.related_projects.all())
-        projects_initial_values = list(RelatedProject.objects.filter(related_projects=geoapp_obj))
-
-        related_project_form = RelatedProjectForm(
-            prefix="related_project_form",
-            instance=geoapp_obj,
-            initial={"display_name": projects_initial_values},
-        )
-
-        funding_intial_values = Funding.objects.all().filter(resourcebase=geoapp_obj)
-        funding_form = FundingFormset(prefix="form_funding", queryset=funding_intial_values)
-
-        related_identifier_intial_values = RelatedIdentifier.objects.all().filter(resourcebase=geoapp_obj)
-        related_identifier_form = RelatedIdentifierFormset(
-            prefix="form_related_identifier", queryset=related_identifier_intial_values
-        )
-
-        contact_role_initial_values = ContactRole.objects.filter(resource=geoapp_obj).order_by("order", "id")
-        contact_role_form = ContactRoleFormSet(
-            prefix="form_contact_role",
-            instance=geoapp_obj,
-            queryset=contact_role_initial_values,
-        )
-
-        category_form = CategoryForm(
-            prefix="category_choice_field", initial=topic_category.id if topic_category else None
-        )
-
-        # Create THESAURUS widgets
-        lang = settings.THESAURUS_DEFAULT_LANG if hasattr(settings, "THESAURUS_DEFAULT_LANG") else "en"
-        if hasattr(settings, "THESAURUS") and settings.THESAURUS:
-            warnings.warn(
-                "The settings for Thesaurus has been moved to Model, \
-            this feature will be removed in next releases",
-                DeprecationWarning,
-            )
-            dataset_tkeywords = geoapp_obj.tkeywords.all()
-            tkeywords_list = ""
-            if dataset_tkeywords and len(dataset_tkeywords) > 0:
-                tkeywords_ids = dataset_tkeywords.values_list("id", flat=True)
-                if hasattr(settings, "THESAURUS") and settings.THESAURUS:
-                    el = settings.THESAURUS
-                    thesaurus_name = el["name"]
-                    try:
-                        t = Thesaurus.objects.get(identifier=thesaurus_name)
-                        for tk in t.thesaurus.filter(pk__in=tkeywords_ids):
-                            tkl = tk.keyword.filter(lang=lang)
-                            if len(tkl) > 0:
-                                tkl_ids = ",".join(map(str, tkl.values_list("id", flat=True)))
-                                tkeywords_list += f",{tkl_ids}" if len(tkeywords_list) > 0 else tkl_ids
-                    except Exception:
-                        tb = traceback.format_exc()
-                        logger.error(tb)
-            tkeywords_form = TKeywordForm(instance=geoapp_obj)
-        else:
-            tkeywords_form = ThesaurusAvailableForm(prefix="tkeywords")
-            #  set initial values for thesaurus form
-            for tid in tkeywords_form.fields:
-                values = []
-                values = [keyword.id for keyword in topic_thesaurus if int(tid) == keyword.thesaurus.id]
-                tkeywords_form.fields[tid].initial = values
-
-    if (
-        request.method == "POST"
-        and geoapp_form.is_valid()
-        and related_project_form.is_valid()
-        and funding_form.is_valid()
-        and related_identifier_form.is_valid()
-        and contact_role_form.is_valid()
-        and category_form.is_valid()
-        and tkeywords_form.is_valid()
-    ):
-        new_keywords = current_keywords if request.keyword_readonly else geoapp_form.cleaned_data.pop("keywords")
-        new_regions = geoapp_form.cleaned_data.pop("regions")
-
-        new_category = None
-        if (
-            category_form
-            and "category_choice_field" in category_form.cleaned_data
-            and category_form.cleaned_data["category_choice_field"]
-        ):
-            new_category = TopicCategory.objects.get(id=int(category_form.cleaned_data["category_choice_field"]))
-
-        project = related_project_form.cleaned_data
-        instance = project["display_name"]
-
-        geoapp_obj.related_projects.add(*instance)
-
-        # Save contact roles via dedicated formset
-        contact_role_form.save()
-
-        funding_form.save()
-        instance = funding_form.save(commit=False)
-        geoapp_obj.fundings.add(*instance)
-
-        related_identifier_form.save()
-        instance = related_identifier_form.save(commit=False)
-        geoapp_obj.related_identifier.add(*instance)
-
-        geoapp_obj.save()
-        geoapp_form.cleaned_data.pop("ptype")
-        # geoapp_obj = geoapp_form.instance
-
-        vals = dict(category=new_category)
-
-        geoapp_form.cleaned_data.pop("metadata")
-        extra_metadata = geoapp_form.cleaned_data.pop("extra_metadata")
-
-        geoapp_form.save_linked_resources()
-        geoapp_form.cleaned_data.pop("linked_resources")
-
-        vals.update({"resource_type": resource_type, "sourcetype": SOURCE_TYPE_LOCAL})
-
-        register_event(request, EventType.EVENT_CHANGE_METADATA, geoapp_obj)
-        if not ajax:
-            return HttpResponseRedirect(hookset.geoapp_detail_url(geoapp_obj))
-
-        message = geoapp_obj.id
-
-        try:
-            # Keywords from THESAURUS management
-            # Rewritten to work with updated autocomplete
-            if not tkeywords_form.is_valid():
-                return HttpResponse(json.dumps({"message": "Invalid thesaurus keywords"}, status_code=400))
-
-            thesaurus_setting = getattr(settings, "THESAURUS", None)
-            if thesaurus_setting:
-                tkeywords_data = tkeywords_form.cleaned_data["tkeywords"]
-                tkeywords_data = tkeywords_data.filter(thesaurus__identifier=thesaurus_setting["name"])
-                geoapp_obj.tkeywords.set(tkeywords_data)
-            elif Thesaurus.objects.all().exists():
-                fields = tkeywords_form.cleaned_data
-                geoapp_obj.tkeywords.set(tkeywords_form.cleanx(fields))
-
-        except Exception:
-            tb = traceback.format_exc()
-            logger.error(tb)
-
-        if "group" in geoapp_form.changed_data:
-            vals["group"] = geoapp_form.cleaned_data.get("group")
-        if any([x in geoapp_form.changed_data for x in ["is_approved", "is_published"]]):
-            vals["is_approved"] = geoapp_form.cleaned_data.get("is_approved", geoapp_obj.is_approved)
-            vals["is_published"] = geoapp_form.cleaned_data.get("is_published", geoapp_obj.is_published)
-        else:
-            vals.pop("is_approved", None)
-            vals.pop("is_published", None)
-
-        resource_manager.update(
-            geoapp_obj.uuid,
-            instance=geoapp_obj,
-            keywords=new_keywords,
-            regions=new_regions,
-            notify=True,
-            vals=vals,
-            extra_metadata=json.loads(extra_metadata),
-        )
-
-        resource_manager.set_thumbnail(geoapp_obj.uuid, instance=geoapp_obj, overwrite=False)
-
-        return HttpResponse(json.dumps({"message": message}))
-    elif request.method == "POST" and (
-        not geoapp_form.is_valid()
-        or not related_project_form.is_valid()
-        or not funding_form.is_valid()
-        or not related_identifier_form.is_valid()
-        or not category_form.is_valid()
-        or not tkeywords_form.is_valid()
-    ):
-        errors_list = {
-            **geoapp_form.errors.as_data(),
-            **category_form.errors.as_data(),
-            **tkeywords_form.errors.as_data(),
-        }
-        logger.error(f"GeoApp Metadata form is not valid: {errors_list}")
-        out = {"success": False, "errors": [f"{x}: {y[0].messages[0]}" for x, y in errors_list.items()]}
-        return HttpResponse(json.dumps(out), content_type="application/json", status=400)
-    # - POST Request Ends here -
-
-    # define contact role forms
-    # some leftovers could be removed if metadata_detail.html is refactored to use only these forms
-    contact_role_forms_context = {}
-    for role in geoapp_obj.get_multivalue_role_property_names():
-        role_form = ProfileForm(prefix=role)
-        role_form.hidden = True
-        contact_role_forms_context[f"{role}_form"] = role_form
-
-    metadata_author_groups = get_user_visible_groups(request.user)
-
-    if not request.user.can_publish(geoapp_obj):
-        geoapp_form.fields["is_published"].widget.attrs.update({"disabled": "true"})
-    if not request.user.can_approve(geoapp_obj):
-        geoapp_form.fields["is_approved"].widget.attrs.update({"disabled": "true"})
-
-    register_event(request, EventType.EVENT_VIEW_METADATA, geoapp_obj)
-    return render(
-        request,
-        template,
-        context={
-            "resource": geoapp_obj,
-            "geoapp": geoapp_obj,
-            "panel_template": panel_template,
-            "custom_metadata": custom_metadata,
-            "geoapp_form": geoapp_form,
-            "related_project_form": related_project_form,
-            "funding_form": funding_form,
-            "related_identifier_form": related_identifier_form,
-            "contact_role_form": contact_role_form,
-            "category_form": category_form,
-            "tkeywords_form": tkeywords_form,
-            "metadata_author_groups": metadata_author_groups,
-            "TOPICCATEGORY_MANDATORY": getattr(settings, "TOPICCATEGORY_MANDATORY", False),
-            "GROUP_MANDATORY_RESOURCES": getattr(settings, "GROUP_MANDATORY_RESOURCES", False),
-            "UI_MANDATORY_FIELDS": list(
-                set(getattr(settings, "UI_DEFAULT_MANDATORY_FIELDS", []))
-                | set(getattr(settings, "UI_REQUIRED_FIELDS", []))
-            ),
-            **contact_role_forms_context,
-            "UI_ROLES_IN_TOGGLE_VIEW": geoapp_obj.get_ui_toggled_role_property_names(),
-        },
-    )
-
-
-@login_required
-def geoapp_metadata_advanced(request, geoappid):
-    return geoapp_metadata(request, geoappid, template="apps/app_metadata_advanced.html")

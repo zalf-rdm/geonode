@@ -18,18 +18,11 @@
 #########################################################################
 
 from django.contrib import admin
-from django.db.models import Prefetch
 
 from modeltranslation.admin import TabbedTranslationAdmin
 
-from geonode.base.admin import ResourceBaseAdminForm
+from geonode.base.admin import ResourceBaseAdminForm, SparseInline
 from geonode.layers.models import Dataset, Attribute, Style
-from geonode.base.admin import metadata_batch_edit
-
-from geonode.base.fields import MultiThesauriField
-from geonode.base.models import ThesaurusKeyword, ThesaurusKeywordLabel
-
-from dal import autocomplete
 
 
 class AttributeInline(admin.TabularInline):
@@ -41,21 +34,9 @@ class DatasetAdminForm(ResourceBaseAdminForm):
         model = Dataset
         fields = "__all__"
 
-    tkeywords = MultiThesauriField(
-        queryset=ThesaurusKeyword.objects.prefetch_related(
-            Prefetch("keyword", queryset=ThesaurusKeywordLabel.objects.filter(lang="en"))
-        ),
-        widget=autocomplete.ModelSelect2Multiple(
-            url="thesaurus_autocomplete",
-        ),
-        label=("Keywords from Thesaurus"),
-        required=False,
-        help_text=("List of keywords from Thesaurus",),
-    )
-
 
 class DatasetAdmin(TabbedTranslationAdmin):
-    exclude = ("ll_bbox_polygon", "bbox_polygon", "srid")
+    exclude = ("ll_bbox_polygon", "bbox_polygon", "srid", "tkeywords")
     list_display = (
         "id",
         "alternate",
@@ -85,12 +66,14 @@ class DatasetAdmin(TabbedTranslationAdmin):
         "dirty_state",
     )
     search_fields = ("alternate", "title", "abstract", "purpose", "is_approved", "is_published", "state")
-    filter_horizontal = ("contacts",)
+    # filter_horizontal = ("contacts",)
     date_hierarchy = "date"
     readonly_fields = ("uuid", "alternate", "workspace", "geographic_bounding_box")
-    inlines = [AttributeInline]
+    inlines = (
+        AttributeInline,
+        SparseInline,
+    )
     form = DatasetAdminForm
-    actions = [metadata_batch_edit]
 
     def delete_queryset(self, request, queryset):
         """

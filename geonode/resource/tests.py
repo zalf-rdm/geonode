@@ -23,7 +23,6 @@ from uuid import uuid4
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ObjectDoesNotExist
 
 from geonode.groups.models import GroupProfile
 from geonode.base.populate_test_data import create_models
@@ -39,6 +38,7 @@ from geonode.resource import settings as rm_settings
 from geonode.layers.populate_datasets_data import create_dataset_data
 from geonode.base.populate_test_data import create_single_doc, create_single_map, create_single_dataset
 from geonode.thumbs.utils import ThumbnailAlgorithms
+from geonode.security.registry import permissions_registry
 
 from gisdata import GOOD_DATA
 
@@ -48,12 +48,26 @@ class ResourceManagerClassTest:
 
 
 class TestResourceManager(GeoNodeBaseTestSupport):
-    def setUp(self):
+    """
+    Tests for the GeoNode ResourceManager.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
         create_models(b"dataset")
         create_models(b"map")
         create_models(b"document")
-        User = get_user_model()
-        self.user = User.objects.create(username="test", email="test@test.com")
+
+        cls.User = get_user_model()
+
+    def setUp(self):
+        super().setUp()
+        self.user = self.User.objects.create_user(
+            username="test",
+            email="test@test.com",
+        )
+
         self.rm = ResourceManager()
 
     def test_get_concrete_manager(self):
@@ -121,13 +135,14 @@ class TestResourceManager(GeoNodeBaseTestSupport):
 
     def test_ingest(self):
         dt_files = [os.path.join(GOOD_DATA, "raster", "relief_san_andres.tif")]
+        # raises an exception if resource_type is not provided
 
-        # ingest with documents
         res = self.rm.create(
             None,
             resource_type=Document,
             defaults=dict(owner=self.user, files=dt_files),
         )
+        # ingest with documents
         self.assertTrue(isinstance(res, Document))
         res.delete()
         # ingest with datasets
@@ -168,10 +183,12 @@ class TestResourceManager(GeoNodeBaseTestSupport):
                 "files": dt_files,
             },
         )
+
         self.assertTrue(isinstance(res, Document))
         _copy_assert_resource(res, "Testing Document 2")
 
         # copy with datasets
+        # copy with documents
         res = self.rm.create(
             None,
             resource_type=Dataset,
@@ -211,49 +228,54 @@ class TestResourceManager(GeoNodeBaseTestSupport):
         self.assertTrue(isinstance(res, Map))
         _copy_assert_resource(res, "A Test Map 2")
 
-    @patch.object(ResourceManager, "_validate_resource")
-    def test_append(self, mock_validator):
-        mock_validator.return_value = True
-        dt = create_single_dataset("test_append_dataset")
-        # Before append
-        self.assertEqual(dt.name, "test_append_dataset")
-        # After append
-        self.rm.append(dt, vals={"name": "new_name_test_append_dataset"})
-        self.assertEqual(dt.name, "new_name_test_append_dataset")
-        # test with failing validator
-        mock_validator.return_value = False
-        self.rm.append(dt, vals={"name": "new_name2"})
-        self.assertEqual(dt.name, "new_name_test_append_dataset")
-
-    @patch.object(ResourceManager, "_validate_resource")
-    def test_replace(self, mock_validator):
-        dt = create_single_dataset("test_replace_dataset")
-        mock_validator.return_value = True
-        self.rm.replace(dt, vals={"name": "new_name_test_replace_dataset"})
-        self.assertEqual(dt.name, "new_name_test_replace_dataset")
-        # test with failing validator
-        mock_validator.return_value = False
-        self.rm.replace(dt, vals={"name": "new_name2"})
-        self.assertEqual(dt.name, "new_name_test_replace_dataset")
-
-    def test_validate_resource(self):
-        doc = create_single_doc("test_delete_doc")
-        dt = create_single_dataset("test_delete_dataset")
-        map = create_single_map("test_delete_dataset")
-        with self.assertRaises(Exception):
-            # append is for only datasets
-            self.rm._validate_resource(doc, action_type="append")
-        self.assertTrue(self.rm._validate_resource(doc, action_type="replace"))
-        self.assertTrue(self.rm._validate_resource(dt, action_type="replace"))
-        self.assertTrue(self.rm._validate_resource(map, action_type="replace"))
-        with self.assertRaises(ObjectDoesNotExist):
-            # TODO In function rais this only when object is not found
-            self.rm._validate_resource(dt, action_type="invalid")
-
     def test_exec(self):
         map = create_single_map("test_exec_map")
         self.assertIsNone(self.rm.exec("set_style", None, instance=None))
         self.assertEqual(self.rm.exec("set_style", map.uuid, instance=map), map)
+
+    def test_transfer_ownership(self):
+        previous_owner = get_user_model().objects.create(username="previous_owner")
+        new_owner = get_user_model().objects.create(username="new_owner")
+        doc = create_single_doc("test_transfer_ownership_doc", owner=previous_owner)
+
+        self.assertEqual(doc.owner, previous_owner)
+        self.assertTrue(
+            permissions_registry.user_has_perm(
+                previous_owner, doc.get_self_resource(), "change_resourcebase", include_virtual=True
+            )
+        )
+        self.assertFalse(
+            permissions_registry.user_has_perm(
+                new_owner, doc.get_self_resource(), "change_resourcebase", include_virtual=True
+            )
+        )
+
+        self.rm.transfer_ownership(doc, new_owner, previous_owner)
+
+        doc.refresh_from_db()
+        self.assertEqual(doc.owner, new_owner)
+
+        self.assertTrue(
+            permissions_registry.user_has_perm(
+                new_owner, doc.get_self_resource(), "change_resourcebase", include_virtual=True
+            )
+        )
+        self.assertTrue(
+            permissions_registry.user_has_perm(
+                new_owner, doc.get_self_resource(), "delete_resourcebase", include_virtual=True
+            )
+        )
+
+        self.assertFalse(
+            permissions_registry.user_has_perm(
+                previous_owner, doc.get_self_resource(), "change_resourcebase", include_virtual=True
+            )
+        )
+        self.assertFalse(
+            permissions_registry.user_has_perm(
+                previous_owner, doc.get_self_resource(), "delete_resourcebase", include_virtual=True
+            )
+        )
 
     def test_remove_permissions(self):
         with self.settings(DEFAULT_ANONYMOUS_VIEW_PERMISSION=True):

@@ -29,7 +29,6 @@ from django.forms import HiddenInput
 from django.utils.translation import gettext_lazy as _
 from django.template.defaultfilters import filesizeformat
 
-from geonode.base.forms import ResourceBaseForm, get_tree_data
 from geonode.documents.models import Document
 from geonode.upload.models import UploadSizeLimit
 from geonode.upload.api.exceptions import FileUploadLimitException
@@ -75,45 +74,6 @@ class SizeRestrictedFileField(forms.FileField):
         except UploadSizeLimit.DoesNotExist:
             max_size_db_obj = UploadSizeLimit.objects.create_default_limit_with_slug(slug=self.field_slug)
         return max_size_db_obj.max_size
-
-
-class DocumentForm(ResourceBaseForm):
-    title = forms.CharField(required=False)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["regions"].choices = get_tree_data()
-        for field in self.fields:
-            help_text = self.fields[field].help_text
-            self.fields[field].help_text = None
-            if help_text != "":
-                self.fields[field].widget.attrs.update(
-                    {
-                        "class": "has-external-popover",
-                        "data-content": help_text,
-                        "placeholder": help_text,
-                        "data-placement": "right",
-                        "data-container": "body",
-                        "data-html": "true",
-                    }
-                )
-
-    class Meta(ResourceBaseForm.Meta):
-        model = Document
-        exclude = ResourceBaseForm.Meta.exclude + (
-            "content_type",
-            "object_id",
-            "doc_file",
-            "extension",
-            "subtype",
-            "doc_url",
-        )
-
-
-class DocumentDescriptionForm(forms.Form):
-    title = forms.CharField(max_length=300)
-    abstract = forms.CharField(max_length=2000, widget=forms.Textarea, required=False)
-    keywords = forms.CharField(max_length=500, required=False)
 
 
 class DocumentCreateForm(TranslationModelForm):
@@ -181,41 +141,6 @@ class DocumentCreateForm(TranslationModelForm):
 
         if doc_file and not os.path.splitext(doc_file.name)[1].lower()[1:] in settings.ALLOWED_DOCUMENT_TYPES:
             logger.debug("This file type is not allowed")
-            raise forms.ValidationError(_("This file type is not allowed"))
-
-        return doc_file
-
-
-class DocumentReplaceForm(forms.ModelForm):
-    """
-    The form used to replace a document.
-    """
-
-    doc_file = SizeRestrictedFileField(label=_("File"), required=True, field_slug="document_upload_size")
-
-    class Meta:
-        model = Document
-        fields = ["doc_file"]
-
-    def clean(self):
-        """
-        Ensures the doc_file field is populated.
-        """
-        cleaned_data = super().clean()
-        doc_file = self.cleaned_data.get("doc_file")
-
-        if not doc_file:
-            raise forms.ValidationError(_("Document must be a file."))
-
-        return cleaned_data
-
-    def clean_doc_file(self):
-        """
-        Ensures the doc_file is valid.
-        """
-        doc_file = self.cleaned_data.get("doc_file")
-
-        if doc_file and not os.path.splitext(doc_file.name)[1].lower()[1:] in settings.ALLOWED_DOCUMENT_TYPES:
             raise forms.ValidationError(_("This file type is not allowed"))
 
         return doc_file

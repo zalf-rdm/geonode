@@ -63,6 +63,7 @@ _names = [
     "Atom",
     "DIF",
     "Dublin Core",
+    "DataCite",
     "ebRIM",
     "FGDC",
     "ISO",
@@ -225,3 +226,15 @@ def increment_download_count(resource_id, user):
     if user is not None and getattr(user, "is_authenticated", False):
         qs = qs.exclude(owner=user)
     qs.update(download_count=db_models.F("download_count") + 1)
+
+
+def patch_perms(updated_perms_compact, current_perms_compact, resource):
+    """
+    Patch updated permission changes with current permissions.
+    """
+    from geonode.security.permissions import PermSpecCompact
+
+    perms_spec_compact_patch = PermSpecCompact(updated_perms_compact, resource)
+    perms_spec_compact_resource = PermSpecCompact(current_perms_compact, resource)
+    perms_spec_compact_resource.merge(perms_spec_compact_patch)
+    return perms_spec_compact_resource

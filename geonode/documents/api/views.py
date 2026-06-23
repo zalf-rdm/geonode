@@ -24,8 +24,6 @@ from dynamic_rest.filters import DynamicFilterBackend, DynamicSortingFilter
 
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
-from rest_framework.authentication import SessionAuthentication, BasicAuthentication
-from oauth2_provider.contrib.rest_framework import OAuth2Authentication
 from geonode import settings
 
 from geonode.assets.utils import create_asset_and_link
@@ -58,7 +56,6 @@ class DocumentViewSet(ApiPresetsInitializer, DynamicModelViewSet, AdvertisedList
     """
 
     http_method_names = ["get", "patch", "put", "post"]
-    authentication_classes = [SessionAuthentication, BasicAuthentication, OAuth2Authentication]
     permission_classes = [
         IsAuthenticatedOrReadOnly,
         UserHasPerms(perms_dict={"default": {"POST": ["base.add_resourcebase"]}}),
@@ -137,7 +134,7 @@ class DocumentViewSet(ApiPresetsInitializer, DynamicModelViewSet, AdvertisedList
 
             resource.set_missing_info()
             resourcebase_post_save(resource.get_real_instance())
-            resource_manager.set_permissions(None, instance=resource, permissions=None, created=True)
+            resource.set_default_permissions(owner=self.request.user, created=True)
             resource.handle_moderated_uploads()
             resource_manager.set_thumbnail(resource.uuid, instance=resource, overwrite=False)
             return resource

@@ -26,18 +26,17 @@ import logging
 import traceback
 import datetime
 
-from typing import List, Tuple
+from typing import List, Optional, Tuple, Union
 from sequences.models import Sequence
 from sequences import get_next_value
 from PIL import Image
 
 from django.db import transaction
 from django.db import models
-from django.db.models import Max
 from django.conf import settings
 from django.utils.html import escape
 from django.utils.timezone import now
-from django.db.models import Q, signals
+from django.db.models import Q, QuerySet, signals
 from django.db.utils import IntegrityError, OperationalError
 from django.contrib.auth.models import Group
 from django.core.files.base import ContentFile
@@ -483,7 +482,7 @@ class Thesaurus(models.Model):
     # read from the RDF file
     description = models.TextField(max_length=255, default="")
 
-    slug = models.CharField(max_length=64, default="")
+    slug = models.CharField(max_length=64, default="", null=True, blank=True)
 
     about = models.CharField(max_length=255, null=True, blank=True)
 
@@ -636,15 +635,6 @@ class ResourceBaseManager(PolymorphicManager):
             # Remove generated thumbnails, if any
             filename = f"{_resource.get_real_instance().resource_type}-{_resource.get_real_instance().uuid}"
             remove_thumbs(filename)
-
-            # Remove the uploaded sessions, if any
-            if "geonode.upload" in settings.INSTALLED_APPS:
-                from geonode.upload.models import Upload
-
-                # Need to call delete one by one in order to invoke the
-                #  'delete' overridden method
-                for upload in Upload.objects.filter(resource_id=_resource.get_real_instance().id):
-                    upload.delete()
 
 
 class RelatedIdentifierType(models.Model):
@@ -819,6 +809,9 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     """
     Base Resource Object loosely based on ISO 19115:2003
     """
+
+    # fixing up the publishing option based on user permissions
+    ROLE_BASED_MANAGED_FIELDS = ["is_approved", "is_published", "featured"]
 
     BASE_PERMISSIONS = {
         "read": ["view_resourcebase"],
@@ -1374,16 +1367,16 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         _notification_sent = False
         _group_status_changed = False
         _approval_status_changed = False
-
+        send_create_notification = False
         if hasattr(self, "class_name") and (self.pk is None or notify):
-            if self.pk is None and (self.title or getattr(self, "name", None)):
-                # Resource Created
-                if not self.title and getattr(self, "name", None):
-                    self.title = getattr(self, "name", None)
-                notice_type_label = f"{self.class_name.lower()}_created"
-                recipients = get_notification_recipients(notice_type_label, resource=self)
-                send_notification(recipients, notice_type_label, {"resource": self})
-            elif self.pk:
+            # if self.pk is None and (self.title or getattr(self, "name", None)):
+            #    # Resource Created
+            #    if not self.title and getattr(self, "name", None):
+            #        self.title = getattr(self, "name", None)
+            #    notice_type_label = f"{self.class_name.lower()}_created"
+            #    recipients = get_notification_recipients(notice_type_label, resource=self)
+            #    send_notification(recipients, notice_type_label, {"resource": self})
+            if self.pk:
                 # Group has changed
                 _group_status_changed = self.group != ResourceBase.objects.get(pk=self.get_self_resource().pk).group
 
@@ -1416,15 +1409,14 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
                     send_notification(recipients, notice_type_label, {"resource": self})
 
         if self.pk is None:
-            _initial_value = ResourceBase.objects.aggregate(Max("pk"))["pk__max"]
-            if not _initial_value:
-                _initial_value = 1
-            else:
-                _initial_value += 1
+            # behaviour changed with Djagno 5.2
+            base = ResourceBase.objects
+            _initial_value = 1 if not base.exists() else base.order_by("pk").last().id + 1
             _next_value = get_next_value("ResourceBase", initial_value=_initial_value)  # type(self).__name__,
             if _initial_value > _next_value:
                 Sequence.objects.filter(name="ResourceBase").update(last=_initial_value)
                 _next_value = _initial_value
+            send_create_notification = True
 
             self.pk = self.id = _next_value
 
@@ -1434,6 +1426,13 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
             self.uuid = str(uuid.uuid4())
         super().save(*args, **kwargs)
 
+        if send_create_notification:
+            # changed in Django 5.2, the we can get the title via the assets only if the resource is saved
+            if not self.title and hasattr(self, "name") and getattr(self, "name", None):
+                self.title = getattr(self, "name", None)
+            notice_type_label = f"{self.__class__.__name__.lower()}_created"
+            recipients = get_notification_recipients(notice_type_label, resource=self)
+            send_notification(recipients, notice_type_label, {"resource": self})
         # Update workflow permissions
         if _approval_status_changed or _group_status_changed:
             self.set_permissions(
@@ -1484,6 +1483,57 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     @property
     def restriction_code(self):
         return self.restriction_other.gn_description if self.restriction_other else None
+
+    def __get_contact_role_elements__(self, role: str) -> Optional[List]:
+        """General getter for all contact roles except owner.
+
+        Args:
+            role (str): string corresponding to role name, defining which property is requested
+        Returns:
+            Optional[List]: returns the requested contact role users from the database
+        """
+        try:
+            contact_role = ContactRole.objects.filter(role=role, resource=self)
+            contacts = [cr.contact for cr in contact_role]
+        except ContactRole.DoesNotExist:
+            contacts = None
+        return contacts
+
+    # types allowed as input for Contact role properties
+    CONTACT_ROLE_USER_PROFILES_ALLOWED_TYPES = Union[str, QuerySet, List]
+
+    def __set_contact_role_element__(self, user_profile: CONTACT_ROLE_USER_PROFILES_ALLOWED_TYPES, role: str):
+        """General setter for all contact roles except owner in resource base.
+
+        Args:
+            user_profile: user or list of users to set for the role
+            role (str): string corresponding to role name, defining which property is to set
+        """
+        from django.contrib.auth import get_user_model
+
+        def __create_role__(resource, role: str, user_profile):
+            return ContactRole.objects.create(role=role, resource=resource, contact=user_profile)
+
+        if isinstance(user_profile, QuerySet):
+            ContactRole.objects.filter(role=role, resource=self).delete()
+            return [__create_role__(self, role, user) for user in user_profile]
+
+        elif isinstance(user_profile, get_user_model()):
+            ContactRole.objects.filter(role=role, resource=self).delete()
+            return __create_role__(self, role, user_profile)
+
+        elif isinstance(user_profile, list) and all(
+            get_user_model().objects.filter(username=x).exists() for x in user_profile
+        ):
+            ContactRole.objects.filter(role=role, resource=self).delete()
+            return [
+                __create_role__(self, role, user) for user in get_user_model().objects.filter(username__in=user_profile)
+            ]
+
+        elif user_profile is None:
+            ContactRole.objects.filter(role=role, resource=self).delete()
+        else:
+            logger.error(f"Bad profile format for role: {role} ...")
 
     @property
     def topiccategory(self):
@@ -2320,6 +2370,15 @@ class Configuration(SingletonModel):
 
     read_only = models.BooleanField(default=False)
     maintenance = models.BooleanField(default=False)
+
+    def save(self, *args, **kwargs):
+        previous_read_only = Configuration.objects.filter(pk=self.pk).values_list("read_only", flat=True).first()
+        super().save(*args, **kwargs)
+
+        if previous_read_only != self.read_only:
+            from geonode.security.registry import permissions_registry
+
+            permissions_registry.clear_permissions_cache()
 
     class Meta:
         verbose_name_plural = "Configuration"

@@ -46,6 +46,7 @@ def resource_urls(request):
         STATIC_URL=settings.STATIC_URL,
         CATALOGUE_BASE_URL=default_catalogue_backend()["URL"],
         ACCOUNT_OPEN_SIGNUP=settings.ACCOUNT_OPEN_SIGNUP,
+        ACCOUNT_OPEN_SOCIALSIGNUP=settings.ACCOUNT_OPEN_SOCIALSIGNUP,
         ACCOUNT_APPROVAL_REQUIRED=settings.ACCOUNT_APPROVAL_REQUIRED,
         VERSION=get_version(),
         SITE_NAME=site.name,
@@ -53,10 +54,7 @@ def resource_urls(request):
         SITEURL=settings.SITEURL,
         INSTALLED_APPS=settings.INSTALLED_APPS,
         THEME_ACCOUNT_CONTACT_EMAIL=settings.THEME_ACCOUNT_CONTACT_EMAIL,
-        TINYMCE_DEFAULT_CONFIG=settings.TINYMCE_DEFAULT_CONFIG,
-        DEBUG_STATIC=getattr(settings, "DEBUG_STATIC", False),
         PROXY_URL=getattr(settings, "PROXY_URL", "/proxy/?url="),
-        DISPLAY_SOCIAL=getattr(settings, "DISPLAY_SOCIAL", False),
         DISPLAY_RATINGS=getattr(settings, "DISPLAY_RATINGS", False),
         DISPLAY_WMS_LINKS=getattr(settings, "DISPLAY_WMS_LINKS", True),
         CREATE_LAYER=getattr(settings, "CREATE_LAYER", True),
@@ -78,12 +76,10 @@ def resource_urls(request):
         LICENSES_METADATA=getattr(settings, "LICENSES", dict()).get("METADATA", "never"),
         USE_GEOSERVER=getattr(settings, "USE_GEOSERVER", False),
         USE_NOTIFICATIONS=has_notifications,
-        USE_MONITORING=settings.MONITORING_ENABLED,
         DEFAULT_ANONYMOUS_VIEW_PERMISSION=getattr(settings, "DEFAULT_ANONYMOUS_VIEW_PERMISSION", False),
         DEFAULT_ANONYMOUS_DOWNLOAD_PERMISSION=getattr(settings, "DEFAULT_ANONYMOUS_DOWNLOAD_PERMISSION", False),
         EXIF_ENABLED=getattr(settings, "EXIF_ENABLED", False),
         FAVORITE_ENABLED=getattr(settings, "FAVORITE_ENABLED", False),
-        SEARCH_FILTERS=getattr(settings, "SEARCH_FILTERS", False),
         THESAURI_FILTERS=(
             [
                 t["name"]

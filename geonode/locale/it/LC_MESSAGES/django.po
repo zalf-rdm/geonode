@@ -375,6 +375,9 @@ msgstr ""
 msgid "Region"
 msgstr "Regione"
 
+msgid "Region"
+msgstr "Regione"
+
 msgid "Regions"
 msgstr "Regioni"
 

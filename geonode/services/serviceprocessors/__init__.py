@@ -20,10 +20,12 @@ import logging
 
 from collections import OrderedDict
 from django.utils.translation import gettext_lazy as _
-
+from django.conf import settings
 from geonode.services import enumerations
 from geonode.services.utils import parse_services_types
+from django.core.cache import caches
 
+service_cache = caches["services"]
 logger = logging.getLogger(__name__)
 
 
@@ -57,16 +59,22 @@ def get_available_service_types():
     return OrderedDict({**default, **parse_services_types()})
 
 
-def get_service_handler(base_url, service_type=enumerations.AUTO, service_id=None):
+def get_service_handler(base_url, service_type=enumerations.AUTO, service_id=None, *args, **kwargs):
     """Return the appropriate remote service handler for the input URL.
     If the service type is not explicitly passed in it will be guessed from
     """
+
+    if entry := service_cache.get(base_url):
+        return entry
+
     handlers = get_available_service_types()
 
     handler = handlers.get(service_type, {}).get("handler")
     try:
-        service = handler(base_url, service_id)
-    except Exception:
+        service_handler = handler(base_url, service_id, *args, **kwargs)
+        service_cache.set(service_handler.url, service_handler, settings.SERVICE_CACHE_EXPIRATION_TIME)
+    except Exception as e:
+        logger.exception(e)
         logger.exception(msg=f"Could not parse service {base_url}")
         raise
-    return service
+    return service_handler

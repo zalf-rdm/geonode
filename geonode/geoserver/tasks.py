@@ -18,8 +18,10 @@
 #########################################################################
 import logging
 import os
+import datetime
 
 from django.conf import settings
+from django.utils import timezone
 
 from celery import shared_task
 from celery.utils.log import get_task_logger
@@ -41,11 +43,37 @@ from .helpers import (
     cascading_delete,
     create_gs_thumbnail,
     sync_instance_with_geoserver,
+    get_attribute_statistics,
+    is_dataset_attribute_aggregable,
 )
 
 logger = get_task_logger(__name__)
 
 log_lock = logging.getLogger("geonode_lock_handler")
+
+
+def _get_store_type(subtype):
+    return {
+        "vector": "dataStore",
+        "vector_time": "dataStore",
+        "tabular": "dataStore",
+        "tileStore": "dataStore",
+        "raster": "coverageStore",
+        "remote": "remoteStore",
+    }.get(subtype, subtype)
+
+
+def _has_any_stats(attr):
+    return any(
+        [
+            attr.min not in (None, "", "NA"),
+            attr.max not in (None, "", "NA"),
+            attr.average not in (None, "", "NA"),
+            attr.median not in (None, "", "NA"),
+            attr.stddev not in (None, "", "NA"),
+            attr.sum not in (None, "", "NA"),
+        ]
+    )
 
 
 @app.task(
@@ -238,9 +266,86 @@ def geoserver_post_save_datasets(self, instance_id, *args, **kwargs):
             log_lock.debug(f"geoserver_post_save_datasets: Acquired lock {lock_id} for {instance_id}")
             try:
                 sync_instance_with_geoserver(instance_id, *args, **kwargs)
+                # Run stats generation asynchronously after metadata sync,
+                # so uploads are not blocked by heavy computations.
+                compute_dataset_attribute_stats.apply_async(args=(instance_id,), countdown=5, expiration=120)
             finally:
                 lock.release()
                 log_lock.debug(f"geoserver_post_save_datasets: Releasing lock {lock_id} for {instance_id}")
+
+
+@app.task(
+    bind=True,
+    base=FaultTolerantTask,
+    name="geonode.geoserver.tasks.compute_dataset_attribute_stats",
+    queue="geoserver.events",
+    expires=120,
+    time_limit=1200,
+    acks_late=False,
+    autoretry_for=(Exception,),
+    retry_kwargs={"max_retries": 3},
+    retry_backoff=5,
+    retry_backoff_max=60,
+    retry_jitter=False,
+)
+def compute_dataset_attribute_stats(self, instance_id, force=False):
+    """Compute and persist attribute stats for a dataset after upload/import."""
+
+    try:
+        instance = Dataset.objects.get(id=instance_id)
+    except Dataset.DoesNotExist:
+        logger.debug(f"Dataset id {instance_id} does not exist yet!")
+        return
+
+    lock_id = f"stats-{instance_id}"
+    with AcquireLock(lock_id) as lock:
+        if lock.acquire() is not True:
+            return
+
+        try:
+            store_type = _get_store_type(instance.subtype)
+            changed = False
+
+            for attr in instance.attribute_set.all():
+                if not force and _has_any_stats(attr):
+                    continue
+
+                if not is_dataset_attribute_aggregable(store_type, attr.attribute, attr.attribute_type):
+                    continue
+
+                try:
+                    result = get_attribute_statistics(
+                        instance.alternate or instance.typename,
+                        attr.attribute,
+                        store_type=store_type,
+                    )
+                except Exception:
+                    logger.exception(
+                        "Failed computing stats for %s.%s",
+                        instance.name,
+                        attr.attribute,
+                    )
+                    continue
+
+                if not result:
+                    continue
+
+                attr.count = result.get("Count")
+                attr.min = result.get("Min")
+                attr.max = result.get("Max")
+                attr.average = result.get("Average")
+                attr.median = result.get("Median")
+                attr.stddev = result.get("StandardDeviation")
+                attr.sum = result.get("Sum")
+                attr.unique_values = result.get("unique_values")
+                attr.last_stats_updated = datetime.datetime.now(timezone.get_current_timezone())
+                attr.save()
+                changed = True
+
+            if changed:
+                logger.info("Attribute stats computed for dataset %s (%s)", instance.id, instance.name)
+        finally:
+            lock.release()
 
 
 @app.task(
