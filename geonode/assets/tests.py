@@ -26,6 +26,7 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.http import HttpResponse, StreamingHttpResponse
 from django.urls import reverse
 from django_downloadview import DownloadResponse

@@ -28,7 +28,7 @@ from geonode.assets.models import (
     LocalAsset,
 )
 from rest_framework import serializers
-from geonode.assets.utils import is_asset_deletable
+from geonode.assets.utils import is_asset_deletable, get_asset_size_bytes
 
 
 logger = logging.getLogger(__name__)
