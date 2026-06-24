@@ -1,0 +1,328 @@
+import logging
+import datetime
+
+from django.http import JsonResponse
+from django.http import Http404
+from django.shortcuts import get_object_or_404
+from django.utils.translation import gettext_lazy as _
+from django.contrib.auth import get_user_model
+from django.core.exceptions import PermissionDenied, BadRequest, ValidationError
+
+from rest_framework import status
+from rest_framework.decorators import api_view, authentication_classes
+from rest_framework.authentication import BasicAuthentication, SessionAuthentication
+from rest_framework.response import Response
+from oauth2_provider.contrib.rest_framework import OAuth2Authentication
+
+from django.http import HttpResponse
+
+from geonode.base.models import ResourceBase
+from geonode.maps.models import Map
+from geonode.maps.utils import compare_metadata, get_syncable_resources, sync_metadata
+from geonode.zalf.api.serializer import PublishSerializer
+from geonode.zalf.api.datacite import (
+    validate_doi_prefix,
+    register_doi,
+    get_datacite_account_for_prefix,
+    get_datacite_xml,
+    get_doi_prefixes_for_user,
+)
+
+logger = logging.getLogger(__name__)
+
+allowed_authentication_classes = [
+    SessionAuthentication,
+    BasicAuthentication,
+    OAuth2Authentication,
+]
+
+
+def _get_owner(id):
+    user_model = get_user_model()
+    try:
+        return user_model.objects.get(id=id)
+    except user_model.DoesNotExist:
+        raise Http404("User does not exist")
+
+
+def _update_resource_status(resource, is_approved=None, is_published=None):
+    if is_approved is not None:
+        resource.is_approved = is_approved
+    if is_published is not None:
+        resource.is_published = is_published
+        if is_published:
+            today = datetime.date.today()
+            now = datetime.datetime.now()
+            if not resource.date_available:
+                resource.date_available = today
+            if not resource.date_issued:
+                resource.date_issued = today
+            if not resource.date:
+                resource.date = now
+
+    # first save to ensure permission update loads status from db
+    resource.save()
+    resource.set_permissions(approval_status_changed=True)
+    # now save the permission change
+    resource.save()
+
+
+def _approve_data_collection(user, map_resource: Map, requesting_user=None):
+
+    to_approve = [
+        map_resource,
+        *set(
+            filter(
+                lambda resource: resource.owner == user,
+                # map layers are also just linked resources
+                [lr.target for lr in map_resource.get_linked_resources()],
+            ),
+        ),
+    ]
+
+    if requesting_user is not None:
+        for resource in to_approve:
+            if not requesting_user.has_perm("base.change_resourcebase", resource):
+                raise PermissionDenied(
+                    _(f"You do not have permission to approve resource '{resource.title}' (ID: {resource.id})")
+                )
+
+    for resource in to_approve:
+        _update_resource_status(resource, is_approved=True)
+
+    return JsonResponse({"success": True, "message": "Data Collection approved"})
+
+
+@api_view(["POST"])
+@authentication_classes(allowed_authentication_classes)
+def approve_data_collection_post(request, mapid):
+    # Authorization: always check the *authenticated* user, never the payload.
+    # We use can_publish_data_collection() (group membership in ZALF_DATACITE_ACCOUNTS groups)
+    # rather than GeoNode's can_approve() which requires the resource to be assigned to the
+    # user's group as a manager — a setup constraint that doesn't apply to our workflow.
+    if not request.user.is_authenticated:
+        raise PermissionDenied(_("Authentication required"))
+    if not request.user.can_publish_data_collection():
+        raise PermissionDenied(_("Permission Denied"))
+    map = get_object_or_404(Map, id=mapid)
+
+    # The owner field is used only to filter which linked resources to approve.
+    owner_id = request.data.get("owner")
+    if not owner_id:
+        raise BadRequest("Owner ID is required")
+    owner = _get_owner(id=owner_id)
+
+    return _approve_data_collection(owner, map_resource=map, requesting_user=request.user)
+
+
+# ---------------------------------------------------------------------------
+# Publish
+# ---------------------------------------------------------------------------
+
+
+def _publish_data_collection(map: Map, payload, user):
+    """
+    Publish a data collection (map + linked resources).
+
+    The *user* parameter is the **authenticated request user** — used to
+    resolve which DataCite account/credentials to use for the requested prefix.
+    """
+    owner = _get_owner(id=payload["owner"])
+    resources = set(
+        filter(
+            lambda resource: (
+                resource.id in payload["resources"] and not resource.is_published and resource.owner == owner
+            ),
+            # map layers are also just linked resources
+            [lr.target for lr in map.get_linked_resources()],
+        )
+    )
+
+    for resource in resources:
+        if not resource.is_approved:
+            raise ValidationError(_(f"Resource '{resource.title}' (ID: {resource.id}) is not approved, yet!"))
+        if not user.has_perm("base.publish_resourcebase", resource):
+            raise PermissionDenied(
+                _(f"You do not have permission to publish resource '{resource.title}' (ID: {resource.id})")
+            )
+
+    to_publish = [map, *resources]
+
+    doi_prefix = payload.get("doi_prefix")
+    collection_doi = None
+
+    if doi_prefix:
+        # Validate the DOI prefix format
+        validate_doi_prefix(doi_prefix)
+
+        # Ensure the authenticated user is allowed to use this prefix.
+        # get_datacite_account_for_prefix raises ValidationError if not.
+        get_datacite_account_for_prefix(doi_prefix, user=user)
+
+        # Register a single DOI for the whole collection, using the map's UUID as suffix.
+        # All resources in the collection will share this one DOI.
+        try:
+            collection_doi = register_doi(map, doi_prefix, doi_suffix=str(map.uuid), user=user)
+            logger.info(f"Registered collection DOI '{collection_doi}' for map '{map.title}' (ID: {map.id})")
+        except ValidationError as e:
+            logger.error(f"DOI registration failed for data collection map '{map.title}': {e}")
+            raise ValidationError(
+                _(f"DOI registration failed for data collection '{map.title}' (ID: {map.id}): {e.message}")
+            )
+
+        # Assign the same DOI to every resource in the collection
+        # collection_doi is already an FQDN (https://doi.org/...) as returned by register_doi
+        for resource in resources:
+            resource.doi = collection_doi
+            resource.save(update_fields=["doi"])
+            logger.info(
+                f"Assigned collection DOI '{collection_doi}' to resource '{resource.title}' (ID: {resource.id})"
+            )
+    else:
+        raise ValidationError(_("DOI prefix is required"))
+
+    for resource in to_publish:
+        _update_resource_status(resource, is_published=True)
+
+    response_data = {
+        "success": True,
+        "message": "Data Collection published",
+    }
+
+    if collection_doi:
+        response_data["doi"] = collection_doi
+
+    return JsonResponse(response_data)
+
+
+@api_view(["POST"])
+@authentication_classes(allowed_authentication_classes)
+def publish_data_collection(request, mapid):
+
+    if not request.user.is_authenticated:
+        raise PermissionDenied(_("Authentication required"))
+
+    map = get_object_or_404(Map, id=mapid)
+    user = request.user
+
+    if not user.can_publish_data_collection():
+        raise PermissionDenied(_("Permission Denied"))
+
+    serializer = PublishSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    payload = serializer.validated_data
+
+    return _publish_data_collection(map, payload, user=user)
+
+
+# ---------------------------------------------------------------------------
+# Sync metadata
+# ---------------------------------------------------------------------------
+
+
+@api_view(["GET", "POST"])
+@authentication_classes(allowed_authentication_classes)
+def sync_metadata_view(request, mapid):
+    """
+    GET  /api/v2/maps/<mapid>/sync_metadata/
+         Returns a diff of all syncable metadata fields between the map and
+         each linked resource.  Pass ?resource_pk=<pk> to limit to one resource.
+
+    POST /api/v2/maps/<mapid>/sync_metadata/
+         Syncs metadata from the map to its linked resources.
+         Optional JSON body:
+           - "resource_pk" (int) — target a single resource
+           - "field_names" (list[str]) — sync only specific fields
+         Requires change_resourcebase permission on the map.
+    """
+    map_obj = get_object_or_404(Map, id=mapid)
+
+    # Resolve target resource(s)
+    resource_pk = (
+        request.query_params.get("resource_pk") if request.method == "GET" else (request.data or {}).get("resource_pk")
+    )
+
+    if resource_pk:
+        try:
+            from geonode.base.models import ResourceBase
+
+            resources = [ResourceBase.objects.get(pk=int(resource_pk)).get_real_instance()]
+        except Exception:
+            return Response({"error": f"Resource {resource_pk} not found."}, status=status.HTTP_404_NOT_FOUND)
+    else:
+        resources = get_syncable_resources(map_obj)
+
+    if request.method == "GET":
+        result = []
+        for resource in resources:
+            diffs = compare_metadata(map_obj, resource)
+            result.append(
+                {
+                    "resource_pk": resource.pk,
+                    "resource_title": resource.title,
+                    "resource_type": resource.resource_type,
+                    "diffs": diffs,
+                }
+            )
+        return Response(result)
+
+    # POST — perform the sync
+    if not request.user.is_authenticated:
+        raise PermissionDenied(_("Authentication required"))
+    if not request.user.has_perm("base.change_resourcebase", map_obj):
+        raise PermissionDenied(_("You do not have permission to sync metadata for this map."))
+
+    field_names = (request.data or {}).get("field_names", None)
+    if field_names is not None and not isinstance(field_names, list):
+        return Response({"error": "'field_names' must be a list."}, status=status.HTTP_400_BAD_REQUEST)
+
+    synced = []
+    errors = []
+    for resource in resources:
+        try:
+            sync_metadata(map_obj, resource, field_names=field_names)
+            synced.append({"resource_pk": resource.pk, "resource_title": resource.title})
+        except Exception as exc:
+            logger.exception("Error syncing metadata to resource %s", resource.pk)
+            errors.append({"resource_pk": resource.pk, "error": str(exc)})
+
+    return Response({"synced": synced, "errors": errors}, status=status.HTTP_200_OK)
+
+
+# ---------------------------------------------------------------------------
+# DataCite helpers for the frontend
+# ---------------------------------------------------------------------------
+
+
+@api_view(["GET"])
+@authentication_classes(allowed_authentication_classes)
+def datacite_prefixes(request):
+    """
+    GET /api/v2/datacite-prefixes/
+
+    Returns the DOI prefixes available to the authenticated user and whether
+    they are allowed to publish data collections at all.
+    """
+    if not request.user.is_authenticated:
+        raise PermissionDenied(_("Authentication required"))
+
+    can_publish = request.user.can_publish_data_collection()
+    prefixes = get_doi_prefixes_for_user(request.user) if can_publish else []
+    return Response({"prefixes": prefixes, "can_publish": can_publish})
+
+
+@api_view(["GET"])
+@authentication_classes(allowed_authentication_classes)
+def datacite_metadata_xml(request, pk):
+    """
+    GET /api/v2/datacite_metadata/<pk>/
+
+    Returns the DataCite XML metadata for a resource.  Analogous to the
+    existing iso_metadata_xml action on ResourceBaseViewSet.
+    """
+    resource = get_object_or_404(ResourceBase, pk=pk)
+    xml = get_datacite_xml(resource)
+    if not xml:
+        from rest_framework.exceptions import NotFound
+        raise NotFound(_("DataCite metadata not available for this resource"))
+    return HttpResponse(xml, content_type="application/xml")
