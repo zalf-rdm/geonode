@@ -21,6 +21,7 @@
 import os
 import re
 import ast
+import json as _json
 import sys
 import subprocess
 import dj_database_url
@@ -2429,3 +2430,11 @@ ADVANCED_EDIT_EXCLUDE_FIELD = [  # base
     "featuredurl",
     "extra_metadata",
 ]
+
+INSTALLED_APPS += ("geonode.zalf",)
+
+ZALF_DATACITE_BASE_URL = os.getenv("ZALF_DATACITE_BASE_URL", "https://api.datacite.org/")
+ZALF_DATACITE_AGENT = os.getenv("ZALF_DATACITE_AGENT", "BonaRes Repository (https://repository.zalf.de; mailto:dataservice@zalf.de)")
+ZALF_DATACITE_ACCOUNTS = _json.loads(os.getenv("ZALF_DATACITE_ACCOUNTS", "[]"))
+
+PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS = _json.loads(os.getenv("PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS", "[]"))
