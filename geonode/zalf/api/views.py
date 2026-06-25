@@ -1,8 +1,7 @@
 import logging
 import datetime
 
-from django.http import JsonResponse
-from django.http import Http404
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
@@ -14,6 +13,7 @@ from rest_framework.authentication import BasicAuthentication, SessionAuthentica
 from rest_framework.response import Response
 from oauth2_provider.contrib.rest_framework import OAuth2Authentication
 
+from geonode.base.models import ResourceBase
 from geonode.maps.models import Map
 from geonode.maps.utils import compare_metadata, get_syncable_resources, sync_metadata
 from geonode.zalf.api.serializer import PublishSerializer
@@ -21,6 +21,8 @@ from geonode.zalf.api.datacite import (
     validate_doi_prefix,
     register_doi,
     get_datacite_account_for_prefix,
+    get_datacite_xml,
+    get_doi_prefixes_for_user,
 )
 
 logger = logging.getLogger(__name__)
@@ -282,3 +284,27 @@ def sync_metadata_view(request, mapid):
             errors.append({"resource_pk": resource.pk, "error": str(exc)})
 
     return Response({"synced": synced, "errors": errors}, status=status.HTTP_200_OK)
+
+
+# ---------------------------------------------------------------------------
+# DataCite metadata download
+# ---------------------------------------------------------------------------
+
+
+@api_view(["GET"])
+@authentication_classes(allowed_authentication_classes)
+def datacite_metadata_view(request, pk):
+    resource = get_object_or_404(ResourceBase, pk=pk)
+    xml = get_datacite_xml(resource)
+    if not xml:
+        return Response({"detail": "DataCite XML not available."}, status=status.HTTP_404_NOT_FOUND)
+    return HttpResponse(xml, content_type="application/xml")
+
+
+@api_view(["GET"])
+@authentication_classes(allowed_authentication_classes)
+def datacite_prefixes_view(request):
+    if not request.user.is_authenticated:
+        raise PermissionDenied(_("Authentication required"))
+    prefixes = get_doi_prefixes_for_user(request.user)
+    return Response({"prefixes": prefixes})
