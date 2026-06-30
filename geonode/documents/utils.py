@@ -17,8 +17,7 @@
 #
 #########################################################################
 
-"""Utilities for managing GeoNode documents
-"""
+"""Utilities for managing GeoNode documents"""
 
 # Standard Modules
 import os
@@ -41,7 +40,6 @@ from geonode.documents.models import Document
 from geonode.base import register_event
 from geonode.base.utils import increment_download_count
 from geonode.base.enumerations import EventType
-
 
 logger = logging.getLogger(__name__)
 

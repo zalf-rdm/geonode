@@ -20,7 +20,7 @@ class UploadAppConfig(AppConfig):
         template_dirs = settings.TEMPLATES[0].setdefault("DIRS", [])
         settings.TEMPLATES[0]["DIRS"] = [
             project_templates_dir,
-            *[d for d in template_dirs if d != project_templates_dir]
+            *[d for d in template_dirs if d != project_templates_dir],
         ]
 
         # Warn about missing DataCite configuration

@@ -1677,8 +1677,7 @@ def _postgis_attribute_statistics(dataset_name, field, field_type=None):
         numeric_value_expr = field_sql
 
         if is_textual_column and not is_geometry:
-            cursor.execute(
-                f"""
+            cursor.execute(f"""
                 SELECT
                     COUNT(*) FILTER (WHERE {field_sql} IS NOT NULL)::bigint,
                     COUNT(*) FILTER (WHERE {non_empty_text_expr} IS NOT NULL)::bigint,
@@ -1686,8 +1685,7 @@ def _postgis_attribute_statistics(dataset_name, field, field_type=None):
                     COUNT(*) FILTER (WHERE {numeric_like_expr} AND POSITION(',' IN {trimmed_text_expr}) > 0)::bigint,
                     COUNT(*) FILTER (WHERE {numeric_like_expr} AND POSITION('.' IN {trimmed_text_expr}) > 0)::bigint
                 FROM {table_sql}
-                """
-            )
+                """)
             total_non_null, total_non_empty, numeric_like_count, comma_decimal_count, dot_decimal_count = (
                 cursor.fetchone()
             )
@@ -1706,21 +1704,18 @@ def _postgis_attribute_statistics(dataset_name, field, field_type=None):
             inferred_field_type = (
                 "xsd:dateTime" if "time" in column_data_type or "timestamp" in column_data_type else "xsd:date"
             )
-            cursor.execute(
-                f"""
+            cursor.execute(f"""
                 SELECT
                     COUNT({field_sql})::bigint,
                     MIN({field_sql})::text,
                     MAX({field_sql})::text
                 FROM {table_sql}
                 WHERE {field_sql} IS NOT NULL
-                """
-            )
+                """)
             count, min_v, max_v = cursor.fetchone()
             avg_v = median_v = stddev_v = sum_v = "NA"
         elif is_numeric:
-            cursor.execute(
-                f"""
+            cursor.execute(f"""
                 SELECT
                     COUNT({numeric_value_expr})::bigint,
                     MIN({numeric_value_expr})::double precision,
@@ -1731,17 +1726,14 @@ def _postgis_attribute_statistics(dataset_name, field, field_type=None):
                     SUM({numeric_value_expr})::double precision
                 FROM {table_sql}
                 WHERE {numeric_value_expr} IS NOT NULL
-                """
-            )
+                """)
             count, min_v, max_v, avg_v, median_v, stddev_v, sum_v = cursor.fetchone()
         else:
-            cursor.execute(
-                f"""
+            cursor.execute(f"""
                 SELECT COUNT({field_sql})::bigint
                 FROM {table_sql}
                 WHERE {field_sql} IS NOT NULL
-                """
-            )
+                """)
             count = (cursor.fetchone() or [0])[0]
             min_v = max_v = avg_v = median_v = stddev_v = sum_v = "NA"
 
@@ -1762,44 +1754,37 @@ def _postgis_attribute_statistics(dataset_name, field, field_type=None):
         value_expr = field_sql
         if is_geometry:
             value_expr = f"ST_GeometryType({field_sql})"
-            cursor.execute(
-                f"""
+            cursor.execute(f"""
                 SELECT {value_expr}::text
                 FROM {table_sql}
                 WHERE {field_sql} IS NOT NULL
                 GROUP BY {value_expr}
                 ORDER BY {value_expr}
                 LIMIT 50
-                """
-            )
+                """)
         elif is_numeric:
             value_expr = numeric_value_expr
-            cursor.execute(
-                f"""
+            cursor.execute(f"""
                 SELECT {value_expr}::text
                 FROM {table_sql}
                 WHERE {value_expr} IS NOT NULL
                 GROUP BY {value_expr}
                 ORDER BY {value_expr}
                 LIMIT 200
-                """
-            )
+                """)
         else:
-            cursor.execute(
-                f"""
+            cursor.execute(f"""
                 SELECT {value_expr}::text
                 FROM {table_sql}
                 WHERE {value_expr} IS NOT NULL
                 GROUP BY {value_expr}
                 ORDER BY {value_expr}
                 LIMIT 200
-                """
-            )
+                """)
         unique_values = [row[0] for row in cursor.fetchall() if row and row[0] is not None]
         unique_values_payload = json.dumps(unique_values, ensure_ascii=False) if unique_values else "NA"
 
-        cursor.execute(
-            f"""
+        cursor.execute(f"""
             SELECT COUNT(*)::bigint
             FROM (
                 SELECT {value_expr}
@@ -1807,12 +1792,10 @@ def _postgis_attribute_statistics(dataset_name, field, field_type=None):
                 WHERE {value_expr} IS NOT NULL
                 GROUP BY {value_expr}
             ) AS distinct_values
-            """
-        )
+            """)
         total_unique = int((cursor.fetchone() or [0])[0] or 0)
 
-        cursor.execute(
-            f"""
+        cursor.execute(f"""
             SELECT {value_expr}::text, COUNT(*)::bigint AS group_count
             FROM {table_sql}
             WHERE {value_expr} IS NOT NULL
@@ -1820,8 +1803,7 @@ def _postgis_attribute_statistics(dataset_name, field, field_type=None):
             HAVING COUNT(*) > 1
             ORDER BY group_count DESC, {value_expr}::text ASC
             LIMIT 50
-            """
-        )
+            """)
         groups = [{"value": row[0], "count": int(row[1])} for row in cursor.fetchall() if row and row[0] is not None]
 
         return {

@@ -53,7 +53,21 @@ from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated, I
 from geonode.maps.models import Map
 from geonode.layers.models import Dataset
 from geonode.favorite.models import Favorite
-from geonode.base.models import Configuration, ExtraMetadata, Funding, License, LinkedResource, Organization, RelatedIdentifier, RelatedIdentifierType, RelatedProject, RelationType, ResourceTypeGeneral, RestrictionCodeType, ThesaurusKeywordLabel
+from geonode.base.models import (
+    Configuration,
+    ExtraMetadata,
+    Funding,
+    License,
+    LinkedResource,
+    Organization,
+    RelatedIdentifier,
+    RelatedIdentifierType,
+    RelatedProject,
+    RelationType,
+    ResourceTypeGeneral,
+    RestrictionCodeType,
+    ThesaurusKeywordLabel,
+)
 from geonode.thumbs.exceptions import ThumbnailError
 from geonode.thumbs.thumbnails import create_thumbnail
 from geonode.thumbs.utils import _decode_base64, BASE64_PATTERN, remove_thumb

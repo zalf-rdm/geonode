@@ -31,8 +31,12 @@ logger = logging.getLogger(__name__)
 
 
 def get_display_name(record):
-    first_name = (record.get("first_name") or record.get("owner__first_name") or record.get("contacts__first_name") or "").strip()
-    last_name = (record.get("last_name") or record.get("owner__last_name") or record.get("contacts__last_name") or "").strip()
+    first_name = (
+        record.get("first_name") or record.get("owner__first_name") or record.get("contacts__first_name") or ""
+    ).strip()
+    last_name = (
+        record.get("last_name") or record.get("owner__last_name") or record.get("contacts__last_name") or ""
+    ).strip()
     full_name = " ".join(part for part in [first_name, last_name] if part)
     return full_name or record.get("username") or record.get("owner__username") or record.get("contacts__username")
 

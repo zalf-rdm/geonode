@@ -24,10 +24,8 @@ ROLE_VALUES = (
     ("publisher", _("party who published the resource")),
     (
         "custodian",
-        _(
-            "party that accepts accountability and responsibility for the data and ensures \
-        appropriate care and maintenance of the resource"
-        ),
+        _("party that accepts accountability and responsibility for the data and ensures \
+        appropriate care and maintenance of the resource"),
     ),
     ("pointOfContact", _("party who can be contacted for acquiring knowledge about or acquisition of the resource")),
     ("distributor", _("party who distributes the resource")),
@@ -125,10 +123,8 @@ to one of the authors who helped with research but who was not so “key” as t
     ),
     (
         "workPackageLeader",
-        _(
-            "A Work Package is a recognized data product, not all of which is included in publication. The pack-age, \
+        _("A Work Package is a recognized data product, not all of which is included in publication. The pack-age, \
 instead, may include notes, discarded documents, etc. The Work Package Leader is responsi-ble for ensuring the comprehen-sive contents, \
-versioning, and availability of the Work Package during the development of the resource."
-        ),
+versioning, and availability of the Work Package during the development of the resource."),
     ),
 )

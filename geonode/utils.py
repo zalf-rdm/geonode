@@ -1080,7 +1080,7 @@ def zip_dir(basedir, archivename):
             # NOTE: ignore empty directories
             for fn in files:
                 absfn = os.path.join(root, fn)
-                zfn = absfn[len(basedir) + len(os.sep):]  # XXX: relative path
+                zfn = absfn[len(basedir) + len(os.sep) :]  # XXX: relative path
                 z.write(absfn, zfn)
 
 
@@ -1608,7 +1608,7 @@ def is_monochromatic_image(image_url, image_data=None):
 
     def get_thumb_handler(url):
         _index = url.find(settings.STATIC_URL)
-        _thumb_path = urlparse(url[_index + len(settings.STATIC_URL):]).path
+        _thumb_path = urlparse(url[_index + len(settings.STATIC_URL) :]).path
         if storage_manager.exists(_thumb_path):
             return storage_manager.open(_thumb_path)
         return None

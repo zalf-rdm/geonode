@@ -17,8 +17,8 @@
 #
 #########################################################################
 
-"""Utilities for managing GeoNode resource metadata
-"""
+"""Utilities for managing GeoNode resource metadata"""
+
 # Standard Modules
 import logging
 import datetime
