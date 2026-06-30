@@ -31,7 +31,11 @@ urlpatterns = [
 
     # CMS — Training Resources
     re_path(r"^cms/trainings/$", TrainingResourceListCreateView.as_view(), name="cms_trainings"),
-    re_path(r"^cms/trainings/(?P<pk_or_slug>[\w-]+)/$", TrainingResourceDetailView.as_view(), name="cms_training_detail"),
+    re_path(
+        r"^cms/trainings/(?P<pk_or_slug>[\w-]+)/$",
+        TrainingResourceDetailView.as_view(),
+        name="cms_training_detail",
+    ),
 
     # Markdown preview (staff only)
     re_path(r"^cms/preview-markdown/$", preview_markdown, name="cms_preview_markdown"),

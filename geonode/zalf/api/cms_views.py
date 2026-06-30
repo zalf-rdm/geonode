@@ -171,7 +171,9 @@ class TrainingResourceListCreateView(APIView):
         return [IsAuthenticated(), IsAdminUser()]
 
     def get(self, request):
-        qs = TrainingResource.objects.all() if request.user.is_staff else TrainingResource.objects.filter(is_active=True)
+        qs = TrainingResource.objects.all() if request.user.is_staff else TrainingResource.objects.filter(
+            is_active=True
+        )
         return Response(TrainingResourceListSerializer(qs, many=True, context={'request': request}).data)
 
     def post(self, request):
