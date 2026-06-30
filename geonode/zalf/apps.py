@@ -18,11 +18,10 @@ class UploadAppConfig(AppConfig):
         # Ensure our templates directory takes priority
         project_templates_dir = str(Path(__file__).resolve().parents[1] / "templates")
         template_dirs = settings.TEMPLATES[0].setdefault("DIRS", [])
-        if project_templates_dir in template_dirs:
-            settings.TEMPLATES[0]["DIRS"] = [
-                project_templates_dir,
-                *[d for d in template_dirs if d != project_templates_dir]
-            ]
+        settings.TEMPLATES[0]["DIRS"] = [
+            project_templates_dir,
+            *[d for d in template_dirs if d != project_templates_dir]
+        ]
 
         # Warn about missing DataCite configuration
         if not getattr(settings, "ZALF_DATACITE_BASE_URL", None):

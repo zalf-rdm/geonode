@@ -50,6 +50,9 @@ class DataPackageFileHandler(BaseVectorFileHandler):
                     names = {Path(name).name for name in archive.namelist()}
             except zipfile.BadZipFile:
                 return False
+            finally:
+                if hasattr(base_file, "seek"):
+                    base_file.seek(0)
 
             return "datapackage.json" in names and BaseVectorFileHandler.can_handle(_data)
 

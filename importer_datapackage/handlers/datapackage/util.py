@@ -38,7 +38,10 @@ def process_rows(resource):
     )
 
     conversion_steps = [
-        steps.cell_convert(field_name=field.name, function=lambda value: float(value.replace(field.decimal_char, ".")))
+        steps.cell_convert(
+            field_name=field.name,
+            function=lambda value, dc=field.decimal_char: float(value.replace(dc, ".")) if isinstance(value, str) else value,
+        )
         for field in number_fields
     ]
 

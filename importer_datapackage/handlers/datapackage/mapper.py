@@ -77,8 +77,9 @@ class TabularDataHelper:
         try:
             with open(vrt_filename, "wb") as stream:
                 tree.write(stream, encoding="UTF-8")
-        except TypeError:
+        except (TypeError, OSError):
             logger.exception("Could not create VRT file '%s'", vrt_filename)
+            raise
 
         return vrt_filename
 

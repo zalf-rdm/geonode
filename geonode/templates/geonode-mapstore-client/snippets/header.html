@@ -174,10 +174,7 @@
             if (normalizedHref.indexOf('/catalogue/#/?q=') === 0) {
                 return currentPathAndHash === normalizedHref;
             }
-            if (normalizedHref === '/catalogue/' || normalizedHref === '/catalogue') {
-                return currentPath === '/catalogue/' || currentPath === '/catalogue';
-            }
-            return currentPath === normalizedHref || currentPath === normalizedHref.replace(/\/$/, '');
+            return currentPath.replace(/\/$/, '') === normalizedHref.replace(/\/$/, '');
         }
 
         function updateActiveLinks() {
