@@ -105,7 +105,9 @@ def _has_any_stats(attr):
 
 def _needs_attribute_stats_refresh(attr):
     unique_values = (attr.unique_values or "").strip() if isinstance(attr.unique_values, str) else ""
-    has_legacy_unique_values = bool(unique_values and unique_values not in ("NA", "") and not unique_values.startswith("["))
+    has_legacy_unique_values = bool(
+        unique_values and unique_values not in ("NA", "") and not unique_values.startswith("[")
+    )
     numeric_stats_missing = all(
         [
             _parse_stat(attr.min) is None,

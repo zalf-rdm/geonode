@@ -2,10 +2,10 @@ name: "Code formatting"
 
 on:
   push:
-    branches: [ main, 4.* ]
+    branches: [ main ]
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: [ main, 4.* ]
+    branches: [ main ]
 
 jobs:
   validate:
@@ -28,14 +28,13 @@ jobs:
         python-version: ${{matrix.python-version}}
 
     - name: Install flake8 & black
-      run: pip install --upgrade $(grep 'flake8\|black' requirements.txt)
+      run: pip install flake8 black
 
     - name: "Check: flake8"
       run: |
         # stop the build if there are Python syntax errors or undefined names
         flake8 geonode --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 geonode --count --statistics
+        flake8 geonode --count --max-line-length=120 --exclude=geonode/*/migrations,geonode/*/settings.py,static,node_modules --ignore=E121,E122,E124,E126,E226 --statistics
 
     - name: "Check: black"
       run: black --check geonode

@@ -122,9 +122,7 @@ class ZalfHandler(MetadataHandler):
             if property_name == "conformity_results":
                 subschema["oneOf"] = [{"const": v, "title": _(v)} for v in CONFORMITY_CHOICES]
             elif property_name in M2M_RESTRICTION_FIELDS:
-                subschema["ui:options"] = {
-                    "geonode-ui:autocomplete": reverse("metadata_autocomplete_restrictioncodes")
-                }
+                subschema["ui:options"] = {"geonode-ui:autocomplete": reverse("metadata_autocomplete_restrictioncodes")}
             elif property_name == "fundings":
                 item_props = subschema["items"]["properties"]
                 item_props["organization"]["oneOf"] = [
@@ -170,12 +168,14 @@ class ZalfHandler(MetadataHandler):
             result = []
             for f in resource.fundings.select_related("organization").all():
                 org = f.organization
-                result.append({
-                    "organization": str(org.pk) if org else None,
-                    "award_title": f.award_title or "",
-                    "award_number": f.award_number or "",
-                    "award_uri": f.award_uri or "",
-                })
+                result.append(
+                    {
+                        "organization": str(org.pk) if org else None,
+                        "award_title": f.award_title or "",
+                        "award_number": f.award_number or "",
+                        "award_uri": f.award_uri or "",
+                    }
+                )
             return result
 
         if field_name == "related_identifier":
@@ -186,13 +186,15 @@ class ZalfHandler(MetadataHandler):
                 rit = ri.related_identifier_type
                 rt = ri.relation_type
                 rtg = ri.resource_type_general
-                result.append({
-                    "related_identifier": ri.related_identifier,
-                    "related_identifier_type": rit.label if rit else None,
-                    "relation_type": rt.label if rt else None,
-                    "resource_type_general": rtg.label if rtg else None,
-                    "description": ri.description or "",
-                })
+                result.append(
+                    {
+                        "related_identifier": ri.related_identifier,
+                        "related_identifier_type": rit.label if rit else None,
+                        "relation_type": rt.label if rt else None,
+                        "resource_type_general": rtg.label if rtg else None,
+                        "description": ri.description or "",
+                    }
+                )
             return result
 
         # Scalar: return value directly (dates as ISO strings)

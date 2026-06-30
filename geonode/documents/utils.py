@@ -39,6 +39,9 @@ from django.utils.text import slugify
 # Geonode functionality
 from geonode.documents.models import Document
 from geonode.base import register_event
+from geonode.base.utils import increment_download_count
+from geonode.base.enumerations import EventType
+
 
 logger = logging.getLogger(__name__)
 
@@ -78,8 +81,12 @@ def get_download_response(request, docid, attachment=False):
         )
     if attachment:
         register_event(request, EventType.EVENT_DOWNLOAD, document)
+        increment_download_count(document.id, request.user)
     filename = slugify(os.path.splitext(os.path.basename(document.title))[0])
 
     asset = get_default_asset(document)
     asset_handler = asset_handler_registry.get_handler(asset)
-    return asset_handler.get_download_handler(asset).create_response(asset, attachment, basename=filename)
+    download_handler = asset_handler.get_download_handler(asset)
+    if attachment and hasattr(download_handler, "create_raw_response"):
+        return download_handler.create_raw_response(asset, basename=filename)
+    return download_handler.create_response(asset, attachment, basename=filename)

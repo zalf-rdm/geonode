@@ -1,13 +1,13 @@
-name: Docker Build and Push UI
+name: Docker Build and Push
 
 on:
   push:
-    branches: [ "main-ui" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 env:
-  BASE_VERSION: v4.4.3-zalf001
-  IMAGE_NAME: zalf/geonode-ui
+  BASE_VERSION: v5.0.2-zalf001
+  IMAGE_NAME: zalf/geonode
 
 jobs:
   build-and-push:
@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -39,7 +41,7 @@ jobs:
           images: ${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=${{ env.BASE_VERSION }}.${{ github.run_number }}
-            type=raw,value=latest-ui,enable=${{ github.ref == 'refs/heads/main-ui' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5

@@ -22,9 +22,10 @@ import re
 import gzip
 import logging
 import traceback
+import xml.etree.ElementTree as ET
 
 from hyperlink import URL
-from urllib.parse import urlparse, urlsplit, urljoin
+from urllib.parse import urlparse, urlsplit, urljoin, parse_qs
 
 from django.conf import settings
 from django.template import loader
@@ -35,6 +36,7 @@ from django.http.request import validate_host
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import requires_csrf_token
 
+from geonode.base.utils import increment_download_count
 from geonode.layers.models import Dataset
 from geonode.base.models import ResourceBase
 from geonode.services.models import Service
@@ -64,6 +66,59 @@ TIMEOUT = 30
 LINK_TYPES = [L for L in _LT if L.startswith("OGC:")]
 
 site_url = urlsplit(settings.SITEURL)
+
+_WPS_NS = {
+    "wps": "http://www.opengis.net/wps/1.0.0",
+    "ows": "http://www.opengis.net/ows/1.1",
+}
+
+
+def _increment_download_count_for_ows_request(request, raw_url, request_body, user):
+    """
+    Detect WFS GetFeature and WPS Execute (gs:Download) requests going through the
+    proxy and increment the download_count for the corresponding Dataset on success.
+    """
+    parsed = urlparse(raw_url)
+    params = {k.lower(): v for k, v in parse_qs(parsed.query, keep_blank_values=True).items()}
+
+    service = (params.get("service", [""])[0]).upper()
+    req_type = (params.get("request", [""])[0]).upper()
+
+    layer_name = None
+
+    if service == "WFS" and req_type == "GETFEATURE":
+        # WFS GetFeature: extract typeName / typeNames (case-insensitive key lookup)
+        type_name = params.get("typename", params.get("typenames", [""]))[0]
+        if type_name:
+            layer_name = type_name.split(",")[0].strip()
+
+    elif service == "WPS" and req_type == "EXECUTE" and request_body:
+        # WPS Execute: extract layerName input from the XML body (gs:Download process)
+        try:
+            root = ET.fromstring(request_body)
+            for input_elem in root.findall(".//wps:Input", _WPS_NS):
+                identifier = input_elem.find("ows:Identifier", _WPS_NS)
+                if identifier is not None and identifier.text == "layerName":
+                    literal = input_elem.find(".//wps:LiteralData", _WPS_NS)
+                    if literal is not None:
+                        layer_name = literal.text
+                        break
+        except Exception:
+            pass
+
+    if not layer_name:
+        return
+
+    try:
+        from geonode.base.utils import increment_download_count
+
+        dataset = Dataset.objects.get(alternate=layer_name)
+        _user = user or (request.user if hasattr(request, "user") else None)
+        increment_download_count(dataset.id, _user)
+    except Dataset.DoesNotExist:
+        pass
+    except Exception as e:
+        logger.debug(f"Error incrementing download count for layer {layer_name}: {e}")
 
 
 @requires_csrf_token
@@ -165,6 +220,8 @@ def proxy(
     if status >= 400:
         _response = HttpResponse(content=content, reason=content, status=status, content_type=content_type)
         return fetch_response_headers(_response, response_headers)
+
+    _increment_download_count_for_ows_request(request, raw_url, _data, user)
 
     # decompress GZipped responses if not enabled
     # if content and response and response.getheader('Content-Encoding') == 'gzip':
@@ -271,6 +328,7 @@ def download(request, resourceid, sender=Dataset):
             # ZIP everything and return
             target_file_name = "".join([instance.name, ".zip"])
             register_event(request, "download", instance)
+            increment_download_count(instance.id, request.user)
             folder = os.path.dirname(dataset_files[0])
 
             zs = ZipStream.from_path(folder, arcname="/")

@@ -792,6 +792,22 @@ class LinksSerializer(DynamicModelSerializer):
         return ret
 
 
+class ResourceManagementField(serializers.BooleanField):
+    MAPPING = {"is_approved": "can_approve", "is_published": "can_publish", "featured": "can_feature"}
+
+    def to_internal_value(self, data):
+        new_val = super().to_internal_value(data)
+        user = self.context["request"].user
+        user_action = self.MAPPING.get(self.field_name)
+        instance = self.root.instance or ResourceBase.objects.get(pk=self.root.initial_data["pk"])
+        if getattr(user, user_action)(instance):
+            logger.debug("User can perform the action, the new value is returned")
+            return new_val
+        else:
+            logger.warning(f"The user does not have the perms to update the value of {self.field_name}")
+            return getattr(instance, self.field_name)
+
+
 class ResourceBaseSerializer(DynamicModelSerializer):
     pk = serializers.CharField(read_only=True)
     uuid = serializers.CharField(read_only=True)
@@ -888,7 +904,8 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     share_count = serializers.CharField(required=False)
     popular_count = serializers.IntegerField(read_only=True)
     rating = serializers.CharField(required=False)
-    featured = serializers.BooleanField(required=False)
+    download_count = serializers.IntegerField(read_only=True)
+    featured = ResourceManagementField(required=False)
     advertised = serializers.BooleanField(required=False)
     is_published = serializers.BooleanField(required=False)
     is_approved = serializers.BooleanField(required=False)
@@ -1037,6 +1054,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "share_count",
             "popular_count",
             "rating",
+            "download_count",
             "featured",
             "advertised",
             "is_published",
@@ -1348,9 +1366,39 @@ class LinkedResourceSerializer(DynamicModelSerializer):
         model = LinkedResource
         fields = ("internal",)
 
+    def _get_download_url(self, item: ResourceBase):
+        """
+        Derive download URL from ResourceBase fields, avoiding get_real_instance()
+        to prevent N+1 queries.
+        """
+        if item.resource_type == "document":
+            try:
+                return build_absolute_uri(reverse("document_download", args=(item.pk,)))
+            except NoReverseMatch:
+                return None
+        if item.resource_type == "dataset":
+            if not item.alternate:
+                return None
+            try:
+                return build_absolute_uri(reverse("dataset_download", args=(item.alternate,)))
+            except NoReverseMatch:
+                return None
+        return None
+
     def to_representation(self, instance: LinkedResource):
         data = super().to_representation(instance)
         item: ResourceBase = instance.target if self.serialize_target else instance.source
+        # Build download_url using resource-type-specific URL patterns.
+        # All required fields (pk, alternate, resource_type) are on ResourceBase directly.
+        try:
+            if item.resource_type == "document":
+                download_url = reverse("document_download", kwargs={"docid": item.pk})
+            elif item.resource_type == "dataset" and item.alternate:
+                download_url = reverse("dataset_download", kwargs={"layername": item.alternate})
+            else:
+                download_url = None
+        except Exception:
+            download_url = None
         data.update(
             {
                 "pk": item.pk,
@@ -1358,6 +1406,7 @@ class LinkedResourceSerializer(DynamicModelSerializer):
                 "resource_type": item.resource_type,
                 "detail_url": item.detail_url,
                 "thumbnail_url": item.thumbnail_url,
+                "download_url": download_url,
             }
         )
         return data

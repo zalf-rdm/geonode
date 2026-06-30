@@ -233,11 +233,14 @@ def sync_metadata_view(request, mapid):
     map_obj = get_object_or_404(Map, id=mapid)
 
     # Resolve target resource(s)
-    resource_pk = request.query_params.get("resource_pk") if request.method == "GET" else (request.data or {}).get("resource_pk")
+    resource_pk = (
+        request.query_params.get("resource_pk") if request.method == "GET" else (request.data or {}).get("resource_pk")
+    )
 
     if resource_pk:
         try:
             from geonode.base.models import ResourceBase
+
             resources = [ResourceBase.objects.get(pk=int(resource_pk)).get_real_instance()]
         except Exception:
             return Response({"error": f"Resource {resource_pk} not found."}, status=status.HTTP_404_NOT_FOUND)
@@ -248,12 +251,14 @@ def sync_metadata_view(request, mapid):
         result = []
         for resource in resources:
             diffs = compare_metadata(map_obj, resource)
-            result.append({
-                "resource_pk": resource.pk,
-                "resource_title": resource.title,
-                "resource_type": resource.resource_type,
-                "diffs": diffs,
-            })
+            result.append(
+                {
+                    "resource_pk": resource.pk,
+                    "resource_title": resource.title,
+                    "resource_type": resource.resource_type,
+                    "diffs": diffs,
+                }
+            )
         return Response(result)
 
     # POST — perform the sync

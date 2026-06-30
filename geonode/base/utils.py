@@ -29,6 +29,7 @@ from dateutil.parser import isoparse
 from datetime import datetime, timedelta
 
 # Django functionality
+from django.db import models as db_models
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -39,7 +40,6 @@ from geonode.base.models import ResourceBase, Link, Configuration
 from geonode.security.utils import AdvancedSecurityWorkflowManager
 from geonode.thumbs.utils import get_thumbs, remove_thumb
 from geonode.utils import get_legend_url
-from geonode.security.permissions import PermSpecCompact
 
 logger = logging.getLogger("geonode.base.utils")
 
@@ -217,10 +217,23 @@ def remove_country_from_languagecode(language: str):
     return lang
 
 
+def increment_download_count(resource_id, user):
+    """Increment download_count on ResourceBase, skipping superusers and the owner."""
+    if user is not None and getattr(user, "is_superuser", False):
+        return
+
+    qs = ResourceBase.objects.filter(id=resource_id)
+    if user is not None and getattr(user, "is_authenticated", False):
+        qs = qs.exclude(owner=user)
+    qs.update(download_count=db_models.F("download_count") + 1)
+
+
 def patch_perms(updated_perms_compact, current_perms_compact, resource):
     """
     Patch updated permission changes with current permissions.
     """
+    from geonode.security.permissions import PermSpecCompact
+
     perms_spec_compact_patch = PermSpecCompact(updated_perms_compact, resource)
     perms_spec_compact_resource = PermSpecCompact(current_perms_compact, resource)
     perms_spec_compact_resource.merge(perms_spec_compact_patch)

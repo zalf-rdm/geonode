@@ -1688,13 +1688,13 @@ def _postgis_attribute_statistics(dataset_name, field, field_type=None):
                 FROM {table_sql}
                 """
             )
-            total_non_null, total_non_empty, numeric_like_count, comma_decimal_count, dot_decimal_count = cursor.fetchone()
+            total_non_null, total_non_empty, numeric_like_count, comma_decimal_count, dot_decimal_count = (
+                cursor.fetchone()
+            )
             ratio = (float(numeric_like_count) / float(total_non_empty)) if total_non_empty else 0.0
             if total_non_empty and ratio >= 0.8:
                 is_numeric = True
-                numeric_value_expr = (
-                    f"CASE WHEN {numeric_like_expr} THEN {normalized_numeric_expr} ELSE NULL END"
-                )
+                numeric_value_expr = f"CASE WHEN {numeric_like_expr} THEN {normalized_numeric_expr} ELSE NULL END"
                 inferred_field_type = "xsd:int" if not comma_decimal_count and not dot_decimal_count else "xsd:double"
             elif is_numeric:
                 # Stored type says numeric but DB values are textual and not mostly numeric.
@@ -1703,7 +1703,9 @@ def _postgis_attribute_statistics(dataset_name, field, field_type=None):
                 inferred_field_type = "xsd:string"
 
         if is_temporal and not is_geometry and not is_numeric:
-            inferred_field_type = "xsd:dateTime" if "time" in column_data_type or "timestamp" in column_data_type else "xsd:date"
+            inferred_field_type = (
+                "xsd:dateTime" if "time" in column_data_type or "timestamp" in column_data_type else "xsd:date"
+            )
             cursor.execute(
                 f"""
                 SELECT
@@ -1820,11 +1822,7 @@ def _postgis_attribute_statistics(dataset_name, field, field_type=None):
             LIMIT 50
             """
         )
-        groups = [
-            {"value": row[0], "count": int(row[1])}
-            for row in cursor.fetchall()
-            if row and row[0] is not None
-        ]
+        groups = [{"value": row[0], "count": int(row[1])} for row in cursor.fetchall() if row and row[0] is not None]
 
         return {
             "Min": min_v,
