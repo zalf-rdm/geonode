@@ -2254,7 +2254,7 @@ CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.getenv("CSRF_TRUSTED_ORIGINS", "")
 # ORCID
 # =============================================================================
 # NOTE: This is a sample configuration for ORCID integration using django-allauth and a generic OIDC provider.
-import logging
+import logging  # noqa: E402
 
 logger = logging.getLogger("geonode")  # Use the configured geonode logger
 # logger.error("SSL certificate verifikation disabled - ENABLE in production!!!")

@@ -1108,7 +1108,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
         data = super(ResourceBaseSerializer, self).to_internal_value(data)
         return data
 
-    def update(self, instance, validated_data):
+    def update(self, instance, validated_data):  # noqa: F811
         user = self.context["request"].user
 
         # Handle group update from the GroupSerializer
