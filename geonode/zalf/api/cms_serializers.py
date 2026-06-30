@@ -143,7 +143,6 @@ class TrainingResourceWriteSerializer(serializers.ModelSerializer):
             'thumbnail', 'body_markdown', 'slug', 'order', 'is_active',
         ]
         extra_kwargs = {'slug': {'required': False}}
-        extra_kwargs = {'slug': {'required': False}}
 
     def validate_thumbnail(self, value):
         return _validate_image(value)
