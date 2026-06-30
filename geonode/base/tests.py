@@ -38,7 +38,6 @@ from django.template import Template, Context
 from django.contrib.auth import get_user_model
 from geonode.storage.manager import storage_manager
 from django.test import Client, TestCase, override_settings, SimpleTestCase
-from rest_framework.test import APITestCase
 from django.shortcuts import reverse
 from django.core.files import File
 from django.core.management import call_command

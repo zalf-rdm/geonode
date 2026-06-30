@@ -1,0 +1,40 @@
+{% load static %}
+{% load client_version %}
+<!DOCTYPE html>
+<html class="msgapi">
+    <head>
+        {% include 'geonode-mapstore-client/snippets/head.html' %}
+        {% include 'geonode-mapstore-client/snippets/loader_style.html' %}
+        {% include 'geonode-mapstore-client/snippets/custom_theme.html' %}
+        <title>Training Resources — BonaRes</title>
+    </head>
+    <body class="msgapi ms2" data-ms2-container="ms2">
+        <div class="gn-page-wrapper {% if request.user_agent.is_mobile %}gn-mobile{% else %}gn-desktop{% endif %}">
+            <div class="gn-theme gn-homepage">
+                {% include 'geonode-mapstore-client/_geonode_config.html' with plugins_config_key='zalf_trainings_list' %}
+                {% include 'geonode-mapstore-client/snippets/header.html' with show_hero=False %}
+
+                <div id="ms-container">
+                    <div class="gn-main-event-container">
+                        <div class="gn-main-event-content">
+                            <div class="gn-main-loader"></div>
+                            <div class="gn-main-event-text"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    window.addEventListener('mapstore:ready', function(event) {
+                        event.detail.setPluginsConfig((lc) => lc?.plugins?.zalf_trainings_list || []);
+                    });
+                </script>
+
+                <script id="gn-script" src="{% static 'mapstore/dist/js/gn-components.js' %}?{% client_version %}"></script>
+                {% include 'geonode-mapstore-client/snippets/footer.html' %}
+
+                <script src="{% static "lib/js/jquery.min.js" %}"></script>
+                <script src="{% static "lib/js/bootstrap.min.js" %}"></script>
+            </div>
+        </div>
+    </body>
+</html>

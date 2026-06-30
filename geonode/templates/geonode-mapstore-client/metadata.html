@@ -1,0 +1,12 @@
+{% extends "page.html" %}
+
+{% block page_class %}gn-metadata-page{% endblock %}
+{% block extra_style %}
+{% include './snippets/metadata_style.html' %}
+{% endblock %}
+{% block container %}
+{% include './snippets/metadata_view.html' with resource=resource metadata_groups=metadata_groups %}
+{% endblock %}
+
+{% block ms_scripts %}
+{% endblock ms_scripts %}

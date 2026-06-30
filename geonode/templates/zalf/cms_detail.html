@@ -1,0 +1,104 @@
+{% load static %}
+{% load client_version %}
+<!DOCTYPE html>
+<html class="msgapi">
+    <head>
+        {% include 'geonode-mapstore-client/snippets/head.html' %}
+        {% include 'geonode-mapstore-client/snippets/loader_style.html' %}
+        {% include 'geonode-mapstore-client/snippets/custom_theme.html' %}
+        <title>{{ page_title }} — BonaRes</title>
+        <style>
+            .cms-detail-wrap {
+                max-width: 860px;
+                margin: 0 auto;
+                padding: 2.5rem 1.5rem 4rem;
+            }
+            .cms-detail-back {
+                display: inline-block;
+                margin-bottom: 1.5rem;
+                color: var(--gn-primary, #336633);
+                text-decoration: none;
+                font-size: 0.875rem;
+            }
+            .cms-detail-back:hover { text-decoration: underline; }
+            .cms-detail-hero {
+                width: 100%;
+                max-height: 420px;
+                object-fit: cover;
+                border-radius: 6px;
+                margin-bottom: 2rem;
+            }
+            .cms-detail-title {
+                font-size: 2rem;
+                font-weight: 700;
+                margin: 0 0 0.25rem;
+                line-height: 1.2;
+            }
+            .cms-detail-subtitle {
+                color: #666;
+                margin: 0 0 2rem;
+                font-size: 1rem;
+            }
+            .cms-detail-body { line-height: 1.7; }
+            .cms-detail-body h2 { font-size: 1.4rem; margin-top: 2rem; }
+            .cms-detail-body h3 { font-size: 1.15rem; margin-top: 1.5rem; }
+            .cms-detail-body img { max-width: 100%; border-radius: 4px; }
+            .cms-detail-body blockquote {
+                border-left: 4px solid var(--gn-primary, #336633);
+                margin: 1rem 0;
+                padding: 0.5rem 1rem;
+                color: #555;
+            }
+            .cms-detail-body table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 1rem 0;
+            }
+            .cms-detail-body th,
+            .cms-detail-body td {
+                border: 1px solid #ddd;
+                padding: 0.5rem 0.75rem;
+                text-align: left;
+            }
+            .cms-detail-body th { background: #f5f5f5; font-weight: 600; }
+        </style>
+    </head>
+    <body class="msgapi ms2" data-ms2-container="ms2">
+        <div class="gn-page-wrapper {% if request.user_agent.is_mobile %}gn-mobile{% else %}gn-desktop{% endif %}">
+            <div class="gn-theme gn-homepage">
+                {% include 'geonode-mapstore-client/_geonode_config.html' with plugins_config_key='zalf_home' %}
+                {% include 'geonode-mapstore-client/snippets/header.html' with show_hero=False %}
+
+                <div class="cms-detail-wrap">
+                    <a class="cms-detail-back" href="{{ back_href|default:'/' }}">
+                        ← {{ back_label|default:'Back' }}
+                    </a>
+
+                    {% if image_url %}
+                        <img class="cms-detail-hero" src="{{ image_url }}" alt="{{ page_title }}">
+                    {% endif %}
+
+                    <h1 class="cms-detail-title">{{ page_title }}</h1>
+                    {% if page_subtitle %}
+                        <p class="cms-detail-subtitle">{{ page_subtitle }}</p>
+                    {% endif %}
+
+                    <div class="cms-detail-body">
+                        {{ body_html|safe }}
+                    </div>
+                </div>
+
+                {% block ms_scripts %}
+                    <script id="gn-script" src="{% static 'mapstore/dist/js/gn-components.js' %}?{% client_version %}"></script>
+                {% endblock %}
+                <script src="{% static "lib/js/jquery.min.js" %}"></script>
+                <script src="{% static "lib/js/bootstrap.min.js" %}"></script>
+                <script>
+                    window.addEventListener('mapstore:ready', function(event) {
+                        event.detail.setPluginsConfig((lc) => lc?.plugins?.zalf_home || []);
+                    });
+                </script>
+            </div>
+        </div>
+    </body>
+</html>

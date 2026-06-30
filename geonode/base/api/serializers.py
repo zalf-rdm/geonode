@@ -902,6 +902,8 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     srid = serializers.CharField(required=False)
     group = ComplexDynamicRelationField(GroupSerializer, embed=True)
     share_count = serializers.CharField(required=False)
+    popular_count = serializers.IntegerField(read_only=True)
+    rating = serializers.CharField(required=False)
     download_count = serializers.IntegerField(read_only=True)
     featured = ResourceManagementField(required=False)
     advertised = serializers.BooleanField(required=False)
@@ -923,7 +925,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     thumbnail_url = ThumbnailUrlField(read_only=True)
     keywords = KeywordsDynamicRelationField(SimpleHierarchicalKeywordSerializer, many=True)
     tkeywords = ComplexDynamicRelationField(SimpleThesaurusKeywordSerializer, many=True)
-    regions = DynamicRelationField(SimpleRegionSerializer, embed=True, many=True, read_only=True)
+    regions = ComplexDynamicRelationField(SimpleRegionSerializer, embed=True, many=True)
     category = ComplexDynamicRelationField(SimpleTopicCategorySerializer, embed=True)
     spatial_representation_type = ComplexDynamicRelationField(SpatialRepresentationTypeSerializer, embed=True)
     blob = serializers.JSONField(required=False, write_only=True)
@@ -1050,6 +1052,8 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "data_quality_statement",
             "group",
             "share_count",
+            "popular_count",
+            "rating",
             "download_count",
             "featured",
             "advertised",
@@ -1104,7 +1108,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
         data = super(ResourceBaseSerializer, self).to_internal_value(data)
         return data
 
-    def update(self, instance, validated_data):
+    def update(self, instance, validated_data):  # noqa: F811
         user = self.context["request"].user
 
         # Handle group update from the GroupSerializer
@@ -1151,6 +1155,8 @@ class ResourceBaseSerializer(DynamicModelSerializer):
                 logger.exception(e)
                 raise InvalidResourceException("The standard bbox provided is invalid")
             instance.set_bbox_polygon(coords, srid)
+
+        self._save_contact_role_payloads(instance, contact_role_payloads)
 
         user = self.context["request"].user
         for field in instance.ROLE_BASED_MANAGED_FIELDS:
