@@ -51,20 +51,38 @@ def _create_user(username, groups=(), is_superuser=False, password="testpass"):
     return user
 
 
+def _make_manager(user, group_name):
+    """Make *user* a manager of the GeoNode group *group_name* (creating the
+    GroupProfile if needed).  Managers may publish; plain members may only approve."""
+    from geonode.groups.models import GroupProfile
+
+    gp = GroupProfile.objects.filter(slug=group_name).first()
+    if gp is None:
+        gp = GroupProfile.objects.create(slug=group_name, title=group_name)
+    gp.join(user, role="manager")
+    return user
+
+
 def _create_map(owner, title="Test Collection", is_approved=False, is_published=False):
-    return Map.objects.create(
+    the_map = Map.objects.create(
         owner=owner,
         title=title,
         is_approved=is_approved,
         is_published=is_published,
     )
+    if not is_approved and not is_published:
+        # Seed guardian perms as a real resource creation would (owner gets
+        # edit rights on draft resources).  Skipped for approved/published
+        # fixtures: the workflow fixup would strip the owner's edit perms.
+        the_map.set_permissions()
+    return the_map
 
 
 def _create_dataset(owner, title="Test Dataset", is_approved=False, is_published=False):
     """Create a minimal Dataset (ResourceBase subtype) for linking to a map."""
     from geonode.layers.models import Dataset
 
-    return Dataset.objects.create(
+    ds = Dataset.objects.create(
         owner=owner,
         title=title,
         is_approved=is_approved,
@@ -75,6 +93,10 @@ def _create_dataset(owner, title="Test Dataset", is_approved=False, is_published
         store="test_store",
         subtype="vector",
     )
+    if not is_approved and not is_published:
+        # Seed guardian perms as a real resource creation would.
+        ds.set_permissions()
+    return ds
 
 
 def _link(source_map, target_resource):
@@ -145,6 +167,33 @@ class TestApproveAuthZ(TestCase):
         data = resp.json()
         self.assertTrue(data["success"])
 
+    def test_manager_can_approve(self):
+        """Managers pass the role gate too."""
+        manager = _make_manager(_create_user("approve_mgr", groups=["alpha-team"]), "alpha-team")
+        own_map = _create_map(owner=manager)
+        self.client.force_login(manager)
+        resp = self.client.post(
+            f"/api/v2/approve/{own_map.pk}/",
+            data=json.dumps({"owner": manager.pk}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+
+    def test_member_can_approve_other_users_map(self):
+        """Data stewards approve maps owned by other users — the group-role
+        gate is the sole authorization, no per-resource perms required."""
+        other = _create_user("map_owner_x")
+        other_map = _create_map(owner=other)
+        self.client.force_login(self.member)
+        resp = self.client.post(
+            f"/api/v2/approve/{other_map.pk}/",
+            data=json.dumps({"owner": other.pk}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        other_map.refresh_from_db()
+        self.assertTrue(other_map.is_approved)
+
 
 # ---------------------------------------------------------------------------
 # Approve endpoint — business logic
@@ -203,7 +252,11 @@ class TestApproveLogic(TestCase):
 
     def test_approve_is_idempotent(self):
         """Approving an already-approved map must still return 200."""
-        the_map = _create_map(owner=self.member, is_approved=True)
+        the_map = _create_map(owner=self.member)
+        resp = self._approve(the_map, self.member)
+        self.assertEqual(resp.status_code, 200)
+        # second approve on the now-approved map must also succeed (the
+        # owner's edit perms are restored after the workflow fixup)
         resp = self._approve(the_map, self.member)
         self.assertEqual(resp.status_code, 200)
 
@@ -221,6 +274,7 @@ class TestPublishAuthZ(TestCase):
 
     def setUp(self):
         self.member = _create_user("pub_member", groups=["alpha-team"])
+        self.manager = _make_manager(_create_user("pub_manager", groups=["alpha-team"]), "alpha-team")
         self.outsider = _create_user("pub_outsider")
         self.map = _create_map(owner=self.member, is_approved=True)
         self.url = f"/api/v2/publish/{self.map.pk}/"
@@ -243,8 +297,14 @@ class TestPublishAuthZ(TestCase):
         resp = self.client.post(self.url, data=self._payload(), content_type="application/json")
         self.assertEqual(resp.status_code, 403)
 
-    def test_nonexistent_map_returns_404(self):
+    def test_plain_member_gets_403(self):
+        """Members (non-managers) of an allowed group may approve but not publish."""
         self.client.force_login(self.member)
+        resp = self.client.post(self.url, data=self._payload(), content_type="application/json")
+        self.assertEqual(resp.status_code, 403)
+
+    def test_nonexistent_map_returns_404(self):
+        self.client.force_login(self.manager)
         resp = self.client.post(
             "/api/v2/publish/999999/",
             data=self._payload(),
@@ -253,7 +313,7 @@ class TestPublishAuthZ(TestCase):
         self.assertEqual(resp.status_code, 404)
 
     def test_invalid_doi_prefix_format_returns_400(self):
-        self.client.force_login(self.member)
+        self.client.force_login(self.manager)
         with (
             patch("geonode.zalf.api.views.get_datacite_account_for_prefix"),
             patch("geonode.zalf.api.views.register_doi", return_value=_REGISTERED_DOI),
@@ -274,10 +334,10 @@ class TestPublishAuthZ(TestCase):
 
     @patch("geonode.zalf.api.views.get_datacite_account_for_prefix")
     @patch("geonode.zalf.api.views.register_doi", return_value=_REGISTERED_DOI)
-    def test_member_can_publish_empty_resources(self, mock_register, mock_acct):
+    def test_manager_can_publish_empty_resources(self, mock_register, mock_acct):
         """Publish with empty resources list succeeds — only the map gets a DOI."""
         mock_acct.return_value = _ACCOUNTS[0]
-        self.client.force_login(self.member)
+        self.client.force_login(self.manager)
         resp = self.client.post(self.url, data=self._payload(), content_type="application/json")
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
@@ -297,7 +357,8 @@ class TestPublishLogic(TestCase):
     fixtures = ["initial_data.json", "group_test_data.json", "default_oauth_apps.json"]
 
     def setUp(self):
-        self.member = _create_user("pub_logic_member", groups=["alpha-team"])
+        # publishing requires manager role in the allowed group
+        self.member = _make_manager(_create_user("pub_logic_member", groups=["alpha-team"]), "alpha-team")
         self.map = _create_map(owner=self.member, is_approved=True)
         self.url = f"/api/v2/publish/{self.map.pk}/"
         self.client.force_login(self.member)
@@ -325,9 +386,17 @@ class TestPublishLogic(TestCase):
         self.assertTrue(self.map.is_published)
 
     @patch("geonode.zalf.api.views.get_datacite_account_for_prefix")
-    @patch("geonode.zalf.api.views.register_doi", return_value=_REGISTERED_DOI)
+    @patch("geonode.zalf.api.views.register_doi")
     def test_doi_stored_on_map(self, mock_register, mock_acct):
         mock_acct.return_value = _ACCOUNTS[0]
+
+        # the real register_doi stores the DOI on the resource as a side effect
+        def _fake_register(resource, doi_prefix, doi_suffix=None, event="publish", user=None):
+            resource.doi = _REGISTERED_DOI
+            resource.save(update_fields=["doi"])
+            return _REGISTERED_DOI
+
+        mock_register.side_effect = _fake_register
         self._post()
         self.map.refresh_from_db()
         self.assertEqual(self.map.doi, _REGISTERED_DOI)
@@ -411,9 +480,9 @@ class TestPublishLogic(TestCase):
         except Exception:
             self.skipTest("Dataset creation requires GeoServer or extra fixtures")
         _link(self.map, ds)
-        # Pass other.pk as owner but authenticate as self.member
-        resp = self._post(resources=[ds.pk], owner=other)
-        # ds is filtered out because owner mismatch — publish still succeeds
+        # Payload owner is self.member — the ds (owned by `other`) is filtered
+        # out because of the owner mismatch, so publish still succeeds.
+        resp = self._post(resources=[ds.pk])
         self.assertEqual(resp.status_code, 200)
         ds.refresh_from_db()
         self.assertFalse(ds.is_published)
@@ -426,13 +495,21 @@ class TestPublishLogic(TestCase):
 
 @override_settings(**_SETTINGS)
 class TestCanPublishDataCollection(TestCase):
-    """Profile.can_publish_data_collection()"""
+    """Profile.can_publish_data_collection() — manager-only."""
 
     fixtures = ["initial_data.json", "group_test_data.json", "default_oauth_apps.json"]
 
-    def test_member_of_allowed_group_can_publish(self):
+    def test_plain_member_of_allowed_group_cannot_publish(self):
         user = _create_user("allowed_user", groups=["alpha-team"])
+        self.assertFalse(user.can_publish_data_collection())
+
+    def test_manager_of_allowed_group_can_publish(self):
+        user = _make_manager(_create_user("manager_user", groups=["alpha-team"]), "alpha-team")
         self.assertTrue(user.can_publish_data_collection())
+
+    def test_manager_of_other_group_cannot_publish(self):
+        user = _make_manager(_create_user("other_manager", groups=["some-other-group"]), "some-other-group")
+        self.assertFalse(user.can_publish_data_collection())
 
     def test_user_not_in_allowed_group_cannot_publish(self):
         user = _create_user("forbidden_user", groups=["some-other-group"])
@@ -455,6 +532,29 @@ class TestCanPublishDataCollection(TestCase):
         self.assertFalse(anon.is_authenticated)
 
 
+@override_settings(**_SETTINGS)
+class TestCanApproveDataCollection(TestCase):
+    """Profile.can_approve_data_collection() — any member of an allowed group."""
+
+    fixtures = ["initial_data.json", "group_test_data.json", "default_oauth_apps.json"]
+
+    def test_plain_member_of_allowed_group_can_approve(self):
+        user = _create_user("approve_member", groups=["alpha-team"])
+        self.assertTrue(user.can_approve_data_collection())
+
+    def test_manager_of_allowed_group_can_approve(self):
+        user = _make_manager(_create_user("approve_manager", groups=["alpha-team"]), "alpha-team")
+        self.assertTrue(user.can_approve_data_collection())
+
+    def test_user_not_in_allowed_group_cannot_approve(self):
+        user = _create_user("approve_outsider", groups=["some-other-group"])
+        self.assertFalse(user.can_approve_data_collection())
+
+    def test_superuser_can_always_approve(self):
+        user = _create_user("approve_super", is_superuser=True)
+        self.assertTrue(user.can_approve_data_collection())
+
+
 # ---------------------------------------------------------------------------
 # _update_resource_status — date stamping behaviour
 # ---------------------------------------------------------------------------
@@ -472,10 +572,15 @@ class TestUpdateResourceStatus(TestCase):
     def setUp(self):
         self.member = _create_user("date_test_member", groups=["alpha-team"])
 
-    def test_date_fields_set_on_first_publish(self):
+    def test_date_fields_present_after_publish(self):
+        """date_available defaults to the creation day (model default) and must
+        survive publishing unchanged; date_issued is unset at creation and gets
+        stamped on first publish."""
+        import datetime
+
         the_map = _create_map(owner=self.member)
-        # Ensure all date fields are unset
-        self.assertIsNone(the_map.date_available)
+        created_available = the_map.date_available
+        self.assertIsNotNone(created_available)
         self.assertIsNone(the_map.date_issued)
 
         from geonode.zalf.api.views import _update_resource_status
@@ -483,11 +588,7 @@ class TestUpdateResourceStatus(TestCase):
         _update_resource_status(the_map, is_published=True)
 
         the_map.refresh_from_db()
-        import datetime
-
-        self.assertIsNotNone(the_map.date_available)
-        self.assertIsNotNone(the_map.date_issued)
-        self.assertEqual(the_map.date_available, datetime.date.today())
+        self.assertEqual(the_map.date_available, created_available)
         self.assertEqual(the_map.date_issued, datetime.date.today())
 
     def test_existing_date_fields_not_overwritten(self):
@@ -516,6 +617,97 @@ class TestUpdateResourceStatus(TestCase):
         the_map.refresh_from_db()
         self.assertTrue(the_map.is_approved)
         self.assertFalse(the_map.is_published)
+
+
+# ---------------------------------------------------------------------------
+# _update_resource_status — public visibility on publish
+# ---------------------------------------------------------------------------
+
+
+@override_settings(**_SETTINGS)
+class TestPublicPermissionsOnPublish(TestCase):
+    """
+    Publishing must grant view permissions to the anonymous and
+    registered-members groups (plus download for non-map resources)
+    while preserving the owner's edit permissions.
+    """
+
+    fixtures = ["initial_data.json", "group_test_data.json", "default_oauth_apps.json"]
+
+    def setUp(self):
+        self.owner = _create_user("perm_test_owner")
+        self.anonymous_group, _ = DjangoGroup.objects.get_or_create(name="anonymous")
+
+    def _group_perms(self, resource, group):
+        from geonode.security.registry import permissions_registry
+
+        perm_spec = permissions_registry.get_perms(instance=resource, include_virtual=False)
+        return perm_spec.get("groups", {}).get(group, [])
+
+    def test_published_map_visible_to_anonymous_without_download(self):
+        the_map = _create_map(owner=self.owner, is_approved=True)
+        from geonode.zalf.api.views import _update_resource_status
+
+        _update_resource_status(the_map, is_published=True)
+
+        perms = self._group_perms(the_map.get_self_resource(), self.anonymous_group)
+        self.assertIn("view_resourcebase", perms)
+        self.assertNotIn("download_resourcebase", perms)
+
+    def test_published_dataset_downloadable_by_anonymous(self):
+        try:
+            ds = _create_dataset(owner=self.owner, title="Public DS", is_approved=True)
+        except Exception:
+            self.skipTest("Dataset creation requires GeoServer or extra fixtures")
+        from geonode.zalf.api.views import _update_resource_status
+
+        _update_resource_status(ds, is_published=True)
+
+        perms = self._group_perms(ds.get_self_resource(), self.anonymous_group)
+        self.assertIn("view_resourcebase", perms)
+        self.assertIn("download_resourcebase", perms)
+
+    def test_registered_members_get_view_on_published_map(self):
+        from geonode.groups.conf import settings as groups_settings
+
+        registered, _ = DjangoGroup.objects.get_or_create(name=groups_settings.REGISTERED_MEMBERS_GROUP_NAME)
+        the_map = _create_map(owner=self.owner, is_approved=True)
+        from geonode.zalf.api.views import _update_resource_status
+
+        _update_resource_status(the_map, is_published=True)
+
+        perms = self._group_perms(the_map.get_self_resource(), registered)
+        self.assertIn("view_resourcebase", perms)
+
+    def test_owner_keeps_edit_perms_after_publish(self):
+        """Regression guard: publishing must not strip the owner's edit rights."""
+        from geonode.security.registry import permissions_registry
+
+        # draft map — _create_map seeds owner perms via set_permissions()
+        the_map = _create_map(owner=self.owner)
+        owner_perms_before = permissions_registry.get_perms(
+            instance=the_map.get_self_resource(), user=self.owner, include_virtual=False
+        )
+        self.assertIn("change_resourcebase", owner_perms_before)
+
+        from geonode.zalf.api.views import _update_resource_status
+
+        _update_resource_status(the_map, is_approved=True)
+        _update_resource_status(the_map, is_published=True)
+
+        owner_perms = permissions_registry.get_perms(
+            instance=the_map.get_self_resource(), user=self.owner, include_virtual=False
+        )
+        self.assertIn("change_resourcebase", owner_perms)
+
+    def test_approve_only_does_not_add_anonymous_perms(self):
+        the_map = _create_map(owner=self.owner)
+        from geonode.zalf.api.views import _update_resource_status
+
+        _update_resource_status(the_map, is_approved=True)
+
+        perms = self._group_perms(the_map.get_self_resource(), self.anonymous_group)
+        self.assertNotIn("view_resourcebase", perms)
 
 
 # ---------------------------------------------------------------------------
@@ -564,7 +756,8 @@ class TestPublishCallArgs(TestCase):
     fixtures = ["initial_data.json", "group_test_data.json", "default_oauth_apps.json"]
 
     def setUp(self):
-        self.member = _create_user("call_args_member", groups=["alpha-team"])
+        # publishing requires manager role in the allowed group
+        self.member = _make_manager(_create_user("call_args_member", groups=["alpha-team"]), "alpha-team")
         self.map = _create_map(owner=self.member, is_approved=True)
         self.client.force_login(self.member)
 

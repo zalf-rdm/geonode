@@ -32,8 +32,10 @@ services:
       # Update this to wherever you want VS Code to mount the folder of your project
       - '.:/usr/src/geonode'
       - './.devcontainer/_vscode:/usr/src/geonode/.vscode'
+      # Uncomment the next line to mount the geonode-mapstore-client source code into the container for development. See https://aka.ms/vscode-remote/samples/docker-from-docker-compose for details.
+      # - '../geonode-mapstore-client:/usr/src/geonode-mapstore-client'
       # Uncomment the next line to use Docker from inside the container. See https://aka.ms/vscode-remote/samples/docker-from-docker-compose for details.
-      # - /var/run/docker.sock:/var/run/docker.sock 
+      # - /var/run/docker.sock:/var/run/docker.sock
 
     ports:
       - "8000:8000"

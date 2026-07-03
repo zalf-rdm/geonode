@@ -280,12 +280,10 @@ def build_datacite_payload(resource, doi_prefix, doi_suffix=None, event="publish
 
     doi = f"{doi_prefix}/{doi_suffix}"
 
-    # Landing page URL — use the resource's own absolute URL so the correct
-    # resource type and pk are used (e.g. /catalogue/#/map/42 for maps,
-    # /catalogue/#/tabular-collection/42 for collections, etc.)
+    # Landing page URL — use the stable UUID link so the DOI always resolves
+    # correctly regardless of resource type or pk changes.
     site_url = settings.SITEURL.rstrip("/")
-    resource_path = (resource.get_absolute_url() or "").lstrip("/")
-    url = f"{site_url}/{resource_path}"
+    url = f"{site_url}/uuid/{resource.uuid}"
 
     # Try to obtain DataCite XML from pycsw
     datacite_xml = get_datacite_xml(resource)
@@ -366,7 +364,7 @@ def register_doi(resource, doi_prefix, doi_suffix=None, event="publish", user=No
               matching the prefix is used (for backward compat / CLI use).
 
     Returns:
-        str: The registered DOI as a fully-qualified URL
+        str: The bare DOI string (e.g. "10.20387/some-uuid"), without resolver prefix
 
     Raises:
         ValidationError: If DOI registration fails
@@ -418,18 +416,13 @@ def register_doi(resource, doi_prefix, doi_suffix=None, event="publish", user=No
         raise ValidationError(f"Failed to connect to DataCite API: {e}")
 
     if response.status_code in (200, 201):
-        # Success - read the registered DOI from the response
+        # Store the bare DOI (e.g. "10.20387/some-uuid") without the resolver
+        # prefix so the value in the DB is resolver-agnostic.
         try:
             attrs = response.json().get("data", {}).get("attributes", {})
-            # Prefer the full URL from the identifiers array (contains the
-            # correct resolver for both prod and test environments).
-            doi_identifier = next(
-                (i.get("identifier") for i in attrs.get("identifiers", []) if i.get("identifierType") == "DOI"),
-                None,
-            )
-            registered_doi = doi_identifier or doi_to_fqdn(attrs.get("doi", doi))
-        except (ValueError, StopIteration):
-            registered_doi = doi_to_fqdn(doi)
+            registered_doi = attrs.get("doi", doi)
+        except (ValueError, KeyError):
+            registered_doi = doi
 
         resource.doi = registered_doi
         resource.save(update_fields=["doi"])

@@ -15,6 +15,7 @@ from oauth2_provider.contrib.rest_framework import OAuth2Authentication
 
 from geonode.base.models import ResourceBase
 from geonode.maps.models import Map
+from geonode.security.registry import permissions_registry
 from geonode.maps.utils import compare_metadata, get_syncable_resources, sync_metadata
 from geonode.zalf.api.serializer import PublishSerializer
 from geonode.zalf.api.datacite import (
@@ -42,30 +43,99 @@ def _get_owner(id):
         raise Http404("User does not exist")
 
 
+def _build_public_perm_spec(resource):
+    """
+    Current perm spec merged with public grants for the anonymous and
+    registered-members groups: maps get view; all other resource types
+    (datasets, documents, ...) get view + download.
+    """
+    from django.contrib.auth.models import Group
+    from geonode.groups.conf import settings as groups_settings
+
+    perms = ["view_resourcebase"]
+    if resource.resource_type != "map":
+        perms.append("download_resourcebase")
+
+    perm_spec = permissions_registry.get_perms(instance=resource, include_virtual=False)
+    groups = perm_spec.setdefault("groups", {})
+    # filter() instead of get(): a missing registered-members group degrades to a no-op
+    for grp in Group.objects.filter(name__in=["anonymous", groups_settings.REGISTERED_MEMBERS_GROUP_NAME]):
+        groups[grp] = sorted(set(groups.get(grp, [])) | set(perms))
+    return perm_spec
+
+
+def _restore_owner_perms(resource, owner_perms):
+    """
+    Re-assign the owner's pre-existing permissions after a set_permissions()
+    call.  GeoNode's advanced-workflow fixup (get_workflow_permissions) strips
+    the owner's edit/manage permissions from any perm spec once the resource
+    is approved or published — regardless of the approval_status_changed flag —
+    so we bypass the workflow and restore them directly via guardian.
+    """
+    from guardian.shortcuts import assign_perm
+
+    resource_base = resource.get_self_resource()
+    current = set(permissions_registry.get_perms(instance=resource_base, user=resource.owner, include_virtual=False))
+    for perm in set(owner_perms) - current:
+        try:
+            if perm in ("change_dataset_data", "change_dataset_style"):
+                # dataset-specific perms live on the concrete Dataset object
+                assign_perm(perm, resource.owner, resource.get_real_instance())
+            else:
+                assign_perm(perm, resource.owner, resource_base)
+        except Exception as e:
+            logger.warning(f"Could not restore owner permission '{perm}' on '{resource.title}': {e}")
+    permissions_registry.delete_resource_permissions_cache(instance=resource_base)
+
+
 def _update_resource_status(resource, is_approved=None, is_published=None):
+    updates = {}
     if is_approved is not None:
-        resource.is_approved = is_approved
+        updates["is_approved"] = is_approved
+        updates["was_approved"] = is_approved
     if is_published is not None:
-        resource.is_published = is_published
+        updates["is_published"] = is_published
+        updates["was_published"] = is_published
         if is_published:
             today = datetime.date.today()
             now = datetime.datetime.now()
             if not resource.date_available:
-                resource.date_available = today
+                updates["date_available"] = today
             if not resource.date_issued:
-                resource.date_issued = today
+                updates["date_issued"] = today
             if not resource.date:
-                resource.date = now
+                updates["date"] = now
 
-    # first save to ensure permission update loads status from db
-    resource.save()
-    resource.set_permissions(approval_status_changed=True)
-    # now save the permission change
-    resource.save()
+    # Snapshot the owner's perms before any change so they can be restored
+    # after the workflow fixup strips them (see _restore_owner_perms).
+    owner_perms = permissions_registry.get_perms(
+        instance=resource.get_self_resource(), user=resource.owner, include_virtual=False
+    )
+
+    # Write status fields directly to avoid triggering ResourceBase.save() which
+    # auto-fires set_permissions(approval_status_changed=True) and the related
+    # signal machinery.
+    ResourceBase.objects.filter(uuid=resource.uuid).update(**updates)
+    resource.refresh_from_db()
+    if is_published:
+        # Grant public visibility explicitly: the workflow fixup only adds
+        # anonymous perms when approval_status_changed=True, which we avoid.
+        # Since is_published is already True in the DB, the fixup's "remove
+        # anonymous perms while unpublished" branch does not fire either.
+        resource.set_permissions(_build_public_perm_spec(resource))
+    else:
+        resource.set_permissions()
+    # The advanced workflow (ADMIN_MODERATE_UPLOADS + RESOURCE_PUBLISHING)
+    # strips the owner's edit rights on approved/published resources during
+    # every set_permissions() call.  Restore them so the resource does not
+    # appear to be "taken over by admin" after approval/publication.
+    _restore_owner_perms(resource, owner_perms)
 
 
 def _approve_data_collection(user, map_resource: Map, requesting_user=None):
-
+    # Authorization happens at the endpoint via can_approve_data_collection()
+    # (group-role gate).  Data stewards approve resources owned by *other*
+    # users, so no per-resource guardian permission is required here.
     to_approve = [
         map_resource,
         *set(
@@ -77,13 +147,6 @@ def _approve_data_collection(user, map_resource: Map, requesting_user=None):
         ),
     ]
 
-    if requesting_user is not None:
-        for resource in to_approve:
-            if not requesting_user.has_perm("base.change_resourcebase", resource):
-                raise PermissionDenied(
-                    _(f"You do not have permission to approve resource '{resource.title}' (ID: {resource.id})")
-                )
-
     for resource in to_approve:
         _update_resource_status(resource, is_approved=True)
 
@@ -94,12 +157,11 @@ def _approve_data_collection(user, map_resource: Map, requesting_user=None):
 @authentication_classes(allowed_authentication_classes)
 def approve_data_collection_post(request, mapid):
     # Authorization: always check the *authenticated* user, never the payload.
-    # We use can_publish_data_collection() (group membership in ZALF_DATACITE_ACCOUNTS groups)
-    # rather than GeoNode's can_approve() which requires the resource to be assigned to the
-    # user's group as a manager — a setup constraint that doesn't apply to our workflow.
+    # Approving is allowed for any member (member or manager role) of an allowed
+    # DataCite group; publishing is restricted to group managers (see publish endpoint).
     if not request.user.is_authenticated:
         raise PermissionDenied(_("Authentication required"))
-    if not request.user.can_publish_data_collection():
+    if not request.user.can_approve_data_collection():
         raise PermissionDenied(_("Permission Denied"))
     map = get_object_or_404(Map, id=mapid)
 
@@ -135,13 +197,12 @@ def _publish_data_collection(map: Map, payload, user):
         )
     )
 
+    # Authorization happens at the endpoint via can_publish_data_collection()
+    # (manager-role gate).  Data stewards publish resources owned by *other*
+    # users, so no per-resource guardian permission is required here.
     for resource in resources:
         if not resource.is_approved:
             raise ValidationError(_(f"Resource '{resource.title}' (ID: {resource.id}) is not approved, yet!"))
-        if not user.has_perm("base.publish_resourcebase", resource):
-            raise PermissionDenied(
-                _(f"You do not have permission to publish resource '{resource.title}' (ID: {resource.id})")
-            )
 
     to_publish = [map, *resources]
 
@@ -167,8 +228,7 @@ def _publish_data_collection(map: Map, payload, user):
                 _(f"DOI registration failed for data collection '{map.title}' (ID: {map.id}): {e.message}")
             )
 
-        # Assign the same DOI to every resource in the collection
-        # collection_doi is already an FQDN (https://doi.org/...) as returned by register_doi
+        # Assign the same bare DOI (e.g. "10.20387/...") to every resource in the collection
         for resource in resources:
             resource.doi = collection_doi
             resource.save(update_fields=["doi"])
@@ -209,7 +269,13 @@ def publish_data_collection(request, mapid):
     serializer.is_valid(raise_exception=True)
     payload = serializer.validated_data
 
-    return _publish_data_collection(map, payload, user=user)
+    try:
+        return _publish_data_collection(map, payload, user=user)
+    except ValidationError as e:
+        # Django's ValidationError is not handled by DRF's exception handler
+        # and would surface as a 500 — translate it to a 422 with the message.
+        messages = getattr(e, "messages", None) or [str(e)]
+        return Response({"success": False, "message": "; ".join(messages)}, status=422)
 
 
 # ---------------------------------------------------------------------------
@@ -266,7 +332,7 @@ def sync_metadata_view(request, mapid):
     # POST — perform the sync
     if not request.user.is_authenticated:
         raise PermissionDenied(_("Authentication required"))
-    if not request.user.has_perm("base.change_resourcebase", map_obj):
+    if not request.user.has_perm("base.change_resourcebase", map_obj.resourcebase_ptr):
         raise PermissionDenied(_("You do not have permission to sync metadata for this map."))
 
     field_names = (request.data or {}).get("field_names", None)
