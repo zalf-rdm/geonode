@@ -57,8 +57,8 @@
 	// Uncomment the next line if you want to keep your containers running after VS Code shuts down.
 	// "shutdownAction": "none",
 
-	// Uncomment the next line to run commands after the container is created - for example installing curl.
-	// "postCreateCommand": "apt-get update && apt-get install -y curl",
+	// Install local mapstore-client in editable mode so the mounted source is used instead of the PyPI package. (not working yet, see)
+  // "postCreateCommand": "pip install -e /usr/src/geonode-mapstore-client",
 
 	// Uncomment to connect as a non-root user if you've added one. See https://aka.ms/vscode-remote/containers/non-root.
 	// "remoteUser": "vscode"

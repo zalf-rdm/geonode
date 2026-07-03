@@ -291,9 +291,21 @@ class Profile(AbstractUser):
     def can_publish(self, resource):
         return permissions_registry.user_can_publish(self, resource)
 
-    def can_publish_data_collection(self):
-        allowed_groups = getattr(settings, "PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS")
+    def can_approve_data_collection(self):
+        """Member (any role) of an allowed DataCite group, or superuser."""
+        allowed_groups = getattr(settings, "PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS", [])
         return self.is_superuser or self.groups.filter(name__in=allowed_groups).exists()
+
+    def can_publish_data_collection(self):
+        """Manager of an allowed DataCite group, or superuser."""
+        if self.is_superuser:
+            return True
+        from geonode.groups.models import GroupMember
+
+        allowed_groups = getattr(settings, "PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS", [])
+        return GroupMember.objects.filter(
+            user=self, role=GroupMember.MANAGER, group__group__name__in=allowed_groups
+        ).exists()
 
     def can_feature(self, resource):
         return permissions_registry.user_can_feature(self, resource)
