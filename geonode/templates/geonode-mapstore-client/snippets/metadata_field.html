@@ -1,0 +1,15 @@
+{% load i18n %}
+
+<dt class="gn-metadata-field gn-metadata-field-label gn-metadata-field-label--{{ name|slugify }}">
+    <label id="{{prefix}}_{{name}}__label" class="control-label" for="{{prefix}}_{{name}}">
+        <a href="#{{prefix}}_{{name}}__label"><i class="fa fa-link"></i></a>
+        {% with property_title=property.schema.title|default:name %}
+            {% trans property_title %}
+        {% endwith %}
+    </label>
+</dt>
+<dd class="gn-metadata-field gn-metadata-field-value gn-metadata-field-value--{{ name|slugify }}">
+    <div class="gn-metadata-group-value gn-metadata-group-value--{{ name|slugify }}" id="{{prefix}}_{{name}}">
+        {% include 'geonode-mapstore-client/snippets/metadata_field_value.html' with name=name value=property.value schema=property.schema raw=property %}
+    </div>
+</dd>

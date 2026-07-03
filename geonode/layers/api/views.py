@@ -32,7 +32,7 @@ from geonode.base.api.permissions import UserHasPerms
 from geonode.base.api.views import ApiPresetsInitializer
 from geonode.layers.api.exceptions import GeneralDatasetException, InvalidDatasetException, InvalidMetadataException
 from geonode.layers.metadata import parse_metadata
-from geonode.layers.models import Dataset, Attribute
+from geonode.layers.models import Dataset
 from geonode.geoserver.helpers import get_attribute_statistics, is_dataset_attribute_aggregable
 from geonode.maps.api.serializers import SimpleMapLayerSerializer, SimpleMapSerializer
 from geonode.resource.utils import update_resource

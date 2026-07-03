@@ -22,10 +22,23 @@ import logging
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from django.db.models import Count
+from django.db.models import Q
 
 from geonode.facets.models import FacetProvider, DEFAULT_FACET_PAGE_SIZE, FACET_TYPE_USER
+from geonode.people import Roles
 
 logger = logging.getLogger(__name__)
+
+
+def get_display_name(record):
+    first_name = (
+        record.get("first_name") or record.get("owner__first_name") or record.get("contacts__first_name") or ""
+    ).strip()
+    last_name = (
+        record.get("last_name") or record.get("owner__last_name") or record.get("contacts__last_name") or ""
+    ).strip()
+    full_name = " ".join(part for part in [first_name, last_name] if part)
+    return full_name or record.get("username") or record.get("owner__username") or record.get("contacts__username")
 
 
 class OwnerFacetProvider(FacetProvider):
@@ -57,18 +70,22 @@ class OwnerFacetProvider(FacetProvider):
     ) -> (int, list):
         logger.debug("Retrieving facets for OWNER")
 
-        filters = dict()
+        queryset = queryset or get_user_model().objects.none()
+        q = queryset
 
         if topic_contains:
-            filters["owner__username__icontains"] = topic_contains
+            q = q.filter(
+                Q(owner__username__icontains=topic_contains)
+                | Q(owner__first_name__icontains=topic_contains)
+                | Q(owner__last_name__icontains=topic_contains)
+            )
 
         if keys:
             logger.debug("Filtering by keys %r", keys)
-            filters["owner__in"] = keys
+            q = q.filter(owner__in=keys)
 
         q = (
-            queryset.values("owner", "owner__username")
-            .filter(**filters)
+            q.values("owner", "owner__username", "owner__first_name", "owner__last_name")
             .annotate(count=Count("owner"))
             .order_by("-count")
         )
@@ -82,7 +99,7 @@ class OwnerFacetProvider(FacetProvider):
         topics = [
             {
                 "key": r["owner"],
-                "label": r["owner__username"],
+                "label": get_display_name(r),
                 "count": r["count"],
             }
             for r in q[start:end]
@@ -91,7 +108,7 @@ class OwnerFacetProvider(FacetProvider):
         return cnt, topics
 
     def get_topics(self, keys: list, lang="en", **kwargs) -> list:
-        q = get_user_model().objects.filter(id__in=keys).values("id", "username")
+        q = get_user_model().objects.filter(id__in=keys).values("id", "username", "first_name", "last_name")
 
         logger.debug(" ---> %s\n\n", q.query)
         logger.debug(" ---> %r\n\n", q.all())
@@ -99,7 +116,7 @@ class OwnerFacetProvider(FacetProvider):
         return [
             {
                 "key": r["id"],
-                "label": r["username"],
+                "label": get_display_name(r),
             }
             for r in q.all()
         ]
@@ -107,3 +124,88 @@ class OwnerFacetProvider(FacetProvider):
     @classmethod
     def register(cls, registry, **kwargs) -> None:
         registry.register_facet_provider(OwnerFacetProvider(**kwargs))
+
+
+class AuthorFacetProvider(FacetProvider):
+    """
+    Implements faceting for metadata authors of the resources.
+    """
+
+    @property
+    def name(self) -> str:
+        return "author"
+
+    def get_info(self, lang="en", **kwargs) -> dict:
+        return {
+            "name": "author",
+            "filter": "filter{author.pk.in}",
+            "label": _("Authors"),
+            "type": FACET_TYPE_USER,
+        }
+
+    def get_facet_items(
+        self,
+        queryset=None,
+        start: int = 0,
+        end: int = DEFAULT_FACET_PAGE_SIZE,
+        lang="en",
+        topic_contains: str = None,
+        keys: set = {},
+        **kwargs,
+    ) -> (int, list):
+        logger.debug("Retrieving facets for AUTHOR")
+
+        queryset = queryset or get_user_model().objects.none()
+        q = queryset.filter(contacts__contactrole__role=Roles.METADATA_AUTHOR.role_value)
+
+        if topic_contains:
+            q = q.filter(
+                Q(contacts__username__icontains=topic_contains)
+                | Q(contacts__first_name__icontains=topic_contains)
+                | Q(contacts__last_name__icontains=topic_contains)
+            )
+
+        if keys:
+            logger.debug("Filtering by keys %r", keys)
+            q = q.filter(contacts__in=keys)
+
+        q = (
+            q.values("contacts", "contacts__username", "contacts__first_name", "contacts__last_name")
+            .annotate(count=Count("contacts", distinct=True))
+            .order_by("-count")
+        )
+
+        cnt = q.count()
+
+        logger.info("Found %d facets for %s", cnt, self.name)
+        logger.debug(" ---> %s\n\n", q.query)
+        logger.debug(" ---> %r\n\n", q.all())
+
+        topics = [
+            {
+                "key": r["contacts"],
+                "label": get_display_name(r),
+                "count": r["count"],
+            }
+            for r in q[start:end]
+        ]
+
+        return cnt, topics
+
+    def get_topics(self, keys: list, lang="en", **kwargs) -> list:
+        q = get_user_model().objects.filter(id__in=keys).values("id", "username", "first_name", "last_name")
+
+        logger.debug(" ---> %s\n\n", q.query)
+        logger.debug(" ---> %r\n\n", q.all())
+
+        return [
+            {
+                "key": r["id"],
+                "label": get_display_name(r),
+            }
+            for r in q.all()
+        ]
+
+    @classmethod
+    def register(cls, registry, **kwargs) -> None:
+        registry.register_facet_provider(AuthorFacetProvider(**kwargs))

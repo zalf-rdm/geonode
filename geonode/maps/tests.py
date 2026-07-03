@@ -34,14 +34,6 @@ from geonode.maps.models import Map, MapLayer
 from geonode.tests.utils import NotificationsTestsHelper
 from geonode.maps.tests_populate_maplayers import create_maplayers
 from geonode.resource.manager import resource_manager
-from geonode.maps.utils import (
-    compare_metadata,
-    get_all_syncable_fields,
-    get_syncable_resources,
-    sync_metadata,
-    SYNC_SIMPLE_FIELDS,
-    SYNC_M2M_FIELDS,
-)
 
 from geonode.base.populate_test_data import all_public, create_models, remove_models
 

@@ -6,7 +6,7 @@ Supports both vector and raster datasets.
 import logging
 from django.core.management.base import BaseCommand
 from django.db.models import Q
-from geonode.layers.models import Dataset, Attribute
+from geonode.layers.models import Dataset
 from geonode.geoserver.helpers import get_attribute_statistics, is_dataset_attribute_aggregable
 
 

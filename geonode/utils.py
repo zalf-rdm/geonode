@@ -1331,7 +1331,8 @@ def set_resource_default_links(instance, layer, prune=False, **kwargs):
             skip subsetting, i.e. output the whole coverage in the netive SRS.
 
             Notice that the "wcs_links" method also generates 1 default "outputFormat":
-             - "geotiff"; GeoTIFF which will be compressed and tiled by passing to the WCS the default query params compression='DEFLATE' and tile_size=512
+             - "geotiff"; GeoTIFF which will be compressed and tiled by passing to the WCS the default
+               query params compression='DEFLATE' and tile_size=512
             """
             links = wcs_links(instance_ows_url, instance.alternate)
             for ext, name, mime, wcs_url in links:

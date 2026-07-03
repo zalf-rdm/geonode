@@ -1,0 +1,90 @@
+{% load i18n %}
+<div class="gn-metadata-view">
+    <div class="gn-metadata">
+        <div class="gn-metadata-shell">
+            <section class="gn-metadata-hero">
+                <div class="gn-metadata-hero__content">
+                    <div class="gn-metadata-hero__eyebrow">
+                        <span class="gn-metadata-badge">{% trans "Metadata Record" %}</span>
+                        <span class="gn-metadata-badge gn-metadata-badge--soft">{{ metadata_groups.items|length }} {% trans "Sections" %}</span>
+                    </div>
+                    <h1 id="gn-metadata-title" class="gn-metadata-title">{{ resource.title }}</h1>
+                    <p class="gn-metadata-hero__summary">
+                        {% trans "Structured descriptive information for this resource, organized by thematic sections for easier navigation and review." %}
+                    </p>
+                    <div class="gn-metadata-hero__actions">
+                        {% if resource.detail_url %}
+                        <a class="gn-metadata-btn gn-metadata-btn--primary" href="{{ resource.detail_url }}">
+                            <i class="fa fa-arrow-left"></i>
+                            {% trans "Back to Resource" %}
+                        </a>
+                        {% endif %}
+                        <a class="gn-metadata-btn gn-metadata-btn--ghost" href="#gn-metadata-sections">
+                            <i class="fa fa-list-ul"></i>
+                            {% trans "Jump to Sections" %}
+                        </a>
+                    </div>
+                </div>
+                <div class="gn-metadata-hero__art" aria-hidden="true"></div>
+            </section>
+            <div class="gn-metadata-container">
+                <div class="gn-metadata-layout">
+                    <nav id="gn-metadata-sections" class="gn-metadata-sections-nav">
+                        {% if contact_roles_data %}
+                        <a class="gn-metadata-sections-nav__item" href="#gn-metadata-section-people">
+                            <span>{% trans "People" %}</span>
+                            <small>{{ contact_roles_data|length }}</small>
+                        </a>
+                        {% endif %}
+                        {% for group_key, metadata in metadata_groups.items %}
+                        <a class="gn-metadata-sections-nav__item" href="#gn-metadata-section-{{ group_key|slugify }}">
+                            <span>{% trans group_key %}</span>
+                            <small>{{ metadata.items|length }}</small>
+                        </a>
+                        {% endfor %}
+                    </nav>
+                    <div class="gn-metadata-groups">
+                        {% if contact_roles_data %}
+                        <section id="gn-metadata-section-people" class="gn-metadata-group gn-metadata-group-view gn-metadata-group--people">
+                            <div class="gn-metadata-group-title">
+                                <span>{% trans "People" %}</span>
+                            </div>
+                            <div class="gn-metadata-roles">
+                                {% for role_entry in contact_roles_data %}
+                                <div class="gn-metadata-role-block">
+                                    <div class="gn-metadata-role-label">{{ role_entry.label }}</div>
+                                    <div class="gn-metadata-role-people">
+                                        {% for person in role_entry.people %}
+                                        <div class="gn-metadata-person">
+                                            <div class="gn-metadata-person-avatar">{{ person.initial }}</div>
+                                            {% if person.profile_url %}
+                                            <a class="gn-metadata-person-name" href="{{ person.profile_url }}">{{ person.name }}</a>
+                                            {% else %}
+                                            <span class="gn-metadata-person-name">{{ person.name }}</span>
+                                            {% endif %}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </section>
+                        {% endif %}
+                        {% for group_key, metadata in metadata_groups.items %}
+                        <section
+                            id="gn-metadata-section-{{ group_key|slugify }}"
+                            class="gn-metadata-group gn-metadata-group-view"
+                            data-group="{{ group_key|slugify }}">
+                            <div class="gn-metadata-group-title">
+                                <span>{% trans group_key %}</span>
+                                <small>{{ metadata.items|length }} {% trans "fields" %}</small>
+                            </div>
+                            {% include 'geonode-mapstore-client/snippets/metadata_fields.html' with metadata=metadata prefix='metadata' %}
+                        </section>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

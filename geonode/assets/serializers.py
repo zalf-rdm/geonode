@@ -30,7 +30,6 @@ from geonode.assets.models import (
 from rest_framework import serializers
 from geonode.assets.utils import is_asset_deletable, get_asset_size_bytes
 
-
 logger = logging.getLogger(__name__)
 
 

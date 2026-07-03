@@ -6,7 +6,6 @@ from django.db import connection
 
 from geonode.base.models import ThesaurusKeywordLabel, Thesaurus
 
-
 logger = logging.getLogger(__name__)
 
 I18N_THESAURUS_IDENTIFIER = "labels-i18n"

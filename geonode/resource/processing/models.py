@@ -47,7 +47,9 @@ class AbstractProcessingTask(PolymorphicModel):
     )
 
     def __str__(self):
-        get_icon = lambda arg: "[✓]" if arg else "[✗]"
+        def get_icon(arg):
+            return "[✓]" if arg else "[✗]"
+
         _enabled_icon = get_icon(self.is_enabled)
         return f"{_enabled_icon} {self.name} | <{type(self).__name__}>"
 
@@ -65,7 +67,9 @@ class ProcessingWorkflow(models.Model):
         return list(self.processing_tasks.order_by("link_to_workflow__order"))
 
     def __str__(self):
-        get_icon = lambda arg: "[✓]" if arg else "[✗]"
+        def get_icon(arg):
+            return "[✓]" if arg else "[✗]"
+
         _enabled_icon = get_icon(self.is_enabled)
         return f"{_enabled_icon} {self.name}"
 

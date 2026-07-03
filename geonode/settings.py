@@ -464,7 +464,7 @@ INSTALLED_APPS = (
     # 'django_admin_bootstrapped.bootstrap3',
     # 'django_admin_bootstrapped',
     # Apps bundled with Django
-    # "importer_datapackage",  # TODO: re-enable after porting to 5.0.2
+    "importer_datapackage",
     "modeltranslation",
     "dal",
     "dal_select2",
@@ -2161,11 +2161,10 @@ IMPORTER_HANDLERS = ast.literal_eval(os.getenv("IMPORTER_HANDLERS", "[]"))
 
 IMPORTER_ENABLE_DYN_MODELS = ast.literal_eval(os.environ.get("IMPORTER_ENABLE_DYN_MODELS", "True"))
 
-# TODO: re-enable after porting importer_datapackage to 5.0.2
-# IMPORTER_HANDLERS = [
-#     "importer_datapackage.handlers.datapackage.handler.DataPackageFileHandler",
-#     *IMPORTER_HANDLERS,
-# ]
+IMPORTER_HANDLERS = [
+    "importer_datapackage.handlers.datapackage.handler.DataPackageFileHandler",
+    *IMPORTER_HANDLERS,
+]
 
 
 INSTALLED_APPS += ("geonode.facets",)
@@ -2177,7 +2176,7 @@ FACET_PROVIDERS = [
     {"class": "geonode.facets.providers.category.CategoryFacetProvider", "config": {"order": 5, "type": "select"}},
     {"class": "geonode.facets.providers.keyword.KeywordFacetProvider", "config": {"order": 6, "type": "select"}},
     {"class": "geonode.facets.providers.region.RegionFacetProvider", "config": {"order": 7, "type": "select"}},
-    {"class": "geonode.facets.providers.users.OwnerFacetProvider", "config": {"order": 8, "type": "select"}},
+    {"class": "geonode.facets.providers.users.AuthorFacetProvider", "config": {"order": 8, "type": "select"}},
     {"class": "geonode.facets.providers.group.GroupFacetProvider", "config": {"order": 9, "type": "select"}},
     {"class": "geonode.facets.providers.thesaurus.ThesaurusFacetProvider", "config": {"type": "select"}},
 ]
@@ -2255,7 +2254,7 @@ CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.getenv("CSRF_TRUSTED_ORIGINS", "")
 # ORCID
 # =============================================================================
 # NOTE: This is a sample configuration for ORCID integration using django-allauth and a generic OIDC provider.
-import logging
+import logging  # noqa: E402
 
 logger = logging.getLogger("geonode")  # Use the configured geonode logger
 # logger.error("SSL certificate verifikation disabled - ENABLE in production!!!")

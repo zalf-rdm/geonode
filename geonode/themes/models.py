@@ -43,7 +43,9 @@ class JumbotronThemeSlide(models.Model):
     is_enabled = models.BooleanField(default=True, help_text=_("Disabling this slide will hide it from the slide show"))
 
     def __str__(self):
-        get_icon = lambda arg: "[✓]" if arg else "[✗]"
+        def get_icon(arg):
+            return "[✓]" if arg else "[✗]"
+
         _enabled_icon = get_icon(self.is_enabled)
         _slide_content_icon = get_icon(self.hide_jumbotron_slide_content)
         return f"{self.slide_name} | <Enabled: {_enabled_icon} -- Hide Text: {_slide_content_icon}>"
