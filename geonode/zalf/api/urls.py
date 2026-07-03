@@ -4,6 +4,8 @@ from geonode.zalf.api.views import (
     approve_data_collection_post,
     publish_data_collection,
     sync_metadata_view,
+    datacite_metadata_view,
+    datacite_prefixes_view,
 )
 from geonode.zalf.api.cms_views import (
     HighlightedCaseListCreateView,
@@ -35,4 +37,6 @@ urlpatterns = [
     ),
     # Markdown preview (staff only)
     re_path(r"^cms/preview-markdown/$", preview_markdown, name="cms_preview_markdown"),
+    re_path(r"^datacite_metadata/(?P<pk>\d+)/$", datacite_metadata_view, name="datacite_metadata"),
+    re_path(r"^datacite-prefixes/$", datacite_prefixes_view, name="datacite_prefixes"),
 ]
