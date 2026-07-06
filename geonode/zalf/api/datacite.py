@@ -150,7 +150,7 @@ def fetch_prefixes_for_account(account):
         relationships = response.json().get("data", {}).get("relationships", {})
         prefix_items = relationships.get("prefixes", {}).get("data", [])
         prefixes = [item["id"] for item in prefix_items if item.get("id")]
-    except (ValueError, KeyError, TypeError) as e:
+    except (ValueError, KeyError, TypeError, AttributeError) as e:
         logger.warning(f"Unexpected DataCite client response for '{username}': {e}")
         prefixes = []
 
@@ -207,6 +207,11 @@ def get_datacite_xml(resource):
     Get DataCite XML metadata for a GeoNode resource via pycsw's
     DataCite output schema plugin.
 
+    Works with any configured CATALOGUE ENGINE: when the configured backend
+    does not implement ``get_datacite_record`` (e.g. ``pycsw_http`` pointing
+    at an external pycsw), the record is generated in-process with the
+    bundled pycsw engine instead.
+
     Args:
         resource: A GeoNode ResourceBase instance
 
@@ -218,11 +223,18 @@ def get_datacite_xml(resource):
     if hasattr(catalogue, "get_datacite_record"):
         return catalogue.get_datacite_record(resource.uuid)
 
-    logger.warning(
-        "Catalogue backend does not support get_datacite_record. "
-        "DataCite XML generation is only supported with pycsw_local backend."
-    )
-    return None
+    # External catalogue (e.g. pycsw_http): the remote CSW typically has no
+    # DataCite output-schema plugin.  The DataCite record is derived entirely
+    # from GeoNode's own DB, so generate it in-process with the bundled pycsw
+    # engine (pycsw_local machinery), independent of the configured backend.
+    try:
+        from geonode.catalogue.backends.pycsw_local import CatalogueBackend as LocalCatalogueBackend
+
+        local = LocalCatalogueBackend(skip_caps=True, **settings.CATALOGUE["default"])
+        return local.get_datacite_record(resource.uuid)
+    except Exception as e:
+        logger.warning(f"In-process DataCite XML generation failed for resource {resource.uuid}: {e}")
+        return None
 
 
 def _patch_xml_doi(datacite_xml, doi):

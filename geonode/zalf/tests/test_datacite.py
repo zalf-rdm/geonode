@@ -19,6 +19,7 @@ from geonode.zalf.api.datacite import (
     fetch_prefixes_for_account,
     get_datacite_account_for_prefix,
     get_datacite_accounts_for_user,
+    get_datacite_xml,
     get_doi_prefixes_for_user,
     register_doi,
     validate_doi_prefix,
@@ -400,6 +401,50 @@ class TestBuildFallbackAttributes(TestCase):
 
 
 # ---------------------------------------------------------------------------
+# get_datacite_xml — backend dispatch and in-process fallback
+# ---------------------------------------------------------------------------
+
+
+class TestGetDataciteXml(TestCase):
+    """get_datacite_xml must work with any CATALOGUE ENGINE: backends without
+    get_datacite_record (e.g. pycsw_http/external pycsw) fall back to the
+    in-process pycsw_local machinery."""
+
+    def _resource(self):
+        resource = MagicMock()
+        resource.uuid = "res-uuid-1"
+        return resource
+
+    @patch("geonode.zalf.api.datacite._get_catalogue_backend")
+    def test_backend_with_datacite_support_used_directly(self, mock_backend):
+        backend = MagicMock()
+        backend.get_datacite_record.return_value = "<resource/>"
+        mock_backend.return_value = backend
+        self.assertEqual(get_datacite_xml(self._resource()), "<resource/>")
+        backend.get_datacite_record.assert_called_once_with("res-uuid-1")
+
+    @patch("geonode.catalogue.backends.pycsw_local.CatalogueBackend")
+    @patch("geonode.zalf.api.datacite._get_catalogue_backend")
+    def test_in_process_fallback_when_backend_lacks_support(self, mock_backend, mock_local_cls):
+        # a plain object has no get_datacite_record attribute
+        mock_backend.return_value = object()
+        mock_local_cls.return_value.get_datacite_record.return_value = "<resource>local</resource>"
+
+        result = get_datacite_xml(self._resource())
+
+        self.assertEqual(result, "<resource>local</resource>")
+        mock_local_cls.assert_called_once()
+        self.assertTrue(mock_local_cls.call_args.kwargs.get("skip_caps"))
+        mock_local_cls.return_value.get_datacite_record.assert_called_once_with("res-uuid-1")
+
+    @patch("geonode.catalogue.backends.pycsw_local.CatalogueBackend", side_effect=RuntimeError("boom"))
+    @patch("geonode.zalf.api.datacite._get_catalogue_backend")
+    def test_fallback_failure_returns_none(self, mock_backend, mock_local_cls):
+        mock_backend.return_value = object()
+        self.assertIsNone(get_datacite_xml(self._resource()))
+
+
+# ---------------------------------------------------------------------------
 # build_datacite_payload
 # ---------------------------------------------------------------------------
 
@@ -503,40 +548,36 @@ class TestRegisterDoi(TestCase):
     @patch("geonode.zalf.api.datacite.fetch_prefixes_for_account", return_value=["10.20387"])
     @patch("geonode.zalf.api.datacite.build_datacite_payload")
     @patch("geonode.zalf.api.datacite._requests.post")
-    def test_returns_doi_from_identifiers_array(self, mock_post, mock_payload, mock_prefixes):
+    def test_returns_bare_doi_from_response(self, mock_post, mock_payload, mock_prefixes):
+        """The DOI stored/returned is the bare DOI from the response attributes,
+        without any resolver prefix."""
         mock_payload.return_value = {
             "data": {"type": "dois", "attributes": {"doi": "10.20387/x", "event": "publish", "url": "https://x"}}
         }
-        mock_post.return_value = self._mock_post(
-            status_code=201,
-            identifiers=[{"identifierType": "DOI", "identifier": "https://handle.test.datacite.org/10.20387/x"}],
-        )
+        mock_post.return_value = self._mock_post(status_code=201, doi="10.20387/x")
         resource = self._make_resource()
         result = register_doi(resource, "10.20387", doi_suffix="x", user=self.user)
-        self.assertEqual(result, "https://handle.test.datacite.org/10.20387/x")
+        self.assertEqual(result, "10.20387/x")
 
     @patch("geonode.zalf.api.datacite.fetch_prefixes_for_account", return_value=["10.20387"])
     @patch("geonode.zalf.api.datacite.build_datacite_payload")
     @patch("geonode.zalf.api.datacite._requests.post")
-    def test_falls_back_to_doi_field_when_no_identifiers(self, mock_post, mock_payload, mock_prefixes):
+    def test_falls_back_to_local_doi_when_response_lacks_doi(self, mock_post, mock_payload, mock_prefixes):
+        """When the response attributes carry no 'doi', the locally computed
+        bare DOI (prefix/suffix) is used."""
         mock_payload.return_value = {"data": {"type": "dois", "attributes": {}}}
-        mock_post.return_value = self._mock_post(status_code=201, identifiers=[], doi="10.20387/x")
+        mock_post.return_value = self._mock_post(status_code=201)
         resource = self._make_resource()
         result = register_doi(resource, "10.20387", doi_suffix="x", user=self.user)
-        # Should resolve to a fqdn via doi_to_fqdn
-        self.assertTrue(result.startswith("https://"))
-        self.assertIn("10.20387/x", result)
+        self.assertEqual(result, "10.20387/x")
 
     @patch("geonode.zalf.api.datacite.fetch_prefixes_for_account", return_value=["10.20387"])
     @patch("geonode.zalf.api.datacite.build_datacite_payload")
     @patch("geonode.zalf.api.datacite._requests.post")
     def test_doi_saved_to_resource(self, mock_post, mock_payload, mock_prefixes):
         mock_payload.return_value = {"data": {"type": "dois", "attributes": {}}}
-        expected_doi = "https://handle.test.datacite.org/10.20387/saved"
-        mock_post.return_value = self._mock_post(
-            status_code=201,
-            identifiers=[{"identifierType": "DOI", "identifier": expected_doi}],
-        )
+        expected_doi = "10.20387/saved"
+        mock_post.return_value = self._mock_post(status_code=201, doi=expected_doi)
         resource = self._make_resource()
         register_doi(resource, "10.20387", doi_suffix="saved", user=self.user)
         resource.refresh_from_db()

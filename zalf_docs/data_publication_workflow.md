@@ -208,6 +208,7 @@ Returns `{"prefixes": [...]}` — DOI prefixes available to the authenticated us
 - Stored as bare DOI (e.g. `10.20387/xxxx-xxxx`) without resolver prefix.
 - Landing page URL is the stable `/uuid/<uuid>` link.
 - Metadata XML comes from the pycsw catalogue backend, with the `<identifier>` patched to the collection DOI.
+- DataCite XML generation works with **any** `CATALOGUE_ENGINE`: GeoNode bundles pycsw 3.0.0-beta1 (which includes the `datacite` output schema) and generates the record in-process against its own database. Deployments with an external pycsw (e.g. geonode-k8s with `CATALOGUE_ENGINE=pycsw_http`) therefore get full DataCite XML too — the external pycsw needs no DataCite plugin.
 
 ### Frontend plugin architecture (developers)
 
