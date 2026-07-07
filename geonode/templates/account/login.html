@@ -1,50 +1,85 @@
 {% extends "account/base.html" %}
 
 {% load i18n %}
+{% load static %}
 {% load bootstrap_tags %}
 {% load account socialaccount %}
 
 {% block head_title %}{% trans "Log in" %}{% endblock %}
 
 {% block body_outer %}
-  <div class="page-header">
-    <h2>{% trans "Log in to an existing account" %}</h2>
-  </div>
+{% get_providers as socialaccount_providers %}
 
-<div class="row">
-  <div class="col-md-8">
+<div class="row" style="margin-top: 40px;">
+  <div class="col-md-6 col-md-offset-3 col-sm-8 col-sm-offset-2">
 
-    {% get_providers as socialaccount_providers %}
+    <div class="panel panel-default" style="border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
+      <div class="panel-body" style="padding: 30px 40px;">
 
-    {% if socialaccount_providers %}
-      <p>{% blocktrans with site.name as site_name %}Our Repository has an unique identifier policy.Please sign in with one
-      of your existing third party accounts:{% endblocktrans %}</p>
-      <div class="socialaccount_ballot">
-        <ul class="socialaccount_providers">
-          {% include "socialaccount/snippets/provider_list.html" with process="login" %}
-        </ul>
+        <div class="text-center" style="margin-bottom: 20px;">
+          {% if socialaccount_providers %}
+            <img src="{% static 'geonode/img/orcid_id.svg' %}" alt="{% trans 'ORCID iD icon' %}" width="56" height="56">
+            <h2 style="margin-top: 15px;">{% trans "Sign in with your ORCID iD" %}</h2>
+            <p class="text-muted">{% blocktrans %}One account for your research — no extra registration, no extra password.{% endblocktrans %}</p>
+          {% else %}
+            <h2>{% trans "Log in to an existing account" %}</h2>
+          {% endif %}
+        </div>
+
+        {% if socialaccount_providers %}
+          <div class="socialaccount_ballot">
+            <ul class="socialaccount_providers list-unstyled" style="margin-bottom: 0;">
+              {% include "socialaccount/snippets/provider_list.html" with process="login" %}
+            </ul>
+
+            {% if not SOCIALACCOUNT_ONLY %}
+            <div class="login-or text-center text-muted" style="margin: 15px 0;">{% trans 'or' %}</div>
+            {% endif %}
+          </div>
+
+          {% include "socialaccount/snippets/login_extra.html" %}
+        {% else %}
+          <p>{% blocktrans %}If you have not created an account yet, then please
+          <a href="{{ signup_url }}">sign up</a> first.{% endblocktrans %}</p>
+        {% endif %}
 
         {% if not SOCIALACCOUNT_ONLY %}
-        <div class="login-or">{% trans 'or' %}</div>
+        <form role="form" method="POST" action="{% url 'account_login' %}" autocapitalize="off" {% if form.is_multipart %} enctype="multipart/form-data"{% endif %}>
+          {% csrf_token %}
+          {{ form|as_bootstrap }}
+          {% if redirect_field_value %}
+            <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+          {% endif %}
+          <button class="btn btn-primary btn-block" type="submit">{% trans "Sign In" %}</button>
+        </form>
         {% endif %}
+
       </div>
+    </div>
 
-      {% include "socialaccount/snippets/login_extra.html" %}
+    {% if socialaccount_providers %}
+    <div class="panel panel-default" style="border-radius: 8px;">
+      <div class="panel-body" style="padding: 25px 40px;">
+        <h4 style="margin-top: 0;">{% trans "Why do we use ORCID?" %}</h4>
+        <p class="text-muted">{% blocktrans %}This repository uses your ORCID iD to reliably attribute published research data to you.{% endblocktrans %}</p>
+        <ul class="list-unstyled" style="margin-bottom: 15px;">
+          <li style="margin-bottom: 8px;"><i class="fa fa-check text-success" aria-hidden="true"></i>
+            {% trans "Your ORCID iD distinguishes you from every other researcher — even those sharing your name." %}</li>
+          <li style="margin-bottom: 8px;"><i class="fa fa-check text-success" aria-hidden="true"></i>
+            {% trans "The research data you publish here is unambiguously linked to you and your ORCID record." %}</li>
+          <li style="margin-bottom: 8px;"><i class="fa fa-check text-success" aria-hidden="true"></i>
+            {% trans "Your account is created automatically; your name and affiliation stay up to date." %}</li>
+          <li style="margin-bottom: 8px;"><i class="fa fa-check text-success" aria-hidden="true"></i>
+            {% trans "Your iD stays with you throughout your career, across employers and institutions." %}</li>
+        </ul>
+        <p class="text-muted small" style="margin-bottom: 0;">
+          {% blocktrans trimmed %}Don't have an ORCID iD yet? You can register one for free during sign-in.
+          Learn more at <a href="https://info.orcid.org/researchers/" target="_blank" rel="noopener">orcid.org</a>.{% endblocktrans %}
+        </p>
+      </div>
+    </div>
+    {% endif %}
 
-    {% else %}
-      <p>{% blocktrans %}If you have not created an account yet, then please
-      <a href="{{ signup_url }}">sign up</a> first.{% endblocktrans %}</p>
-    {% endif %}
-    {% if not SOCIALACCOUNT_ONLY %}
-    <form role="form" method="POST" action="{% url 'account_login' %}" autocapitalize="off" {% if form.is_multipart %} enctype="multipart/form-data"{% endif %}>
-      {% csrf_token %}
-      {{ form|as_bootstrap }}
-      {% if redirect_field_value %}
-        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
-      {% endif %}
-      <button class="btn btn-primary" type="submit">{% trans "Sign In" %}</button>
-    </form>
-    {% endif %}
   </div>
 </div>
 {% endblock body_outer %}

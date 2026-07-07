@@ -756,12 +756,6 @@ msgstr ""
 msgid "Keyword"
 msgstr "Schlüssel"
 
-msgid "Keyword"
-msgstr "Schlüssel"
-
-msgid "keywords"
-msgstr "Schlüsselworter"
-
 #: geonode/base/models.py:892
 msgid "The date that the publisher accepted the resource into their system."
 msgstr ""
@@ -3419,8 +3413,8 @@ msgstr "Titel der Attribute wie in GeoNode dargestellt"
 msgid "attribute type"
 msgstr "Attributtyp"
 
-#: geonode/layers/models.py:427
-msgid "attribute type"
+#: geonode/layers/models.py:446
+msgid "attribute unit"
 msgstr "Attributeinheit"
 
 #: geonode/layers/models.py:420
@@ -3428,7 +3422,7 @@ msgid "the data type of the attribute (integer, string, geometry, etc)"
 msgstr "der Datenyp des Attributes (Integer, Zeichenkette, Geometrie , etc)"
 
 #: geonode/layers/models.py:428
-msgid ""the used unit for the attribute""
+msgid "the used unit for the attribute"
 msgstr "die verwendete Einheit des Attributes"
 
 
@@ -10091,3 +10085,74 @@ msgstr "Zugriff verweigert"
 
 msgid "All resources"
 msgstr "Alle ressourcen"
+
+#: geonode/templates/geonode-mapstore-client/snippets/brand_navbar_default_right_menu_items.html
+msgid "Register / Login via ORCID"
+msgstr "Registrieren / Anmelden mit ORCID"
+
+#: geonode/templates/geonode-mapstore-client/snippets/brand_navbar_default_right_menu_items.html
+msgid "What is ORCID?"
+msgstr "Was ist ORCID?"
+
+#: geonode/templates/geonode-mapstore-client/snippets/brand_navbar_default_right_menu_items.html
+#: geonode/templates/account/login.html
+msgid "Why do we use ORCID?"
+msgstr "Warum verwenden wir ORCID?"
+
+#: geonode/templates/account/login.html geonode/templates/account/logout.html
+msgid "ORCID iD icon"
+msgstr "ORCID-iD-Symbol"
+
+#: geonode/templates/account/login.html
+msgid "Sign in with your ORCID iD"
+msgstr "Melden Sie sich mit Ihrer ORCID iD an"
+
+#: geonode/templates/account/login.html
+msgid "One account for your research — no extra registration, no extra password."
+msgstr "Ein Konto für Ihre Forschung — keine zusätzliche Registrierung, kein zusätzliches Passwort."
+
+#: geonode/templates/account/login.html
+msgid "This repository uses your ORCID iD to reliably attribute published research data to you."
+msgstr "Dieses Repositorium verwendet Ihre ORCID iD, um veröffentlichte Forschungsdaten zuverlässig Ihnen zuzuordnen."
+
+#: geonode/templates/account/login.html
+msgid "Your ORCID iD distinguishes you from every other researcher — even those sharing your name."
+msgstr "Ihre ORCID iD unterscheidet Sie von allen anderen Forschenden — auch von Personen mit gleichem Namen."
+
+#: geonode/templates/account/login.html
+msgid "The research data you publish here is unambiguously linked to you and your ORCID record."
+msgstr "Die Forschungsdaten, die Sie hier veröffentlichen, werden eindeutig mit Ihnen und Ihrem ORCID-Eintrag verknüpft."
+
+#: geonode/templates/account/login.html
+msgid "Your account is created automatically; your name and affiliation stay up to date."
+msgstr "Ihr Konto wird automatisch erstellt; Ihr Name und Ihre Zugehörigkeit bleiben aktuell."
+
+#: geonode/templates/account/login.html
+msgid "Your iD stays with you throughout your career, across employers and institutions."
+msgstr "Ihre iD begleitet Sie während Ihrer gesamten Laufbahn — unabhängig von Arbeitgebern und Institutionen."
+
+#: geonode/templates/account/login.html
+msgid ""
+"Don't have an ORCID iD yet? You can register one for free during sign-in. "
+"Learn more at <a href=\"https://info.orcid.org/researchers/\" "
+"target=\"_blank\" rel=\"noopener\">orcid.org</a>."
+msgstr ""
+"Sie haben noch keine ORCID iD? Bei der Anmeldung können Sie kostenlos eine "
+"registrieren. Mehr erfahren Sie auf <a href=\"https://info.orcid.org/"
+"researchers/\" target=\"_blank\" rel=\"noopener\">orcid.org</a>."
+
+#: geonode/templates/socialaccount/snippets/provider_list.html
+msgid "Sign in or Register with"
+msgstr "Anmelden oder Registrieren mit"
+
+#: geonode/templates/account/logout.html
+msgid "Log out from GeoNode and ORCID"
+msgstr "Von GeoNode und ORCID abmelden"
+
+#: geonode/templates/account/logout.html
+msgid "Ends your session in this repository only. You stay signed in at ORCID and the identity provider — logging in again will not ask for your credentials."
+msgstr "Beendet nur Ihre Sitzung in diesem Repositorium. Bei ORCID und dem Identitätsanbieter bleiben Sie angemeldet — eine erneute Anmeldung erfolgt ohne Passwortabfrage."
+
+#: geonode/templates/account/logout.html
+msgid "Ends your session everywhere: this repository, the identity provider and orcid.org. Logging in again will require your ORCID credentials. Recommended on shared computers."
+msgstr "Beendet Ihre Sitzung überall: in diesem Repositorium, beim Identitätsanbieter und auf orcid.org. Für eine erneute Anmeldung sind Ihre ORCID-Zugangsdaten erforderlich. Empfohlen an gemeinsam genutzten Computern."

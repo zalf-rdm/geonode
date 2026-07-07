@@ -2272,6 +2272,17 @@ logger = logging.getLogger("geonode")  # Use the configured geonode logger
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_AUTHENTICATION_METHOD = "email"
 #
+#   Persist access/refresh tokens from the token exchange (SocialToken) — an
+#   ORCID member-integration minimum requirement ("store the access token").
+#
+SOCIALACCOUNT_STORE_TOKENS = True
+#
+#   Base URL for linking to ORCID records (Profile.get_orcid_url).
+#   Use https://sandbox.orcid.org when the deployment authenticates against
+#   the ORCID sandbox.
+#
+SOCIALACCOUNT_ORCID_BASE_URL = os.environ.get("SOCIALACCOUNT_ORCID_BASE_URL", "https://orcid.org")
+#
 #   ORCID-only login: disables local username/password login, signup and
 #   password reset at the allauth view/url level.  Django admin login and
 #   API BasicAuthentication are unaffected (ModelBackend stays active).
@@ -2338,6 +2349,17 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 SOCIALACCOUNT_LOGOUT_REDIRECT_URL = os.environ.get(
     "SOCIALACCOUNT_LOGOUT_REDIRECT_URL", "https://sandbox.orcid.org/signout"
+)
+#
+#   Keycloak OIDC RP-initiated logout endpoint: ends the Keycloak SSO session
+#   during "Log out from GeoNode and ORCID" (otherwise the next login is a
+#   silent re-login).  SOCIALACCOUNT_LOGOUT_REDIRECT_URL is passed as
+#   post_logout_redirect_uri and must be whitelisted in the Keycloak client
+#   ("Valid post logout redirect URIs").
+#
+SOCIALACCOUNT_PROVIDER_END_SESSION_URL = os.environ.get(
+    "SOCIALACCOUNT_PROVIDER_END_SESSION_URL",
+    f"{SOCIALACCOUNT_PROVIDER_ROOT}protocol/openid-connect/logout",
 )
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 INSTALLED_APPS += ("allauth.socialaccount.providers.openid_connect",)

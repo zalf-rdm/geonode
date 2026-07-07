@@ -29,6 +29,8 @@ import re
 import jwt
 import requests
 
+from urllib.parse import urlencode
+
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.account.utils import user_field
 from allauth.account.utils import user_email
@@ -95,6 +97,7 @@ def update_profile(sociallogin):
             "fax",
             "first_name",
             "last_name",
+            "orcid_identifier",
             "organization",
             "position",
             "profile",
@@ -145,6 +148,32 @@ class LocalAccountAdapter(DefaultAccountAdapter, BaseInvitationsAdapter):
     def get_login_redirect_url(self, request):
         profile_path = reverse("profile_detail", kwargs={"username": request.user.username})
         return profile_path
+
+    def get_logout_redirect_url(self, request):
+        # the logout page offers an explicit "also log out from ORCID" action:
+        # after ending the local session, end the Keycloak SSO session via the
+        # OIDC end_session_endpoint (otherwise the next "Login via ORCID" is a
+        # silent re-login), and let Keycloak forward to the ORCID signout page
+        # (SOCIALACCOUNT_LOGOUT_REDIRECT_URL — must be whitelisted as a valid
+        # post-logout redirect URI in the Keycloak client).
+        if request and request.method == "POST" and request.POST.get("logout_orcid"):
+            orcid_signout_url = getattr(settings, "SOCIALACCOUNT_LOGOUT_REDIRECT_URL", None)
+            end_session_url = getattr(settings, "SOCIALACCOUNT_PROVIDER_END_SESSION_URL", None)
+            if end_session_url:
+                params = {}
+                id_token = request.session.get("oidc_id_token")
+                if id_token:
+                    # seamless logout, no Keycloak confirmation screen
+                    params["id_token_hint"] = id_token
+                elif getattr(settings, "SOCIALACCOUNT_CLIENT_ID", None):
+                    # session predates id_token stashing: Keycloak will ask to confirm
+                    params["client_id"] = settings.SOCIALACCOUNT_CLIENT_ID
+                if orcid_signout_url:
+                    params["post_logout_redirect_uri"] = orcid_signout_url
+                return f"{end_session_url}?{urlencode(params)}"
+            if orcid_signout_url:
+                return orcid_signout_url
+        return super().get_logout_redirect_url(request)
 
     def populate_username(self, request, user):
         # validate the already generated username with django validation
@@ -362,6 +391,10 @@ class GenericOpenIDConnectAdapter(OAuth2Adapter, SocialAccountAdapter):
                     audience=app.client_id,
                 )
                 extra_data.update(extra_data_id_token)
+                # keep the raw id_token for RP-initiated logout at the IdP
+                # (Keycloak end_session_endpoint id_token_hint), see
+                # LocalAccountAdapter.get_logout_redirect_url
+                request.session["oidc_id_token"] = response["id_token"]
             except jwt.PyJWTError as e:
                 raise OAuth2Error("Invalid id_token") from e
         login = self.get_provider().sociallogin_from_response(request, extra_data)

@@ -61,6 +61,16 @@
 
   <table class="table table-user-profile">
     <tbody>
+      {% if profile.orcid_identifier %}
+      {# ORCID display guidelines: official icon + full hyperlinked orcid.org URL #}
+      <tr>
+        <td class="table-user-profile-attribute">{% trans 'ORCID iD' %}</td>
+        <td>
+          <img src="{% static 'geonode/img/orcid_id.svg' %}" alt="{% trans 'ORCID iD icon' %}" width="16" height="16" style="vertical-align: middle;">
+          <a href="{{ profile.get_orcid_url }}" target="_blank" rel="noopener">{{ profile.get_orcid_url }}</a>
+        </td>
+      </tr>
+      {% endif %}
       {% if user.is_authenticated and user == profile or user.is_superuser or user.is_staff %}
       {% if SHOW_PROFILE_EMAIL %}
       <tr>

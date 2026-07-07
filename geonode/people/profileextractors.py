@@ -20,6 +20,7 @@
 """Profile extractor utilities for social account providers"""
 
 import logging
+import re
 
 from django.conf import settings
 
@@ -214,12 +215,34 @@ class OpenIDGroupRoleMapper:
         return "manager" in _role_name.lower()
 
 
+ORCID_ID_PATTERN = re.compile(r"^(\d{4}-){3}\d{3}[\dX]$")
+
+
 class OrcidExtractor(OpenIDExtractor):
     def extract_first_name(self, data):
         return data.get("given_name", None)
 
     def extract_last_name(self, data):
         return data.get("family_name", None)
+
+    def extract_orcid_identifier(self, data):
+        """
+        Extract the authenticated ORCID iD from the OIDC claims.
+
+        Keycloak setups differ: some expose a dedicated 'orcid' claim, others
+        carry the ORCID iD as the broker username (preferred_username).  Only
+        values matching the ORCID pattern are accepted; a full URI form
+        (https://orcid.org/0000-...) is tolerated.
+        """
+        for claim in ("orcid", "preferred_username"):
+            value = (data.get(claim) or "").strip()
+            # tolerate the full URI form
+            value = value.rsplit("/", 1)[-1]
+            if ORCID_ID_PATTERN.match(value):
+                logger.debug(f"Found ORCID iD in claim '{claim}'")
+                return value
+        # handled like any other missing extractor field (see update_profile)
+        raise NotImplementedError
 
     def extract_organization(self, data):
         affiliation = data.get("affiliation") or {}

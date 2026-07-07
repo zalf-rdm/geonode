@@ -1,12 +1,15 @@
 {% load get_menu_json %}
 {% load avatar_tags %}
 {% load i18n %}
+{% load static %}
 {% get_settings as settings %}
 
 {% if not request.user.is_authenticated %}
     {% if SOCIALACCOUNT_ONLY %}
-        {# ORCID-only: one button straight to the openid_connect provider (keycloak/ORCID) #}
-        <li><a id="sign-in" href="{% url 'openid_connect_login' provider_id=SOCIALACCOUNT_PROVIDER %}?next=/" class="nav-link btn btn-default">{% trans "Register / Login via ORCID" %}</a></li>
+        {# ORCID-only: one branded button straight to the openid_connect provider (keycloak/ORCID) #}
+        <li><a id="sign-in" href="{% url 'openid_connect_login' provider_id=SOCIALACCOUNT_PROVIDER %}?next=/" class="nav-link btn btn-default"><img src="{% static 'geonode/img/orcid_id.svg' %}" alt="{% trans 'ORCID iD icon' %}" width="24" height="24" style="vertical-align: middle;"> {% trans "Register / Login via ORCID" %}</a></li>
+        {# benefits explanation lives on the login page (ORCID member requirement) #}
+        <li><a href="/account/login/?next=/" class="nav-link" title="{% trans 'Why do we use ORCID?' %}">{% trans "What is ORCID?" %}</a></li>
     {% else %}
         {% if settings.ACCOUNT_OPEN_SIGNUP and not settings.READ_ONLY %}
             <li><a href="/account/signup/?next=/" class="nav-link btn btn-default">{% trans "Register" %}</a></li>
@@ -20,6 +23,10 @@
                 <img src="{% avatar_url request.user %}" />
             </button>
             <ul class="dropdown-menu dropdown-menu-right">
+                {% if request.user.orcid_identifier %}
+                    {# ORCID display guidelines: official icon + hyperlink to the ORCID record #}
+                    <li><a href="{{ request.user.get_orcid_url }}" target="_blank" rel="noopener"><img src="{% static 'geonode/img/orcid_id.svg' %}" alt="{% trans 'ORCID iD icon' %}" width="16" height="16" style="vertical-align: middle;"> {{ request.user.orcid_identifier }}</a></li>
+                {% endif %}
                 <li><a href="{{ request.user.get_absolute_url }}">{% trans "Profile" %}</a></li>
                 {% if request.user_agent.is_mobile %}
                     <li role="separator" class="divider"></li>
