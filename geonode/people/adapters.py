@@ -277,6 +277,7 @@ PROFILE_URL = getattr(settings, "SOCIALACCOUNT_PROVIDERS", {}).get(PROVIDER_ID, 
 
 ID_TOKEN_ISSUER = getattr(settings, "SOCIALACCOUNT_PROVIDERS", {}).get(PROVIDER_ID, {}).get("ID_TOKEN_ISSUER", "")
 
+
 def _update_user_groups_from_social(sociallogin, user):
     extractor = get_data_extractor(sociallogin.account.provider)
     group_role_mapper = get_group_role_mapper(sociallogin.account.provider)
