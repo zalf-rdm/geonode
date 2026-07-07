@@ -2211,7 +2211,7 @@ AVATAR_DELETE_TEMPLATE = "people/avatar/confirm_delete.html"
 
 # disable certain fields from advanded metadata editor
 ADVANCED_EDIT_EXCLUDE_FIELD = [  # base
-    "fundings", # inserted differently, therefore removed here, but still in editor
+    "fundings",  # inserted differently, therefore removed here, but still in editor
     "metadata_only",
     "Region",
     "metadata",
