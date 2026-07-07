@@ -760,7 +760,7 @@ LOGGING = {
         },
         "geonode.people.profileextractors": {
             "level": "DEBUG",
-        }
+        },
     },
 }
 
