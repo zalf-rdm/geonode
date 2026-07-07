@@ -4,10 +4,15 @@
 {% get_settings as settings %}
 
 {% if not request.user.is_authenticated %}
-    {% if settings.ACCOUNT_OPEN_SIGNUP and not settings.READ_ONLY %}
-        <li><a href="/account/signup/?next=/" class="nav-link btn btn-default">{% trans "Register" %}</a></li>
+    {% if settings.SOCIALACCOUNT_ONLY %}
+        {# ORCID-only: one button straight to the openid_connect provider (keycloak/ORCID) #}
+        <li><a id="sign-in" href="{% url 'openid_connect_login' provider_id=settings.SOCIALACCOUNT_PROVIDER %}?next=/" class="nav-link btn btn-default">{% trans "Register / Login via ORCID" %}</a></li>
+    {% else %}
+        {% if settings.ACCOUNT_OPEN_SIGNUP and not settings.READ_ONLY %}
+            <li><a href="/account/signup/?next=/" class="nav-link btn btn-default">{% trans "Register" %}</a></li>
+        {% endif %}
+        <li><a id="sign-in" href="/account/login/?next=/" class="nav-link btn btn-default">{% trans "Sign in" %}</a></li>
     {% endif %}
-    <li><a id="sign-in" href="/account/login/?next=/" class="nav-link btn btn-default">{% trans "Sign in" %}</a></li>
 {% else %}
     <li>
         <div class="dropdown gn-user-menu-dropdown">

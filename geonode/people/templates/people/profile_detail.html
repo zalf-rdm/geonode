@@ -3,6 +3,7 @@
 {% load i18n %}
 {% load avatar_tags %}
 {% load activity_tags %}
+{% load get_menu_json %}
 {% load pagination_tags %}
 
 {% block title %} {% trans "Profile of " %}{{ profile.first_name|default:profile.username }}{% endblock %}
@@ -145,9 +146,13 @@
       {% if not AVAILABLE_SOCIAL_APPS_COUNT == 0 %}
         <li class="list-group-item"><a href="{% url "socialaccount_connections" %}"><i class="fa fa-sign-in"></i> {% trans "Connected social accounts" %}</a></li>
       {% endif %}
+      {% get_settings as gn_settings %}
+      {# with SOCIALACCOUNT_ONLY the account_email / account_change_password urls do not exist #}
+      {% if not gn_settings.SOCIALACCOUNT_ONLY %}
         <li class="list-group-item"><a href="{% url "account_email" %}"><i class="fa fa-envelope-o"></i> {% trans "Associated e-mails" %}</a></li>
       {% if not READ_ONLY_MODE %}
         <li class="list-group-item"><a href="{% url "account_change_password" %}"><i class="fa fa-lock"></i> {% trans "Set/Change password" %}</a></li>
+      {% endif %}
       {% endif %}
     </ul>
     <ul class="list-group">

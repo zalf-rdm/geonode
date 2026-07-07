@@ -24,7 +24,9 @@
           {% include "socialaccount/snippets/provider_list.html" with process="login" %}
         </ul>
 
+        {% if not SOCIALACCOUNT_ONLY %}
         <div class="login-or">{% trans 'or' %}</div>
+        {% endif %}
       </div>
 
       {% include "socialaccount/snippets/login_extra.html" %}
@@ -33,6 +35,7 @@
       <p>{% blocktrans %}If you have not created an account yet, then please
       <a href="{{ signup_url }}">sign up</a> first.{% endblocktrans %}</p>
     {% endif %}
+    {% if not SOCIALACCOUNT_ONLY %}
     <form role="form" method="POST" action="{% url 'account_login' %}" autocapitalize="off" {% if form.is_multipart %} enctype="multipart/form-data"{% endif %}>
       {% csrf_token %}
       {{ form|as_bootstrap }}
@@ -41,6 +44,7 @@
       {% endif %}
       <button class="btn btn-primary" type="submit">{% trans "Sign In" %}</button>
     </form>
+    {% endif %}
   </div>
 </div>
 {% endblock body_outer %}

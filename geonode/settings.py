@@ -2272,6 +2272,17 @@ logger = logging.getLogger("geonode")  # Use the configured geonode logger
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_AUTHENTICATION_METHOD = "email"
 #
+#   ORCID-only login: disables local username/password login, signup and
+#   password reset at the allauth view/url level.  Django admin login and
+#   API BasicAuthentication are unaffected (ModelBackend stays active).
+#
+SOCIALACCOUNT_ONLY = ast.literal_eval(os.environ.get("SOCIALACCOUNT_ONLY", "False"))
+if SOCIALACCOUNT_ONLY:
+    # one toggle drives all local-auth levers consistently
+    ACCOUNT_OPEN_SIGNUP = False  # closes CustomSignupView (signup_closed.html)
+    SOCIALACCOUNT_WITH_GEONODE_LOCAL_SINGUP = False  # hides local form on signup page
+    ACCOUNT_EMAIL_VERIFICATION = "none"  # required by allauth system check
+#
 #   Used internally to reference the configuration of allauth
 #
 SOCIALACCOUNT_PROVIDER = os.environ.get("SOCIALACCOUNT_PROVIDER", "oidc")
@@ -2286,13 +2297,7 @@ SOCIALACCOUNT_PROVIDER_REALM = os.environ.get("SOCIALACCOUNT_PROVIDER_REALM", "O
 #
 #   protocol, hostname and port required to access the keycloak instance
 #
-<<<<<<< HEAD
 SOCIALACCOUNT_PROVIDER_HOST = os.environ.get("SOCIALACCOUNT_PROVIDER_HOST", "https://host.docker.internal:8008/")
-=======
-SOCIALACCOUNT_PROVIDER_HOST = os.environ.get(
-    "SOCIALACCOUNT_PROVIDER_HOST", "https://host.docker.internal:8008/"
-)
->>>>>>> a17369d37 ([Fixes #290, #310] Feature: orcid integration)
 SOCIALACCOUNT_PROVIDER_ROOT = f"{SOCIALACCOUNT_PROVIDER_HOST}realms/{SOCIALACCOUNT_PROVIDER_REALM}/"
 #
 #   client id
@@ -2325,19 +2330,12 @@ SOCIALACCOUNT_PROVIDERS = {
                 "client_id": SOCIALACCOUNT_CLIENT_ID,
                 "secret": SOCIALACCOUNT_CLIENT_SECRET,
                 "settings": {
-<<<<<<< HEAD
                     "server_url": urljoin(SOCIALACCOUNT_PROVIDER_ROOT, ".well-known/openid-configuration"),
-=======
-                    "server_url": urljoin(
-                        SOCIALACCOUNT_PROVIDER_ROOT, ".well-known/openid-configuration"
-                    ),
->>>>>>> a17369d37 ([Fixes #290, #310] Feature: orcid integration)
                 },
             },
         ],
     }
 }
-<<<<<<< HEAD
 SOCIALACCOUNT_LOGOUT_REDIRECT_URL = os.environ.get(
     "SOCIALACCOUNT_LOGOUT_REDIRECT_URL", "https://sandbox.orcid.org/signout"
 )
@@ -2387,17 +2385,3 @@ ZALF_DATACITE_ACCOUNTS = _json.loads(os.getenv("ZALF_DATACITE_ACCOUNTS", "[]"))
 # Allowed groups for publishing data collections (derived from accounts).
 # Admins can always publish regardless of group membership.
 PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS = sorted({g for acct in ZALF_DATACITE_ACCOUNTS for g in acct.get("groups", [])})
-=======
-SOCIALACCOUNT_LOGOUT_REDIRECT_URL = os.environ.get("SOCIALACCOUNT_LOGOUT_REDIRECT_URL", "https://sandbox.orcid.org/signout")
-SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
-INSTALLED_APPS += ('allauth.socialaccount.providers.openid_connect',)
-AUTHENTICATION_BACKENDS += ('allauth.account.auth_backends.AuthenticationBackend',)
-SOCIALACCOUNT_PROFILE_EXTRACTOR = os.environ.get("SOCIALACCOUNT_PROFILE_EXTRACTOR", "geonode.people.profileextractors.OrcidExtractor")
-SOCIALACCOUNT_PROFILE_EXTRACTORS = {
-    SOCIALACCOUNT_PROVIDER: SOCIALACCOUNT_PROFILE_EXTRACTOR,
-}
-SOCIALACCOUNT_GROUPNAME_PREFIX = os.environ.get("SOCIALACCOUNT_GROUPNAME_PREFIX","gn_")
-# =============================================================================
-# END OF "ORCID"
-# =============================================================================
->>>>>>> a17369d37 ([Fixes #290, #310] Feature: orcid integration)
