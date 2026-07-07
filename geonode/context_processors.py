@@ -111,5 +111,7 @@ def resource_urls(request):
         PROFILE_EDIT_EXCLUDE_FIELD=getattr(settings, "PROFILE_EDIT_EXCLUDE_FIELD", []),
         AVAILABLE_SOCIAL_APPS_COUNT=SocialApp.objects.count(),
         GEONODE_APPS_TYPES=get_geonode_app_types(),
+        SOCIALACCOUNT_ONLY=getattr(settings, "SOCIALACCOUNT_ONLY", False),
+        SOCIALACCOUNT_PROVIDER=getattr(settings, "SOCIALACCOUNT_PROVIDER", "oidc"),
     )
     return defaults

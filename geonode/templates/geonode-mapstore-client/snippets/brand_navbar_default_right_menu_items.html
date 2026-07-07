@@ -4,9 +4,9 @@
 {% get_settings as settings %}
 
 {% if not request.user.is_authenticated %}
-    {% if settings.SOCIALACCOUNT_ONLY %}
+    {% if SOCIALACCOUNT_ONLY %}
         {# ORCID-only: one button straight to the openid_connect provider (keycloak/ORCID) #}
-        <li><a id="sign-in" href="{% url 'openid_connect_login' provider_id=settings.SOCIALACCOUNT_PROVIDER %}?next=/" class="nav-link btn btn-default">{% trans "Register / Login via ORCID" %}</a></li>
+        <li><a id="sign-in" href="{% url 'openid_connect_login' provider_id=SOCIALACCOUNT_PROVIDER %}?next=/" class="nav-link btn btn-default">{% trans "Register / Login via ORCID" %}</a></li>
     {% else %}
         {% if settings.ACCOUNT_OPEN_SIGNUP and not settings.READ_ONLY %}
             <li><a href="/account/signup/?next=/" class="nav-link btn btn-default">{% trans "Register" %}</a></li>
