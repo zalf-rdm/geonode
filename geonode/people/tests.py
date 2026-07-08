@@ -409,6 +409,31 @@ class PeopleAndProfileTests(GeoNodeBaseTestSupport):
         result = extractor.extract_last_name(data)
         self.assertEqual(result, data["lastName"]["localized"]["en_US"])
 
+    def test_orcid_extract_orcid_identifier_from_orcid_claim(self):
+        extractor = profileextractors.OrcidExtractor()
+        result = extractor.extract_orcid_identifier({"orcid": "0000-0002-1825-0097"})
+        self.assertEqual(result, "0000-0002-1825-0097")
+
+    def test_orcid_extract_orcid_identifier_from_preferred_username(self):
+        extractor = profileextractors.OrcidExtractor()
+        result = extractor.extract_orcid_identifier({"preferred_username": "0000-0002-1825-0097"})
+        self.assertEqual(result, "0000-0002-1825-0097")
+
+    def test_orcid_extract_orcid_identifier_tolerates_uri_form(self):
+        extractor = profileextractors.OrcidExtractor()
+        result = extractor.extract_orcid_identifier({"orcid": "https://orcid.org/0000-0002-1825-009X"})
+        self.assertEqual(result, "0000-0002-1825-009X")
+
+    def test_orcid_extract_orcid_identifier_rejects_non_orcid_values(self):
+        extractor = profileextractors.OrcidExtractor()
+        with self.assertRaises(NotImplementedError):
+            extractor.extract_orcid_identifier({"preferred_username": "bobby"})
+
+    def test_orcid_extract_orcid_identifier_missing_claims(self):
+        extractor = profileextractors.OrcidExtractor()
+        with self.assertRaises(NotImplementedError):
+            extractor.extract_orcid_identifier({})
+
     @override_settings(
         AUTH_PASSWORD_VALIDATORS=[
             {

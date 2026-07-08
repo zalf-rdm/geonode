@@ -61,6 +61,16 @@
 
   <table class="table table-user-profile">
     <tbody>
+      {% if profile.orcid_identifier %}
+      {# ORCID display guidelines: official icon + full hyperlinked orcid.org URL #}
+      <tr>
+        <td class="table-user-profile-attribute">{% trans 'ORCID iD' %}</td>
+        <td>
+          <img src="{% static 'geonode/img/orcid_id.svg' %}" alt="{% trans 'ORCID iD icon' %}" width="16" height="16" style="vertical-align: middle;">
+          <a href="{{ profile.get_orcid_url }}" target="_blank" rel="noopener">{{ profile.get_orcid_url }}</a>
+        </td>
+      </tr>
+      {% endif %}
       {% if user.is_authenticated and user == profile or user.is_superuser or user.is_staff %}
       {% if SHOW_PROFILE_EMAIL %}
       <tr>
@@ -145,9 +155,12 @@
       {% if not AVAILABLE_SOCIAL_APPS_COUNT == 0 %}
         <li class="list-group-item"><a href="{% url "socialaccount_connections" %}"><i class="fa fa-sign-in"></i> {% trans "Connected social accounts" %}</a></li>
       {% endif %}
+      {# with SOCIALACCOUNT_ONLY the account_email / account_change_password urls do not exist #}
+      {% if not SOCIALACCOUNT_ONLY %}
         <li class="list-group-item"><a href="{% url "account_email" %}"><i class="fa fa-envelope-o"></i> {% trans "Associated e-mails" %}</a></li>
       {% if not READ_ONLY_MODE %}
         <li class="list-group-item"><a href="{% url "account_change_password" %}"><i class="fa fa-lock"></i> {% trans "Set/Change password" %}</a></li>
+      {% endif %}
       {% endif %}
     </ul>
     <ul class="list-group">

@@ -112,7 +112,6 @@ urlpatterns += [
     re_path(r"^social/", include("geonode.social.urls")),
     re_path(r"^security/", include("geonode.security.urls")),
     # Accounts
-    re_path(r"^account/ajax_login$", geonode.views.ajax_login, name="account_ajax_login"),
     re_path(r"^account/ajax_lookup$", geonode.views.ajax_lookup, name="account_ajax_lookup"),
     re_path(
         r"^account/moderation_sent/(?P<inactive_user>[^/]*)$",
@@ -152,6 +151,12 @@ urlpatterns += [
         name="importer_upload",
     ),
 ]
+
+# Local AJAX login is only available when local (non-social) login is allowed
+if not getattr(settings, "SOCIALACCOUNT_ONLY", False):
+    urlpatterns += [
+        re_path(r"^account/ajax_login$", geonode.views.ajax_login, name="account_ajax_login"),
+    ]
 
 # django-select2 Widgets
 if "django_select2" in settings.INSTALLED_APPS:

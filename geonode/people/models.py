@@ -157,7 +157,11 @@ class Profile(AbstractUser):
         return "ORCID"
 
     def get_orcid_url(self):
-        return "https://orcid.org/" + self.orcid_identifier
+        if not self.orcid_identifier:
+            return ""
+        # configurable so sandbox deployments link to sandbox.orcid.org records
+        base_url = getattr(settings, "SOCIALACCOUNT_ORCID_BASE_URL", "https://orcid.org").rstrip("/")
+        return f"{base_url}/{self.orcid_identifier}"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -115,6 +115,8 @@ dependencies = [
     "pdok-geopackage-validator==0.14.4",
     "geonode-django-dynamic-model==0.4.0",
     "django-modeltranslation==0.18.13",
+    # datapackage importer handler for GeoNode 5
+    "importer-datapackage @ git+https://github.com/GeoNodeUserGroup-DE/contrib_datapackage.git@geonode_5",
 
     # datetimepicker widget
     "django-bootstrap3-datetimepicker-2==2.8.3",

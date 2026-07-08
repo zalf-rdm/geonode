@@ -1,22 +1,49 @@
 {% extends "account/base.html" %}
 
 {% load i18n %}
+{% load static %}
 
 {% block title %}{% trans "Log out" %}{% endblock %}
 
-{% block body %}
-  <div class="row">
-    <div class="col-md-12">
-       <form method="POST" action="{% url "account_logout" %}" class="form-horizontal">
-        <h2 class="page-title">{% trans "Log out" %}</h2>
-        <fieldset>
+{% block body_outer %}
+<div class="row" style="margin-top: 40px;">
+  <div class="col-md-6 col-md-offset-3 col-sm-8 col-sm-offset-2">
+
+    <div class="panel panel-default" style="border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
+      <div class="panel-body text-center" style="padding: 30px 40px;">
+
+        <i class="fa fa-sign-out fa-3x text-muted" aria-hidden="true"></i>
+        <h2 style="margin-top: 15px;">{% trans "Log out" %}</h2>
+        <p class="text-muted">{% trans "Are you sure you want to log out?" %}</p>
+
+        <form method="POST" action="{% url 'account_logout' %}" style="margin-top: 20px;">
           {% csrf_token %}
-          <p>{% trans "Are you sure you want to log out?" %}</p>
-          <div class="form-actions">
-            <button type="submit" class="btn btn-primary">{% trans "Log out" %}</button>
-          </div>
-        </fieldset>
-      </form>
+          {% if redirect_field_value %}
+            <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+          {% endif %}
+          <button type="submit" class="btn btn-primary btn-block">{% trans "Log out" %}</button>
+          <p class="text-muted small text-left" style="margin: 8px 0 0 0;">
+            {% trans "Ends your session in this repository only. You stay signed in at ORCID and the identity provider — logging in again will not ask for your credentials." %}
+          </p>
+        </form>
+        {% if SOCIALACCOUNT_ONLY %}
+        {# separate form WITHOUT the next field: allauth lets next win over the adapter's logout redirect #}
+        <form method="POST" action="{% url 'account_logout' %}" style="margin-top: 20px;">
+          {% csrf_token %}
+          <button type="submit" name="logout_orcid" value="1" class="btn btn-default btn-block">
+            <img src="{% static 'geonode/img/orcid_id.svg' %}" alt="{% trans 'ORCID iD icon' %}" width="18" height="18" style="vertical-align: middle;">
+            {% trans "Log out from GeoNode and ORCID" %}
+          </button>
+          <p class="text-muted small text-left" style="margin: 8px 0 0 0;">
+            {% trans "Ends your session everywhere: this repository, the identity provider and orcid.org. Logging in again will require your ORCID credentials. Recommended on shared computers." %}
+          </p>
+        </form>
+        {% endif %}
+        <a href="/" class="btn btn-link btn-block" style="margin-top: 15px;">{% trans "Cancel" %}</a>
+
+      </div>
     </div>
+
   </div>
-{% endblock %}
+</div>
+{% endblock body_outer %}

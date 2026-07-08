@@ -69,6 +69,9 @@ class ProfileForm(forms.ModelForm):
             "is_active",
             "date_joined",
             "language",
+            # ORCID member-integration requirement: users must not enter their
+            # ORCID iD manually — it is set from the authenticated ORCID login.
+            "orcid_identifier",
         )
 
     def __init__(self, *args, **kwargs):
