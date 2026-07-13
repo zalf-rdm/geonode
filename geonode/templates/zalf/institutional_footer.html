@@ -1,0 +1,33 @@
+{% load i18n static %}
+<footer class="zalf-institutional-footer" role="contentinfo">
+    <div class="zalf-institutional-footer__inner">
+        <div class="row">
+            <div class="col-md-3">
+                <h2 class="zalf-institutional-footer__title">{% trans "BonaRes Repository" %}</h2>
+                <p class="zalf-institutional-footer__copy">{% trans "Discover, visualize, and share high-quality datasets powering open science, policy, and innovation." %}</p>
+            </div>
+            <nav class="col-md-3" aria-label="{% trans 'Quick Links' %}">
+                <h2 class="zalf-institutional-footer__title">{% trans "Quick Links" %}</h2>
+                <p><a href="/about/">{% trans "About" %}</a></p>
+                <p><a href="/upload/">{% trans "Upload" %}</a></p>
+                <p><a href="/ogc_and_api/">{% trans "OGC Services and API" %}</a></p>
+                <p><a href="https://www.zalf.de/en/struktur/cdp/fdm/Pages/default.aspx">{% trans "Research Data Management" %}</a></p>
+            </nav>
+            <nav class="col-md-3" aria-label="{% trans 'Resources' %}">
+                <h2 class="zalf-institutional-footer__title">{% trans "Resources" %}</h2>
+                <p><a href="/publications/">{% trans "Publications" %}</a></p>
+                <p><a href="/data_policy/">{% trans "Data Policy" %}</a></p>
+                <p><a href="/how_to_cite/">{% trans "How to Cite Us" %}</a></p>
+                <p><a href="/imprint/">{% trans "Imprint" %}</a></p>
+                <p><a href="/privacy/">{% trans "Privacy" %}</a></p>
+            </nav>
+            <div class="col-md-3">
+                <h2 class="zalf-institutional-footer__title">{% trans "Certified By" %}</h2>
+                <img class="zalf-institutional-footer__seal" src="{% static 'img/logo_core_trust_seal_white.png' %}" alt="{% trans 'Core Trust Seal' %}">
+                <h3 class="zalf-institutional-footer__powered">{% trans "Powered by" %}</h3>
+                <img class="zalf-institutional-footer__zalf-logo" src="{% static 'img/logo_zalf_white.png' %}" alt="ZALF">
+            </div>
+        </div>
+    </div>
+    <div class="zalf-institutional-footer__bottom">{% trans "© BonaRes Repository. All rights reserved" %}</div>
+</footer>

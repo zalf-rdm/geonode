@@ -5,6 +5,14 @@
     {% trans "Privacy Policy" %} — {{ block.super }}
 {% endblock %}
 
+{% block institutional_hero %}
+    {% trans "Privacy Policy" as hero_title %}
+    {% trans "How the BonaRes Repository processes and protects personal data." as hero_subtitle %}
+    {% include "zalf/institutional_hero.html" with title=hero_title subtitle=hero_subtitle %}
+{% endblock %}
+
+{% block institutional_content_class %}zalf-institutional-content{% endblock %}
+
 {% block body_outer %}
 
 <div class="page-header">
@@ -157,5 +165,5 @@ Leibniz Centre for Agricultural Landscape Research (ZALF) e.V.<br>
 {% endblock %}
 
 {% block footer %}
-    {% include "geonode-mapstore-client/snippets/footer.html" %}
+    {% include "zalf/institutional_footer.html" %}
 {% endblock %}

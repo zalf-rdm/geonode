@@ -5,6 +5,14 @@
     {% trans "Publications" %} — {{ block.super }}
 {% endblock %}
 
+{% block institutional_hero %}
+    {% trans "Publications" as hero_title %}
+    {% trans "Research and technical work from the BonaRes Repository and ZALF data infrastructure." as hero_subtitle %}
+    {% include "zalf/institutional_hero.html" with title=hero_title subtitle=hero_subtitle %}
+{% endblock %}
+
+{% block institutional_content_class %}zalf-institutional-content{% endblock %}
+
 {% block body_outer %}
 
 <div class="page-header">
@@ -111,3 +119,5 @@
 </p>
 
 {% endblock %}
+
+{% block footer %}{% include "zalf/institutional_footer.html" %}{% endblock %}

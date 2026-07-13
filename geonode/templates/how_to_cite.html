@@ -5,6 +5,14 @@
     {% trans "How to Cite Us" %} — {{ block.super }}
 {% endblock %}
 
+{% block institutional_hero %}
+    {% trans "How to Cite Us" as hero_title %}
+    {% trans "Guidance for acknowledging the repository and the datasets it preserves." as hero_subtitle %}
+    {% include "zalf/institutional_hero.html" with title=hero_title subtitle=hero_subtitle %}
+{% endblock %}
+
+{% block institutional_content_class %}zalf-institutional-content{% endblock %}
+
 {% block body_outer %}
 
 <div class="page-header">
@@ -97,3 +105,5 @@ the institutional research data platform of the Leibniz Centre for Agricultural 
 </p>
 
 {% endblock %}
+
+{% block footer %}{% include "zalf/institutional_footer.html" %}{% endblock %}
