@@ -1,4 +1,4 @@
-{% extends "geonode_base.html" %}
+{% extends "zalf/institutional_base.html" %}
 {% load i18n %}
 
 {% block title %}
@@ -10,8 +10,6 @@
     {% trans "Principles for the submission, publication, and reuse of repository data." as hero_subtitle %}
     {% include "zalf/institutional_hero.html" with title=hero_title subtitle=hero_subtitle %}
 {% endblock %}
-
-{% block institutional_content_class %}zalf-institutional-content{% endblock %}
 
 {% block body_outer %}
 
@@ -132,7 +130,4 @@
     {% trans "For questions related to data publication, licensing, or RDM practices, please contact the ZALF research data management support team." %}
 </p>
 
-{% endblock %}
-{% block footer %}
-    {% include "zalf/institutional_footer.html" %}
 {% endblock %}

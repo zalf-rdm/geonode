@@ -1,4 +1,4 @@
-{% extends "geonode_base.html" %}
+{% extends "zalf/institutional_base.html" %}
 {% load i18n %}
 
 {% block title %}
@@ -10,8 +10,6 @@
     {% trans "Prepare and share high-quality research data with the BonaRes Repository." as hero_subtitle %}
     {% include "zalf/institutional_hero.html" with title=hero_title subtitle=hero_subtitle %}
 {% endblock %}
-
-{% block institutional_content_class %}zalf-institutional-content{% endblock %}
 
 {% block body_outer %}
 
@@ -99,7 +97,4 @@
     {% trans "If you require support with the upload process, metadata preparation, or RDM best practices, please contact the ZALF research data management team." %}
 </p>
 
-{% endblock %}
-{% block footer %}
-    {% include "zalf/institutional_footer.html" %}
 {% endblock %}
