@@ -454,7 +454,7 @@
                  <gco:CharacterString>WWW:LINK-1.0-http--link</gco:CharacterString>
                </gmd:protocol>
                <gmd:description>
-                 <gco:CharacterString>Online link to the '{{layer.title}}' description on GeoNode</gco:CharacterString>
+                 <gco:CharacterString>Online link to the '{{layer.csw_safe_title}}' description on GeoNode</gco:CharacterString>
                </gmd:description>
              </gmd:CI_OnlineResource>
            </gmd:onLine>
@@ -471,7 +471,7 @@
                  <gco:CharacterString>{{layer.name}}.{{link.extension}}</gco:CharacterString>
                </gmd:name>
                <gmd:description>
-                 <gco:CharacterString>{{layer.title}} ({{link.name}} Format)</gco:CharacterString>
+                 <gco:CharacterString>{{layer.csw_safe_title}} ({{link.name}} Format)</gco:CharacterString>
                </gmd:description>
              </gmd:CI_OnlineResource>
            </gmd:onLine>
@@ -489,7 +489,7 @@
                  <gco:CharacterString>{{ layer.alternate }}</gco:CharacterString>
                </gmd:name>
                <gmd:description>
-                 <gco:CharacterString>{{layer.workspace}} Service - Provides Layer: {{ layer.title }}</gco:CharacterString>
+                 <gco:CharacterString>{{layer.workspace}} Service - Provides Layer: {{ layer.csw_safe_title }}</gco:CharacterString>
                </gmd:description>
              </gmd:CI_OnlineResource>
            </gmd:onLine>
