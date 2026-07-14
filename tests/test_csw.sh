@@ -1,4 +1,9 @@
 #!/bin/bash
+set -e
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TESTS_DIR="$ROOT_DIR/tests"
+cd "$TESTS_DIR"
 
 export SITEURL=http://localhost:8001/
 export BACKEND=geonode.geoserver

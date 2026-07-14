@@ -1,4 +1,9 @@
 #!/bin/bash
+set -e
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TESTS_DIR="$ROOT_DIR/tests"
+cd "$TESTS_DIR"
 
 export BACKEND=geonode.geoserver
 export DOCKER_COMPOSE_VERSION=1.19.0
