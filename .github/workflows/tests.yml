@@ -116,8 +116,16 @@ jobs:
     - name: Check test results
       if: always()
       run: |
-        if [ "$MAIN_TESTS_FAILED" = "true" ] || [ "$API_TESTS_FAILED" = "true" ] || [ "$CSW_TESTS_FAILED" = "true" ] || [ "$INTEGRATION_TESTS_FAILED" = "true" ] || [ "$OAUTH_TESTS_FAILED" = "true" ] || [ "$UPLOAD_TESTS_FAILED" = "true" ]; then
-          echo "One or more test suites failed"
+        FAILED_SUITES=""
+        [ "$MAIN_TESTS_FAILED" = "true" ] && FAILED_SUITES="$FAILED_SUITES Main"
+        [ "$API_TESTS_FAILED" = "true" ] && FAILED_SUITES="$FAILED_SUITES API_v2"
+        [ "$CSW_TESTS_FAILED" = "true" ] && FAILED_SUITES="$FAILED_SUITES CSW"
+        [ "$INTEGRATION_TESTS_FAILED" = "true" ] && FAILED_SUITES="$FAILED_SUITES Integration"
+        [ "$OAUTH_TESTS_FAILED" = "true" ] && FAILED_SUITES="$FAILED_SUITES OAuth2"
+        [ "$UPLOAD_TESTS_FAILED" = "true" ] && FAILED_SUITES="$FAILED_SUITES Upload"
+
+        if [ -n "$FAILED_SUITES" ]; then
+          echo "One or more test suites failed:$FAILED_SUITES"
           exit 1
         fi
 
