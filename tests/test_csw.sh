@@ -2,8 +2,7 @@
 set -e
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TESTS_DIR="$ROOT_DIR/tests"
-cd "$TESTS_DIR"
+cd "$ROOT_DIR"
 
 export SITEURL=http://localhost:8001/
 export BACKEND=geonode.geoserver
@@ -25,8 +24,4 @@ export GEODATABASE_URL=postgis://geonode:geonode@db:5432/geonode_data
 export DEFAULT_BACKEND_DATASTORE=datastore
 export DEFAULT_MAX_PARALLEL_UPLOADS_PER_USER=100
 
-# echo "Initialize DB";
-# chmod +x scripts/misc/create_dbs_travis.sh;
-# scripts/misc/create_dbs_travis.sh before_script;
-
-paver run_tests --coverage --local false
+coverage run --branch --source=geonode manage.py test geonode.tests.csw -v 3 --keepdb --noinput

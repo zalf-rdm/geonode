@@ -2,8 +2,7 @@
 set -e
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TESTS_DIR="$ROOT_DIR/tests"
-cd "$TESTS_DIR"
+cd "$ROOT_DIR"
 
 export BACKEND=geonode.geoserver
 export DOCKER_COMPOSE_VERSION=1.19.0
@@ -21,9 +20,4 @@ export USER_ANALYTICS_ENABLED=False
 export SESSION_EXPIRED_CONTROL_ENABLED=True
 export CELERY_ALWAYS_EAGER=True
 
-# coverage run --branch --source=geonode manage.py test --noinput --parallel=1 $@
-echo "Initialize DB";
-chmod +x scripts/misc/create_dbs_travis.sh;
-scripts/misc/create_dbs_travis.sh before_script;
-
-paver run_tests --coverage --local false
+coverage run --branch --source=geonode manage.py test geonode.geoserver.tests.integration -v 3 --keepdb --noinput
