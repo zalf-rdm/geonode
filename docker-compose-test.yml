@@ -129,6 +129,10 @@ services:
     restart: unless-stopped
     healthcheck:
       test: "pg_isready -d postgres -U postgres"
+      start_period: 30s
+      interval: 10s
+      timeout: 5s
+      retries: 12
     # uncomment to enable remote connections to postgres
     #ports:
     #  - "5432:5432"
