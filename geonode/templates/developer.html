@@ -1,7 +1,13 @@
-{% extends "geonode_base.html" %}
+{% extends "zalf/institutional_base.html" %}
 
 {% load i18n %}
 {% block title %} {% trans "Information for Developers" %} — {{ block.super }} {% endblock %}
+
+{% block institutional_hero %}
+  {% trans "Information for Developers" as hero_title %}
+  {% trans "Technical resources for building on the BonaRes Repository platform." as hero_subtitle %}
+  {% include "zalf/institutional_hero.html" with title=hero_title subtitle=hero_subtitle %}
+{% endblock %}
 
 {% block body_outer %}
 <div class="page-header">

@@ -1,8 +1,14 @@
-{% extends "geonode_base.html" %}
+{% extends "zalf/institutional_base.html" %}
 {% load i18n %}
 
 {% block title %}
     {% trans "Imprint" %} — {{ block.super }}
+{% endblock %}
+
+{% block institutional_hero %}
+    {% trans "Imprint" as hero_title %}
+    {% trans "Legal information about the BonaRes Repository and its operator." as hero_subtitle %}
+    {% include "zalf/institutional_hero.html" with title=hero_title subtitle=hero_subtitle %}
 {% endblock %}
 
 {% block body_outer %}

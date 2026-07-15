@@ -1,8 +1,14 @@
-{% extends "geonode_base.html" %}
+{% extends "zalf/institutional_base.html" %}
 {% load i18n %}
 
 {% block title %}
     {% trans "OGC Services and API" %} — {{ block.super }}
+{% endblock %}
+
+{% block institutional_hero %}
+    {% trans "OGC Services and API" as hero_title %}
+    {% trans "Connect repository data to GIS software, web applications, and automated workflows." as hero_subtitle %}
+    {% include "zalf/institutional_hero.html" with title=hero_title subtitle=hero_subtitle %}
 {% endblock %}
 
 {% block body_outer %}
@@ -180,8 +186,4 @@
     {% trans "We can provide additional technical details, example configurations (e.g. for QGIS), and advice on integrating the repository services into your workflows." %}
 </p>
 
-{% endblock %}
-
-{% block footer %}
-    {% include "geonode-mapstore-client/snippets/footer.html" %}
 {% endblock %}
