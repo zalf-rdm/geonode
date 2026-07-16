@@ -1,5 +1,6 @@
 {% load avatar_tags %}
 {% load i18n %}
+{% load user_tags %}
 
 <section class="last media">
   {% with 40 as avatar_size %}
@@ -9,8 +10,7 @@
   {% endwith %}
   <div class="media-body">
     <div>
-      <a href="{{ profile.get_absolute_url }}">{{ profile.username }}</a>
-        {{ username }}
+      <a href="{{ profile.get_absolute_url }}">{{ profile|display_name }}</a>
       </div>
       <div class="details">
         <div class="meta">

@@ -4,8 +4,9 @@
 {% load avatar_tags %}
 {% load activity_tags %}
 {% load pagination_tags %}
+{% load user_tags %}
 
-{% block title %} {% trans "Profile of " %}{{ profile.first_name|default:profile.username }}{% endblock %}
+{% block title %} {% trans "Profile of " %}{{ profile|display_name }}{% endblock %}
 
 {% block head %}
   {% if TWITTER_CARD %}

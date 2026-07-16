@@ -47,6 +47,7 @@ class Roles(enum.Enum):
     PRINCIPAL_INVESTIGATOR = Role("Principal Investigator", "principalInvestigator", False, True, True)
     DATA_COLLECTOR = Role("Data Collector", "dataCollector", False, True, True)
     DATA_CURATOR = Role("Data Curator", "dataCurator", False, True, True)
+    DATA_MANAGER = Role("Data Manager", "dataManager", False, True, True)
     EDITOR = Role("Editor", "editor", False, True, True)
     HOSTING_INSTITUTION = Role("Hosting Institution", "hostingInstitution", False, True, True)
     OTHER = Role("Other", "other", False, True, True)

@@ -215,7 +215,7 @@
   },
   "edition": {
     "type": ["string", "null"],
-    "title": "edition",
+    "title": "Version",
     "description": "version of the cited resource",
     "maxLength": 255,
     "geonode:handler": "base"

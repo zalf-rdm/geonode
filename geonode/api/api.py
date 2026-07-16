@@ -542,6 +542,7 @@ class ProfileResource(TypeFilteredResource):
                 username=bundle.data.get("username", ""),
                 first_name=bundle.data.get("first_name", ""),
                 last_name=bundle.data.get("last_name", ""),
+                department=bundle.data.get("department", ""),
                 avatar_100=bundle.data.get("avatar_100", ""),
                 profile_detail_url=bundle.data.get("profile_detail_url", ""),
                 documents_count=bundle.data.get("documents_count", 0),

@@ -9,7 +9,7 @@
         </div>
         <div class="col-xs-8 profile-details" style="height: 110px;">
           <h5>
-            <a href="{{ profile.profile_detail_url }}">{{ profile.first_name != '' ? profile.first_name : profile.username }} {{ profile.last_name != '' ? profile.last_name : '' }}
+            <a href="{{ profile.profile_detail_url }}">{{ (profile.first_name || profile.last_name) ? ((profile.first_name || '') + ' ' + (profile.last_name || '')).trim() : (profile.department || profile.username) }}
             </a>
           </h5>
           <p>
