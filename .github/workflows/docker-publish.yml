@@ -2,11 +2,11 @@ name: Docker Build and Push
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "GeoNode-v4.4.3-zalf00X" ]
   workflow_dispatch:
 
 env:
-  BASE_VERSION: v4.4.3-zalf001
+  BASE_VERSION: v4.4.3-zalf002
   IMAGE_NAME: zalf/geonode
 
 jobs:
