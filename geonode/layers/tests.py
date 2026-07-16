@@ -1125,9 +1125,10 @@ class TestLayerDetailMapViewRights(GeoNodeBaseTestSupport):
         response = self.client.get(reverse("dataset_embed", args=(self.layer.alternate,)))
         self.assertEqual(response.context["resource"].alternate, self.map_dataset.name)
 
-    def test_update_with_a_comma_in_title_is_replaced_by_undescore(self):
+    def test_update_with_a_comma_in_title_is_preserved(self):
         """
-        Test that when changing the dataset title, if the entered title has a comma it is replaced by an undescore.
+        Test that when changing the dataset title, a comma entered in the title is preserved
+        (see issue #632). Commas must no longer be replaced by underscores.
         """
         self.test_dataset = None
         try:
@@ -1149,8 +1150,12 @@ class TestLayerDetailMapViewRights(GeoNodeBaseTestSupport):
             self.client.login(username=self.not_admin.username, password="very-secret")
             response = self.client.post(url, data=data)
             self.test_dataset.refresh_from_db()
-            self.assertEqual(self.test_dataset.title, "test_comma_2021")
+            self.assertEqual(self.test_dataset.title, "test,comma,2021")
             self.assertEqual(response.status_code, 200)
+            # The pycsw download links must stay comma-free so the CSW references
+            # (dct:references scheme=...) do not get corrupted by the title commas.
+            for link in self.test_dataset.download_links():
+                self.assertNotIn(",", link[0])
         finally:
             if self.test_dataset:
                 self.test_dataset.delete()
