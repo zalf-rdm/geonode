@@ -17,15 +17,12 @@
 #
 #########################################################################
 
-from drf_spectacular.utils import extend_schema
-from pathlib import Path
 from dynamic_rest.viewsets import DynamicModelViewSet
 from dynamic_rest.filters import DynamicFilterBackend, DynamicSortingFilter
 
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
-from geonode.assets.utils import create_asset_and_link
 from geonode.base.api.filters import DynamicSearchFilter, ExtentFilter
 from geonode.base.api.mixins import AdvertisedListMixin
 from geonode.base.api.pagination import GeoNodeApiPagination
