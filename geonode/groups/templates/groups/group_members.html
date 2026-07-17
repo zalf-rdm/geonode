@@ -2,6 +2,7 @@
 {% load i18n %}
 {% load static %}
 {% load bootstrap_tags %}
+{% load user_tags %}
 
 {% block head %}
 {{ block.super }}
@@ -25,7 +26,7 @@
             <ul class="no-style-list">
             {% for member in members %}
               <h4>
-                <i class="fa fa-user"></i> <a href="{{ member.user.get_absolute_url }}">{{ member.user.username }}</a>
+                <i class="fa fa-user"></i> <a href="{{ member.user.get_absolute_url }}">{{ member.user|display_name }}</a>
                 {% if member.user.email %}
                 <a href="mailto:{{ member.user.email }}"><i class="fa fa-envelope-o"></i></a>
                 {% endif %}
@@ -65,7 +66,7 @@
             {% for member in members %}
               {% if member.role == 'manager' %}
               <h4>
-                <i class="fa fa-user"></i> <a href="{{ member.user.get_absolute_url }}">{{ member.user.username }}</a>
+                <i class="fa fa-user"></i> <a href="{{ member.user.get_absolute_url }}">{{ member.user|display_name }}</a>
                 {% if member.user.email %}
                 <a href="mailto:{{ member.user.email }}"><i class="fa fa-envelope-o"></i></a>
                 {% endif %}
@@ -97,7 +98,7 @@
             {% for member in members %}
               {% if member.role == 'member' %}
               <h4>
-                <i class="fa fa-user"></i> <a href="{{ member.user.get_absolute_url }}">{{ member.user.username }}</a>
+                <i class="fa fa-user"></i> <a href="{{ member.user.get_absolute_url }}">{{ member.user|display_name }}</a>
                 {% if member.user.email %}
                 <a href="mailto:{{ member.user.email }}"><i class="fa fa-envelope-o"></i></a>
                 {% endif %}

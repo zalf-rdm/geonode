@@ -46,6 +46,12 @@ ROLE_VALUES = (
             "Person tasked with reviewing, enhancing, cleaning, or standardiz-ing metadata and the associated data submitted for storage, use, and maintenance within a data centre or repository."
         ),
     ),
+    (
+        "dataManager",
+        _(
+            "Person (e.g. a curator or custodian) or organisation responsible for maintaining the finished resource, ensuring it is periodically refreshed, kept available, and stored in accordance with applicable standards and records management requirements."
+        ),
+    ),
     ("editor", _("A person who oversees the details related to the publication format of the resource.")),
     (
         "hostingInstitution",

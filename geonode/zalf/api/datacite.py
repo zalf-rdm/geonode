@@ -295,7 +295,7 @@ def build_datacite_payload(resource, doi_prefix, doi_suffix=None, event="publish
     # Landing page URL — use the stable UUID link so the DOI always resolves
     # correctly regardless of resource type or pk changes.
     site_url = settings.SITEURL.rstrip("/")
-    url = f"{site_url}/uuid/{resource.uuid}"
+    url = f"{site_url}/catalogue/uuid/{resource.uuid}"
 
     # Try to obtain DataCite XML from pycsw
     datacite_xml = get_datacite_xml(resource)

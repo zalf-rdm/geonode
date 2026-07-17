@@ -17,11 +17,34 @@
 #
 #########################################################################
 
+from django import forms
 from django.contrib import admin
 from modeltranslation.admin import TranslationAdmin
 from geonode.base.admin import set_user_and_group_dataset_permission
 
 from . import models
+
+
+def group_member_user_label(user):
+    """Human-readable label for a user in the group member picker.
+
+    Falls back through: "First Last", then department, then username. When a
+    name or department is shown, the username (which may be an opaque ORCID id)
+    is appended in parentheses so the account stays identifiable.
+    """
+    username = user.get_username()
+    if user.first_name and user.last_name:
+        display = f"{user.first_name} {user.last_name}"
+    elif user.department:
+        display = user.department
+    else:
+        return username
+    return f"{display} ({username})"
+
+
+class GroupMemberUserChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return group_member_user_label(obj)
 
 
 @admin.register(models.GroupCategory)
@@ -35,6 +58,11 @@ class GroupCategoryAdmin(TranslationAdmin):
 
 class GroupMemberInline(admin.TabularInline):
     model = models.GroupMember
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "user":
+            kwargs["form_class"] = GroupMemberUserChoiceField
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
 class GroupProfileAdmin(admin.ModelAdmin):
