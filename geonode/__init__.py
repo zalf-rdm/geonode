@@ -20,6 +20,11 @@
 import os
 
 __version__ = (5, 0, 3, 'post', 1)
+# Static version string consumed by pyproject.toml's dynamic version
+# (`[tool.setuptools.dynamic] version = {attr = "geonode.__version_str__"}`).
+# setuptools reads this attribute statically at build time, so it must be a
+# plain string literal and kept in sync with __version__.
+__version_str__ = "5.0.3"
 
 
 def get_version():
