@@ -26,6 +26,7 @@ when you run "manage.py test".
 import os
 import io
 import json
+import zipfile
 import gisdata
 
 from PIL import Image
@@ -339,6 +340,38 @@ class DocumentsTest(GeoNodeBaseTestSupport):
             )
             self.assertEqual(form.errors, {"doc_file": [expected_error]})
 
+    def test_upload_document_form_rejects_unsafe_zip(self):
+        """A zip-based document carrying a path-traversal entry must be rejected by the form."""
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("../../etc/passwd", b"root:x:0:0")
+        buf.seek(0)
+
+        form_data = {
+            "title": "Malicious archive",
+            "permissions": '{"anonymous":"document_readonly","authenticated":"resourcebase_readwrite","users":[]}',
+        }
+        file_data = {"doc_file": SimpleUploadedFile("evil.zip", buf.read(), "application/zip")}
+        form = DocumentCreateForm(form_data, file_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("doc_file", form.errors)
+        self.assertIn("Invalid or unsafe ZIP archive.", str(form.errors["doc_file"]))
+
+    def test_upload_document_form_accepts_clean_zip(self):
+        """A well-formed zip document must pass the safety check and validate."""
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("readme.txt", b"hello")
+        buf.seek(0)
+
+        form_data = {
+            "title": "Clean archive",
+            "permissions": '{"anonymous":"document_readonly","authenticated":"resourcebase_readwrite","users":[]}',
+        }
+        file_data = {"doc_file": SimpleUploadedFile("clean.zip", buf.read(), "application/zip")}
+        form = DocumentCreateForm(form_data, file_data)
+        self.assertTrue(form.is_valid(), msg=form.errors)
+
     def test_document_embed(self):
         """/documents/1 -> Test accessing the embed view of a document"""
         d = Document.objects.all().first()
@@ -373,6 +406,25 @@ class DocumentsTest(GeoNodeBaseTestSupport):
             },
         )
         self.assertEqual(response.status_code, 200)
+
+    def test_document_upload_rejects_file_with_mismatched_content(self):
+        self.client.login(username="admin", password="admin")
+        pe_like_content = (
+            b"MZ" + b"\x00" * 58 + b"\x80\x00\x00\x00" + b"\x00" * 64 + b"PE\x00\x00" + b"\x4c\x01\x01\x00"
+        )
+        f = SimpleUploadedFile("fake.pdf", pe_like_content, "application/pdf")
+
+        response = self.client.post(
+            f"{reverse('document_upload')}?no__redirect=true",
+            data={
+                "doc_file": f,
+                "title": "fake_pdf",
+                "permissions": '{"users":{"AnonymousUser": ["view_resourcebase"]}}',
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Document.objects.filter(title="fake_pdf").exists())
 
     # Permissions Tests
 

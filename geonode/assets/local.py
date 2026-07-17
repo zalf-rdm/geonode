@@ -285,7 +285,7 @@ class LocalAssetDownloadHandler(AssetDownloadHandlerInterface):
             return HttpResponse("Asset does not contain any data", status=500)
 
         if len(asset.location) > 1:
-            logger.warning("TODO: Asset contains more than one file. Download needs to be implemented")
+            logger.warning("TODO: Asset contains more than one file. Only first file will be returned")
 
         result = self._resolve_file(asset, path)
         if isinstance(result, HttpResponse):
