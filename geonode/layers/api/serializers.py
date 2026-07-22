@@ -202,7 +202,9 @@ class DatasetListSerializer(DatasetSerializer):
     attribute_set = DynamicRelationField(AttributeSerializer, embed=True, many=True, read_only=True, deferred=True)
 
     class Meta(DatasetSerializer.Meta):
-        fields = [f for f in DatasetSerializer.Meta.fields if f not in ("capabilities_url", "dataset_ows_url", "ows_url")]
+        fields = [
+            f for f in DatasetSerializer.Meta.fields if f not in ("capabilities_url", "dataset_ows_url", "ows_url")
+        ]
 
 
 class MetadataFileField(DynamicComputedField):
