@@ -220,6 +220,19 @@ class DatasetsApiTests(APITestCase):
         response = self.client.get(url, format="json")
         self.assertNotIn("metadata", response.data["dataset"])
 
+    def test_attribute_set_deferred_on_listing_and_included_on_demand(self):
+        url = reverse("datasets-list")
+
+        # by default the (potentially heavy) attribute_set is left out of the listing
+        response = self.client.get(url, format="json")
+        for dataset in response.data["datasets"]:
+            self.assertNotIn("attribute_set", dataset)
+
+        # callers can opt in, e.g. to batch-load attribute counts for a set of datasets
+        response = self.client.get(url, format="json", data={"include[]": "attribute_set"})
+        for dataset in response.data["datasets"]:
+            self.assertIn("attribute_set", dataset)
+
     def test_get_dataset_related_maps_and_maplayers(self):
         dataset = Dataset.objects.first()
         assign_perm("base.view_resourcebase", get_anonymous_user(), dataset.get_self_resource())
