@@ -88,6 +88,7 @@ class ProfileAdmin(admin.ModelAdmin):
         "last_name",
         "is_staff",
         "is_active",
+        "orcid_identifier",
     )
     list_filter = (
         "is_staff",
