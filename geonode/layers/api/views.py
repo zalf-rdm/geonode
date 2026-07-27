@@ -365,15 +365,6 @@ class DatasetViewSet(ApiPresetsInitializer, DynamicModelViewSet, AdvertisedListM
             return DatasetTimeSeriesSerializer
         return DatasetSerializer
 
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        # avoid an N+1 SQL hit when a caller opts into the deferred attribute_set
-        # field on the list endpoint (?include[]=attribute_set), e.g. batch-loading
-        # attribute counts for every layer of a map in a single request
-        if "attribute_set" in self.request.query_params.getlist("include[]"):
-            queryset = queryset.prefetch_related("attribute_set")
-        return queryset
-
     def partial_update(self, request, *args, **kwargs):
         dataset = self.get_object()
         attribute_data = request.data.get("attribute", [])
