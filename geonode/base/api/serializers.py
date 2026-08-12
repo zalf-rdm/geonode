@@ -60,6 +60,7 @@ from geonode.base.models import (
     RelatedIdentifierType,
     RelationType,
     RelatedIdentifier,
+    ResourceTypeGeneral,
     Organization,
     RelatedProject,
     Funding,
@@ -663,7 +664,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     resource_provider = ContactRoleField(Roles.RESOURCE_PROVIDER.name, required=False)
     originator = ContactRoleField(Roles.ORIGINATOR.name, required=False)
     principal_investigator = ContactRoleField(Roles.PRINCIPAL_INVESTIGATOR.name, required=False)
-    
+
     data_collector = ContactRoleField(Roles.DATA_COLLECTOR.name, required=False)
     data_curator = ContactRoleField(Roles.DATA_CURATOR.name, required=False)
     editor = ContactRoleField(Roles.EDITOR.name, required=False)
@@ -683,7 +684,6 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     supervisor = ContactRoleField(Roles.SUPERVISOR.name, required=False)
     work_package_leader = ContactRoleField(Roles.WORK_PACKAGE_LEADER.name, required=False)
 
-    
     title = serializers.CharField(required=False)
     abstract = serializers.CharField(required=False)
 
@@ -804,7 +804,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "resource_user",
             "resource_provider",
             "originator",
-            "principal_investigator",            
+            "principal_investigator",
             "data_collector",
             "data_curator",
             "editor",
@@ -823,7 +823,6 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "sponsor",
             "supervisor",
             "work_package_leader",
-            
             "keywords",
             "tkeywords",
             "regions",
@@ -1044,6 +1043,14 @@ class RelatedIdentifierSerializer(DynamicModelSerializer):
         name = "relatedidentifiers"
         model = RelatedIdentifier
         count_type = "relatedidentifier"
+        fields = "__all__"
+
+
+class ResourceTypeGeneralSerializer(DynamicModelSerializer):
+    class Meta:
+        name = "resourcetypegenerals"
+        model = ResourceTypeGeneral
+        count_type = "resourcetypegeneral"
         fields = "__all__"
 
 
