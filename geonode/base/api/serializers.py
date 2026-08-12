@@ -28,7 +28,7 @@ from django.contrib.auth.models import Group
 from django.forms.models import model_to_dict
 from django.contrib.auth import get_user_model
 from django.db.models.query import QuerySet
-from geonode.assets.utils import get_default_asset, is_asset_deletable
+from geonode.assets.utils import get_default_asset
 from geonode.people import Roles
 from django.http import QueryDict
 from deprecated import deprecated
@@ -43,9 +43,9 @@ from dynamic_rest.fields.fields import DynamicRelationField, DynamicComputedFiel
 from avatar.templatetags.avatar_tags import avatar_url
 from geonode.utils import bbox_swap
 from geonode.base.api.exceptions import InvalidResourceException
+
 from geonode.favorite.models import Favorite
 from geonode.base.models import (
-    ContactRole,
     Link,
     ResourceBase,
     HierarchicalKeyword,
@@ -58,7 +58,6 @@ from geonode.base.models import (
     ThesaurusKeywordLabel,
     ExtraMetadata,
     RelatedIdentifierType,
-    ResourceTypeGeneral,
     RelationType,
     RelatedIdentifier,
     Organization,
@@ -81,7 +80,6 @@ from geonode.utils import build_absolute_uri
 from geonode.security.utils import get_resources_with_perms, get_geoapp_subtypes
 from geonode.resource.models import ExecutionRequest
 from django.contrib.gis.geos import Polygon
-from geonode.security.registry import permissions_registry
 
 logger = logging.getLogger(__name__)
 
@@ -143,40 +141,6 @@ class GroupSerializer(DynamicModelSerializer):
         name = "group"
         fields = ("pk", "name")
 
-    def update(self, instance, validated_data):
-        user = self.context["request"].user
-
-        # Check if 'group' is being updated
-        new_group = validated_data.get("group", None)
-
-        if new_group is None:
-            # Handle clearing the group field
-            instance.group = None
-            # Remove 'group' from validated_data so super().update() won't process it again
-            validated_data.pop("group", None)
-            return instance
-
-        if not GroupProfile.objects.filter(group=new_group).exists():
-            logger.warning(f"Group {new_group.pk} does not have an associated GroupProfile.")
-            raise serializers.ValidationError("The selected group does not have a valid group profile.")
-
-        gp = new_group
-
-        if not (user.is_superuser or user.is_staff):
-            qs = user.groups.filter(pk=new_group.pk)
-            # check if the group exists and if it has a group profile
-            if qs.exists():
-                gp = qs.first()
-            else:
-                logger.warning(f"User {user.username} does not have permission for this group: {new_group.pk}")
-                raise serializers.ValidationError("You do not have permission to use this group.")
-
-        # If the user is a member of the group, we can proceed to update
-        validated_data["group"] = gp
-
-        # Call the super class's update method to continue with the default behavior
-        return super().update(instance, validated_data)
-
 
 class GroupProfileSerializer(BaseDynamicModelSerializer):
     class Meta:
@@ -185,11 +149,9 @@ class GroupProfileSerializer(BaseDynamicModelSerializer):
         view_name = "group-profiles-list"
         fields = ("pk", "title", "group", "slug", "logo", "description", "email", "keywords", "access", "categories")
 
-    group = DynamicRelationField(GroupSerializer, embed=True, many=False, read_only=True)
+    group = DynamicRelationField(GroupSerializer, embed=True, many=False)
     keywords = serializers.SlugRelatedField(many=True, slug_field="slug", read_only=True)
-    categories = serializers.SlugRelatedField(
-        many=True, slug_field="slug", queryset=GroupCategory.objects.all(), required=False
-    )
+    categories = serializers.SlugRelatedField(many=True, slug_field="slug", queryset=GroupCategory.objects.all())
 
 
 class SimpleHierarchicalKeywordSerializer(DynamicModelSerializer):
@@ -256,29 +218,14 @@ class SimpleRelationType(DynamicModelSerializer):
         fields = ("label", "description")
 
 
-class SimpleResourceTypeGeneral(DynamicModelSerializer):
-    class Meta:
-        model = ResourceTypeGeneral
-        name = "ResourceTypeGeneral"
-        fields = ("label", "description")
-
-
 class SimpleRelatedIdentifierSerializer(DynamicModelSerializer):
     class Meta:
         model = RelatedIdentifier
         name = "RelatedIdentifier"
-        fields = (
-            "id",
-            "related_identifier",
-            "related_identifier_type",
-            "relation_type",
-            "resource_type_general",
-            "description",
-        )
+        fields = ("related_identifier", "related_identifier_type", "relation_type", "description")
 
     related_identifier_type = DynamicRelationField(SimpleRelatedIdentifierType, embed=True, many=False)
     relation_type = DynamicRelationField(SimpleRelationType, embed=True, many=False)
-    resource_type_general = DynamicRelationField(SimpleResourceTypeGeneral, embed=True, many=False)
 
 
 class OrganizationSerializer(DynamicModelSerializer):
@@ -292,7 +239,7 @@ class FundingSerializer(DynamicModelSerializer):
     class Meta:
         model = Funding
         name = "Funding"
-        fields = ("id", "organization", "award_title", "award_uri", "award_number")
+        fields = ("organization", "award_title", "award_uri", "award_number")
 
     organization = DynamicRelationField(OrganizationSerializer, embed=True, many=False)
 
@@ -465,7 +412,7 @@ class DownloadArrayLinkField(DynamicComputedField):
                     download_urls.append({"url": obj.download_url, "ajax_safe": obj.is_ajax_safe, "default": False})
 
             if asset:
-                download_urls.append({"url": asset_url, "ajax_safe": True, "default": False})
+                download_urls.append({"url": asset_url, "ajax_safe": True, "default": False if download_urls else True})
 
             return download_urls
         else:
@@ -520,134 +467,36 @@ class ContactRoleField(DynamicComputedField):
         self.contact_type = contact_type
         super().__init__(**kwargs)
 
-    @staticmethod
-    def validate_all_orders(entries):
-        # ensure duplicate order ids are rejected after normalization
-        seen_orders = {}
-        for entry in entries:
-            order_value = entry.get("order")
-            if order_value is None:
-                continue
-            if order_value in seen_orders:
-                first_idx = seen_orders[order_value] + 1
-                current_idx = entry["index"] + 1
-                raise ParseError(
-                    detail=(
-                        "Each contact role entry must have a unique integer 'order' field. "
-                        f"Value '{order_value}' is duplicated between entries #{first_idx} and #{current_idx}."
-                    ),
-                    code=400,
-                )
-            seen_orders[order_value] = entry["index"]
-
     def get_attribute(self, instance):
-        contacts = ContactRole.objects.filter(resource=instance, role=self.contact_type).order_by("order")
-        return contacts
+        return getattr(instance, self.contact_type)
 
     def to_representation(self, value):
-        sorted_pks_of_users = []
+        return [user_serializer()(embed=True, many=False).to_representation(v) for v in value]
 
-        for contact in value:
-            d = user_serializer()(embed=True, many=False).to_representation(contact.contact)
-            d["order"] = contact.order
-            sorted_pks_of_users.append(d)
-        return sorted_pks_of_users
+    def get_pks_of_users_to_set(self, value):
+        pks_of_users_to_set = []
+        for val in value:
+            # make it possible to set contact roles via username or pk through API
+            if "username" in val and "pk" in val:
+                pk = val["pk"]
+                username = val["username"]
+                pk_user = get_user_model().objects.get(pk=pk)
+                username_user = get_user_model().objects.get(username=username)
+                if pk_user.pk != username_user.pk:
+                    raise ParseError(
+                        detail=f"user with pk: {pk} and username: {username} is not the same ... ", code=403
+                    )
+                pks_of_users_to_set.append(pk)
+            elif "username" in val:
+                username = val["username"]
+                username_user = get_user_model().objects.get(username=[username])
+                pks_of_users_to_set.append(username_user.pk)
+            elif "pk" in val:
+                pks_of_users_to_set.append(val["pk"])
+        return pks_of_users_to_set
 
     def to_internal_value(self, value):
-        entries = self._prepare_contact_role_entries(value)
-        self.validate_all_orders(entries)
-        return self._resolve_contact_role_users(entries)
-
-    @staticmethod
-    def _coerce_order_value(raw_value, entry_index):
-        if raw_value is None:
-            return None
-        if isinstance(raw_value, int):
-            return raw_value
-        if isinstance(raw_value, str):
-            raw_value = raw_value.strip()
-            if raw_value == "":
-                return None
-        try:
-            return int(raw_value)
-        except (TypeError, ValueError):
-            raise ParseError(
-                detail=(
-                    f"Contact role entry #{entry_index + 1} has an invalid 'order' value '{raw_value}'. "
-                    "Expected an integer."
-                ),
-                code=400,
-            )
-
-    def _prepare_contact_role_entries(self, value):
-        if not isinstance(value, list):
-            raise ParseError(detail="Contact role payload must be a list of objects.", code=400)
-
-        prepared = []
-        for index, user_entry in enumerate(value):
-            if not isinstance(user_entry, dict):
-                raise ParseError(
-                    detail=f"Contact role entry #{index + 1} must be an object with 'pk' and/or 'username'.",
-                    code=400,
-                )
-            pk = user_entry.get("pk")
-            username = user_entry.get("username")
-            if pk is None and not username:
-                raise ParseError(
-                    detail=f"Contact role entry #{index + 1} must include either 'pk' or 'username'.",
-                    code=400,
-                )
-            order_value = self._coerce_order_value(user_entry.get("order"), index)
-            # Track the original list position so downstream error messages can echo the client payload.
-            prepared.append({"index": index, "pk": pk, "username": username, "order": order_value})
-        return prepared
-
-    def _resolve_contact_role_users(self, entries):
-        if not entries:
-            return []
-
-        user_model = get_user_model()
-
-        # Prepare bulk lookup tables so we only hit the database twice regardless of payload size.
-        pk_values = {entry["pk"] for entry in entries if entry["pk"] is not None}
-        usernames_without_pk = {entry["username"] for entry in entries if entry["pk"] is None and entry["username"]}
-
-        pk_lookup = {user.pk: user for user in user_model.objects.filter(pk__in=pk_values)} if pk_values else {}
-        username_lookup = (
-            {user.username: user for user in user_model.objects.filter(username__in=usernames_without_pk)}
-            if usernames_without_pk
-            else {}
-        )
-
-        desired_entries = []
-        for entry in entries:
-            pk = entry["pk"]
-            username = entry["username"]
-
-            if pk is not None:
-                user = pk_lookup.get(pk)
-                if not user:
-                    raise ParseError(
-                        detail=f"Contact role entry #{entry['index'] + 1} references unknown user pk '{pk}'.",
-                        code=400,
-                    )
-                if username and str(user.username) != str(username):
-                    raise ParseError(
-                        detail=(
-                            f"Contact role entry #{entry['index'] + 1} pk '{pk}' does not match username '{username}'."
-                        ),
-                        code=400,
-                    )
-            else:
-                user = username_lookup.get(username)
-                if not user:
-                    raise ParseError(
-                        detail=f"Contact role entry #{entry['index'] + 1} references unknown username '{username}'.",
-                        code=400,
-                    )
-
-            desired_entries.append((user, entry["order"]))
-        return desired_entries
+        return get_user_model().objects.filter(pk__in=self.get_pks_of_users_to_set(value))
 
 
 class ExtentBboxField(DynamicComputedField):
@@ -753,11 +602,7 @@ class PermsSerializer(DynamicModelSerializer):
     def to_representation(self, instance):
         request = self.context.get("request", None)
         resource = ResourceBase.objects.get(pk=instance)
-        return (
-            permissions_registry.get_perms(instance=resource, user=request.user)
-            if request and request.user and resource
-            else []
-        )
+        return resource.get_user_perms(request.user) if request and request.user and resource else []
 
 
 class LinksSerializer(DynamicModelSerializer):
@@ -770,23 +615,17 @@ class LinksSerializer(DynamicModelSerializer):
         links = Link.objects.filter(
             resource_id=instance,  # link_type__in=["OGC:WMS", "OGC:WFS", "OGC:WCS", "image", "metadata"]
         )
-        request = self.context.get("request", None)
         for lnk in links:
             formatted_link = model_to_dict(lnk, fields=link_fields)
             ret.append(formatted_link)
             if lnk.asset:
-                deletable = is_asset_deletable(lnk.asset)
                 extras = {
                     "type": "asset",
-                    "deletable": deletable,
                     "content": model_to_dict(lnk.asset, ["title", "description", "type", "created"]),
                 }
-                if request and permissions_registry.user_has_perm(
-                    request.user, lnk.resource.get_self_resource(), "download_resourcebase", include_virtual=True
-                ):
-                    extras["content"]["download_url"] = asset_handler_registry.get_handler(
-                        lnk.asset
-                    ).create_download_url(lnk.asset)
+                extras["content"]["download_url"] = asset_handler_registry.get_handler(lnk.asset).create_download_url(
+                    lnk.asset
+                )
                 formatted_link["extras"] = extras
 
         return ret
@@ -814,36 +653,37 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     resource_type = serializers.CharField(required=False)
     polymorphic_ctype_id = serializers.CharField(read_only=True)
     owner = DynamicRelationField(user_serializer(), embed=True, read_only=True)
-    author = ContactRoleField(Roles.METADATA_AUTHOR.role_value, required=False, source="metadata_author")
-    processor = ContactRoleField(Roles.PROCESSOR.role_value, required=False)
-    publisher = ContactRoleField(Roles.PUBLISHER.role_value, required=False)
-    custodian = ContactRoleField(Roles.CUSTODIAN.role_value, required=False)
-    poc = ContactRoleField(Roles.POC.role_value, required=False)
-    distributor = ContactRoleField(Roles.DISTRIBUTOR.role_value, required=False)
-    resource_user = ContactRoleField(Roles.RESOURCE_USER.role_value, required=False)
-    resource_provider = ContactRoleField(Roles.RESOURCE_PROVIDER.role_value, required=False)
-    originator = ContactRoleField(Roles.ORIGINATOR.role_value, required=False)
-    principal_investigator = ContactRoleField(Roles.PRINCIPAL_INVESTIGATOR.role_value, required=False)
+    metadata_author = ContactRoleField(Roles.METADATA_AUTHOR.name, required=False)
+    processor = ContactRoleField(Roles.PROCESSOR.name, required=False)
+    publisher = ContactRoleField(Roles.PUBLISHER.name, required=False)
+    custodian = ContactRoleField(Roles.CUSTODIAN.name, required=False)
+    poc = ContactRoleField(Roles.POC.name, required=False)
+    distributor = ContactRoleField(Roles.DISTRIBUTOR.name, required=False)
+    resource_user = ContactRoleField(Roles.RESOURCE_USER.name, required=False)
+    resource_provider = ContactRoleField(Roles.RESOURCE_PROVIDER.name, required=False)
+    originator = ContactRoleField(Roles.ORIGINATOR.name, required=False)
+    principal_investigator = ContactRoleField(Roles.PRINCIPAL_INVESTIGATOR.name, required=False)
+    
+    data_collector = ContactRoleField(Roles.DATA_COLLECTOR.name, required=False)
+    data_curator = ContactRoleField(Roles.DATA_CURATOR.name, required=False)
+    editor = ContactRoleField(Roles.EDITOR.name, required=False)
+    host_institution = ContactRoleField(Roles.HOSTING_INSTITUTION.name, required=False)
+    other = ContactRoleField(Roles.OTHER.name, required=False)
+    producer = ContactRoleField(Roles.PRODUCER.name, required=False)
+    project_leader = ContactRoleField(Roles.PROJECT_LEADER.name, required=False)
+    project_manager = ContactRoleField(Roles.PROJECT_MANAGER.name, required=False)
+    project_member = ContactRoleField(Roles.PROJECT_MEMBER.name, required=False)
+    registration_agency = ContactRoleField(Roles.REGISTRATION_AGENCY.name, required=False)
+    registration_authority = ContactRoleField(Roles.REGISTRATION_AUTHORITY.name, required=False)
+    related_person = ContactRoleField(Roles.RELATED_PERSON.name, required=False)
+    research_group = ContactRoleField(Roles.RESEARCH_GROUP.name, required=False)
+    researcher = ContactRoleField(Roles.RESEARCHER.name, required=False)
+    rights_holder = ContactRoleField(Roles.RIGHTS_HOLDER.name, required=False)
+    sponsor = ContactRoleField(Roles.SPONSOR.name, required=False)
+    supervisor = ContactRoleField(Roles.SUPERVISOR.name, required=False)
+    work_package_leader = ContactRoleField(Roles.WORK_PACKAGE_LEADER.name, required=False)
 
-    data_collector = ContactRoleField(Roles.DATA_COLLECTOR.role_value, required=False)
-    data_curator = ContactRoleField(Roles.DATA_CURATOR.role_value, required=False)
-    editor = ContactRoleField(Roles.EDITOR.role_value, required=False)
-    host_institution = ContactRoleField(Roles.HOSTING_INSTITUTION.role_value, required=False)
-    other = ContactRoleField(Roles.OTHER.role_value, required=False)
-    producer = ContactRoleField(Roles.PRODUCER.role_value, required=False)
-    project_leader = ContactRoleField(Roles.PROJECT_LEADER.role_value, required=False)
-    project_manager = ContactRoleField(Roles.PROJECT_MANAGER.role_value, required=False)
-    project_member = ContactRoleField(Roles.PROJECT_MEMBER.role_value, required=False)
-    registration_agency = ContactRoleField(Roles.REGISTRATION_AGENCY.role_value, required=False)
-    registration_authority = ContactRoleField(Roles.REGISTRATION_AUTHORITY.role_value, required=False)
-    related_person = ContactRoleField(Roles.RELATED_PERSON.role_value, required=False)
-    research_group = ContactRoleField(Roles.RESEARCH_GROUP.role_value, required=False)
-    researcher = ContactRoleField(Roles.RESEARCHER.role_value, required=False)
-    rights_holder = ContactRoleField(Roles.RIGHTS_HOLDER.role_value, required=False)
-    sponsor = ContactRoleField(Roles.SPONSOR.role_value, required=False)
-    supervisor = ContactRoleField(Roles.SUPERVISOR.role_value, required=False)
-    work_package_leader = ContactRoleField(Roles.WORK_PACKAGE_LEADER.role_value, required=False)
-
+    
     title = serializers.CharField(required=False)
     abstract = serializers.CharField(required=False)
 
@@ -902,13 +742,10 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     srid = serializers.CharField(required=False)
     group = ComplexDynamicRelationField(GroupSerializer, embed=True)
     share_count = serializers.CharField(required=False)
-    popular_count = serializers.IntegerField(read_only=True)
-    rating = serializers.CharField(required=False)
-    download_count = serializers.IntegerField(read_only=True)
     featured = ResourceManagementField(required=False)
     advertised = serializers.BooleanField(required=False)
-    is_published = serializers.BooleanField(required=False)
-    is_approved = serializers.BooleanField(required=False)
+    is_published = ResourceManagementField(required=False)
+    is_approved = ResourceManagementField(required=False)
     detail_url = DetailUrlField(read_only=True)
     created = serializers.DateTimeField(read_only=True)
     last_updated = serializers.DateTimeField(read_only=True)
@@ -925,7 +762,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     thumbnail_url = ThumbnailUrlField(read_only=True)
     keywords = KeywordsDynamicRelationField(SimpleHierarchicalKeywordSerializer, many=True)
     tkeywords = ComplexDynamicRelationField(SimpleThesaurusKeywordSerializer, many=True)
-    regions = ComplexDynamicRelationField(SimpleRegionSerializer, embed=True, many=True)
+    regions = DynamicRelationField(SimpleRegionSerializer, embed=True, many=True, read_only=True)
     category = ComplexDynamicRelationField(SimpleTopicCategorySerializer, embed=True)
     spatial_representation_type = ComplexDynamicRelationField(SpatialRepresentationTypeSerializer, embed=True)
     blob = serializers.JSONField(required=False, write_only=True)
@@ -933,7 +770,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     download_url = DownloadLinkField(read_only=True)
     favorite = FavoriteField(read_only=True)
     download_urls = DownloadArrayLinkField(read_only=True)
-    perms = serializers.SerializerMethodField(read_only=True)
+    perms = DynamicRelationField(PermsSerializer, source="id", read_only=True)
     links = DynamicRelationField(LinksSerializer, source="id", read_only=True)
 
     # Deferred fields
@@ -947,21 +784,6 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     )
     link = AutoLinkField(read_only=True)
 
-    def _save_new_related_identifiers(self, validated_data):
-        """Saves unsaved RelatedIdentifier instances."""
-        if "related_identifier" in validated_data:
-            for ri in validated_data["related_identifier"]:
-                if ri.pk is None:
-                    ri.save()
-
-    def create(self, validated_data):
-        self._save_new_related_identifiers(validated_data)
-        return super().create(validated_data)
-
-    def update(self, instance, validated_data):
-        self._save_new_related_identifiers(validated_data)
-        return super().update(instance, validated_data)
-
     class Meta:
         model = ResourceBase
         name = "resource"
@@ -974,7 +796,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "perms",
             "owner",
             "poc",
-            "author",
+            "metadata_author",
             "processor",
             "publisher",
             "custodian",
@@ -982,7 +804,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "resource_user",
             "resource_provider",
             "originator",
-            "principal_investigator",
+            "principal_investigator",            
             "data_collector",
             "data_curator",
             "editor",
@@ -1001,6 +823,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "sponsor",
             "supervisor",
             "work_package_leader",
+            
             "keywords",
             "tkeywords",
             "regions",
@@ -1052,9 +875,6 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "data_quality_statement",
             "group",
             "share_count",
-            "popular_count",
-            "rating",
-            "download_count",
             "featured",
             "advertised",
             "is_published",
@@ -1108,36 +928,9 @@ class ResourceBaseSerializer(DynamicModelSerializer):
         data = super(ResourceBaseSerializer, self).to_internal_value(data)
         return data
 
-    def update(self, instance, validated_data):  # noqa: F811
-        user = self.context["request"].user
-
-        # Handle group update from the GroupSerializer
-        if "group" in validated_data:
-            # Call GroupSerializer's update method
-            group_serializer = GroupSerializer(context=self.context)
-            group_serializer.update(instance, validated_data)
-
-        for field in instance.ROLE_BASED_MANAGED_FIELDS:
-            if not user.can_change_resource_field(instance, field) and field in validated_data:
-                validated_data.pop(field)
-        return super().update(instance, validated_data)
-
-    def get_perms(self, instance):
-        """
-        Returns the permissions for the resource instance using Django cache.
-        """
-        request = self.context.get("request")
-        permissions = (
-            permissions_registry.get_perms(instance=instance, user=request.user, use_cache=True)
-            if request and request.user and instance
-            else []
-        )
-        return permissions
-
     def save(self, **kwargs):
         extent = self.validated_data.pop("extent", None)
         keywords = self.validated_data.pop("keywords", None)
-        contact_role_payloads = self._pop_contact_role_payloads()
         instance = super().save(**kwargs)
         if keywords is not None:
             instance.keywords.clear()
@@ -1155,82 +948,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
                 logger.exception(e)
                 raise InvalidResourceException("The standard bbox provided is invalid")
             instance.set_bbox_polygon(coords, srid)
-
-        self._save_contact_role_payloads(instance, contact_role_payloads)
-
-        user = self.context["request"].user
-        for field in instance.ROLE_BASED_MANAGED_FIELDS:
-            if not user.can_change_resource_field(instance, field):
-                logger.debug("User can perform the action, the default value is set")
-                setattr(user, field, getattr(ResourceBase, field).field.default)
         return instance
-
-    def _pop_contact_role_payloads(self):
-        payloads = {}
-        # Extract all ContactRoleField payloads so super().save() can run without custom objects
-        for field_name, field in self.fields.items():
-            if not isinstance(field, ContactRoleField):
-                continue
-            source = field.source if field.source not in (None, "*") else field_name
-            entries = self.validated_data.pop(source, None)
-            if entries is None:
-                continue
-            payloads[field.contact_type] = entries
-        return payloads
-
-    def _save_contact_role_payloads(self, instance, payloads):
-        # Persist each role separately to avoid order collisions between different role buckets
-        for role_value, entries in payloads.items():
-            normalized_entries = self._normalize_contact_role_entries(entries)
-            self._persist_contact_roles(instance, role_value, normalized_entries)
-
-    @staticmethod
-    def _normalize_contact_role_entries(entries):
-        if not entries:
-            return []
-        normalized = []
-        max_order = max((order for _, order in entries if order is not None), default=-1)
-        for user, order in entries:
-            if order is None:
-                max_order += 1
-                order = max_order
-            normalized.append((user, order))
-        return normalized
-
-    @staticmethod
-    def _persist_contact_roles(instance, role_value, entries):
-
-        # No payload means wipe the entire role collection
-        qs = ContactRole.objects.filter(resource=instance, role=role_value)
-        if not entries:
-            qs.delete()
-            return
-
-        desired_contact_ids = [user.pk for user, _ in entries]
-        existing_contact_roles = list(qs)
-
-        # Remove contacts the client dropped before reusing remaining rows
-        for cr in existing_contact_roles:
-            if cr.contact_id not in desired_contact_ids:
-                cr.delete()
-
-        remaining_roles = ContactRole.objects.filter(resource=instance, role=role_value)
-        existing_map = {cr.contact_id: cr for cr in remaining_roles}
-
-        for user, order in entries:
-            cr = existing_map.get(user.pk)
-            if cr:
-                if cr.order != order:
-                    # Update the order only when necessary to minimize writes
-                    cr.order = order
-                    cr.save(update_fields=["order"])
-                continue
-            existing_map[user.pk] = ContactRole.objects.create(
-                resource=instance,
-                role=role_value,
-                contact=user,
-                order=order,
-            )
 
 
 class FavoriteSerializer(DynamicModelSerializer):
@@ -1329,14 +1047,6 @@ class RelatedIdentifierSerializer(DynamicModelSerializer):
         fields = "__all__"
 
 
-class ResourceTypeGeneralSerializer(DynamicModelSerializer):
-    class Meta:
-        name = "resourcetypegenerals"
-        model = ResourceTypeGeneral
-        count_type = "resourcetypegeneral"
-        fields = "__all__"
-
-
 class RelatedProjectSerializer(DynamicModelSerializer):
     class Meta:
         name = "relatedprojects"
@@ -1366,39 +1076,9 @@ class LinkedResourceSerializer(DynamicModelSerializer):
         model = LinkedResource
         fields = ("internal",)
 
-    def _get_download_url(self, item: ResourceBase):
-        """
-        Derive download URL from ResourceBase fields, avoiding get_real_instance()
-        to prevent N+1 queries.
-        """
-        if item.resource_type == "document":
-            try:
-                return build_absolute_uri(reverse("document_download", args=(item.pk,)))
-            except NoReverseMatch:
-                return None
-        if item.resource_type == "dataset":
-            if not item.alternate:
-                return None
-            try:
-                return build_absolute_uri(reverse("dataset_download", args=(item.alternate,)))
-            except NoReverseMatch:
-                return None
-        return None
-
     def to_representation(self, instance: LinkedResource):
         data = super().to_representation(instance)
         item: ResourceBase = instance.target if self.serialize_target else instance.source
-        # Build download_url using resource-type-specific URL patterns.
-        # All required fields (pk, alternate, resource_type) are on ResourceBase directly.
-        try:
-            if item.resource_type == "document":
-                download_url = reverse("document_download", kwargs={"docid": item.pk})
-            elif item.resource_type == "dataset" and item.alternate:
-                download_url = reverse("dataset_download", kwargs={"layername": item.alternate})
-            else:
-                download_url = None
-        except Exception:
-            download_url = None
         data.update(
             {
                 "pk": item.pk,
@@ -1406,7 +1086,6 @@ class LinkedResourceSerializer(DynamicModelSerializer):
                 "resource_type": item.resource_type,
                 "detail_url": item.detail_url,
                 "thumbnail_url": item.thumbnail_url,
-                "download_url": download_url,
             }
         )
         return data

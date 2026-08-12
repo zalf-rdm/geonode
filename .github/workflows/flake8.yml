@@ -28,7 +28,7 @@ jobs:
         python-version: ${{matrix.python-version}}
 
     - name: Install flake8 & black
-      run: pip install flake8 black
+      run: pip install flake8 black==26.5.1
 
     - name: "Check: flake8"
       run: |
