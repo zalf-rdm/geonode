@@ -197,11 +197,13 @@ class DatasetSerializer(ResourceBaseSerializer):
 
 
 class DatasetListSerializer(DatasetSerializer):
+    # kept out of the default list payload (deferred) to avoid bloating every listing response;
+    # callers that need it (e.g. batch-loading map layer details) can opt in with ?include[]=attribute_set
+    attribute_set = DynamicRelationField(AttributeSerializer, embed=True, many=True, read_only=True, deferred=True)
+
     class Meta(DatasetSerializer.Meta):
         fields = [
-            f
-            for f in DatasetSerializer.Meta.fields
-            if f not in ("attribute_set", "capabilities_url", "dataset_ows_url", "ows_url")
+            f for f in DatasetSerializer.Meta.fields if f not in ("capabilities_url", "dataset_ows_url", "ows_url")
         ]
 
 
