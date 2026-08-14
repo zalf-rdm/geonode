@@ -31,6 +31,7 @@ from geonode.assets.handlers import asset_handler_registry
 from geonode.assets.serializers import AssetSerializer
 from geonode.assets.utils import get_perms_response
 from geonode.assets.models import Asset
+from geonode.base.models import Link
 from geonode.base.utils import increment_download_count
 from geonode.base.api.filters import (
     DynamicSearchFilter,
@@ -86,8 +87,16 @@ class AssetViewSet(DynamicModelViewSet):
             return bad_response
         asset_handler = asset_handler_registry.get_handler(asset)
         # TODO: register_event(request, EventType.EVENT_DOWNLOAD, asset)
-        if attachment and asset.resource_id:
-            increment_download_count(asset.resource_id, request.user)
+        if attachment:
+            # Asset has no resource FK of its own -- the association lives on Link
+            # (Link.asset -> Asset, Link.resource -> ResourceBase). This previously read
+            # `asset.resource_id`, which does not exist on Asset, so every attachment download
+            # raised AttributeError instead of counting.
+            resource_id = (
+                Link.objects.filter(asset=asset, resource__isnull=False).values_list("resource_id", flat=True).first()
+            )
+            if resource_id:
+                increment_download_count(resource_id, request.user)
         return asset_handler.get_download_handler(asset).create_response(asset, path=path, attachment=attachment)
 
     @action(

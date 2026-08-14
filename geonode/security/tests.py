@@ -20,6 +20,7 @@
 import json
 import base64
 import logging
+import unittest
 from unittest.mock import patch
 import uuid
 import os
@@ -146,6 +147,10 @@ class SecurityTests(ResourceTestCaseMixin, GeoNodeBaseTestSupport):
         self.perm_spec = {"users": {"admin": ["view_resourcebase"]}, "groups": []}
 
     @on_ogc_backend(geoserver.BACKEND_PACKAGE)
+    @unittest.skipIf(
+        settings.SOCIALACCOUNT_ONLY,
+        "allauth's local account_* urls are not registered in ORCID-only deployments",
+    )
     def test_login_middleware(self):
         """
         Tests the Geonode login required authentication middleware.
@@ -313,6 +318,10 @@ class SecurityTests(ResourceTestCaseMixin, GeoNodeBaseTestSupport):
                 Profile.objects.get(username="user1withapyley").delete()  # cleanup
 
     @on_ogc_backend(geoserver.BACKEND_PACKAGE)
+    @unittest.skipIf(
+        settings.SOCIALACCOUNT_ONLY,
+        "allauth's local account_* urls are not registered in ORCID-only deployments",
+    )
     def test_session_ctrl_middleware(self):
         """
         Tests the Geonode session control authentication middleware.

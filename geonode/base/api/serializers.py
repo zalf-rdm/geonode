@@ -28,7 +28,7 @@ from django.contrib.auth.models import Group
 from django.forms.models import model_to_dict
 from django.contrib.auth import get_user_model
 from django.db.models.query import QuerySet
-from geonode.assets.utils import get_default_asset
+from geonode.assets.utils import get_default_asset, is_asset_deletable
 from geonode.people import Roles
 from django.http import QueryDict
 from deprecated import deprecated
@@ -79,6 +79,7 @@ from geonode.layers.utils import get_download_handlers, get_default_dataset_down
 from geonode.assets.handlers import asset_handler_registry
 from geonode.utils import build_absolute_uri
 from geonode.security.utils import get_resources_with_perms, get_geoapp_subtypes
+from geonode.security.registry import permissions_registry
 from geonode.resource.models import ExecutionRequest
 from django.contrib.gis.geos import Polygon
 
@@ -603,7 +604,15 @@ class PermsSerializer(DynamicModelSerializer):
     def to_representation(self, instance):
         request = self.context.get("request", None)
         resource = ResourceBase.objects.get(pk=instance)
-        return resource.get_user_perms(request.user) if request and request.user and resource else []
+        # The 5.0.3 merge swapped permissions_registry.get_perms() for the raw model method, which
+        # only knows about guardian rows. Perms contributed by registered permission handlers --
+        # can_manage_anonymous_permissions / can_manage_registered_member_permissions -- silently
+        # vanished from the API, so the UI hid those controls from users who do have them.
+        return (
+            permissions_registry.get_perms(instance=resource, user=request.user)
+            if request and request.user and resource
+            else []
+        )
 
 
 class LinksSerializer(DynamicModelSerializer):
@@ -616,36 +625,36 @@ class LinksSerializer(DynamicModelSerializer):
         links = Link.objects.filter(
             resource_id=instance,  # link_type__in=["OGC:WMS", "OGC:WFS", "OGC:WCS", "image", "metadata"]
         )
+        request = self.context.get("request", None)
         for lnk in links:
             formatted_link = model_to_dict(lnk, fields=link_fields)
             ret.append(formatted_link)
             if lnk.asset:
+                # The 5.0.3 merge dropped both the `deletable` flag and the download permission
+                # check below, so every user who could merely *view* a resource was handed the
+                # asset download URL. Restored from the pre-merge serializer.
                 extras = {
                     "type": "asset",
+                    "deletable": is_asset_deletable(lnk.asset),
                     "content": model_to_dict(lnk.asset, ["title", "description", "type", "created"]),
                 }
-                extras["content"]["download_url"] = asset_handler_registry.get_handler(lnk.asset).create_download_url(
-                    lnk.asset
-                )
+                if request and permissions_registry.user_has_perm(
+                    request.user, lnk.resource.get_self_resource(), "download_resourcebase", include_virtual=True
+                ):
+                    extras["content"]["download_url"] = asset_handler_registry.get_handler(
+                        lnk.asset
+                    ).create_download_url(lnk.asset)
                 formatted_link["extras"] = extras
 
         return ret
 
 
-class ResourceManagementField(serializers.BooleanField):
-    MAPPING = {"is_approved": "can_approve", "is_published": "can_publish", "featured": "can_feature"}
-
-    def to_internal_value(self, data):
-        new_val = super().to_internal_value(data)
-        user = self.context["request"].user
-        user_action = self.MAPPING.get(self.field_name)
-        instance = self.root.instance or ResourceBase.objects.get(pk=self.root.initial_data["pk"])
-        if getattr(user, user_action)(instance):
-            logger.debug("User can perform the action, the new value is returned")
-            return new_val
-        else:
-            logger.warning(f"The user does not have the perms to update the value of {self.field_name}")
-            return getattr(instance, self.field_name)
+# ResourceManagementField used to live here. Upstream deleted it in 30b84a21f ("[Fixes #12594]
+# Error when saving a new map") because it cannot work on create: with no instance yet it fell back
+# to `self.root.initial_data["pk"]`, and a create payload has no pk, so POSTing a resource with any
+# of featured / is_published / is_approved raised KeyError: 'pk' -> HTTP 500. The 5.0.3 merge kept
+# the deleted class, reintroducing that crash. The role check now lives in update()/save() below,
+# driven by ResourceBase.ROLE_BASED_MANAGED_FIELDS, exactly as upstream does it.
 
 
 class ResourceBaseSerializer(DynamicModelSerializer):
@@ -655,6 +664,11 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     polymorphic_ctype_id = serializers.CharField(read_only=True)
     owner = DynamicRelationField(user_serializer(), embed=True, read_only=True)
     metadata_author = ContactRoleField(Roles.METADATA_AUTHOR.name, required=False)
+    # `author` is this fork's public name for the same role, and the ZALF mapstore client asks for
+    # it in its viewer_common preset. The 5.0.3 merge dropped the declaration, so every viewer
+    # request carrying that preset came back 400 ("author" is not a valid field name). Upstream's
+    # `metadata_author` is kept alongside it -- both address the same contacts.
+    author = ContactRoleField(Roles.METADATA_AUTHOR.name, required=False, source="metadata_author")
     processor = ContactRoleField(Roles.PROCESSOR.name, required=False)
     publisher = ContactRoleField(Roles.PUBLISHER.name, required=False)
     custodian = ContactRoleField(Roles.CUSTODIAN.name, required=False)
@@ -688,21 +702,25 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     abstract = serializers.CharField(required=False)
 
     # BONARES ELEMENTS
-    title_translated = serializers.CharField(required=False)
-    abstract_translated = serializers.CharField(required=False)
-    subtitle = serializers.CharField(required=False)
-    method_description = serializers.CharField(required=False)
-    series_information = serializers.CharField(required=False)
-    table_of_content = serializers.CharField(required=False)
-    technical_info = serializers.CharField(required=False)
-    other_description = serializers.CharField(required=False)
+    # allow_blank=True is required on every optional text field declared here. Declaring the field
+    # explicitly overrides what ModelSerializer would have inferred from the model's blank=True, and
+    # DRF's CharField rejects "" by default -- so a client that GET a resource, changed one value and
+    # PUT the document straight back got a 400 ("This field may not be blank") for every unset field.
+    title_translated = serializers.CharField(required=False, allow_blank=True)
+    abstract_translated = serializers.CharField(required=False, allow_blank=True)
+    subtitle = serializers.CharField(required=False, allow_blank=True)
+    method_description = serializers.CharField(required=False, allow_blank=True)
+    series_information = serializers.CharField(required=False, allow_blank=True)
+    table_of_content = serializers.CharField(required=False, allow_blank=True)
+    technical_info = serializers.CharField(required=False, allow_blank=True)
+    other_description = serializers.CharField(required=False, allow_blank=True)
 
     related_identifier = RelatedIdentifierDynamicRelationField(SimpleRelatedIdentifierSerializer, embed=True, many=True)
     fundings = FundingsDynamicRelationField(FundingSerializer, embed=True, many=True)
 
     related_projects = ComplexDynamicRelationField(SimpleRelatedProjectSerializer, embed=True, many=True)
     conformity_results = serializers.CharField(required=False)
-    conformity_explanation = serializers.CharField(required=False)
+    conformity_explanation = serializers.CharField(required=False, allow_blank=True)
     date_available = serializers.DateField(required=False)
     date_updated = serializers.DateField(required=False)
     date_created = serializers.DateField(required=False)
@@ -731,8 +749,8 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     license = ComplexDynamicRelationField(LicenseSerializer, embed=True)
     metadata_license = ComplexDynamicRelationField(LicenseSerializer, embed=True, many=False)
     use_constrains = serializers.CharField(read_only=True)
-    data_lineage = serializers.CharField(required=False)
-    metadata_lineage = serializers.CharField(required=False)
+    data_lineage = serializers.CharField(required=False, allow_blank=True)
+    metadata_lineage = serializers.CharField(required=False, allow_blank=True)
     language = serializers.CharField(required=False)
     supplemental_information = serializers.CharField(required=False)
     data_quality_statement = serializers.CharField(required=False)
@@ -742,10 +760,10 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     srid = serializers.CharField(required=False)
     group = ComplexDynamicRelationField(GroupSerializer, embed=True)
     share_count = serializers.CharField(required=False)
-    featured = ResourceManagementField(required=False)
+    featured = serializers.BooleanField(required=False)
     advertised = serializers.BooleanField(required=False)
-    is_published = ResourceManagementField(required=False)
-    is_approved = ResourceManagementField(required=False)
+    is_published = serializers.BooleanField(required=False)
+    is_approved = serializers.BooleanField(required=False)
     detail_url = DetailUrlField(read_only=True)
     created = serializers.DateTimeField(read_only=True)
     last_updated = serializers.DateTimeField(read_only=True)
@@ -797,6 +815,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "owner",
             "poc",
             "metadata_author",
+            "author",
             "processor",
             "publisher",
             "custodian",
@@ -927,6 +946,24 @@ class ResourceBaseSerializer(DynamicModelSerializer):
         data = super(ResourceBaseSerializer, self).to_internal_value(data)
         return data
 
+    def update(self, instance, validated_data):
+        # Dropped wholesale by the 5.0.3 merge along with ResourceManagementField, taking two
+        # behaviours with it: group updates through the nested GroupSerializer, and the role check
+        # that stops a user from changing is_approved / is_published / featured on a resource they
+        # are not allowed to manage. Restored from upstream 5.0.3.
+        user = self.context["request"].user
+
+        # Handle group update from the GroupSerializer
+        if "group" in validated_data:
+            # Call GroupSerializer's update method
+            group_serializer = GroupSerializer(context=self.context)
+            group_serializer.update(instance, validated_data)
+
+        for field in instance.ROLE_BASED_MANAGED_FIELDS:
+            if not user.can_change_resource_field(instance, field) and field in validated_data:
+                validated_data.pop(field)
+        return super().update(instance, validated_data)
+
     def save(self, **kwargs):
         extent = self.validated_data.pop("extent", None)
         keywords = self.validated_data.pop("keywords", None)
@@ -947,6 +984,15 @@ class ResourceBaseSerializer(DynamicModelSerializer):
                 logger.exception(e)
                 raise InvalidResourceException("The standard bbox provided is invalid")
             instance.set_bbox_polygon(coords, srid)
+
+        user = self.context["request"].user
+        for field in instance.ROLE_BASED_MANAGED_FIELDS:
+            if not user.can_change_resource_field(instance, field):
+                logger.debug("User can perform the action, the default value is set")
+                # upstream-geonode: this sets the attribute on `user`, not on `instance`, so on the
+                # create path the guard is a no-op. Kept byte-identical to upstream 5.0.3 rather
+                # than silently changing permission semantics here -- worth reporting upstream.
+                setattr(user, field, getattr(ResourceBase, field).field.default)
         return instance
 
 
@@ -1083,9 +1129,39 @@ class LinkedResourceSerializer(DynamicModelSerializer):
         model = LinkedResource
         fields = ("internal",)
 
+    def _get_download_url(self, item: ResourceBase):
+        """
+        Derive download URL from ResourceBase fields, avoiding get_real_instance()
+        to prevent N+1 queries.
+        """
+        if item.resource_type == "document":
+            try:
+                return build_absolute_uri(reverse("document_download", args=(item.pk,)))
+            except NoReverseMatch:
+                return None
+        if item.resource_type == "dataset":
+            if not item.alternate:
+                return None
+            try:
+                return build_absolute_uri(reverse("dataset_download", args=(item.alternate,)))
+            except NoReverseMatch:
+                return None
+        return None
+
     def to_representation(self, instance: LinkedResource):
         data = super().to_representation(instance)
         item: ResourceBase = instance.target if self.serialize_target else instance.source
+        # download_url was dropped from this serializer by the 5.0.3 merge together with
+        # _get_download_url above; see base/api/tests.py TestLinkedResourceSerializerDownloadUrl.
+        try:
+            if item.resource_type == "document":
+                download_url = reverse("document_download", kwargs={"docid": item.pk})
+            elif item.resource_type == "dataset" and item.alternate:
+                download_url = reverse("dataset_download", kwargs={"layername": item.alternate})
+            else:
+                download_url = None
+        except Exception:
+            download_url = None
         data.update(
             {
                 "pk": item.pk,
@@ -1093,6 +1169,7 @@ class LinkedResourceSerializer(DynamicModelSerializer):
                 "resource_type": item.resource_type,
                 "detail_url": item.detail_url,
                 "thumbnail_url": item.thumbnail_url,
+                "download_url": download_url,
             }
         )
         return data

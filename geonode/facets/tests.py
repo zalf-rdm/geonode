@@ -248,9 +248,11 @@ class TestFacets(GeoNodeBaseTestSupport):
         obj = json.loads(res.content)
         self.assertIn("facets", obj)
         facets_list = obj["facets"]
-        self.assertEqual(9, len(facets_list))
+        # 10, not upstream's 9: this fork registers AuthorFacetProvider in FACET_PROVIDERS in
+        # addition to upstream's eight providers (the thesaurus one expands into t_0 and t_1).
+        self.assertEqual(10, len(facets_list))
         fmap = self._facets_to_map(facets_list)
-        for name in ("group", "category", "owner", "t_0", "t_1", "featured", "resourcetype", "keyword"):
+        for name in ("group", "category", "owner", "author", "t_0", "t_1", "featured", "resourcetype", "keyword"):
             self.assertIn(name, fmap)
 
     def test_facets_rich(self):
@@ -268,7 +270,8 @@ class TestFacets(GeoNodeBaseTestSupport):
         obj = json.loads(res.content)
 
         facets_list = obj["facets"]
-        self.assertEqual(9, len(facets_list))
+        # See test_facets_base: this fork registers one provider more than upstream.
+        self.assertEqual(10, len(facets_list))
         fmap = self._facets_to_map(facets_list)
         for expected in (  # fmt: skip
             {

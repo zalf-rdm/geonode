@@ -17,6 +17,7 @@
 #
 #########################################################################
 import ast
+import unittest
 import os
 import time
 
@@ -42,6 +43,22 @@ from unittest import skip
 
 logger = logging.getLogger()
 geourl = settings.GEODATABASE_URL
+
+
+def setUpModule():
+    """Gate the end-to-end upload tests behind TEST_RUN_INTEGRATION_UPLOAD.
+
+    These drive the full async import pipeline and need a celery worker. docker-compose-test.yml
+    does not run one, so without this guard they block forever waiting on a task that is never
+    picked up (observed: `test_import_csv_overwrite` hanging indefinitely at
+    "STARTING NEXT STEP geonode.upload.import_resource") and take the whole CI job down with them.
+
+    settings.py already derives `integration_upload_tests` from this variable but never used it;
+    Django only exposes UPPERCASE settings, so the environment is read directly here.
+    Run them via tests/test_integration.sh, which sets TEST_RUN_INTEGRATION_UPLOAD=True.
+    """
+    if not ast.literal_eval(os.environ.get("TEST_RUN_INTEGRATION_UPLOAD", "False")):
+        raise unittest.SkipTest("upload end2end tests require TEST_RUN_INTEGRATION_UPLOAD=True and a celery worker")
 
 
 @override_settings(

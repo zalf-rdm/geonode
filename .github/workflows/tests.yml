@@ -11,134 +11,147 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # -------------------------------------------------
-  # BUILD DOCKER IMAGES ONCE AND SHARE AS ARTIFACTS
-  # -------------------------------------------------
-  build_images:
-    name: Build and export Docker images
+  tests:
+    name: Test Suites
     runs-on: ubuntu-24.04
     if: ${{ !github.event.pull_request.draft }}
+    # The whole matrix runs in this one job. Generous, but a hung suite should not
+    # burn the full 6h default.
+    timeout-minutes: 330
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build all services (Docker Compose v2)
+      - name: Build the stack images
         run: docker compose --env-file .env_test -f docker-compose-test.yml build --progress plain
 
-      - name: Save built Docker images
+      - name: Start the stack
+        run: docker compose --env-file .env_test -f docker-compose-test.yml up -d
+
+      - name: Wait for the django container to be responsive
         run: |
-          mkdir -p docker_images
-          docker save -o docker_images/django.tar geonode/geonode:latest-ubuntu-24.04
+          DC="docker compose --env-file .env_test -f docker-compose-test.yml"
+          for _ in $(seq 1 60); do
+            if $DC exec -T django true </dev/null 2>/dev/null; then
+              echo "django container is responsive"; exit 0
+            fi
+            sleep 5
+          done
+          echo "django container never became responsive"
+          $DC ps
+          exit 1
 
-      - name: Upload Docker images as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: docker-images
-          path: docker_images
-          retention-days: 1
+      - name: Prepare test databases and pristine templates
+        # Django needs CREATE EXTENSION postgis, which requires superuser. Instead of granting
+        # SUPERUSER to the geonode roles, the databases are pre-created here by postgres with the
+        # extension installed and owned by the geonode roles.
+        #
+        # They are then migrated once and snapshotted as templates. Because every suite below runs
+        # against the same stack, each one must start from a clean database -- otherwise state
+        # left by an earlier suite leaks into the next (loading group_test_data.json fails with
+        # "duplicate key ... username=admin" once a previous suite has created an admin). Restoring
+        # from an already-migrated template resets in seconds instead of re-running ~450 migrations.
+        run: |
+          DC="docker compose --env-file .env_test -f docker-compose-test.yml"
+          $DC exec -T db psql -U postgres -q -c "CREATE DATABASE test_geonode OWNER geonode;" </dev/null
+          $DC exec -T db psql -U postgres -q -c "CREATE DATABASE test_geonode_data OWNER geonode_data;" </dev/null
+          $DC exec -T db psql -U postgres -q -d test_geonode -c "CREATE EXTENSION IF NOT EXISTS postgis;" </dev/null
+          $DC exec -T db psql -U postgres -q -d test_geonode_data -c "CREATE EXTENSION IF NOT EXISTS postgis;" </dev/null
 
-  # -------------------------------------------------
-  # TEST SUITES
-  # -------------------------------------------------
-  smoke:
-    uses: ./.github/workflows/run-test-suite.yml
-    needs: build_images
-    secrets: inherit
-    with:
-      suite_name: "Smoke Tests"
-      # geonode.tests.test_load_thesaurus is included deliberately: it lives in geonode/tests/
-      # and is not part of any GEONODE_APPS-derived selection, so nothing else would run it.
-      test_command: >
-        ./tests/test.sh geonode.tests.smoke geonode.tests.test_rest_api geonode.tests.test_search
-        geonode.tests.test_utils geonode.tests.test_headers geonode.tests.test_load_thesaurus
-        --durations 30 --failfast
+          $DC exec -T django bash -lc '
+            cd /usr/src/geonode
+            set -a; . ./.env_test; set +a
+            DATABASE_URL="postgis://geonode:geonode@db:5432/test_geonode" \
+            GEODATABASE_URL="postgis://geonode_data:geonode_data@db:5432/test_geonode_data" \
+            python manage.py migrate --noinput' </dev/null
 
-  zalf:
-    uses: ./.github/workflows/run-test-suite.yml
-    needs: [ build_images, smoke ]
-    secrets: inherit
-    with:
-      suite_name: "ZALF Tests"
-      # geonode.zalf is attached via INSTALLED_APPS += (...), not GEONODE_APPS, so the
-      # upstream-style selections below never pick it up. Without this job the fork's own
-      # code (DOI/DataCite/publish workflow) would have no CI coverage at all.
-      test_command: >
-        ./tests/test.sh geonode.zalf --durations 30 --failfast
+          $DC exec -T db psql -U postgres -q -c \
+            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname LIKE 'test_%';" </dev/null
+          $DC exec -T db psql -U postgres -q -c "CREATE DATABASE test_geonode_pristine TEMPLATE test_geonode;" </dev/null
+          $DC exec -T db psql -U postgres -q -c "CREATE DATABASE test_geonode_data_pristine TEMPLATE test_geonode_data;" </dev/null
 
-  main:
-    uses: ./.github/workflows/run-test-suite.yml
-    needs: [ build_images, smoke ]
-    secrets: inherit
-    with:
-      suite_name: "Main Tests"
-      test_command: >
-        TESTS=$(python -c 'from geonode import settings; print(" ".join([a + ".tests"
-        for a in settings.GEONODE_APPS if "security" not in a and "geoserver" not in a and "upload" not in a]))') &&
-        ./tests/test.sh $TESTS --durations 30 --failfast
+      - name: Run all test suites sequentially
+        id: suites
+        run: |
+          DC="docker compose --env-file .env_test -f docker-compose-test.yml"
 
-  security:
-    uses: ./.github/workflows/run-test-suite.yml
-    needs: [ build_images, smoke ]
-    secrets: inherit
-    with:
-      suite_name: "Security Tests"
-      test_command: >
-        TESTS=$(python -c 'from geonode import settings; print(" ".join([a + ".tests"
-        for a in settings.GEONODE_APPS if "security" in a]))') &&
-        ./tests/test.sh $TESTS --durations 30 --failfast
+          reset_dbs() {
+            $DC exec -T db psql -U postgres -q -c \
+              "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname LIKE 'test_%';" </dev/null >/dev/null
+            $DC exec -T db psql -U postgres -q -c "DROP DATABASE IF EXISTS test_geonode;" </dev/null
+            $DC exec -T db psql -U postgres -q -c "DROP DATABASE IF EXISTS test_geonode_data;" </dev/null
+            $DC exec -T db psql -U postgres -q -c \
+              "CREATE DATABASE test_geonode TEMPLATE test_geonode_pristine OWNER geonode;" </dev/null
+            $DC exec -T db psql -U postgres -q -c \
+              "CREATE DATABASE test_geonode_data TEMPLATE test_geonode_data_pristine OWNER geonode_data;" </dev/null
+          }
 
-  gis_backend:
-    uses: ./.github/workflows/run-test-suite.yml
-    needs: [ build_images, smoke ]
-    secrets: inherit
-    with:
-      suite_name: "GIS Backend Tests"
-      test_command: >
-        TESTS=$(python -c 'from geonode import settings; print(" ".join([a + ".tests"
-        for a in settings.GEONODE_APPS if "geoserver" in a]))') &&
-        ./tests/test.sh $TESTS --durations 30 --failfast
+          # Resolved once so the suite table below contains no nested quoting.
+          MAIN_TESTS=$($DC exec -T django bash -lc 'cd /usr/src/geonode && python tests/suite_apps.py main' </dev/null | tr -d '\r')
+          SECURITY_TESTS=$($DC exec -T django bash -lc 'cd /usr/src/geonode && python tests/suite_apps.py security' </dev/null | tr -d '\r')
+          GIS_TESTS=$($DC exec -T django bash -lc 'cd /usr/src/geonode && python tests/suite_apps.py gis_backend' </dev/null | tr -d '\r')
 
-  rest_apis:
-    uses: ./.github/workflows/run-test-suite.yml
-    needs: [ build_images, smoke ]
-    secrets: inherit
-    with:
-      suite_name: "REST API Tests"
-      test_command: >
-        ./tests/test.sh geonode.api.tests geonode.base.api.tests geonode.layers.api.tests
-        geonode.maps.api.tests geonode.documents.api.tests geonode.geoapps.api.tests
-        --durations 30 --failfast
+          # geonode.tests.test_load_thesaurus is listed explicitly: it lives in geonode/tests/ and is
+          # not part of any GEONODE_APPS-derived selection, so nothing else would ever run it.
+          # geonode.zalf likewise is attached via INSTALLED_APPS += (...), not GEONODE_APPS.
+          SUITES=$(cat <<EOF
+          Smoke|geonode.tests.smoke geonode.tests.test_rest_api geonode.tests.test_search geonode.tests.test_utils geonode.tests.test_headers geonode.tests.test_load_thesaurus
+          ZALF|geonode.zalf
+          Main|$MAIN_TESTS
+          Security|$SECURITY_TESTS
+          GIS Backend|$GIS_TESTS
+          REST API|geonode.api.tests geonode.base.api.tests geonode.layers.api.tests geonode.maps.api.tests geonode.documents.api.tests geonode.geoapps.api.tests
+          CSW|geonode.tests.csw geonode.catalogue.backends.tests
+          Upload|geonode.upload
+          EOF
+          )
 
-  csw:
-    uses: ./.github/workflows/run-test-suite.yml
-    needs: [ build_images, smoke ]
-    secrets: inherit
-    with:
-      suite_name: "CSW Tests"
-      test_command: >
-        ./tests/test.sh geonode.tests.csw geonode.catalogue.backends.tests --durations 30 --failfast
+          FAILED=0
+          SUMMARY=""
+          while IFS='|' read -r NAME APPS; do
+            NAME=$(echo "$NAME" | sed 's/^ *//;s/ *$//')
+            [ -z "$NAME" ] && continue
+            echo "::group::$NAME"
+            START=$(date +%s)
+            reset_dbs
+            # </dev/null is essential: without it `docker compose exec -T` consumes the
+            # here-document that feeds this while-loop and the remaining suites are skipped.
+            #
+            # timeout bounds each suite: a test that blocks on something that never arrives (an
+            # async import waiting on a celery worker the test stack does not run, say) would
+            # otherwise sit there until the job-level timeout and take every later suite with it.
+            set +e
+            timeout --signal=INT --kill-after=60s "${SUITE_TIMEOUT:-45m}" \
+              $DC exec -T django bash -lc "cd /usr/src/geonode && ./tests/test.sh $APPS --durations 30 --failfast" </dev/null
+            RC=$?
+            set -e
+            case $RC in
+              0)   STATUS="PASS" ;;
+              124) STATUS="TIMEOUT"; FAILED=1 ;;
+              *)   STATUS="FAIL"; FAILED=1 ;;
+            esac
+            ELAPSED=$(( $(date +%s) - START ))
+            echo "::endgroup::"
+            echo "$STATUS  $NAME (${ELAPSED}s)"
+            SUMMARY="$SUMMARY| $NAME | $STATUS | ${ELAPSED}s |"$'\n'
+          done <<< "$SUITES"
 
-  upload:
-    uses: ./.github/workflows/run-test-suite.yml
-    needs: [ build_images, smoke ]
-    secrets: inherit
-    with:
-      suite_name: "Upload Tests"
-      test_command: >
-        ./tests/test.sh geonode.upload --durations 30 --failfast
+          {
+            echo "## Test suite results"
+            echo
+            echo "| Suite | Result | Duration |"
+            echo "|-------|--------|----------|"
+            printf '%s' "$SUMMARY"
+          } >> "$GITHUB_STEP_SUMMARY"
 
-  # -------------------------------------------------
-  # CLEANUP
-  # -------------------------------------------------
-  cleanup:
-    name: Cleanup Artifacts
-    needs: [ smoke, zalf, main, security, gis_backend, rest_apis, csw, upload ]
-    runs-on: ubuntu-24.04
-    if: always()
-    steps:
-      - name: Delete the shared docker image artifact
-        uses: geekyeggo/delete-artifact@v5
-        with:
-          name: docker-images
-          failOnError: false
+          exit $FAILED
+
+      - name: Dump docker logs on failure
+        if: failure()
+        uses: jwalton/gh-docker-logs@v2
+
+      - name: Stop the stack
+        if: always()
+        # -v is safe here: an ephemeral CI runner owns these volumes exclusively.
+        run: docker compose --env-file .env_test -f docker-compose-test.yml down -v

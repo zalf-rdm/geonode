@@ -661,8 +661,7 @@ class BaseApiTests(APITestCase):
             response = self.client.get(f"{url_with_id}", format="json")
             self.assertIsNotNone(response.data["resource"]["tkeywords"])
             self.assertEqual(6, len(response.data["resource"]["tkeywords"]))
-            self.assertListEqual(
-                [
+            expected_tkeywords = [
                     {
                         "name": "",
                         "slug": "http-inspire-ec-europa-eu-theme-37",
@@ -721,9 +720,14 @@ class BaseApiTests(APITestCase):
                         },
                         "i18n": {"en": "Utility and governmental services"},
                     },
-                ],
-                response.data["resource"]["tkeywords"],
-            )
+                ]
+            # This fork's ThesaurusKeywordSerializer emits an extra "keyword" key holding the pk
+            # (added by c5153e27e for the BonaRes metadata API); upstream's literal expectation
+            # above predates it. Resolved from the DB by uri rather than hardcoded so the test does
+            # not depend on fixture pk numbering.
+            for entry in expected_tkeywords:
+                entry["keyword"] = ThesaurusKeyword.objects.get(about=entry["uri"]).id
+            self.assertListEqual(expected_tkeywords, response.data["resource"]["tkeywords"])
         finally:
             resource.tkeywords.set(ThesaurusKeyword.objects.none())
             self.assertEqual(0, resource.tkeywords.count())
@@ -811,7 +815,7 @@ class BaseApiTests(APITestCase):
         data = JSONParser().parse(stream)
         self.assertIsInstance(data, dict)
         se = ResourceBaseSerializer(data=data, context={"request": rq})
-        self.assertTrue(se.is_valid())
+        self.assertTrue(se.is_valid(), se.errors)
 
     def test_resource_base_serializer_with_settingsfield(self):
         doc = create_single_doc("my_custom_doc")

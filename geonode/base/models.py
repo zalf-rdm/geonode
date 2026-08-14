@@ -1511,12 +1511,18 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         """
         from django.contrib.auth import get_user_model
 
-        def __create_role__(resource, role: str, user_profile):
-            return ContactRole.objects.create(role=role, resource=resource, contact=user_profile)
+        # ContactRole carries an `order` column with a UniqueConstraint on
+        # (resource, role, order) and Meta.ordering = ("order", "id"). Creating several contacts
+        # for one role without setting it left them all at the default 0, so the second insert
+        # always raised IntegrityError -- i.e. assigning two authors (or any multi-value role)
+        # was impossible. Enumerating also makes the stored order match the input order, which is
+        # what that column exists for.
+        def __create_role__(resource, role: str, user_profile, order: int = 0):
+            return ContactRole.objects.create(role=role, resource=resource, contact=user_profile, order=order)
 
         if isinstance(user_profile, QuerySet):
             ContactRole.objects.filter(role=role, resource=self).delete()
-            return [__create_role__(self, role, user) for user in user_profile]
+            return [__create_role__(self, role, user, order) for order, user in enumerate(user_profile)]
 
         elif isinstance(user_profile, get_user_model()):
             ContactRole.objects.filter(role=role, resource=self).delete()
@@ -1527,13 +1533,142 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         ):
             ContactRole.objects.filter(role=role, resource=self).delete()
             return [
-                __create_role__(self, role, user) for user in get_user_model().objects.filter(username__in=user_profile)
+                __create_role__(self, role, user, order)
+                for order, user in enumerate(get_user_model().objects.filter(username__in=user_profile))
             ]
 
         elif user_profile is None:
             ContactRole.objects.filter(role=role, resource=self).delete()
         else:
             logger.error(f"Bad profile format for role: {role} ...")
+
+    # ------------------------------------------------------------------
+    # Named contact-role accessors.
+    #
+    # These are thin wrappers over __get_contact_role_elements__ /
+    # __set_contact_role_element__ above, restored to match upstream GeoNode.
+    # They went missing during the 5.0.3 merge, which broke:
+    #   * geonode/maps/models.py (poc_csv, used to build the map README)
+    #   * geonode/geoserver/helpers.py (get_first_contact_of_role, poc_csv)
+    #   * base/templates/base/_resourcebase_contact_snippet.html and
+    #     _resourcebase_info_panel.html, which reference resource.poc and
+    #     resource.metadata_author -- Django templates swallow AttributeError,
+    #     so those panels were silently rendering empty rather than erroring.
+    # Keeping them identical to upstream also keeps future merges clean.
+    # ------------------------------------------------------------------
+
+    def get_first_contact_of_role(self, role: str) -> Optional[ContactRole]:
+        """
+        Get the first contact from the specified role.
+
+        Parameters:
+            role (str): The role of the contact.
+
+        Returns:
+            ContactRole or None: The first contact with the specified role, or None if not found.
+        """
+        if contact := self.__get_contact_role_elements__(role):
+            return contact[0]
+        else:
+            return None
+
+    # Contact Role: POC (pointOfContact)
+    def __get_poc__(self) -> List[settings.AUTH_USER_MODEL]:
+        return self.__get_contact_role_elements__(role="pointOfContact")
+
+    def __set_poc__(self, user_profile):
+        return self.__set_contact_role_element__(user_profile=user_profile, role="pointOfContact")
+
+    poc = property(__get_poc__, __set_poc__)
+
+    @property
+    def poc_csv(self):
+        return ",".join(p.get_full_name() or p.username for p in self.poc)
+
+    # Contact Role: metadata_author
+    def _get_metadata_author(self):
+        return self.__get_contact_role_elements__(role="author")
+
+    def _set_metadata_author(self, user_profile):
+        return self.__set_contact_role_element__(user_profile=user_profile, role="author")
+
+    metadata_author = property(_get_metadata_author, _set_metadata_author)
+
+    @property
+    def metadata_author_csv(self):
+        return ",".join(p.get_full_name() or p.username for p in self.metadata_author)
+
+    # Contact Role: processor
+    def _get_processor(self):
+        return self.__get_contact_role_elements__(role="processor")
+
+    def _set_processor(self, user_profile):
+        return self.__set_contact_role_element__(user_profile=user_profile, role="processor")
+
+    processor = property(_get_processor, _set_processor)
+
+    # Contact Role: publisher
+    def _get_publisher(self):
+        return self.__get_contact_role_elements__(role="publisher")
+
+    def _set_publisher(self, user_profile):
+        return self.__set_contact_role_element__(user_profile=user_profile, role="publisher")
+
+    publisher = property(_get_publisher, _set_publisher)
+
+    # Contact Role: custodian
+    def _get_custodian(self):
+        return self.__get_contact_role_elements__(role="custodian")
+
+    def _set_custodian(self, user_profile):
+        return self.__set_contact_role_element__(user_profile=user_profile, role="custodian")
+
+    custodian = property(_get_custodian, _set_custodian)
+
+    # Contact Role: distributor
+    def _get_distributor(self):
+        return self.__get_contact_role_elements__(role="distributor")
+
+    def _set_distributor(self, user_profile):
+        return self.__set_contact_role_element__(user_profile=user_profile, role="distributor")
+
+    distributor = property(_get_distributor, _set_distributor)
+
+    # Contact Role: resource_user
+    def _get_resource_user(self):
+        return self.__get_contact_role_elements__(role="resourceUser")
+
+    def _set_resource_user(self, user_profile):
+        return self.__set_contact_role_element__(user_profile=user_profile, role="resourceUser")
+
+    resource_user = property(_get_resource_user, _set_resource_user)
+
+    # Contact Role: resource_provider
+    def _get_resource_provider(self):
+        return self.__get_contact_role_elements__(role="resourceProvider")
+
+    def _set_resource_provider(self, user_profile):
+        return self.__set_contact_role_element__(user_profile=user_profile, role="resourceProvider")
+
+    resource_provider = property(_get_resource_provider, _set_resource_provider)
+
+    # Contact Role: originator
+    def _get_originator(self):
+        return self.__get_contact_role_elements__(role="originator")
+
+    def _set_originator(self, user_profile):
+        return self.__set_contact_role_element__(user_profile=user_profile, role="originator")
+
+    originator = property(_get_originator, _set_originator)
+
+    # Contact Role: principal_investigator
+    def _get_principal_investigator(self):
+        return self.__get_contact_role_elements__(role="principalInvestigator")
+
+    def _set_principal_investigator(self, user_profile):
+        return self.__set_contact_role_element__(user_profile=user_profile, role="principalInvestigator")
+
+    principal_investigator = property(_get_principal_investigator, _set_principal_investigator)
 
     @property
     def topiccategory(self):
@@ -2199,6 +2334,38 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
             if as_target
             else LinkedResource.get_linked_resources(source=self)
         )
+
+
+def _install_contact_role_properties(model):
+    """Give ResourceBase a property for every role in geonode.people.Roles.
+
+    Upstream GeoNode hand-writes ten of these (poc, metadata_author, ... principal_investigator);
+    those stay spelled out in the class body above so merges with upstream stay clean. This fork
+    adds ~19 further DataCite roles (data_collector, other, project_member, registration_authority,
+    ...) and the serializers in geonode/base/api/serializers.py address every one of them as an
+    attribute, so the accessors are generated here rather than hand-written 19 more times.
+
+    Roles.OWNER is skipped: `owner` is a real ForeignKey on ResourceBase, not a ContactRole.
+    """
+    for role in Roles:
+        if role is Roles.OWNER:
+            continue
+        attribute = role.name.lower()
+        if hasattr(model, attribute):
+            continue  # explicitly defined above -- do not shadow it
+        setattr(
+            model,
+            attribute,
+            property(
+                lambda self, _role=role.role_value: self.__get_contact_role_elements__(role=_role),
+                lambda self, value, _role=role.role_value: self.__set_contact_role_element__(
+                    user_profile=value, role=_role
+                ),
+            ),
+        )
+
+
+_install_contact_role_properties(ResourceBase)
 
 
 class LinkManager(models.Manager):

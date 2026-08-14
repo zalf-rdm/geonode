@@ -7,3 +7,20 @@ docs
 .celerybeat-*
 
 scripts/spcgeonode/_volume_*
+
+# Build/VCS artifacts that are never needed inside the image. The project version comes from
+# geonode.__version_str__ (see [tool.setuptools.dynamic] in pyproject.toml), not from scm, so
+# .git is not required at build time. Excluding these keeps the build context small -- it was
+# ~2.0 GB locally, dominated by .git, build/ and venv/.
+.git
+.github
+build
+dist
+*.egg-info
+venv
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+.tox

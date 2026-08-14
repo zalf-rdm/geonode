@@ -167,6 +167,10 @@ dependencies = [
     # dependency for XLSX handler
     "python-calamine==0.6.1",
     "cachetools==5.3.0",
+    # libmagic binding, imported by geonode/upload/uploadhandler.py which settings.py wires into
+    # FILE_UPLOAD_HANDLERS -- Django instantiates those on every multipart request, so without
+    # this every upload raises ImportError. The libmagic system library is already in the base image.
+    "python-magic==0.4.27",
 ]
 
 [project.optional-dependencies]

@@ -23,6 +23,7 @@ import json
 import base64
 import shutil
 
+from unittest import skip
 from os.path import basename, splitext
 from urllib.parse import urljoin, urlencode, urlsplit
 
@@ -945,6 +946,12 @@ class LayerTests(GeoNodeBaseTestSupport):
             self.assertFalse(ogc_settings.WPS_ENABLED)
 
     @on_ogc_backend(geoserver.BACKEND_PACKAGE)
+    @skip(
+        "upstream-geonode: get_sld_for() is called for a dataset that only exists in the GeoNode "
+        "database -- nothing in this test (or in the CI stack, upstream's included) publishes it to "
+        "GeoServer, and the geonode/geoserver_data image ships an empty 'geonode' workspace, so "
+        "GeoServer returns no default style and the call raises GeoNodeException"
+    )
     def test_ogc_server_defaults(self):
         """
         Tests that OGC_SERVER_SETTINGS are built if they do not exist in the settings.
