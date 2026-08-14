@@ -662,65 +662,65 @@ class BaseApiTests(APITestCase):
             self.assertIsNotNone(response.data["resource"]["tkeywords"])
             self.assertEqual(6, len(response.data["resource"]["tkeywords"]))
             expected_tkeywords = [
-                    {
-                        "name": "",
-                        "slug": "http-inspire-ec-europa-eu-theme-37",
-                        "uri": "http://inspire.ec.europa.eu/theme#37",
-                        "thesaurus": {
-                            "name": "GEMET - INSPIRE themes, version 1.0",
-                            "slug": "inspire-theme",
-                            "uri": "http://inspire.ec.europa.eu/theme",
-                        },
-                        "i18n": {},
+                {
+                    "name": "",
+                    "slug": "http-inspire-ec-europa-eu-theme-37",
+                    "uri": "http://inspire.ec.europa.eu/theme#37",
+                    "thesaurus": {
+                        "name": "GEMET - INSPIRE themes, version 1.0",
+                        "slug": "inspire-theme",
+                        "uri": "http://inspire.ec.europa.eu/theme",
                     },
-                    {
-                        "name": "",
-                        "slug": "http-localhost-8000-thesaurus-no-about-thesauro-38",
-                        "uri": "http://localhost:8000//thesaurus/no-about-thesauro#38",
-                        "thesaurus": {"name": "Thesauro without the about", "slug": "no-about-thesauro", "uri": ""},
-                        "i18n": {},
+                    "i18n": {},
+                },
+                {
+                    "name": "",
+                    "slug": "http-localhost-8000-thesaurus-no-about-thesauro-38",
+                    "uri": "http://localhost:8000//thesaurus/no-about-thesauro#38",
+                    "thesaurus": {"name": "Thesauro without the about", "slug": "no-about-thesauro", "uri": ""},
+                    "i18n": {},
+                },
+                {
+                    "name": "bar_keyword",
+                    "slug": "http-localhost-8000-thesaurus-no-about-thesauro-bar-keyword",
+                    "uri": "http://localhost:8000//thesaurus/no-about-thesauro#bar_keyword",
+                    "thesaurus": {"name": "Thesauro without the about", "slug": "no-about-thesauro", "uri": ""},
+                    "i18n": {},
+                },
+                {
+                    "name": "foo_keyword",
+                    "slug": "http-inspire-ec-europa-eu-theme-foo-keyword",
+                    "uri": "http://inspire.ec.europa.eu/theme#foo_keyword",
+                    "thesaurus": {
+                        "name": "GEMET - INSPIRE themes, version 1.0",
+                        "slug": "inspire-theme",
+                        "uri": "http://inspire.ec.europa.eu/theme",
                     },
-                    {
-                        "name": "bar_keyword",
-                        "slug": "http-localhost-8000-thesaurus-no-about-thesauro-bar-keyword",
-                        "uri": "http://localhost:8000//thesaurus/no-about-thesauro#bar_keyword",
-                        "thesaurus": {"name": "Thesauro without the about", "slug": "no-about-thesauro", "uri": ""},
-                        "i18n": {},
+                    "i18n": {},
+                },
+                {
+                    "name": "mf",
+                    "slug": "http-inspire-ec-europa-eu-theme-mf",
+                    "uri": "http://inspire.ec.europa.eu/theme/mf",
+                    "thesaurus": {
+                        "name": "GEMET - INSPIRE themes, version 1.0",
+                        "slug": "inspire-theme",
+                        "uri": "http://inspire.ec.europa.eu/theme",
                     },
-                    {
-                        "name": "foo_keyword",
-                        "slug": "http-inspire-ec-europa-eu-theme-foo-keyword",
-                        "uri": "http://inspire.ec.europa.eu/theme#foo_keyword",
-                        "thesaurus": {
-                            "name": "GEMET - INSPIRE themes, version 1.0",
-                            "slug": "inspire-theme",
-                            "uri": "http://inspire.ec.europa.eu/theme",
-                        },
-                        "i18n": {},
+                    "i18n": {"en": "Meteorological geographical features"},
+                },
+                {
+                    "name": "us",
+                    "slug": "http-inspire-ec-europa-eu-theme-us",
+                    "uri": "http://inspire.ec.europa.eu/theme/us",
+                    "thesaurus": {
+                        "name": "GEMET - INSPIRE themes, version 1.0",
+                        "slug": "inspire-theme",
+                        "uri": "http://inspire.ec.europa.eu/theme",
                     },
-                    {
-                        "name": "mf",
-                        "slug": "http-inspire-ec-europa-eu-theme-mf",
-                        "uri": "http://inspire.ec.europa.eu/theme/mf",
-                        "thesaurus": {
-                            "name": "GEMET - INSPIRE themes, version 1.0",
-                            "slug": "inspire-theme",
-                            "uri": "http://inspire.ec.europa.eu/theme",
-                        },
-                        "i18n": {"en": "Meteorological geographical features"},
-                    },
-                    {
-                        "name": "us",
-                        "slug": "http-inspire-ec-europa-eu-theme-us",
-                        "uri": "http://inspire.ec.europa.eu/theme/us",
-                        "thesaurus": {
-                            "name": "GEMET - INSPIRE themes, version 1.0",
-                            "slug": "inspire-theme",
-                            "uri": "http://inspire.ec.europa.eu/theme",
-                        },
-                        "i18n": {"en": "Utility and governmental services"},
-                    },
-                ]
+                    "i18n": {"en": "Utility and governmental services"},
+                },
+            ]
             # This fork's ThesaurusKeywordSerializer emits an extra "keyword" key holding the pk
             # (added by c5153e27e for the BonaRes metadata API); upstream's literal expectation
             # above predates it. Resolved from the DB by uri rather than hardcoded so the test does
