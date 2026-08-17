@@ -1,0 +1,41 @@
+name: Static Checks
+
+# Fast, stack-free checks. Kept out of tests.yml on purpose: that job builds an image and runs eight
+# suites for the better part of an hour, and a malformed workflow or Dockerfile should fail a pull
+# request in a minute or two rather than forty.
+
+on:
+  pull_request:
+    branches: [ main ]
+    types: [ opened, synchronize, reopened, ready_for_review ]
+  workflow_dispatch:
+
+concurrency:
+  group: checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static:
+    name: Workflow and Dockerfile lint
+    runs-on: ubuntu-24.04
+    if: ${{ !github.event.pull_request.draft }}
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # This repository has shipped broken CI twice: a reusable workflow with no caller, and suite
+      # scripts referenced at paths that had moved. actionlint catches both shapes statically.
+      - name: Lint GitHub workflows
+        uses: docker://rhysd/actionlint:1.7.7
+        with:
+          args: -color
+
+      # failure-threshold: error keeps the existing Dockerfile's style warnings (pinned-version
+      # advice and friends) visible without blocking. Tighten to `warning` once they are addressed.
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: error

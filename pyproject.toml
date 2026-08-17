@@ -54,6 +54,11 @@ dependencies = [
     "django-imagekit==5.0.0",
     "django-taggit==5.0.1",
     "django-markdownify==0.9.5",
+    # Imported directly by geonode/zalf/api/cms_utils.py, not only through django-markdownify.
+    # They were installed purely because markdownify happens to depend on them, so a change on its
+    # side would have broken the ZALF CMS API -- the same shape of failure python-magic caused.
+    "bleach==6.4.0",
+    "Markdown==3.10.2",
     "django-mptt==0.16.0",
     "django-treebeard==4.7.1",
     "django-guardian<2.4.1",
@@ -216,3 +221,47 @@ exclude = '''
   | node_modules
 )/
 '''
+
+[tool.deptry]
+# Enforces DEP001 (imported but never declared) and DEP003 (imported, but only reachable through
+# somebody else's dependency). Together they cover the failure this gate exists for: python-magic is
+# imported by geonode/upload/uploadhandler.py and was never declared, which broke every upload on a
+# clean install while working fine in development.
+#
+# DEP003 is doing the real work there. `chardet` also ships a top-level `magic` module, so with
+# python-magic removed deptry still resolves the import -- to a transitive package -- and DEP001
+# stays quiet; only DEP003 reports it. DEP003 is also what caught bleach and markdown, imported
+# directly by geonode/zalf/api/cms_utils.py but present only via django-markdownify.
+#
+# DEP002/DEP004 are ignored as pure noise here: ~50 "unused" packages that are wired in through
+# INSTALLED_APPS strings rather than imports (django-widget-tweaks, dj-pagination, ...) or are
+# console tools never imported at all (uWSGI, black, coverage).
+ignore = ["DEP002", "DEP004"]
+extend_exclude = ["geonode/static/node_modules", "venv"]
+
+[tool.deptry.per_rule_ignores]
+DEP001 = [
+    # Guarded legacy path: geonode/people/forms/recaptcha.py tries `captcha.fields` and falls back
+    # to `django_recaptcha.fields`. django-recaptcha 4.0 (the declared version) renamed its module
+    # to django_recaptcha, so the `captcha` branch only ever runs against <4.
+    "captcha",
+    # geonode/loaders.py does a top-level `from djcelery.loaders import DjangoLoader`. django-celery
+    # has not supported a current Django in years and cannot be declared; the module raises
+    # ModuleNotFoundError on import, yet settings.CELERY_LOADER still names it by default. Dead
+    # configuration pointing at dead code, verbatim from upstream 5.0.3 -- worth removing upstream,
+    # but not something this gate should block on.
+    "djcelery",
+]
+DEP003 = [
+    # Removed from the standard library in Python 3.12; `import distutils` still works only because
+    # setuptools injects a shim. Five modules rely on it (geonode/base/api/filters.py,
+    # mixins.py, permissions.py, geonode/br/management/commands/restore.py,
+    # geonode/layers/api/permissions.py). Declaring setuptools would not make the import correct --
+    # these call sites want replacing with `packaging` -- so this is recorded, not silenced away.
+    "distutils",
+    # Ships with celery, which is declared; kombu is effectively part of that install.
+    "kombu",
+    # Universally present build/runtime helpers, pulled in by several declared packages.
+    "packaging",
+    "typing_extensions",
+]
