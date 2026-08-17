@@ -26,6 +26,7 @@ when you run "manage.py test".
 import os
 import io
 import json
+import zipfile
 import gisdata
 
 from PIL import Image
@@ -43,7 +44,6 @@ from django.template.defaultfilters import filesizeformat
 from guardian.shortcuts import get_anonymous_user
 
 from geonode.assets.utils import create_asset_and_link, get_default_asset
-from geonode.assets.local import LocalAssetDownloadHandler
 from geonode.maps.models import Map
 from geonode.compat import ensure_string
 from geonode.base.enumerations import SOURCE_TYPE_REMOTE
@@ -339,6 +339,38 @@ class DocumentsTest(GeoNodeBaseTestSupport):
             )
             self.assertEqual(form.errors, {"doc_file": [expected_error]})
 
+    def test_upload_document_form_rejects_unsafe_zip(self):
+        """A zip-based document carrying a path-traversal entry must be rejected by the form."""
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("../../etc/passwd", b"root:x:0:0")
+        buf.seek(0)
+
+        form_data = {
+            "title": "Malicious archive",
+            "permissions": '{"anonymous":"document_readonly","authenticated":"resourcebase_readwrite","users":[]}',
+        }
+        file_data = {"doc_file": SimpleUploadedFile("evil.zip", buf.read(), "application/zip")}
+        form = DocumentCreateForm(form_data, file_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("doc_file", form.errors)
+        self.assertIn("Invalid or unsafe ZIP archive.", str(form.errors["doc_file"]))
+
+    def test_upload_document_form_accepts_clean_zip(self):
+        """A well-formed zip document must pass the safety check and validate."""
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("readme.txt", b"hello")
+        buf.seek(0)
+
+        form_data = {
+            "title": "Clean archive",
+            "permissions": '{"anonymous":"document_readonly","authenticated":"resourcebase_readwrite","users":[]}',
+        }
+        file_data = {"doc_file": SimpleUploadedFile("clean.zip", buf.read(), "application/zip")}
+        form = DocumentCreateForm(form_data, file_data)
+        self.assertTrue(form.is_valid(), msg=form.errors)
+
     def test_document_embed(self):
         """/documents/1 -> Test accessing the embed view of a document"""
         d = Document.objects.all().first()
@@ -373,6 +405,25 @@ class DocumentsTest(GeoNodeBaseTestSupport):
             },
         )
         self.assertEqual(response.status_code, 200)
+
+    def test_document_upload_rejects_file_with_mismatched_content(self):
+        self.client.login(username="admin", password="admin")
+        pe_like_content = (
+            b"MZ" + b"\x00" * 58 + b"\x80\x00\x00\x00" + b"\x00" * 64 + b"PE\x00\x00" + b"\x4c\x01\x01\x00"
+        )
+        f = SimpleUploadedFile("fake.pdf", pe_like_content, "application/pdf")
+
+        response = self.client.post(
+            f"{reverse('document_upload')}?no__redirect=true",
+            data={
+                "doc_file": f,
+                "title": "fake_pdf",
+                "permissions": '{"users":{"AnonymousUser": ["view_resourcebase"]}}',
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Document.objects.filter(title="fake_pdf").exists())
 
     # Permissions Tests
 
@@ -640,8 +691,7 @@ class DocumentViewTestCase(GeoNodeBaseTestSupport):
 
 
 class TestDocumentGetDownloadResponse(GeoNodeBaseTestSupport):
-    """Tests for documents.utils.get_download_response(), focusing on the
-    create_raw_response registry-dispatch path added in the download feature."""
+    """Tests for documents.utils.get_download_response()."""
 
     fixtures = ["initial_data.json", "group_test_data.json", "default_oauth_apps.json"]
 
@@ -659,6 +709,11 @@ class TestDocumentGetDownloadResponse(GeoNodeBaseTestSupport):
         self.doc.delete()
 
     def test_download_requires_login(self):
+        # The test stack runs with DEFAULT_ANONYMOUS_DOWNLOAD_PERMISSION=True, so a freshly created
+        # document is downloadable by anonymous and this asserted 401 depended on ambient config.
+        # Strip the anonymous download permission explicitly -- the point of the test is that the
+        # view refuses a request without it, not what the default happens to be.
+        self.doc.set_permissions({"users": {"AnonymousUser": ["view_resourcebase"]}, "groups": {}})
         self.client.logout()
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 401)
@@ -666,41 +721,3 @@ class TestDocumentGetDownloadResponse(GeoNodeBaseTestSupport):
     def test_download_with_login_returns_200(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-
-    def test_attachment_uses_create_raw_response_when_available(self):
-        """When the download handler exposes create_raw_response, it must be
-        called for attachment=True, yielding a direct file (not a ZIP)."""
-        from geonode.documents.utils import get_download_response
-        from django.test import RequestFactory
-
-        request = RequestFactory().get(self.url)
-        request.user = self.admin
-
-        with patch.object(
-            LocalAssetDownloadHandler,
-            "create_raw_response",
-            wraps=LocalAssetDownloadHandler().create_raw_response,
-        ) as mock_raw:
-            get_download_response(request, self.doc.pk, attachment=True)
-            mock_raw.assert_called_once()
-
-    def test_non_attachment_uses_create_response(self):
-        """Without attachment=True, create_response must be called instead."""
-        from geonode.documents.utils import get_download_response
-        from django.test import RequestFactory
-
-        request = RequestFactory().get(self.url)
-        request.user = self.admin
-
-        with patch.object(
-            LocalAssetDownloadHandler,
-            "create_raw_response",
-        ) as mock_raw:
-            with patch.object(
-                LocalAssetDownloadHandler,
-                "create_response",
-                wraps=LocalAssetDownloadHandler().create_response,
-            ) as mock_create:
-                get_download_response(request, self.doc.pk, attachment=False)
-                mock_raw.assert_not_called()
-                mock_create.assert_called_once()

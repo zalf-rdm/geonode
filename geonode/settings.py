@@ -32,6 +32,7 @@ from urllib.parse import urlparse, urljoin
 # General Django development settings
 #
 from django.conf.global_settings import DATETIME_INPUT_FORMATS
+from geonode.documents.enumerations import DOCUMENT_TYPE_MAP
 from geonode import get_version
 from kombu import Queue, Exchange
 from kombu.serialization import register
@@ -627,69 +628,12 @@ try:
 except ValueError:
     # fallback to regular list of values separated with misc chars
     ALLOWED_DOCUMENT_TYPES = (
-        [
-            "txt",
-            "csv",
-            "log",
-            "doc",
-            "docx",
-            "ods",
-            "odt",
-            "sld",
-            "qml",
-            "xls",
-            "xlsx",
-            "xml",
-            "bm",
-            "bmp",
-            "dwg",
-            "dxf",
-            "fif",
-            "gif",
-            "jpg",
-            "jpe",
-            "jpeg",
-            "png",
-            "tif",
-            "tiff",
-            "pbm",
-            "odp",
-            "ppt",
-            "pptx",
-            "pdf",
-            "tar",
-            "tgz",
-            "rar",
-            "gz",
-            "7z",
-            "zip",
-            "aif",
-            "aifc",
-            "aiff",
-            "au",
-            "mp3",
-            "mpga",
-            "wav",
-            "afl",
-            "avi",
-            "avs",
-            "fli",
-            "mp2",
-            "mp4",
-            "mpg",
-            "ogg",
-            "webm",
-            "3gp",
-            "flv",
-            "vdo",
-            "glb",
-            "pcd",
-            "gltf",
-            "ifc",
-        ]
+        DOCUMENT_TYPE_MAP.keys()
         if os.getenv("ALLOWED_DOCUMENT_TYPES") is None
         else re.split(r" *[,|:;] *", os.getenv("ALLOWED_DOCUMENT_TYPES"))
     )
+
+ALLOWED_DOCUMENT_TYPES = [t for t in ALLOWED_DOCUMENT_TYPES if t in DOCUMENT_TYPE_MAP.keys()]
 
 MAX_DOCUMENT_SIZE = int(os.getenv("MAX_DOCUMENT_SIZE ", "2"))  # MB
 
@@ -1037,9 +981,8 @@ if len(ADMIN_IP_WHITELIST) > 0:
     AUTHENTICATION_BACKENDS = ("geonode.security.backends.AdminRestrictedAccessBackend",) + AUTHENTICATION_BACKENDS
     MIDDLEWARE += ("geonode.security.middleware.AdminAllowedMiddleware",)
 
-# LOCKDOWN API endpoints to prevent unauthenticated access.
-# If set to True, search won't deliver results and filtering ResourceBase-objects is not possible for anonymous users
-API_LOCKDOWN = ast.literal_eval(os.getenv("API_LOCKDOWN", "False"))
+# Legacy API endpoints lockdown
+API_LOCKDOWN = ast.literal_eval(os.getenv("API_LOCKDOWN", "True"))
 
 # Require users to authenticate before using Geonode
 LOCKDOWN_GEONODE = ast.literal_eval(os.getenv("LOCKDOWN_GEONODE", "False"))
@@ -1074,6 +1017,7 @@ PROXY_ALLOWED_PATH_NEEDLES = ast.literal_eval(os.getenv("PROXY_ALLOWED_PATH_NEED
 
 # The proxy to use when making cross origin requests.
 PROXY_URL = os.environ.get("PROXY_URL", "/proxy/?url=")
+SAFE_URL_CHECK_ENABLED = ast.literal_eval(os.getenv("SAFE_URL_CHECK_ENABLED", "True"))
 
 # Avoid permissions prefiltering
 SKIP_PERMS_FILTER = ast.literal_eval(os.getenv("SKIP_PERMS_FILTER", "False"))
@@ -2120,6 +2064,7 @@ METADATA_STORERS = [
 ]
 
 FILE_UPLOAD_HANDLERS = [
+    "geonode.upload.uploadhandler.FileValidationUploadHandler",
     "geonode.upload.uploadhandler.SizeRestrictedFileUploadHandler",
     "django.core.files.uploadhandler.TemporaryFileUploadHandler",
     "django.core.files.uploadhandler.MemoryFileUploadHandler",
@@ -2152,6 +2097,15 @@ SIZE_RESTRICTED_FILE_UPLOAD_ELEGIBLE_URL_NAMES = (
     "base-resources-assets",
 )
 
+# FileValidationUploadHandler config providers, run once at app-ready time
+# (see geonode.upload.handlers.apps.run_setup_hooks). Each provider declares
+# the URL names it covers and returns the merged validation config dict.
+# To add per-endpoint validation, register a ValidationConfigProvider here.
+FILE_VALIDATION_CONFIGURATION_PROVIDERS = [
+    "geonode.documents.validation.DocumentFileValidationConfigProvider",
+    "geonode.upload.validation.datasets.DatasetFileValidationConfigProvider",
+]
+
 INSTALLED_APPS += (
     "dynamic_models",
     # "importer",
@@ -2179,8 +2133,13 @@ FACET_PROVIDERS = [
     {"class": "geonode.facets.providers.category.CategoryFacetProvider", "config": {"order": 5, "type": "select"}},
     {"class": "geonode.facets.providers.keyword.KeywordFacetProvider", "config": {"order": 6, "type": "select"}},
     {"class": "geonode.facets.providers.region.RegionFacetProvider", "config": {"order": 7, "type": "select"}},
-    {"class": "geonode.facets.providers.users.AuthorFacetProvider", "config": {"order": 8, "type": "select"}},
+    # OwnerFacetProvider is upstream's; AuthorFacetProvider is this fork's addition. The fork
+    # replaced rather than added, which silently dropped the "owner" facet from the API even
+    # though OwnerFacetProvider was still defined in geonode/facets/providers/users.py. Both are
+    # registered here so resources stay filterable by owner as well as by author.
+    {"class": "geonode.facets.providers.users.OwnerFacetProvider", "config": {"order": 8, "type": "select"}},
     {"class": "geonode.facets.providers.group.GroupFacetProvider", "config": {"order": 9, "type": "select"}},
+    {"class": "geonode.facets.providers.users.AuthorFacetProvider", "config": {"order": 10, "type": "select"}},
     {"class": "geonode.facets.providers.thesaurus.ThesaurusFacetProvider", "config": {"type": "select"}},
 ]
 

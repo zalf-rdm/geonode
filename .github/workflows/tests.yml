@@ -1,140 +1,157 @@
-name: "Tests"
+name: GeoNode Test Suites
 
-# Temporarily disabled: runs only via manual trigger.
-# To re-enable, restore:
-#   pull_request:
-#     branches: [ main ]
 on:
+  pull_request:
+    branches: [ main ]
+    types: [ opened, synchronize, reopened, ready_for_review ]
   workflow_dispatch:
 
+concurrency:
+  group: tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    
+  tests:
+    name: Test Suites
+    runs-on: ubuntu-24.04
+    if: ${{ !github.event.pull_request.draft }}
+    # The whole matrix runs in this one job. Generous, but a hung suite should not
+    # burn the full 6h default.
+    timeout-minutes: 330
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      - name: Build the stack images
+        run: docker compose --env-file .env_test -f docker-compose-test.yml build --progress plain
 
-    - name: Create .env_test file
-      run: |
-        if [ ! -f .env_test ]; then
-          echo ".env_test file not found!"
+      - name: Start the stack
+        run: docker compose --env-file .env_test -f docker-compose-test.yml up -d
+
+      - name: Wait for the django container to be responsive
+        run: |
+          DC="docker compose --env-file .env_test -f docker-compose-test.yml"
+          for _ in $(seq 1 60); do
+            if $DC exec -T django true </dev/null 2>/dev/null; then
+              echo "django container is responsive"; exit 0
+            fi
+            sleep 5
+          done
+          echo "django container never became responsive"
+          $DC ps
           exit 1
-        fi
 
-    - name: Start test environment
-      run: |
-        docker compose -f docker-compose-test.yml up -d
-        echo "Waiting for services to be healthy..."
-        sleep 60
+      - name: Prepare test databases and pristine templates
+        # Django needs CREATE EXTENSION postgis, which requires superuser. Instead of granting
+        # SUPERUSER to the geonode roles, the databases are pre-created here by postgres with the
+        # extension installed and owned by the geonode roles.
+        #
+        # They are then migrated once and snapshotted as templates. Because every suite below runs
+        # against the same stack, each one must start from a clean database -- otherwise state
+        # left by an earlier suite leaks into the next (loading group_test_data.json fails with
+        # "duplicate key ... username=admin" once a previous suite has created an admin). Restoring
+        # from an already-migrated template resets in seconds instead of re-running ~450 migrations.
+        run: |
+          DC="docker compose --env-file .env_test -f docker-compose-test.yml"
+          $DC exec -T db psql -U postgres -q -c "CREATE DATABASE test_geonode OWNER geonode;" </dev/null
+          $DC exec -T db psql -U postgres -q -c "CREATE DATABASE test_geonode_data OWNER geonode_data;" </dev/null
+          $DC exec -T db psql -U postgres -q -d test_geonode -c "CREATE EXTENSION IF NOT EXISTS postgis;" </dev/null
+          $DC exec -T db psql -U postgres -q -d test_geonode_data -c "CREATE EXTENSION IF NOT EXISTS postgis;" </dev/null
 
-    - name: Check service health
-      run: |
-        docker compose -f docker-compose-test.yml ps
+          $DC exec -T django bash -lc '
+            cd /usr/src/geonode
+            set -a; . ./.env_test; set +a
+            DATABASE_URL="postgis://geonode:geonode@db:5432/test_geonode" \
+            GEODATABASE_URL="postgis://geonode_data:geonode_data@db:5432/test_geonode_data" \
+            python manage.py migrate --noinput' </dev/null
 
-    - name: Grant superuser to geonode database user
-      run: |
-        # Grant SUPERUSER privilege to geonode user so it can create PostGIS extension
-        docker compose -f docker-compose-test.yml exec -T db psql -U postgres -c "ALTER USER geonode WITH SUPERUSER;"
-        docker compose -f docker-compose-test.yml exec -T db psql -U postgres -c "ALTER USER geonode_data WITH SUPERUSER;"
+          $DC exec -T db psql -U postgres -q -c \
+            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname LIKE 'test_%';" </dev/null
+          $DC exec -T db psql -U postgres -q -c "CREATE DATABASE test_geonode_pristine TEMPLATE test_geonode;" </dev/null
+          $DC exec -T db psql -U postgres -q -c "CREATE DATABASE test_geonode_data_pristine TEMPLATE test_geonode_data;" </dev/null
 
+      - name: Run all test suites sequentially
+        id: suites
+        run: |
+          DC="docker compose --env-file .env_test -f docker-compose-test.yml"
 
-    - name: Run main test suite
-      run: |
-        docker compose -f docker-compose-test.yml exec -T django ./test.sh || echo "MAIN_TESTS_FAILED=true" >> $GITHUB_ENV
-      id: main_tests
+          reset_dbs() {
+            $DC exec -T db psql -U postgres -q -c \
+              "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname LIKE 'test_%';" </dev/null >/dev/null
+            $DC exec -T db psql -U postgres -q -c "DROP DATABASE IF EXISTS test_geonode;" </dev/null
+            $DC exec -T db psql -U postgres -q -c "DROP DATABASE IF EXISTS test_geonode_data;" </dev/null
+            $DC exec -T db psql -U postgres -q -c \
+              "CREATE DATABASE test_geonode TEMPLATE test_geonode_pristine OWNER geonode;" </dev/null
+            $DC exec -T db psql -U postgres -q -c \
+              "CREATE DATABASE test_geonode_data TEMPLATE test_geonode_data_pristine OWNER geonode_data;" </dev/null
+          }
 
-    - name: Run API v2 tests
-      run: |
-        docker compose -f docker-compose-test.yml exec -T django ./test_api_v2.sh || echo "API_TESTS_FAILED=true" >> $GITHUB_ENV
-      id: api_tests
+          # Resolved once so the suite table below contains no nested quoting.
+          MAIN_TESTS=$($DC exec -T django bash -lc 'cd /usr/src/geonode && python tests/suite_apps.py main' </dev/null | tr -d '\r')
+          SECURITY_TESTS=$($DC exec -T django bash -lc 'cd /usr/src/geonode && python tests/suite_apps.py security' </dev/null | tr -d '\r')
+          GIS_TESTS=$($DC exec -T django bash -lc 'cd /usr/src/geonode && python tests/suite_apps.py gis_backend' </dev/null | tr -d '\r')
 
-    - name: Run CSW tests
-      run: |
-        docker compose -f docker-compose-test.yml exec -T django ./test_csw.sh || echo "CSW_TESTS_FAILED=true" >> $GITHUB_ENV
-      id: csw_tests
+          # geonode.tests.test_load_thesaurus is listed explicitly: it lives in geonode/tests/ and is
+          # not part of any GEONODE_APPS-derived selection, so nothing else would ever run it.
+          # geonode.zalf likewise is attached via INSTALLED_APPS += (...), not GEONODE_APPS.
+          SUITES=$(cat <<EOF
+          Smoke|geonode.tests.smoke geonode.tests.test_rest_api geonode.tests.test_search geonode.tests.test_utils geonode.tests.test_headers geonode.tests.test_load_thesaurus
+          ZALF|geonode.zalf
+          Main|$MAIN_TESTS
+          Security|$SECURITY_TESTS
+          GIS Backend|$GIS_TESTS
+          REST API|geonode.api.tests geonode.base.api.tests geonode.layers.api.tests geonode.maps.api.tests geonode.documents.api.tests geonode.geoapps.api.tests
+          CSW|geonode.tests.csw geonode.catalogue.backends.tests
+          Upload|geonode.upload
+          EOF
+          )
 
-    - name: Run integration tests
-      run: |
-        docker compose -f docker-compose-test.yml exec -T django ./test_integration.sh || echo "INTEGRATION_TESTS_FAILED=true" >> $GITHUB_ENV
-      id: integration_tests
+          FAILED=0
+          SUMMARY=""
+          while IFS='|' read -r NAME APPS; do
+            NAME=$(echo "$NAME" | sed 's/^ *//;s/ *$//')
+            [ -z "$NAME" ] && continue
+            echo "::group::$NAME"
+            START=$(date +%s)
+            reset_dbs
+            # </dev/null is essential: without it `docker compose exec -T` consumes the
+            # here-document that feeds this while-loop and the remaining suites are skipped.
+            #
+            # timeout bounds each suite: a test that blocks on something that never arrives (an
+            # async import waiting on a celery worker the test stack does not run, say) would
+            # otherwise sit there until the job-level timeout and take every later suite with it.
+            set +e
+            timeout --signal=INT --kill-after=60s "${SUITE_TIMEOUT:-45m}" \
+              $DC exec -T django bash -lc "cd /usr/src/geonode && ./tests/test.sh $APPS --durations 30 --failfast" </dev/null
+            RC=$?
+            set -e
+            case $RC in
+              0)   STATUS="PASS" ;;
+              124) STATUS="TIMEOUT"; FAILED=1 ;;
+              *)   STATUS="FAIL"; FAILED=1 ;;
+            esac
+            ELAPSED=$(( $(date +%s) - START ))
+            echo "::endgroup::"
+            echo "$STATUS  $NAME (${ELAPSED}s)"
+            SUMMARY="$SUMMARY| $NAME | $STATUS | ${ELAPSED}s |"$'\n'
+          done <<< "$SUITES"
 
-    - name: Run OAuth2 tests
-      run: |
-        docker compose -f docker-compose-test.yml exec -T django ./test_oauth2.sh || echo "OAUTH_TESTS_FAILED=true" >> $GITHUB_ENV
-      id: oauth_tests
+          {
+            echo "## Test suite results"
+            echo
+            echo "| Suite | Result | Duration |"
+            echo "|-------|--------|----------|"
+            printf '%s' "$SUMMARY"
+          } >> "$GITHUB_STEP_SUMMARY"
 
-    - name: Run upload tests
-      run: |
-        docker compose -f docker-compose-test.yml exec -T django ./test_upload.sh || echo "UPLOAD_TESTS_FAILED=true" >> $GITHUB_ENV
-      id: upload_tests
+          exit $FAILED
 
-    - name: Collect test results
-      if: always()
-      run: |
-        echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
-        echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
-        
-        if [ "$MAIN_TESTS_FAILED" = "true" ]; then
-          echo "| Main Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "| Main Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        if [ "$API_TESTS_FAILED" = "true" ]; then
-          echo "| API v2 Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "| API v2 Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        if [ "$CSW_TESTS_FAILED" = "true" ]; then
-          echo "| CSW Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "| CSW Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        if [ "$INTEGRATION_TESTS_FAILED" = "true" ]; then
-          echo "| Integration Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "| Integration Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        if [ "$OAUTH_TESTS_FAILED" = "true" ]; then
-          echo "| OAuth2 Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "| OAuth2 Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        if [ "$UPLOAD_TESTS_FAILED" = "true" ]; then
-          echo "| Upload Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "| Upload Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
-        fi
+      - name: Dump docker logs on failure
+        if: failure()
+        uses: jwalton/gh-docker-logs@v2
 
-    - name: Check test results
-      if: always()
-      run: |
-        if [ "$MAIN_TESTS_FAILED" = "true" ] || [ "$API_TESTS_FAILED" = "true" ] || [ "$CSW_TESTS_FAILED" = "true" ] || [ "$INTEGRATION_TESTS_FAILED" = "true" ] || [ "$OAUTH_TESTS_FAILED" = "true" ] || [ "$UPLOAD_TESTS_FAILED" = "true" ]; then
-          echo "One or more test suites failed"
-          exit 1
-        fi
-
-    - name: Show Django logs on failure
-      if: failure()
-      run: |
-        docker compose -f docker-compose-test.yml logs django
-
-    - name: Show database logs on failure
-      if: failure()
-      run: |
-        docker compose -f docker-compose-test.yml logs db
-
-    - name: Cleanup
-      if: always()
-      run: |
-        docker compose -f docker-compose-test.yml down -v
+      - name: Stop the stack
+        if: always()
+        # -v is safe here: an ephemeral CI runner owns these volumes exclusively.
+        run: docker compose --env-file .env_test -f docker-compose-test.yml down -v

@@ -255,9 +255,6 @@ class LocalAssetDownloadHandler(AssetDownloadHandlerInterface):
                 return HttpResponse(f"Default file not found for asset {asset.id}", status=400)
             localfile = file0
         else:
-            if "/../" in path:
-                logger.warning(f"Tentative path traversal for asset {asset.id}")
-                return HttpResponse(f"File not found for asset {asset.id}", status=400)
             if os.path.isfile(file0):
                 dir0 = os.path.dirname(file0)
             elif os.path.isdir(file0):
@@ -266,6 +263,16 @@ class LocalAssetDownloadHandler(AssetDownloadHandlerInterface):
                 return HttpResponse(f"Unexpected internal location '{file0}' for asset {asset.id}", status=500)
             localfile = os.path.join(dir0, path)
             logger.debug(f"Requested path {dir0} + {path}")
+
+            # Check the requested file really is inside the asset's own directory. This replaces an
+            # `if "/../" in path` substring test that let through everything it was meant to stop:
+            # "../<other-asset-dir>/two.json" has no "/../" in it, and an absolute path such as
+            # "/etc/passwd" makes os.path.join() discard dir0 entirely. Restored from upstream.
+            localfile = os.path.realpath(localfile)
+            realassetpath = os.path.realpath(dir0)
+            if os.path.commonpath([realassetpath, localfile]) != realassetpath:
+                logger.error(f"Tentative path traversal for asset {asset.id} on path [{path}]")
+                return HttpResponse(f"File not found for asset {asset.id}", status=400)
 
         if not os.path.isfile(localfile):
             logger.warning(f"Internal file {localfile} not found for asset {asset.id}")
@@ -285,7 +292,7 @@ class LocalAssetDownloadHandler(AssetDownloadHandlerInterface):
             return HttpResponse("Asset does not contain any data", status=500)
 
         if len(asset.location) > 1:
-            logger.warning("TODO: Asset contains more than one file. Download needs to be implemented")
+            logger.warning("TODO: Asset contains more than one file. Only first file will be returned")
 
         result = self._resolve_file(asset, path)
         if isinstance(result, HttpResponse):

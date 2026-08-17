@@ -68,13 +68,28 @@ class AssetSerializer(DynamicModelSerializer):
     owner = SimpleUserSerializer(embed=False)
     asset_type = ClassTypeField()
     subinfo = AssetSubclassField()
+    # AssetSizeBytesField above survived the 5.0.3 merge but its wiring here did not, so
+    # size_bytes was silently absent from the asset payload (see assets/tests.py
+    # test_asset_detail_exposes_size_bytes).
+    size_bytes = AssetSizeBytesField()
     deletable = serializers.SerializerMethodField()
 
     class Meta:
         model = Asset
         name = "asset"
         # fields = ("pk", "title", "description", "type", "owner", "created")
-        fields = ("pk", "title", "description", "type", "owner", "created", "asset_type", "subinfo", "deletable")
+        fields = (
+            "pk",
+            "title",
+            "description",
+            "type",
+            "owner",
+            "created",
+            "asset_type",
+            "subinfo",
+            "size_bytes",
+            "deletable",
+        )
 
     def get_deletable(self, obj):
         return is_asset_deletable(obj)

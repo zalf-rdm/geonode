@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  BASE_VERSION: v5.0.2-zalf001
+  BASE_VERSION: v5.0.3-zalf001
   IMAGE_NAME: zalf/geonode
 
 jobs:

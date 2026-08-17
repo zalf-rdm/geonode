@@ -16,6 +16,7 @@ import os
 
 from rest_framework.reverse import reverse
 
+from django.core.exceptions import FieldDoesNotExist
 from django.utils.translation import gettext as _
 
 from geonode.base.models import (
@@ -70,21 +71,9 @@ M2M_COMPLEX_FIELDS = {
     "related_identifier",
 }
 
-# Fields that are NOT NULL in the DB (blank=True but no null=True) — keep empty string as ""
-NON_NULLABLE_TEXT_FIELDS = {
-    "title_translated",
-    "abstract_translated",
-    "subtitle",
-    "method_description",
-    "series_information",
-    "table_of_content",
-    "technical_info",
-    "other_description",
-    "data_lineage",
-    "metadata_lineage",
-    "conformity_results",
-    "conformity_explanation",
-}
+# Whether a scalar column accepts NULL is read off the model itself (see _coerce_scalar below)
+# rather than from a hand-maintained list: the list left out the NOT NULL date_* columns, and a
+# list can drift from the model, while the model cannot drift from itself.
 
 # Conformity choices for the oneOf schema population
 CONFORMITY_CHOICES = ["Passed", "Not Passed", "Unknown"]
@@ -203,6 +192,32 @@ class ZalfHandler(MetadataHandler):
             return value.isoformat()
         return value
 
+    @staticmethod
+    def _coerce_scalar(resource, field_name, value):
+        """Map a JSON value onto what the column can actually store.
+
+        A metadata payload does not have to carry every ZALF field -- the metadata API accepts
+        partial documents, and `json_instance.get(field_name)` then yields None. Several of these
+        columns are NOT NULL (all the text fields, plus date_available/date_created/date_updated),
+        so that None reached the QuerySet.update() and the save died with
+
+            IntegrityError: null value in column "abstract_translated" ... violates not-null
+
+        taking the entire metadata update with it. Missing values now fall back to the field's own
+        default ("" for text, "Unknown" for conformity_results, today for the dates).
+        """
+        try:
+            field = resource._meta.get_field(field_name)
+        except FieldDoesNotExist:
+            return value
+
+        if value is None and not field.null:
+            return field.get_default()
+        # Nullable columns record "not set" as NULL, not as an empty string.
+        if value == "" and field.null:
+            return None
+        return value
+
     def update_resource(self, resource, field_name, json_instance, context, errors, **kwargs):
         if field_name in M2M_RESTRICTION_FIELDS:
             data = json_instance.get(field_name) or []
@@ -269,10 +284,7 @@ class ZalfHandler(MetadataHandler):
         # Scalar field — safe to setattr and add to context["base"]
         value = json_instance.get(field_name, None)
         try:
-            # For nullable DB fields, convert empty strings to None
-            # For non-nullable text fields (blank=True), keep empty string
-            if value == "" and field_name not in NON_NULLABLE_TEXT_FIELDS:
-                value = None
+            value = self._coerce_scalar(resource, field_name, value)
             # Parse date strings for DateField columns
             if value is not None and field_name.startswith("date_"):
                 if isinstance(value, str):

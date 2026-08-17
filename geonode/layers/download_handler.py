@@ -121,7 +121,13 @@ class DatasetDownloadHandler:
             logger.error("The format provided is not valid for the selected resource")
             return JsonResponse({"error": "The format provided is not valid for the selected resource"}, status=500)
 
-        _format = "application/json" if resource.is_vector() else "image/tiff"
+        # settings.DEFAULT_VECTOR_DOWNLOAD_FORMAT is env-configurable but was previously ignored
+        # here, so vector downloads were always served as application/json regardless of it.
+        _format = (
+            getattr(settings, "DEFAULT_VECTOR_DOWNLOAD_FORMAT", "application/json")
+            if resource.is_vector()
+            else "image/tiff"
+        )
         if resource.subtype == "tabular":
             _format = "text/csv"
         # getting default payload

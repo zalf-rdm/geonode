@@ -39,6 +39,7 @@ from geonode.base.models import ResourceBase, Link, Configuration
 from geonode.security.utils import AdvancedSecurityWorkflowManager
 from geonode.thumbs.utils import get_thumbs, remove_thumb
 from geonode.utils import get_legend_url
+from geonode.security.permissions import PermSpecCompactDiff
 
 logger = logging.getLogger("geonode.base.utils")
 
@@ -227,13 +228,14 @@ def increment_download_count(resource_id, user):
     qs.update(download_count=db_models.F("download_count") + 1)
 
 
-def patch_perms(updated_perms_compact, current_perms_compact, resource):
+def patch_perms(current_perms_compact, perms_diff, resource):
     """
-    Patch updated permission changes with current permissions.
-    """
-    from geonode.security.permissions import PermSpecCompact
+    Apply a permission diff to a current compact spec.
 
-    perms_spec_compact_patch = PermSpecCompact(updated_perms_compact, resource)
-    perms_spec_compact_resource = PermSpecCompact(current_perms_compact, resource)
-    perms_spec_compact_resource.merge(perms_spec_compact_patch)
-    return perms_spec_compact_resource
+    ``perms_diff`` may be a :class:`PermSpecCompactDiff` instance or its dict
+    representation (as produced by :meth:`PermSpecCompactDiff.to_dict` or
+    :meth:`PermSpecCompact.diff`). Returns the resulting ``PermSpecCompact``.
+    """
+    if not isinstance(perms_diff, PermSpecCompactDiff):
+        perms_diff = PermSpecCompactDiff.from_dict(perms_diff)
+    return perms_diff.apply(current_perms_compact, resource)

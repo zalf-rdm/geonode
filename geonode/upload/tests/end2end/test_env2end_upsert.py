@@ -17,6 +17,7 @@
 #
 #########################################################################
 import ast
+import unittest
 import os
 import time
 
@@ -40,6 +41,12 @@ from django.forms.models import model_to_dict
 
 logger = logging.getLogger()
 geourl = settings.GEODATABASE_URL
+
+
+def setUpModule():
+    """See test_end2end.py: these need a celery worker, which the test stack does not run."""
+    if not ast.literal_eval(os.environ.get("TEST_RUN_INTEGRATION_UPLOAD", "False")):
+        raise unittest.SkipTest("upload end2end tests require TEST_RUN_INTEGRATION_UPLOAD=True and a celery worker")
 
 
 @override_settings(

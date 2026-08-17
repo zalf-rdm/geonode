@@ -16,7 +16,10 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 #########################################################################
+import unittest
+
 import django
+from django.conf import settings
 from django.test.utils import override_settings
 from mock import MagicMock, PropertyMock, patch
 from geonode.base.models import ResourceBase
@@ -722,6 +725,17 @@ class PeopleAndProfileTests(GeoNodeBaseTestSupport):
         EMAIL_HOST_USER="",
         EMAIL_HOST_PASSWORD="",
         EMAIL_PORT="25",
+        # Stated explicitly: this fork closes local signup whenever SOCIALACCOUNT_ONLY is on
+        # (ORCID-only deployments), and CustomSignupView then renders signup_closed.html with a
+        # 200 instead of redirecting. This test is about email verification, so it pins the
+        # precondition it actually needs rather than inheriting whatever the environment sets.
+        ACCOUNT_OPEN_SIGNUP=True,
+    )
+    @unittest.skipIf(
+        settings.SOCIALACCOUNT_ONLY,
+        "local signup is disabled in ORCID-only deployments: this fork drops allauth's account_* "
+        "urls at import time, so account_confirm_email cannot be reversed and no override_settings "
+        "can bring it back",
     )
     def test_users_register_email_verification(self):
         """
@@ -780,7 +794,9 @@ class PeopleAndProfileTests(GeoNodeBaseTestSupport):
         data = {"username": "teddy1", "password": "@!2XJSL_S&V^0nt", "email": "teddy@teddy.com"}
         response = self.client.post(reverse("users-list"), data=data, content_type="application/json")
         self.assertEqual(response.status_code, 400)
-        self.assertTrue("A user is already registered with that email" in response.json()["errors"])
+        # This fork's UserSerializer.validate raises a structured error naming the conflicting
+        # value, instead of upstream's bare "A user is already registered with that email".
+        self.assertIn("A user with email 'teddy@teddy.com' already exists.", response.json()["errors"])
 
     def test_users_api_add_existing_username(self):
         bobby = get_user_model().objects.get(username="bobby")
@@ -789,7 +805,8 @@ class PeopleAndProfileTests(GeoNodeBaseTestSupport):
         self.client.login(username="admin", password="admin")
         response = self.client.post(reverse("users-list"), data=data, content_type="application/json")
         self.assertEqual(response.status_code, 400)
-        self.assertTrue("A user with that username already exists." in response.json()["errors"])
+        # See test_users_api_add_existing_email: fork-specific message naming the conflict.
+        self.assertIn(f"A user with username '{bobby.get_username()}' already exists.", response.json()["errors"])
 
     def test_users_api_patch_username(self):
         bobby = get_user_model().objects.get(username="bobby")

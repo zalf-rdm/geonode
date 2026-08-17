@@ -1,24 +1,27 @@
 #!/bin/bash
+set -e
 
-export BACKEND=geonode.geoserver
-export DOCKER_COMPOSE_VERSION=1.19.0
-export GEOSERVER_SERVER_URL=http://localhost:8080/geoserver/
-export GEOSERVER_SERVER_PORT=8080
-export ON_TRAVIS=True
-export TEST_RUNNER_KEEPDB=True
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# NOTE: this script used to end in `paver run_tests` and call scripts/misc/create_dbs_travis.sh.
+# Both were removed upstream (pavement.py deleted; the travis helper no longer exists), so it
+# could not run at all. Database creation is handled by the test stack / Django's test runner.
+#
+# These suites need a live GeoServer and are NOT part of the PR gate -- run them deliberately.
+
 export TEST_RUN_INTEGRATION=True
-export TEST_RUN_INTEGRATION_SERVER=False
-export TEST_RUN_INTEGRATION_UPLOAD=False
-export TEST_RUN_INTEGRATION_MONITORING=False
-export TEST_RUN_INTEGRATION_CSW=False
-export TEST_RUN_INTEGRATION_BDD=False
-export USER_ANALYTICS_ENABLED=False
-export SESSION_EXPIRED_CONTROL_ENABLED=True
-export CELERY_ALWAYS_EAGER=True
+export TEST_RUN_INTEGRATION_SERVER=${TEST_RUN_INTEGRATION_SERVER:-True}
+export TEST_RUN_INTEGRATION_UPLOAD=${TEST_RUN_INTEGRATION_UPLOAD:-False}
+export TEST_RUN_INTEGRATION_CSW=${TEST_RUN_INTEGRATION_CSW:-False}
+export TEST_RUN_INTEGRATION_MONITORING=${TEST_RUN_INTEGRATION_MONITORING:-False}
+export TEST_RUN_INTEGRATION_BDD=${TEST_RUN_INTEGRATION_BDD:-False}
 
-# coverage run --branch --source=geonode manage.py test --noinput --parallel=1 $@
-echo "Initialize DB";
-chmod +x scripts/misc/create_dbs_travis.sh;
-scripts/misc/create_dbs_travis.sh before_script;
-
-paver run_tests --coverage --local false
+if [ "$#" -gt 0 ]; then
+    "$SCRIPT_DIR/test.sh" "$@"
+else
+    "$SCRIPT_DIR/test.sh" \
+        geonode.geoserver.tests.integration \
+        geonode.upload.tests.integration \
+        geonode.thumbs.tests.test_integration \
+        geonode.harvesting.tests.test_integrations
+fi

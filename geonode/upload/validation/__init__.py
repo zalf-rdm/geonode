@@ -1,6 +1,6 @@
 #########################################################################
 #
-# Copyright (C) 2016 OSGeo
+# Copyright (C) 2026 OSGeo
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,24 +16,11 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 #########################################################################
-from setuptools import setup
 
-import os
-import sys
+from geonode.upload.validation.base import ValidationConfigProvider
+from geonode.upload.validation.registry import FileValidationConfigRegistry
 
-current_directory = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(current_directory)
-
-
-setup(
-    version=__import__("geonode").get_version(),
-    long_description=open("README.md").read(),
-    long_description_content_type="text/markdown",
-    package_data={
-        "": ["*.*"],  # noqa
-        "": ["static/*.*"],  # noqa
-        "static": ["*.*"],
-        "": ["templates/*.*"],  # noqa
-        "templates": ["*.*"],
-    },
-)
+__all__ = [
+    "FileValidationConfigRegistry",
+    "ValidationConfigProvider",
+]

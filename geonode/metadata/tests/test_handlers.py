@@ -1244,31 +1244,28 @@ class HandlersTests(GeoNodeBaseTestSupport):
 
         self.assertIn("contacts", updated_schema["properties"])
 
-        # Check if all roles are included in the contacts
+        # This fork's ContactHandler does not emit one property per role the way upstream does.
+        # It emits `owner` (single-value) plus a dynamic `contact_roles` array of {role, users}
+        # entries, so that the ~30 DataCite roles stay manageable in the editor and keep their
+        # order. See the class docstring in geonode/metadata/handlers/contact.py.
         contacts = updated_schema["properties"]["contacts"]["properties"]
-        for role in Roles:
-            rolename = ROLE_NAMES_MAP.get(role, role.name)
-            self.assertIn(rolename, contacts)
+        self.assertEqual({"owner", "contact_roles"}, set(contacts))
 
-            contact = contacts[rolename]
-            self.assertIn("type", contact)
+        owner = contacts["owner"]
+        self.assertEqual("object", owner["type"])
+        self.assertEqual({"id", "label"}, set(owner["properties"]))
+        self.assertIn("id", owner["required"])
 
-            if role.is_multivalue:
-                self.assertEqual(contact.get("type"), "array")
-                self.assertIn("minItems", contact)
-                self.assertIn("properties", contact["items"])
-                if role.is_required:
-                    self.assertEqual(contact["minItems"], 1)
-                else:
-                    self.assertEqual(contact["minItems"], 0)
-            else:
-                self.assertEqual(contact.get("type"), "object")
-                self.assertIn("properties", contact)
-                # Assert 'id' field is required if the role is required
-                if role.is_required:
-                    self.assertIn("id", contact["required"])
-                else:
-                    self.assertNotIn("id", contact["required"])
+        contact_roles = contacts["contact_roles"]
+        self.assertEqual("array", contact_roles["type"])
+        entry = contact_roles["items"]
+        self.assertEqual(["role", "users"], entry["required"])
+        self.assertEqual("array", entry["properties"]["users"]["type"])
+
+        # Every role except owner must be selectable in the role dropdown
+        offered_roles = {choice["const"] for choice in entry["properties"]["role"]["oneOf"]}
+        expected_roles = {ROLE_NAMES_MAP[role] for role in Roles if role is not Roles.OWNER}
+        self.assertEqual(expected_roles, offered_roles)
 
     def test_contact_handler_get_jsonschema_instance(self):
 
@@ -1289,9 +1286,10 @@ class HandlersTests(GeoNodeBaseTestSupport):
             self.resource, field_name, self.context, self.errors, self.lang
         )
 
-        # Assert the output structure and content
-        self.assertIn(ROLE_NAMES_MAP[Roles.OWNER], result)
-        self.assertIn(ROLE_NAMES_MAP[Roles.METADATA_AUTHOR], result)
+        # Assert the output structure and content. See test_contact_handler_update_schema: this
+        # fork returns {"owner": ..., "contact_roles": [{"role": ..., "users": [...]}]} rather than
+        # upstream's one-key-per-role mapping.
+        self.assertEqual({"owner", "contact_roles"}, set(result))
 
         # Check owner which is defined in the setUp method as test_user
         owner_entry = result[ROLE_NAMES_MAP[Roles.OWNER]]
@@ -1299,10 +1297,15 @@ class HandlersTests(GeoNodeBaseTestSupport):
         self.assertEqual(owner_entry["label"], f"{self.test_user.username}")
 
         # Check metadata author
-        author_entry = result[ROLE_NAMES_MAP[Roles.METADATA_AUTHOR]]
+        by_role = {entry["role"]: entry["users"] for entry in result["contact_roles"]}
+        self.assertIn(ROLE_NAMES_MAP[Roles.METADATA_AUTHOR], by_role)
+        author_entry = by_role[ROLE_NAMES_MAP[Roles.METADATA_AUTHOR]]
         self.assertEqual(len(author_entry), 1)  # Assuming it's a multivalue role
         self.assertEqual(author_entry[0]["id"], str(author_role.id))
         self.assertEqual(author_entry[0]["label"], f"{author_role.username}")
+
+        # Required roles are listed even when nobody is assigned yet, so the editor can show them
+        self.assertIn(ROLE_NAMES_MAP[Roles.POC], by_role)
 
     def test_contact_handler_update_resource(self):
 
@@ -1319,11 +1322,16 @@ class HandlersTests(GeoNodeBaseTestSupport):
         )
 
         # Prepare the JSON instance for updating
+        # Fork payload shape: owner stays a single value, every other role goes through the
+        # contact_roles array. See test_contact_handler_update_schema.
         json_instance = {
             field_name: {
                 ROLE_NAMES_MAP[Roles.OWNER]: {"id": str(new_owner.id), "label": f"{new_owner.username}"},
-                ROLE_NAMES_MAP[Roles.METADATA_AUTHOR]: [
-                    {"id": str(author_role.id), "label": f"{author_role.username}"},
+                "contact_roles": [
+                    {
+                        "role": ROLE_NAMES_MAP[Roles.METADATA_AUTHOR],
+                        "users": [{"id": str(author_role.id), "label": f"{author_role.username}"}],
+                    },
                 ],
             }
         }
