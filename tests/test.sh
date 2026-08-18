@@ -15,4 +15,8 @@ set +a
 # sample layers into the *dev* database via `manage.py importlayers`; unit tests use Django's own
 # test_* databases and do not need it.
 
-coverage run --branch --source=geonode manage.py test -v 3 --keepdb "$@"
+# --parallel-mode writes .coverage.<host>.<pid>.<random> instead of a single .coverage. CI runs eight
+# suites back to back through this script, and a plain `coverage run` has each one overwrite the
+# last, leaving only the final suite's data. Read the result with `coverage combine && coverage xml`
+# (or `coverage report`) once every suite has finished.
+coverage run --branch --parallel-mode --source=geonode manage.py test -v 3 --keepdb "$@"

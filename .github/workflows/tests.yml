@@ -22,6 +22,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # diff-cover compares the coverage report against the merge base, so the full history has
+          # to be present -- the default shallow clone has no origin/main to diff against.
+          fetch-depth: 0
 
       - name: Build the stack images
         run: docker compose --env-file .env_test -f docker-compose-test.yml build --progress plain
@@ -41,6 +45,31 @@ jobs:
           echo "django container never became responsive"
           $DC ps
           exit 1
+
+      # Deliberately ahead of the suites: these take seconds, and a missing dependency or an
+      # un-generated migration should fail the job at ~6 minutes rather than ~50. They run inside the
+      # django container because both need the full installed environment, which the image already
+      # has -- no second build.
+      - name: Check dependency declarations
+        run: |
+          DC="docker compose --env-file .env_test -f docker-compose-test.yml"
+          $DC exec -T django bash -lc '
+            cd /usr/src/geonode
+            pip install --quiet deptry==0.25.1
+            deptry . --no-ansi' </dev/null
+
+      - name: Django system and migration checks
+        run: |
+          DC="docker compose --env-file .env_test -f docker-compose-test.yml"
+          $DC exec -T django bash -lc '
+            cd /usr/src/geonode
+            set -a; . ./.env_test; set +a
+            # UploadParallelismLimit.max_number defaults to a setting, so this check is only
+            # deterministic with .env_test loaded -- see that app'"'"'s migration 0058.
+            python manage.py makemigrations --check --dry-run
+            # Default --fail-level is ERROR, so the security.W0xx warnings this test configuration
+            # necessarily produces (DEBUG, no TLS) are reported without failing the build.
+            python manage.py check --deploy' </dev/null
 
       - name: Prepare test databases and pristine templates
         # Django needs CREATE EXTENSION postgis, which requires superuser. Instead of granting
@@ -75,6 +104,10 @@ jobs:
         id: suites
         run: |
           DC="docker compose --env-file .env_test -f docker-compose-test.yml"
+
+          # tests/test.sh runs coverage in --parallel-mode, so each suite drops its own
+          # .coverage.<host>.<pid>.<rand>. Clear any leftovers before the first one.
+          $DC exec -T django bash -lc 'cd /usr/src/geonode && coverage erase' </dev/null
 
           reset_dbs() {
             $DC exec -T db psql -U postgres -q -c \
@@ -122,6 +155,8 @@ jobs:
             # async import waiting on a celery worker the test stack does not run, say) would
             # otherwise sit there until the job-level timeout and take every later suite with it.
             set +e
+            # shellcheck disable=SC2086  # $DC and $APPS must word-split: one holds the compose
+            # command prefix, the other the suite's list of test modules.
             timeout --signal=INT --kill-after=60s "${SUITE_TIMEOUT:-45m}" \
               $DC exec -T django bash -lc "cd /usr/src/geonode && ./tests/test.sh $APPS --durations 30 --failfast" </dev/null
             RC=$?
@@ -146,6 +181,53 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
           exit $FAILED
+
+      # always(): a failing suite is exactly when the coverage of the changed lines is worth seeing,
+      # and this step must run before the stack is torn down.
+      - name: Collect coverage
+        if: always()
+        run: |
+          DC="docker compose --env-file .env_test -f docker-compose-test.yml"
+          $DC exec -T django bash -lc '
+            cd /usr/src/geonode
+            # Nothing to combine if the suites never got far enough to emit a data file.
+            ls .coverage.* >/dev/null 2>&1 || { echo "no coverage data produced"; exit 0; }
+            coverage combine
+            coverage xml -o coverage.xml' </dev/null
+          $DC cp django:/usr/src/geonode/coverage.xml coverage.xml || echo "no coverage.xml produced"
+
+      - name: Report diff coverage
+        if: always()
+        run: |
+          [ -f coverage.xml ] || { echo "no coverage.xml, skipping diff coverage"; exit 0; }
+          pip install --quiet diff-cover
+          # The checkout above uses fetch-depth: 0, so the history is already complete and no depth
+          # argument belongs here -- `--depth=0` is not valid git syntax and aborts the step with
+          # "fatal: depth 0 is not a positive number".
+          git fetch --no-tags origin main
+          # Report-only for now: no --fail-under, so this annotates the pull request without
+          # blocking it. Raise it to a threshold once real numbers are known.
+          diff-cover coverage.xml \
+            --compare-branch=origin/main \
+            --src-roots . \
+            --markdown-report diff-cover.md \
+            --diff-range-notation '..' || true
+          {
+            echo "## Diff coverage"
+            echo
+            cat diff-cover.md 2>/dev/null || echo "diff-cover produced no report"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: |
+            coverage.xml
+            diff-cover.md
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Dump docker logs on failure
         if: failure()
