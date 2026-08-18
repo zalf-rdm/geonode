@@ -201,7 +201,10 @@ jobs:
         run: |
           [ -f coverage.xml ] || { echo "no coverage.xml, skipping diff coverage"; exit 0; }
           pip install --quiet diff-cover
-          git fetch --no-tags --depth=0 origin main
+          # The checkout above uses fetch-depth: 0, so the history is already complete and no depth
+          # argument belongs here -- `--depth=0` is not valid git syntax and aborts the step with
+          # "fatal: depth 0 is not a positive number".
+          git fetch --no-tags origin main
           # Report-only for now: no --fail-under, so this annotates the pull request without
           # blocking it. Raise it to a threshold once real numbers are known.
           diff-cover coverage.xml \
