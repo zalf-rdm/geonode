@@ -18,6 +18,8 @@
 #########################################################################
 import os
 import logging
+from urllib.parse import urlsplit, urlunsplit
+
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect
@@ -36,6 +38,49 @@ from django.db import connection
 from django.core.exceptions import ObjectDoesNotExist
 from geonode.people import Roles
 
+logger = logging.getLogger(__name__)
+
+
+def _redirect_to_external_csw(request):
+    """Redirect to an externally deployed CSW, preserving the query string.
+
+    CSW is entirely query-string driven (``service``, ``version``, ``request``,
+    ...). A bare redirect to CATALOGUE["default"]["URL"] drops the operation, so
+    the remote pycsw has nothing to dispatch on and the client gets an error or a
+    404 rather than the capabilities document it asked for. See issue #384.
+    """
+    target = settings.CATALOGUE["default"]["URL"]
+    parts = urlsplit(target)
+
+    # CATALOGUE_URL defaults to SITEURL + /catalogue/csw, i.e. this very view. If
+    # only CATALOGUE_ENGINE was switched to an external backend, redirecting
+    # there would loop until the client gives up. That is a misconfiguration, so
+    # fail loudly and say what to fix rather than emitting a redirect storm.
+    # Raw header, not request.get_host(): the latter validates against
+    # ALLOWED_HOSTS and raises DisallowedHost, which would turn this
+    # configuration check into a 500 for an unrelated reason.
+    request_host = request.META.get("HTTP_HOST") or request.META.get("SERVER_NAME", "")
+    same_host = not parts.netloc or parts.netloc == request_host
+    if same_host and parts.path.rstrip("/") == request.path.rstrip("/"):
+        logger.error(
+            "CATALOGUE['default']['URL'] (%s) points back at this view while ENGINE is %s. "
+            "Set CATALOGUE_URL to the external CSW endpoint.",
+            target,
+            settings.CATALOGUE["default"]["ENGINE"],
+        )
+        return HttpResponse(
+            "CSW misconfigured: CATALOGUE_URL points back at GeoNode while a non-local "
+            "CSW backend is configured. Set CATALOGUE_URL to the external CSW endpoint.",
+            content_type="text/plain",
+            status=500,
+        )
+
+    query = request.META.get("QUERY_STRING", "")
+    if query:
+        merged = f"{parts.query}&{query}" if parts.query else query
+        target = urlunsplit((parts.scheme, parts.netloc, parts.path, merged, parts.fragment))
+    return HttpResponseRedirect(target)
+
 
 @csrf_exempt
 def csw_global_dispatch(request, dataset_filter=None, config_updater=None):
@@ -44,7 +89,7 @@ def csw_global_dispatch(request, dataset_filter=None, config_updater=None):
     # this view should only operate if pycsw_local is the backend
     # else, redirect to the URL of the non-pycsw_local backend
     if settings.CATALOGUE["default"]["ENGINE"] != "geonode.catalogue.backends.pycsw_local":
-        return HttpResponseRedirect(settings.CATALOGUE["default"]["URL"])
+        return _redirect_to_external_csw(request)
 
     mdict = dict(settings.PYCSW["CONFIGURATION"], **CONFIGURATION)
     mdict = config_updater(mdict) if config_updater else mdict
