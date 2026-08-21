@@ -75,13 +75,6 @@ class DateTypeSubHandler(SubHandler):
         subschema["default"] = "Publication"
 
 
-class TitleSubHandler(SubHandler):
-    @classmethod
-    def deserialize(cls, field_value):
-        # ref https://github.com/GeoNode/geonode/issues/8198
-        return field_value.replace(",", "_")
-
-
 class DateSubHandler(SubHandler):
     @classmethod
     def serialize(cls, value):
@@ -163,7 +156,10 @@ class SpatialRepresentationTypeSubHandler(SubHandler):
 
 
 SUBHANDLERS = {
-    "title": TitleSubHandler,
+    # No "title" entry: TitleSubHandler existed only to replace commas with
+    # underscores (upstream GeoNode #8198). Titles are stored verbatim now, and
+    # the comma-free form needed by pycsw's link serialization is derived on
+    # read via ResourceBase.csw_safe_title instead. See #632 / #698.
     "category": CategorySubHandler,
     "date_type": DateTypeSubHandler,
     "date": DateSubHandler,
