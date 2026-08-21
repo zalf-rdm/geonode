@@ -296,10 +296,10 @@ class TestTiles3DFileHandler(TestCase):
         )
         self.assertFalse(resource.bbox == self.default_bbox)
 
-        self.assertEqual(resource.bbox_x0, -75.61852101302848)
-        self.assertEqual(resource.bbox_x1, -75.60566760262047)
-        self.assertEqual(resource.bbox_y0, 40.03610390613993)
-        self.assertEqual(resource.bbox_y1, 40.04895731654794)
+        self.assertAlmostEqual(resource.bbox_x0, -75.61852101302848)
+        self.assertAlmostEqual(resource.bbox_x1, -75.60566760262047)
+        self.assertAlmostEqual(resource.bbox_y0, 40.03610390613993)
+        self.assertAlmostEqual(resource.bbox_y1, 40.04895731654794)
 
     def test_set_bbox_from_bounding_volume_without_transform(self):
         # https://github.com/geosolutions-it/MapStore2/blob/master/web/client/api/__tests__/ThreeDTiles-test.js#L147-L180
@@ -340,10 +340,10 @@ class TestTiles3DFileHandler(TestCase):
         )
         self.assertFalse(resource.bbox == self.default_bbox)
 
-        self.assertEqual(resource.bbox_x0, -1.3348442882497923e-05)
-        self.assertEqual(resource.bbox_x1, 0.0004463052796897286)
-        self.assertEqual(resource.bbox_y0, 86.81078622278615)
-        self.assertEqual(resource.bbox_y1, 86.81124587650872)
+        self.assertAlmostEqual(resource.bbox_x0, -1.3348442882497923e-05)
+        self.assertAlmostEqual(resource.bbox_x1, 0.0004463052796897286)
+        self.assertAlmostEqual(resource.bbox_y0, 86.81078622278615)
+        self.assertAlmostEqual(resource.bbox_y1, 86.81124587650872)
 
     def test_set_bbox_from_bounding_volume_sphere_with_transform(self):
         # https://github.com/geosolutions-it/MapStore2/blob/master/web/client/api/__tests__/ThreeDTiles-test.js#L102-L146
@@ -414,10 +414,10 @@ class TestTiles3DFileHandler(TestCase):
         )
         self.assertFalse(resource.bbox == self.default_bbox)
 
-        self.assertEqual(resource.bbox_x0, 0.00017151231693387494)
-        self.assertEqual(resource.bbox_x1, 0.00026144451987335574)
-        self.assertEqual(resource.bbox_y0, 86.81097108354597)
-        self.assertEqual(resource.bbox_y1, 86.8110610157489)
+        self.assertAlmostEqual(resource.bbox_x0, 0.00017151231693387494)
+        self.assertAlmostEqual(resource.bbox_x1, 0.00026144451987335574)
+        self.assertAlmostEqual(resource.bbox_y0, 86.81097108354597)
+        self.assertAlmostEqual(resource.bbox_y1, 86.8110610157489)
 
     def test_set_bbox_from_bounding_volume_sphere_with_center_zero_without_transform(self):
         # https://github.com/geosolutions-it/MapStore2/blob/master/web/client/api/__tests__/ThreeDTiles-test.js#L53C4-L79C8
