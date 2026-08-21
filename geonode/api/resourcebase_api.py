@@ -334,12 +334,6 @@ class CommonModelApi(ModelResource):
     def prepend_urls(self):
         return []
 
-    def hydrate_title(self, bundle):
-        title = bundle.data.get("title", None)
-        if title:
-            bundle.data["title"] = title.replace(",", "_")
-        return bundle
-
 
 class ResourceBaseResource(CommonModelApi):
     """ResourceBase api"""
