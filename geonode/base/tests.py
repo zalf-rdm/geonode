@@ -1410,9 +1410,7 @@ class AbstractFieldLabelsTest(SimpleTestCase):
     def test_english_labels_name_the_content_language(self):
         with translation.override("en"):
             self.assertEqual("Abstract (English)", str(ResourceBase._meta.get_field("abstract").verbose_name))
-            self.assertEqual(
-                "Abstract (German)", str(ResourceBase._meta.get_field("abstract_translated").verbose_name)
-            )
+            self.assertEqual("Abstract (German)", str(ResourceBase._meta.get_field("abstract_translated").verbose_name))
 
     def test_german_labels_name_the_content_language(self):
         with translation.override("de"):
