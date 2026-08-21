@@ -206,6 +206,15 @@ class GeoNodeRepository(Repository):
         """
         Apply repository wide side filter / mask query
         """
+        # Unpublished resources must never be exposed through CSW, whatever else
+        # is being filtered on. This deliberately does *not* live in the default
+        # value of settings.PYCSW["FILTER"] (see query()): deployments override
+        # that setting wholesale, which would silently drop the exclusion. Every
+        # read path funnels through here, so applying it once covers them all.
+        #
+        # No-op unless RESOURCE_PUBLISHING (or ADMIN_MODERATE_UPLOADS) is on:
+        # ResourceBase.is_published defaults to True.
+        query = query.filter(is_published=True)
         if self.filter is not None:
             return query.extra(where=[self.filter])
         return query
