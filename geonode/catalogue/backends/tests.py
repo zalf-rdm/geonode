@@ -5,6 +5,7 @@ from geonode.base.populate_test_data import create_single_doc, create_single_dat
 from django.contrib.auth.models import AnonymousUser
 from django.test.client import RequestFactory
 from geonode.catalogue.views import csw_global_dispatch
+from geonode.base.models import ResourceBase
 from django.test import TestCase
 from django.conf import settings
 
@@ -45,6 +46,40 @@ class TestGeoNodeRepository(TestCase):
         child = [x.attrib for x in root if "numberOfRecordsMatched" in x.attrib]
         returned_results = ast.literal_eval(child[0].get("numberOfRecordsMatched", "0")) if child else 0
         self.assertEqual(3, returned_results)
+
+    def test_unpublished_resources_are_hidden(self):
+        """
+        Unpublished resources must not be exposed through CSW (#706).
+
+        is_published is flipped after creation rather than passed to the factory
+        so the resource still gets the normal default permissions - that isolates
+        the repository filter under test from the separate permission mask
+        csw_global_dispatch builds from get_objects_for_user().
+        """
+        unpublished = create_single_dataset("unpublished_dataset_name")
+        ResourceBase.objects.filter(pk=unpublished.pk).update(is_published=False)
+
+        # only self.layer; the unpublished dataset is filtered out
+        self.assertEqual(1, self.__number_of_records_matched(csw_global_dispatch(self.request)))
+
+    @override_settings(PYCSW=pycsw_settings_all)
+    def test_unpublished_resources_are_hidden_with_custom_pycsw_filter(self):
+        """
+        The exclusion has to survive a deployment-supplied PYCSW["FILTER"], which
+        replaces the default wholesale. This is the case that regresses if the
+        is_published condition is added to that default instead of to the
+        repository-wide mask in GeoNodeRepository._get_repo_filter().
+        """
+        ResourceBase.objects.filter(pk=self.map.pk).update(is_published=False)
+
+        # dataset + doc would be 3 with the map; the unpublished map drops out
+        self.assertEqual(2, self.__number_of_records_matched(csw_global_dispatch(self.request)))
+
+    @staticmethod
+    def __number_of_records_matched(response):
+        root = etree.fromstring(response.content)
+        child = [x.attrib for x in root if "numberOfRecordsMatched" in x.attrib]
+        return ast.literal_eval(child[0].get("numberOfRecordsMatched", "0")) if child else 0
 
     @staticmethod
     def __request_factory():

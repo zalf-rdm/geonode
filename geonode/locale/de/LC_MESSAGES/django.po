@@ -209,9 +209,13 @@ msgstr "Ressourcen"
 msgid "Abstract"
 msgstr "Zusammenfassung"
 
-#: geonode/base/forms.py:435 geonode/base/models.py:933
-msgid "Abstract Translated"
-msgstr "Zusammenfassung übersetzt"
+#: geonode/base/models.py:952
+msgid "Abstract (English)"
+msgstr "Zusammenfassung (Englisch)"
+
+#: geonode/base/models.py:954
+msgid "Abstract (German)"
+msgstr "Zusammenfassung (Deutsch)"
 
 #: geonode/base/forms.py:442 geonode/base/models.py:937
 msgid "Subtitle"

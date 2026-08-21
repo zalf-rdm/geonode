@@ -32,8 +32,8 @@
   },
   "abstract": {
     "type": "string",
-    "title": "Abstract",
-    "description": "brief narrative summary of the content of the resource(s)",
+    "title": "Abstract (English)",
+    "description": "Brief English narrative summary of the content of the resource(s)",
     "maxLength": 2000,
     "ui:options": { "widget": "textarea", "rows": 5 },
     "geonode:handler": "base",
