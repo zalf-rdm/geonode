@@ -1354,11 +1354,6 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     def detail_url(self):
         return self.get_absolute_url()
 
-    def clean(self):
-        if self.title:
-            self.title = self.title.replace(",", "_")
-        return super().clean()
-
     def save(self, notify=False, *args, **kwargs):
         """
         Send a notification when a resource is created or updated
@@ -2009,16 +2004,36 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
             except ZeroDivisionError:
                 pass
 
+    @property
+    def csw_safe_title(self):
+        """Title with commas stripped, for embedding in pycsw catalogue link fields.
+
+        pycsw serializes catalogue links as comma-joined strings and later splits
+        them back on ``,`` to build the CSW ``<dct:references>`` elements. This
+        happens on both the local in-process path (pycsw.core.util.getqattr /
+        pycsw.ogc.csw.csw2, fed by ``download_links``) and the external-backend
+        path (pycsw.core.metadata._parse_iso, fed by the ISO metadata XML that
+        GeoNode pushes). A comma in the title would shift the field positions and
+        corrupt the reference scheme, so it must be stripped wherever the title is
+        used as a link label/description. The stored ``self.title`` keeps its
+        commas untouched (see issues #632 and #698).
+        """
+        return self.title.replace(",", " ") if self.title else self.title
+
     def download_links(self):
         """assemble download links for pycsw"""
         links = []
+        # Use a comma-free title as the link label so pycsw's comma-delimited link
+        # serialization (and the resulting <dct:references>) stays valid; see
+        # ``csw_safe_title``.
+        safe_title = self.csw_safe_title
         for link in self.link_set.all():
             if link.link_type == "metadata":  # avoid recursion
                 continue
             if link.link_type == "html":
-                links.append((self.title, "Web address (URL)", "WWW:LINK-1.0-http--link", link.url))
+                links.append((safe_title, "Web address (URL)", "WWW:LINK-1.0-http--link", link.url))
             elif link.link_type in ("OGC:WMS", "OGC:WFS", "OGC:WCS"):
-                links.append((self.title, link.name, link.link_type, link.url))
+                links.append((safe_title, link.name, link.link_type, link.url))
             else:
                 _link_type = "WWW:DOWNLOAD-1.0-http--download"
                 try:
@@ -2029,8 +2044,8 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
                             _link_type = f"WWW:DOWNLOAD-{_remote_service.type}"
                 except Exception as e:
                     logger.exception(e)
-                description = f"{self.title} ({link.name} Format)"
-                links.append((self.title, description, _link_type, link.url))
+                description = f"{safe_title} ({link.name} Format)"
+                links.append((safe_title, description, _link_type, link.url))
         return links
 
     @property
