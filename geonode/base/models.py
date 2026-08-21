@@ -946,9 +946,12 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         _("Title Translated"), max_length=512, blank=True, help_text=title_translated_help_text
     )
 
-    abstract = models.CharField(_("Abstract"), max_length=6000, help_text=abstract_help_text)
+    # Labelled by the language of the content they hold, not by "translated":
+    # in the German UI "Zusammenfassung" / "Zusammenfassung übersetzt" gave no
+    # clue that the first holds English text and the second German. See #676.
+    abstract = models.CharField(_("Abstract (English)"), max_length=6000, help_text=abstract_help_text)
     abstract_translated = models.TextField(
-        _("Abstract Translated"), max_length=2000, help_text=abstract_translated_help_text
+        _("Abstract (German)"), max_length=2000, help_text=abstract_translated_help_text
     )
 
     # description type elements
