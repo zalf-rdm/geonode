@@ -38,6 +38,7 @@ from django.template import Template, Context
 from django.contrib.auth import get_user_model
 from geonode.storage.manager import storage_manager
 from django.test import Client, TestCase, override_settings, SimpleTestCase
+from django.utils import translation
 from django.shortcuts import reverse
 from django.core.files import File
 from django.core.management import call_command
@@ -1393,3 +1394,29 @@ class TestDeletableAssetKey(GeoNodeBaseTestSupport):
             deletable_status_by_title["Original"],
             "Link with title 'Original' should have deletable=False",
         )
+
+
+class AbstractFieldLabelsTest(SimpleTestCase):
+    """
+    The abstract fields are labelled by the language of the content they hold,
+    not by "translated" (#676): in the German UI "Zusammenfassung" /
+    "Zusammenfassung übersetzt" gave no clue that the first holds English text
+    and the second German.
+
+    These assertions also guard the German catalog entries - a msgid rename
+    without a matching django.po update would silently fall back to English.
+    """
+
+    def test_english_labels_name_the_content_language(self):
+        with translation.override("en"):
+            self.assertEqual("Abstract (English)", str(ResourceBase._meta.get_field("abstract").verbose_name))
+            self.assertEqual(
+                "Abstract (German)", str(ResourceBase._meta.get_field("abstract_translated").verbose_name)
+            )
+
+    def test_german_labels_name_the_content_language(self):
+        with translation.override("de"):
+            self.assertEqual("Zusammenfassung (Englisch)", str(ResourceBase._meta.get_field("abstract").verbose_name))
+            self.assertEqual(
+                "Zusammenfassung (Deutsch)", str(ResourceBase._meta.get_field("abstract_translated").verbose_name)
+            )
