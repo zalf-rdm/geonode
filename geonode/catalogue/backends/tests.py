@@ -56,3 +56,60 @@ class TestGeoNodeRepository(TestCase):
 
         request.user = AnonymousUser()
         return request
+
+
+class TestExternalCswRedirect(TestCase):
+    """
+    When CATALOGUE["default"]["ENGINE"] is not pycsw_local, /catalogue/csw
+    redirects to the externally deployed CSW. CSW is entirely query-string
+    driven, so dropping the query string leaves the remote pycsw with no
+    operation to dispatch and the client gets a 404 instead of its capabilities
+    document - which is what broke QGIS against the standalone pycsw container
+    (#384).
+    """
+
+    EXTERNAL = "geonode.catalogue.backends.pycsw_http"
+
+    def setUp(self):
+        factory = RequestFactory()
+        url = "http://localhost:8000/catalogue/csw?request=GetRecords"
+        url += "&service=CSW&version=2.0.2&elementsetname=brief&typenames=csw:Record&resultType=results"
+        self.request = factory.get(url)
+        self.request.user = AnonymousUser()
+
+    def _dispatch(self, url):
+        catalogue = {"default": dict(settings.CATALOGUE["default"])}
+        catalogue["default"]["ENGINE"] = self.EXTERNAL
+        catalogue["default"]["URL"] = url
+        with override_settings(CATALOGUE=catalogue):
+            return csw_global_dispatch(self.request)
+
+    def test_query_string_is_forwarded(self):
+        response = self._dispatch("http://pycsw:8000/")
+        self.assertEqual(302, response.status_code)
+        location = response.headers["Location"]
+        self.assertTrue(location.startswith("http://pycsw:8000/?"), location)
+        self.assertIn("request=GetRecords", location)
+        self.assertIn("service=CSW", location)
+
+    def test_query_string_is_merged_with_an_existing_one(self):
+        response = self._dispatch("http://pycsw:8000/csw?foo=1")
+        self.assertEqual(302, response.status_code)
+        location = response.headers["Location"]
+        self.assertIn("foo=1", location)
+        self.assertIn("request=GetRecords", location)
+
+    def test_url_pointing_back_at_geonode_is_refused(self):
+        # CATALOGUE_URL defaults to SITEURL + /catalogue/csw, so switching only
+        # CATALOGUE_ENGINE would otherwise redirect to this view forever.
+        response = self._dispatch("http://testserver/catalogue/csw")
+        self.assertEqual(500, response.status_code)
+
+    def test_relative_url_pointing_back_at_geonode_is_refused(self):
+        response = self._dispatch("/catalogue/csw")
+        self.assertEqual(500, response.status_code)
+
+    def test_local_backend_still_serves_csw_itself(self):
+        # The default engine must keep answering in-process, not redirect.
+        response = csw_global_dispatch(self.request)
+        self.assertEqual(200, response.status_code)
