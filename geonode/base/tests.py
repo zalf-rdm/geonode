@@ -57,6 +57,7 @@ from geonode.base.templatetags.base_tags import display_change_perms_button
 from geonode.base.utils import OwnerRightsRequestViewUtils
 from geonode.base.models import (
     HierarchicalKeyword,
+    Organization,
     ResourceBase,
     MenuPlaceholder,
     License,
@@ -1418,3 +1419,76 @@ class AbstractFieldLabelsTest(SimpleTestCase):
             self.assertEqual(
                 "Zusammenfassung (Deutsch)", str(ResourceBase._meta.get_field("abstract_translated").verbose_name)
             )
+
+
+class CswContactsTest(GeoNodeBaseTestSupport):
+    """
+    pycsw's DataCite output schema does json.loads() on whatever pycsw:Contacts
+    resolves to, then indexes individualname/organization/role/url on each entry.
+    Mapping that queryable straight at ResourceBase.contacts handed it a
+    ManyRelatedManager, which raised and silently dropped every creator,
+    contributor and publisher from the record (#724).
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.rb = ResourceBase.objects.create(uuid=str(uuid4()), owner=get_user_model().objects.get(username="admin"))
+        self.user, _ = get_user_model().objects.get_or_create(username="csw_contact")
+        self.user.first_name = "Ada"
+        self.user.last_name = "Lovelace"
+        self.user.save()
+
+    def test_returns_a_json_string_not_a_related_manager(self):
+        # The regression itself: json.loads() must accept the value.
+        self.rb.poc = self.user
+        value = self.rb.csw_contacts()
+        self.assertIsInstance(value, str)
+        self.assertIsInstance(json.loads(value), list)
+
+    def test_every_entry_carries_the_keys_pycsw_indexes(self):
+        # pycsw reads cnt["url"] and cnt["organization"] directly, not via .get(),
+        # so a missing key is a KeyError rather than a blank field.
+        self.rb.poc = self.user
+        self.rb.publisher = self.user
+        entries = json.loads(self.rb.csw_contacts())
+        self.assertTrue(entries)
+        for entry in entries:
+            for key in ("individualname", "organization", "role", "url"):
+                self.assertIn(key, entry)
+
+    def test_role_and_name_are_carried_through(self):
+        self.rb.poc = self.user
+        entries = json.loads(self.rb.csw_contacts())
+        roles = {entry["role"] for entry in entries}
+        # ContactRole.role already uses the ISO strings pycsw switches on
+        self.assertIn("pointOfContact", roles)
+        names = {entry["individualname"] for entry in entries}
+        self.assertIn("Ada Lovelace", names)
+
+    def test_missing_organization_is_empty_string_not_none(self):
+        # Profile.organization is a nullable FK; str(None) would put the literal
+        # "None" into the DataCite affiliation.
+        self.user.organization = None
+        self.user.save()
+        self.rb.poc = self.user
+        entries = json.loads(self.rb.csw_contacts())
+        self.assertTrue(entries)
+        for entry in entries:
+            self.assertEqual("", entry["organization"])
+
+    def test_organization_name_is_used_when_set(self):
+        org = Organization.objects.create(organization="Leibniz Centre for Agricultural Landscape Research")
+        self.user.organization = org
+        self.user.save()
+        self.rb.poc = self.user
+        entries = json.loads(self.rb.csw_contacts())
+        self.assertIn("Leibniz Centre for Agricultural Landscape Research", {e["organization"] for e in entries})
+
+    def test_no_contacts_yields_an_empty_json_list(self):
+        self.assertEqual([], json.loads(self.rb.csw_contacts()))
+
+    def test_pycsw_mapping_points_at_the_serializer(self):
+        # Guards the repoint: mapping at the raw M2M is what caused #724.
+        from geonode.catalogue.backends.pycsw_local_mappings import MD_CORE_MODEL
+
+        self.assertEqual("csw_contacts", MD_CORE_MODEL["mappings"]["pycsw:Contacts"])

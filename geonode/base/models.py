@@ -20,6 +20,7 @@
 import os
 import re
 import html
+import json
 import math
 import uuid
 import logging
@@ -2047,6 +2048,45 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
                 description = f"{safe_title} ({link.name} Format)"
                 links.append((safe_title, description, _link_type, link.url))
         return links
+
+    def csw_contacts(self):
+        """Assemble contacts for pycsw, as the JSON string its schemas expect.
+
+        pycsw's DataCite output schema does ``json.loads()`` on whatever
+        ``pycsw:Contacts`` resolves to and then indexes ``individualname``,
+        ``organization``, ``role`` and ``url`` on each entry. Mapping that
+        queryable straight at ``ResourceBase.contacts`` hands it a
+        ManyRelatedManager instead, which raises and silently drops every
+        creator, contributor and publisher from the record (see issue #724).
+
+        Mirrors ``download_links`` above: pycsw's ``getqattr`` calls the
+        attribute when it is callable, so the mapping points here rather than at
+        the raw field.
+
+        All four keys are always present because pycsw reads ``cnt["url"]`` and
+        ``cnt["organization"]`` by direct indexing, not ``.get()``.
+        """
+        contacts = []
+        for contact_role in ContactRole.objects.filter(resource=self).order_by("order", "id"):
+            profile = contact_role.contact
+            if profile is None:
+                continue
+            # organization is a nullable FK; str(None) would emit the literal
+            # "None" as an affiliation.
+            organization = str(profile.organization) if profile.organization else ""
+            try:
+                url = profile.get_absolute_url()
+            except Exception:
+                url = ""
+            contacts.append(
+                {
+                    "individualname": profile.name_long or "",
+                    "organization": organization,
+                    "role": contact_role.role or "",
+                    "url": url or "",
+                }
+            )
+        return json.dumps(contacts)
 
     @property
     def embed_url(self):
