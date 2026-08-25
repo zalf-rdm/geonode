@@ -1165,6 +1165,16 @@ CATALOGUE = {
     }
 }
 
+# Publisher and point-of-contact details advertised by the catalogue. These end up in the
+# CSW GetCapabilities document, in the INSPIRE ExtendedCapabilities of the apiso profile,
+# in the OpenSearch description and in /ident.json, so they are deployment specific and
+# are configured through the environment rather than by patching this file.
+PYCSW_ORGANIZATION = os.getenv(
+    "PYCSW_ORGANIZATION", "Leibniz Centre for Agricultural Landscape Research (ZALF) e. V."
+)
+PYCSW_ORGANIZATION_URL = os.getenv("PYCSW_ORGANIZATION_URL", "https://www.zalf.de")
+PYCSW_CONTACT_EMAIL = os.getenv("PYCSW_CONTACT_EMAIL", "dataservice@zalf.de")
+
 # pycsw settings
 PYCSW = {
     # pycsw configuration
@@ -1197,47 +1207,79 @@ PYCSW = {
         },
         "metadata": {
             "inspire": {
-                "enabled": True,
-                "languages_supported": ["eng", "gre"],
-                "default_language": "eng",
-                "date": "YYYY-MM-DD",
-                "gemet_keywords": ["Utility and governmental services"],
-                "conformity_service": "notEvaluated",
-                "contact_name": "Organization Name",
-                "contact_email": "Email Address",
+                "enabled": ast.literal_eval(os.getenv("PYCSW_INSPIRE_ENABLED", "True")),
+                # ISO 639-2/B codes, as INSPIRE requires them: ger = German, eng = English.
+                # A GetCapabilities request may only ask for a language listed here.
+                "languages_supported": ast.literal_eval(os.getenv("PYCSW_INSPIRE_LANGUAGES", "['ger', 'eng']")),
+                "default_language": os.getenv("PYCSW_INSPIRE_DEFAULT_LANGUAGE", "eng"),
+                # Date of the *service* metadata itself (inspire_common:MetadataDate).
+                # Bump this whenever the entries in this block change.
+                "date": os.getenv("PYCSW_INSPIRE_DATE", "2026-08-25"),
+                # Exact English labels from the GEMET "INSPIRE themes" vocabulary; pycsw stamps
+                # them as inspire_common:inspireTheme_eng, so free-text values will not validate.
+                "gemet_keywords": ast.literal_eval(
+                    os.getenv(
+                        "PYCSW_INSPIRE_GEMET_KEYWORDS",
+                        "['Soil', 'Land use', 'Agricultural and aquaculture facilities']",
+                    )
+                ),
+                # One of: conformant, notConformant, notEvaluated
+                "conformity_service": os.getenv("PYCSW_INSPIRE_CONFORMITY", "notEvaluated"),
+                # inspire_common:MetadataPointOfContact -- an ORGANISATION, not a person
+                "contact_name": os.getenv("PYCSW_INSPIRE_CONTACT_NAME", PYCSW_ORGANIZATION),
+                "contact_email": os.getenv("PYCSW_INSPIRE_CONTACT_EMAIL", PYCSW_CONTACT_EMAIL),
+                # pycsw always writes both bounds of the interval, so an open-ended temporal
+                # extent cannot be expressed: keep "end" at the last review of the service.
                 "temp_extent": {
-                    "begin": "YYYY-MM-DD",
-                    "end": "YYYY-MM-DD",
+                    "begin": os.getenv("PYCSW_INSPIRE_TEMP_EXTENT_BEGIN", "2022-07-01"),
+                    "end": os.getenv("PYCSW_INSPIRE_TEMP_EXTENT_END", "2026-08-25"),
                 },
             },
             "identification": {
-                "title": "GeoNode Catalogue",
-                "description": "GeoNode is an open source platform"
-                " that facilitates the creation, sharing, and collaborative use"
-                " of geospatial data",
-                "keywords": ["sdi", "catalogue", "discovery", "metadata", "GeoNode"],
+                "title": os.getenv("PYCSW_TITLE", "ZALF BonaRes Repository Catalogue"),
+                "description": os.getenv(
+                    "PYCSW_DESCRIPTION",
+                    "Discovery service of the BonaRes Repository at ZALF, publishing metadata on soil, "
+                    "agricultural and agricultural landscape research data via OGC CSW 2.0.2/3.0.0 "
+                    "and the ISO 19115/19139 (APISO) application profile.",
+                ),
+                "keywords": ast.literal_eval(
+                    os.getenv(
+                        "PYCSW_KEYWORDS",
+                        "['sdi', 'catalogue', 'discovery', 'metadata', 'GeoNode', 'agriculture', "
+                        "'BonaRes', 'ZALF', 'soil science']",
+                    )
+                ),
                 "keywords_type": "theme",
                 "fees": "None",
                 "accessconstraints": "None",
             },
             "provider": {
-                "name": "Organization Name",
-                "url": SITEURL,
+                "name": PYCSW_ORGANIZATION,
+                # ows:ProviderSite -- the operating organisation, not this GeoNode (already
+                # advertised as server.url above)
+                "url": PYCSW_ORGANIZATION_URL,
             },
+            # A functional point of contact rather than a named individual: this is published
+            # to every harvester, so it has to outlive whoever currently maintains the service.
             "contact": {
-                "name": "Lastname, Firstname",
-                "position": "Position Title",
-                "address": "Mailing Address",
-                "city": "City",
-                "stateorprovince": "Administrative Area",
-                "postalcode": "Zip or Postal Code",
-                "country": "Country",
-                "phone": "+xx-xxx-xxx-xxxx",
-                "fax": "+xx-xxx-xxx-xxxx",
-                "email": "Email Address",
-                "url": "Contact URL",
-                "hours": "Hours of Service",
-                "instructions": "During hours of service. Off on " "weekends.",
+                "name": os.getenv("PYCSW_CONTACT_NAME", "ZALF Research Data Management"),
+                "position": os.getenv("PYCSW_CONTACT_POSITION", "Data Service"),
+                "address": os.getenv("PYCSW_CONTACT_ADDRESS", "Eberswalder Straße 84"),
+                "city": os.getenv("PYCSW_CONTACT_CITY", "Müncheberg"),
+                "stateorprovince": os.getenv("PYCSW_CONTACT_STATE", "Brandenburg"),
+                "postalcode": os.getenv("PYCSW_CONTACT_POSTALCODE", "15374"),
+                "country": os.getenv("PYCSW_CONTACT_COUNTRY", "Germany"),
+                "phone": os.getenv("PYCSW_CONTACT_PHONE", "+49 33432 82-0"),
+                "fax": os.getenv("PYCSW_CONTACT_FAX", "+49 33432 82-301"),
+                "email": PYCSW_CONTACT_EMAIL,
+                "url": os.getenv("PYCSW_CONTACT_URL", "https://repository.zalf.de"),
+                # pycsw writes ows:HoursOfService and ows:ContactInstructions unconditionally and
+                # falls back to the literal string "missing", so both are always set here.
+                "hours": os.getenv("PYCSW_CONTACT_HOURS", "Mo-Fr 09:00-16:00 CET/CEST"),
+                "instructions": os.getenv(
+                    "PYCSW_CONTACT_INSTRUCTIONS", "Please contact us by email during hours of service."
+                ),
                 "role": "pointOfContact",
             },
         },
