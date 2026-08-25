@@ -96,6 +96,6 @@ MD_CORE_MODEL = {
         "pycsw:CloudCover": "cloudcover",
         "pycsw:Bands": "bands",
         "pycsw:Links": "download_links",
-        "pycsw:Contacts": "contacts",
+        "pycsw:Contacts": "csw_contacts",
     },
 }
