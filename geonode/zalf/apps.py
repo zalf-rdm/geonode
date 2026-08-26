@@ -52,6 +52,12 @@ class UploadAppConfig(AppConfig):
             re_path(r"^", include("geonode.zalf.urls")),
         ]
 
+        # Catalogue signals: put maps into the CSW and keep ISO scope codes in sync.
+        # Imported here so the models they reference are already loaded.
+        from geonode.zalf import signals as zalf_signals
+
+        zalf_signals.connect()
+
     def ready(self):
         super().ready()
         logger.debug("Initialize ZALF module ...")

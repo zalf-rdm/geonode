@@ -1,6 +1,9 @@
 {% load thesaurus %}
 {% load l10n %}
 {% load gdi_de %}
+{% load zalf_iso %}
+{% zalf_iso_scope_code layer as scope_code %}
+{% zalf_parent_series_uuid layer as parent_uuid %}
 <gmd:MD_Metadata xmlns:gmd="http://www.isotc211.org/2005/gmd" xmlns:gml="http://www.opengis.net/gml" xmlns:gml32="http://www.opengis.net/gml/3.2" xmlns:gmx="http://www.isotc211.org/2005/gmx" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:gco="http://www.isotc211.org/2005/gco" xsi:schemaLocation="http://www.isotc211.org/2005/gmd http://www.isotc211.org/2005/gmd/gmd.xsd">
    <gmd:fileIdentifier>
      <gco:CharacterString>{{layer.uuid}}</gco:CharacterString>
@@ -11,8 +14,13 @@
    <gmd:characterSet>
      <gmd:MD_CharacterSetCode codeSpace="ISOTC211/19115" codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_CharacterSetCode" codeListValue="utf8">utf8</gmd:MD_CharacterSetCode>
    </gmd:characterSet>
+   {% if parent_uuid %}
+   <gmd:parentIdentifier>
+     <gco:CharacterString>{{ parent_uuid }}</gco:CharacterString>
+   </gmd:parentIdentifier>
+   {% endif %}
    <gmd:hierarchyLevel>
-    <gmd:MD_ScopeCode codeSpace="ISOTC211/19115" codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ScopeCode" codeListValue="dataset">dataset</gmd:MD_ScopeCode>
+    <gmd:MD_ScopeCode codeSpace="ISOTC211/19115" codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ScopeCode" codeListValue="{{ scope_code }}">{{ scope_code }}</gmd:MD_ScopeCode>
    </gmd:hierarchyLevel>
 
    {% for label, contact_roles in layer.get_defined_multivalue_contact_roles.items %}
@@ -386,6 +394,14 @@
          <gmd:MD_TopicCategoryCode>{{layer.category.identifier}}</gmd:MD_TopicCategoryCode>
          {% endif %}
        </gmd:topicCategory>
+       {% comment %}
+       Non-geographic resources carry a placeholder world bbox (the datapackage importer
+       assigns one to every tabular dataset), so publishing an extent for them would
+       claim worldwide coverage. gmd:extent is optional in MD_DataIdentification, so
+       omitting it stays schema-valid. The temporal extent below is kept: it is
+       meaningful for tables.
+       {% endcomment %}
+       {% if scope_code != 'nonGeographicDataset' %}
        <gmd:extent>
          <gmd:EX_Extent>
            <gmd:geographicElement>
@@ -408,6 +424,7 @@
            </gmd:geographicElement>
          </gmd:EX_Extent>
        </gmd:extent>
+       {% endif %}
        {% if layer.temporal_extent_start and layer.temporal_extent_end %}
        <gmd:extent>
          <gmd:EX_Extent>
@@ -509,7 +526,7 @@
        <gmd:scope>
          <gmd:DQ_Scope>
            <gmd:level>
-             <gmd:MD_ScopeCode codeSpace="ISOTC211/19115" codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ScopeCode" codeListValue="dataset">dataset</gmd:MD_ScopeCode>
+             <gmd:MD_ScopeCode codeSpace="ISOTC211/19115" codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ScopeCode" codeListValue="{{ scope_code }}">{{ scope_code }}</gmd:MD_ScopeCode>
            </gmd:level>
          </gmd:DQ_Scope>
        </gmd:scope>

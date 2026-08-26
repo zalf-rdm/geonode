@@ -14,6 +14,15 @@ pycsw_settings_all = settings.PYCSW.copy()
 pycsw_settings["FILTER"] = {"resource_type__in": ["dataset", "map"]}
 pycsw_settings_all["FILTER"] = {"resource_type__in": ["dataset", "map", "document"]}
 
+# This deployment configures PYCSW["FILTER"] in settings (datasets + maps, so maps are
+# harvestable as ISO series). Tests that are about something other than the configured
+# filter pin their own, rather than inheriting whatever the deployment happens to set.
+pycsw_settings_datasets_only = settings.PYCSW.copy()
+pycsw_settings_datasets_only["FILTER"] = {"resource_type__in": ["dataset"]}
+
+pycsw_settings_unset = settings.PYCSW.copy()
+pycsw_settings_unset.pop("FILTER", None)
+
 
 class TestGeoNodeRepository(TestCase):
     # to simplify the tests we pass throught csw_global_dispatch
@@ -24,6 +33,7 @@ class TestGeoNodeRepository(TestCase):
         self.doc = create_single_doc("doc_name")
         self.request = self.__request_factory()
 
+    @override_settings(PYCSW=pycsw_settings_unset)
     def test_if_pycsw_filter_is_not_set_should_return_only_the_dataset_by_default(self):
         response = csw_global_dispatch(self.request)
         root = etree.fromstring(response.content)
@@ -47,6 +57,7 @@ class TestGeoNodeRepository(TestCase):
         returned_results = ast.literal_eval(child[0].get("numberOfRecordsMatched", "0")) if child else 0
         self.assertEqual(3, returned_results)
 
+    @override_settings(PYCSW=pycsw_settings_datasets_only)
     def test_unpublished_resources_are_hidden(self):
         """
         Unpublished resources must not be exposed through CSW (#706).
@@ -54,7 +65,8 @@ class TestGeoNodeRepository(TestCase):
         is_published is flipped after creation rather than passed to the factory
         so the resource still gets the normal default permissions - that isolates
         the repository filter under test from the separate permission mask
-        csw_global_dispatch builds from get_objects_for_user().
+        csw_global_dispatch builds from get_objects_for_user(). The filter is pinned
+        to datasets so the count stays about is_published and nothing else.
         """
         unpublished = create_single_dataset("unpublished_dataset_name")
         ResourceBase.objects.filter(pk=unpublished.pk).update(is_published=False)
