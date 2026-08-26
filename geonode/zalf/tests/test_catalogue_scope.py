@@ -6,6 +6,7 @@ the ``csw_type`` column, the stored ISO XML, and the CSW response itself.
 
 import ast
 
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.core.management import call_command
 from django.test import TestCase, override_settings
@@ -226,6 +227,40 @@ class CswExposureTest(TestCase):
     def test_default_filter_exposes_datasets_and_maps(self):
         self.assertEqual({"resource_type__in": ["dataset", "map"]}, settings.PYCSW["FILTER"])
         self.assertEqual(2, self._records_matched())
+
+    def test_dublin_core_full_records_serialize(self):
+        """QGIS asks for outputSchema=csw/2.0.2 with elementsetname=full.
+
+        That path builds the record from the queryable columns instead of dumping the
+        stored ISO XML, so it breaks on any queryable that resolves to a non-string.
+        A map with a publisher is what first tripped it (see TestPublisherCsv).
+        """
+        self.map.publisher = get_user_model().objects.get(username="admin")
+
+        request = RequestFactory().post(
+            "/catalogue/csw",
+            data=(
+                '<csw:GetRecords xmlns:csw="http://www.opengis.net/cat/csw/2.0.2" '
+                'outputSchema="http://www.opengis.net/cat/csw/2.0.2" version="2.0.2" '
+                'service="CSW" resultType="results" startPosition="1" maxRecords="25">'
+                '<csw:Query typeNames="csw:Record">'
+                "<csw:ElementSetName>full</csw:ElementSetName>"
+                "</csw:Query></csw:GetRecords>"
+            ),
+            content_type="application/xml",
+        )
+        request.user = AnonymousUser()
+
+        root = etree.fromstring(csw_global_dispatch(request).content)
+
+        fault = root.find(".//{http://www.opengis.net/ows}ExceptionText")
+        self.assertIsNone(fault, f"CSW returned an exception report: {fault is not None and fault.text}")
+
+        types = {
+            rec.findtext("{http://purl.org/dc/elements/1.1/}type")
+            for rec in root.iter("{http://www.opengis.net/cat/csw/2.0.2}Record")
+        }
+        self.assertEqual({ISO_SCOPE_DATASET, ISO_SCOPE_SERIES}, types)
 
 
 @override_settings(**ZALF_TEMPLATE_SETTINGS)
