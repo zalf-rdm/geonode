@@ -1270,7 +1270,7 @@ PYCSW = {
                 "stateorprovince": os.getenv("PYCSW_CONTACT_STATE", "Brandenburg"),
                 "postalcode": os.getenv("PYCSW_CONTACT_POSTALCODE", "15374"),
                 "country": os.getenv("PYCSW_CONTACT_COUNTRY", "Germany"),
-                "phone": os.getenv("PYCSW_CONTACT_PHONE", "+49 33432 82-0"),
+                "phone": os.getenv("PYCSW_CONTACT_PHONE", "+49 33432 82-169"),
                 "fax": os.getenv("PYCSW_CONTACT_FAX", "+49 33432 82-301"),
                 "email": PYCSW_CONTACT_EMAIL,
                 "url": os.getenv("PYCSW_CONTACT_URL", "https://repository.zalf.de"),
