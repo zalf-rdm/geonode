@@ -131,7 +131,16 @@ class MetadataViewSet(ViewSet):
                         else metadata_manager.update_schema_instance_partial(resource, request.data, request.user, lang)
                     )
                     resource.refresh_from_db()
-                    resource.save()  # we want to trigger all the post_save signals
+                    # Save the *real* instance, not the ResourceBase parent row.
+                    # ResourceBase.objects is not a polymorphic manager, so the get()
+                    # above returns a plain ResourceBase, and Django matches post_save
+                    # receivers on the exact sender class. Saving the parent therefore
+                    # only ever fired sender=ResourceBase receivers -- never the
+                    # sender=Dataset / Document / Map ones that geonode.catalogue (and
+                    # geonode.zalf) connect. The catalogue XML consequently kept
+                    # whatever was generated at creation time, so every edit made here
+                    # was invisible over CSW.
+                    resource.get_real_instance().save()  # trigger all the post_save signals
                 except Exception as e:
                     logger.warning(f"Error while updating schema instance: {e}")
                     MetadataHandler._set_error(

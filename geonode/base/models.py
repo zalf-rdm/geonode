@@ -1615,6 +1615,22 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
 
     publisher = property(_get_publisher, _set_publisher)
 
+    @property
+    def publisher_csv(self):
+        """Publishers as a comma-separated string, for pycsw.
+
+        ``pycsw:Publisher`` used to map straight at ``publisher`` above, which is
+        a multi-valued contact role returning a list of Profiles. pycsw assigns
+        that queryable directly to an lxml ``.text`` (csw2.py ``_write_record``),
+        so any resource that actually had a publisher blew up the whole
+        GetRecords response with "Argument must be bytes or unicode, got 'list'".
+        Resources without one were masked by the falsy empty list.
+
+        Same class of bug as ``csw_contacts`` and issue #724, and mirrors the
+        existing ``poc_csv`` / ``metadata_author_csv`` accessors.
+        """
+        return ",".join(p.get_full_name() or p.username for p in self.publisher)
+
     # Contact Role: custodian
     def _get_custodian(self):
         return self.__get_contact_role_elements__(role="custodian")
