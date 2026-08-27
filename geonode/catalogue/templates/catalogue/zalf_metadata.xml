@@ -3,7 +3,7 @@
 {% load gdi_de %}
 {% load zalf_iso %}
 {% zalf_iso_scope_code layer as scope_code %}
-{% zalf_parent_series_uuid layer as parent_uuid %}
+{% zalf_series_members layer as series_member_list %}
 <gmd:MD_Metadata xmlns:gmd="http://www.isotc211.org/2005/gmd" xmlns:gml="http://www.opengis.net/gml" xmlns:gml32="http://www.opengis.net/gml/3.2" xmlns:gmx="http://www.isotc211.org/2005/gmx" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:gco="http://www.isotc211.org/2005/gco" xsi:schemaLocation="http://www.isotc211.org/2005/gmd http://www.isotc211.org/2005/gmd/gmd.xsd">
    <gmd:fileIdentifier>
      <gco:CharacterString>{{layer.uuid}}</gco:CharacterString>
@@ -14,11 +14,6 @@
    <gmd:characterSet>
      <gmd:MD_CharacterSetCode codeSpace="ISOTC211/19115" codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_CharacterSetCode" codeListValue="utf8">utf8</gmd:MD_CharacterSetCode>
    </gmd:characterSet>
-   {% if parent_uuid %}
-   <gmd:parentIdentifier>
-     <gco:CharacterString>{{ parent_uuid }}</gco:CharacterString>
-   </gmd:parentIdentifier>
-   {% endif %}
    <gmd:hierarchyLevel>
     <gmd:MD_ScopeCode codeSpace="ISOTC211/19115" codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ScopeCode" codeListValue="{{ scope_code }}">{{ scope_code }}</gmd:MD_ScopeCode>
    </gmd:hierarchyLevel>
@@ -378,6 +373,29 @@
          </gmd:MD_LegalConstraints>
        </gmd:resourceConstraints>
        {% endif %}
+       {% comment %}
+       A series lists its members here rather than each member naming the series in
+       gmd:parentIdentifier: a dataset can belong to several maps, while ISO allows only one
+       parentIdentifier, so the child-side link would have to pick one map arbitrarily.
+       gmd:aggregationInfo is 0..n and sits between resourceConstraints and
+       spatialRepresentationType in the AbstractMD_Identification sequence.
+       {% endcomment %}
+       {% for member_uuid, member_title in series_member_list %}
+       <gmd:aggregationInfo>
+         <gmd:MD_AggregateInformation>
+           <gmd:aggregateDataSetIdentifier>
+             <gmd:MD_Identifier>
+               <gmd:code>
+                 <gco:CharacterString>{{ member_uuid }}</gco:CharacterString>
+               </gmd:code>
+             </gmd:MD_Identifier>
+           </gmd:aggregateDataSetIdentifier>
+           <gmd:associationType>
+             <gmd:DS_AssociationTypeCode codeSpace="ISOTC211/19115" codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#DS_AssociationTypeCode" codeListValue="crossReference">crossReference</gmd:DS_AssociationTypeCode>
+           </gmd:associationType>
+         </gmd:MD_AggregateInformation>
+       </gmd:aggregationInfo>
+       {% endfor %}
        {% if layer.spatial_representation_type %}
        <gmd:spatialRepresentationType>
          <gmd:MD_SpatialRepresentationTypeCode codeSpace="ISOTC211/19115" codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_SpatialRepresentationTypeCode" codeListValue="{{layer.spatial_representation_type.identifier}}">{{layer.spatial_representation_type.identifier}}</gmd:MD_SpatialRepresentationTypeCode>

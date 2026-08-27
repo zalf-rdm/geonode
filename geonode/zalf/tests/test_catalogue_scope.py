@@ -24,7 +24,7 @@ from geonode.zalf.catalogue import (
     ISO_SCOPE_NON_GEOGRAPHIC,
     ISO_SCOPE_SERIES,
     iso_scope_code,
-    parent_series_uuid,
+    series_members,
 )
 
 GMD = "http://www.isotc211.org/2005/gmd"
@@ -134,12 +134,12 @@ class IsoXmlScopeTest(TestCase):
 
 
 @override_settings(**ZALF_TEMPLATE_SETTINGS)
-class ParentIdentifierTest(TestCase):
-    """Series membership is expressed by stamping members with the map's uuid."""
+class SeriesMembersTest(TestCase):
+    """The series record lists its members; member records stay untouched."""
 
     def setUp(self):
-        self.dataset = make_dataset("parent_member", subtype="vector")
-        self.map = create_single_map("parent_map")
+        self.dataset = make_dataset("series_member", subtype="vector")
+        self.map = create_single_map("series_map")
         MapLayer.objects.create(
             map=self.map,
             dataset=self.dataset,
@@ -147,54 +147,68 @@ class ParentIdentifierTest(TestCase):
             order=0,
         )
 
-    def test_parent_series_uuid_resolves_the_map(self):
-        self.assertEqual(self.map.uuid, parent_series_uuid(self.dataset))
+    def aggregate_uuids(self, resource):
+        tree = parsed_metadata(resource)
+        return [
+            el.text.strip()
+            for el in tree.iterfind(
+                f".//{{{GMD}}}aggregationInfo/{{{GMD}}}MD_AggregateInformation"
+                f"/{{{GMD}}}aggregateDataSetIdentifier/{{{GMD}}}MD_Identifier"
+                f"/{{{GMD}}}code/{{{GCO}}}CharacterString"
+            )
+        ]
 
-    def test_dataset_without_a_map_has_no_parent(self):
-        orphan = make_dataset("parent_orphan", subtype="vector")
-        self.assertIsNone(parent_series_uuid(orphan))
+    def test_series_members_resolves_the_datasets(self):
+        self.assertEqual([(self.dataset.uuid, self.dataset.title)], series_members(self.map))
 
-    def test_unpublished_map_is_not_advertised_as_parent(self):
-        ResourceBase.objects.filter(pk=self.map.pk).update(is_published=False)
-        self.assertIsNone(parent_series_uuid(self.dataset))
+    def test_map_without_layers_has_no_members(self):
+        self.assertEqual([], series_members(create_single_map("series_empty_map")))
 
-    def test_member_xml_carries_parent_identifier(self):
-        self.dataset.save()
+    def test_a_dataset_has_no_members(self):
+        self.assertEqual([], series_members(self.dataset))
 
-        tree = parsed_metadata(self.dataset)
-        parent = tree.find(f"{{{GMD}}}parentIdentifier/{{{GCO}}}CharacterString")
-        self.assertIsNotNone(parent, "member dataset should carry a gmd:parentIdentifier")
-        self.assertEqual(self.map.uuid, parent.text.strip())
+    def test_unpublished_member_is_not_listed(self):
+        ResourceBase.objects.filter(pk=self.dataset.pk).update(is_published=False)
+        self.assertEqual([], series_members(self.map))
 
-    def test_parent_identifier_precedes_hierarchy_level(self):
-        """ISO 19139 orders MD_Metadata characterSet -> parentIdentifier -> hierarchyLevel."""
-        self.dataset.save()
-
-        tree = parsed_metadata(self.dataset)
-        children = [el.tag for el in tree]
-        self.assertIn(f"{{{GMD}}}parentIdentifier", children)
-        self.assertLess(
-            children.index(f"{{{GMD}}}parentIdentifier"),
-            children.index(f"{{{GMD}}}hierarchyLevel"),
-        )
-
-    def test_saving_the_map_refreshes_member_metadata(self):
-        """Members must pick up the parentIdentifier without being saved themselves."""
-        ResourceBase.objects.filter(pk=self.dataset.pk).update(metadata_xml="<gmd:MD_Metadata/>")
-
+    def test_series_xml_lists_its_members(self):
         self.map.save()
+        self.assertEqual([self.dataset.uuid], self.aggregate_uuids(self.map))
 
-        tree = parsed_metadata(self.dataset)
-        parent = tree.find(f"{{{GMD}}}parentIdentifier/{{{GCO}}}CharacterString")
-        self.assertIsNotNone(parent)
-        self.assertEqual(self.map.uuid, parent.text.strip())
-
-    def test_deleting_the_map_clears_the_parent_identifier(self):
+    def test_member_xml_carries_no_parent_identifier(self):
+        """The child side must stay clean -- this is the whole point of the inversion."""
         self.dataset.save()
-        self.map.delete()
 
         tree = parsed_metadata(self.dataset)
         self.assertIsNone(tree.find(f"{{{GMD}}}parentIdentifier"))
+        self.assertEqual([], self.aggregate_uuids(self.dataset))
+
+    def test_aggregation_info_precedes_spatial_representation_type(self):
+        """AbstractMD_Identification orders resourceConstraints -> aggregationInfo,
+        and MD_DataIdentification's own elements come after all of those."""
+        self.map.save()
+
+        ident = parsed_metadata(self.map).find(f"{{{GMD}}}identificationInfo/{{{GMD}}}MD_DataIdentification")
+        children = [el.tag for el in ident]
+        self.assertIn(f"{{{GMD}}}aggregationInfo", children)
+        for later in (f"{{{GMD}}}language", f"{{{GMD}}}extent"):
+            self.assertLess(children.index(f"{{{GMD}}}aggregationInfo"), children.index(later))
+
+    def test_saving_a_member_refreshes_the_series(self):
+        """The map's record embeds member uuids, so members must push updates upward."""
+        ResourceBase.objects.filter(pk=self.map.pk).update(metadata_xml="<gmd:MD_Metadata/>")
+
+        self.dataset.save()
+
+        self.assertEqual([self.dataset.uuid], self.aggregate_uuids(self.map))
+
+    def test_deleting_a_member_drops_it_from_the_series(self):
+        self.map.save()
+        self.assertEqual([self.dataset.uuid], self.aggregate_uuids(self.map))
+
+        self.dataset.delete()
+
+        self.assertEqual([], self.aggregate_uuids(self.map))
 
 
 class CswExposureTest(TestCase):

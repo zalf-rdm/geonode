@@ -27,6 +27,11 @@ ISO_SCOPE_NON_GEOGRAPHIC = "nonGeographicDataset"
 # only honest signal that the resource is non-geographic.
 NON_GEOGRAPHIC_SUBTYPES = ("tabular",)
 
+# DS_AssociationTypeCode used for the series -> member links. ISO 19115-1 has a precise
+# "isComposedOf", but these records cite the 2005 gmxCodelists codelist, whose
+# DS_AssociationTypeCode has no whole-to-part value -- crossReference is its generic one.
+SERIES_ASSOCIATION_TYPE = "crossReference"
+
 
 def iso_scope_code(resource):
     """Return the ISO MD_ScopeCode for ``resource``.
@@ -46,19 +51,22 @@ def iso_scope_code(resource):
     return ISO_SCOPE_DATASET
 
 
-def parent_series_uuid(resource):
-    """Return the uuid of the map ``resource`` belongs to, or None.
+def series_members(resource):
+    """Return the published datasets a map aggregates, as (uuid, title) pairs.
 
-    A dataset can sit in several maps while ISO allows exactly one parent, so pick the
-    oldest published one: deterministic, and stable as further maps are added later.
-    Unpublished maps are skipped so a draft's uuid never leaks into a public record.
+    The series record lists its members rather than each member naming its parent: a
+    dataset can sit in several maps while ISO allows a single gmd:parentIdentifier, so
+    the child-side link would have to pick one map arbitrarily and would go stale for
+    the others. Listing from the series side represents the real many-to-many shape and
+    keeps dataset records untouched.
+
+    Unpublished members are skipped so a draft never leaks into a public record.
     """
-    maps = getattr(resource, "maps", None)
-    if maps is None:
-        return None
+    datasets = getattr(resource, "datasets", None)
+    if datasets is None:
+        return []
 
-    parent = maps.filter(is_published=True).order_by("pk").first()
-    return parent.uuid if parent else None
+    return [(d.uuid, d.title) for d in datasets.filter(is_published=True).order_by("pk")]
 
 
 def sync_csw_type(resource):

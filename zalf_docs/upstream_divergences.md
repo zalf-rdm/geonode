@@ -109,15 +109,29 @@ The code lives in `geonode/zalf/catalogue.py` and reaches **two** places that mu
    filter on, and `hierarchyLevel` in brief/summary records.
 
 Also in the template:
-- Member datasets of a map carry the map's UUID as `gmd:parentIdentifier`. ISO 19139 orders
-  `characterSet → parentIdentifier → hierarchyLevel`, so it must be emitted *before* the
-  scope code or the record fails schema validation.
+- **The series lists its members, not the other way round.** A map's record carries one
+  `gmd:aggregationInfo/MD_AggregateInformation` per published member dataset, holding the
+  member UUID in `aggregateDataSetIdentifier` with `associationType=crossReference`. Dataset
+  records are left completely untouched — no `gmd:parentIdentifier`.
+
+  The reason is cardinality: a dataset can belong to several maps, while ISO allows exactly
+  one `parentIdentifier`, so a child-side link would have to pick one map arbitrarily and go
+  stale for the rest. `aggregationInfo` is `0..n`, so the series side represents the real
+  many-to-many shape. It sits between `resourceConstraints` and `spatialRepresentationType`
+  in the `AbstractMD_Identification` sequence.
+
+  On the association type: ISO 19115-1 has a precise `isComposedOf`, but these records cite
+  the 2005 gmxCodelists `DS_AssociationTypeCode`, which has no whole-to-part value —
+  `crossReference` is its generic one. Change `SERIES_ASSOCIATION_TYPE` in
+  `geonode/zalf/catalogue.py` if a harvester needs something else.
 - The geographic extent is suppressed for `nonGeographicDataset`, because the datapackage
   importer assigns every tabular dataset a placeholder world bbox.
 
 `geonode/zalf/signals.py` connects upstream's `catalogue_post_save` / `catalogue_pre_delete`
-for `Map` (upstream wires only `Dataset` and `Document`), keeps `csw_type` in sync, and
-regenerates member datasets when a map's membership changes or the map is deleted.
+for `Map` (upstream wires only `Dataset` and `Document`), keeps `csw_type` in sync, and — since
+the dependency runs member → series — regenerates a dataset's owning maps whenever it is saved
+or deleted. The delete case needs a `pre_delete` stash: `MapLayer.dataset` is
+`on_delete=SET_NULL`, so by `post_delete` the link is already gone.
 
 Backfill existing records with `manage.py zalf_sync_csw_scope` (supports `--dry-run`,
 `--type`, `--id`).
@@ -183,12 +197,11 @@ Companion to the `contrib_datapackage` importer, which stamps imported tables wi
   record referencing that person keeps the old details until something else triggers a
   regeneration. Accepted for now; `manage.py zalf_sync_csw_scope` re-renders everything if a
   bulk refresh is needed.
-- **`gmd:parentIdentifier` is not queryable.** `pycsw:ParentIdentifier` maps to a
-  `parentidentifier` column that does not exist on `ResourceBase`. The value is in the XML
-  body only; filtering on `apiso:ParentIdentifier` does not work. Adding the column would mean
-  a migration on an upstream model.
-- **Map saves cost one CSW dispatch per member dataset**, because member XML is regenerated to
-  refresh `parentIdentifier`. Fine at current volumes; move to Celery if map saves get slow.
+- **Series membership is not queryable.** The member UUIDs live in the series record's XML
+  body only; there is no pycsw queryable for `gmd:aggregationInfo`, so harvesters cannot
+  filter on it. They can read it out of the record.
+- **Saving a dataset costs one CSW dispatch per owning map**, because the map's record embeds
+  its member list. Fine at current volumes; move to Celery if dataset saves get slow.
 - **`csw_wkt_geometry` still holds the world bbox for tabular datasets**, so CSW bbox queries
   keep matching them even though their ISO record no longer advertises an extent.
 - **`layer.restriction_code_type` does not exist on any model** (the field is

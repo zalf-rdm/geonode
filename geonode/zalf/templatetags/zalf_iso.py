@@ -8,7 +8,7 @@ import logging
 
 from django import template
 
-from geonode.zalf.catalogue import iso_scope_code, parent_series_uuid
+from geonode.zalf.catalogue import iso_scope_code, series_members
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +22,6 @@ def zalf_iso_scope_code(resource):
 
 
 @register.simple_tag
-def zalf_parent_series_uuid(resource):
-    """uuid of the map a dataset belongs to, or empty string when it belongs to none."""
-    return parent_series_uuid(resource) or ""
+def zalf_series_members(resource):
+    """(uuid, title) pairs for the published datasets a map aggregates; empty otherwise."""
+    return series_members(resource)

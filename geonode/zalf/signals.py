@@ -8,9 +8,8 @@ Two jobs:
    Exposing maps over CSW without this would publish empty records.
 
 2. Keep the ISO scope code in sync in both places it lives: the ``csw_type`` column and
-   the stored ISO XML. Member datasets of a map carry the map's uuid as
-   ``gmd:parentIdentifier``, so they have to be regenerated whenever a map's membership
-   changes or the map goes away.
+   the stored ISO XML. A map's record lists its member datasets, so the map has to be
+   regenerated whenever one of its members changes, is unpublished, or is deleted.
 """
 
 import logging
@@ -24,9 +23,10 @@ from geonode.zalf.catalogue import regenerate_metadata, sync_csw_type
 
 logger = logging.getLogger(__name__)
 
-# Attribute used to carry a map's members from pre_delete to post_delete: by the time
-# post_delete fires the MapLayer rows are gone, so the members cannot be looked up.
-_PENDING_MEMBERS_ATTR = "_zalf_pending_series_members"
+# Carries a dataset's owning maps from pre_delete to post_delete. MapLayer.dataset is
+# on_delete=SET_NULL, so by post_delete the link is already gone and the maps can no
+# longer be looked up from the instance.
+_PENDING_SERIES_ATTR = "_zalf_pending_owning_series"
 
 
 def sync_resource_csw_type(instance, sender, **kwargs):
@@ -34,26 +34,29 @@ def sync_resource_csw_type(instance, sender, **kwargs):
     sync_csw_type(instance)
 
 
-def sync_series_members(instance, sender, **kwargs):
-    """Refresh the ISO XML of the datasets a map aggregates.
+def refresh_owning_series(instance, sender, **kwargs):
+    """Regenerate the ISO XML of every map that aggregates this dataset.
 
-    Safe to read membership here: MapViewSet.create/update commit the ``maplayers``
-    m2m before the object change, so the maplayers are already written when the Map
-    post_save fires.
+    The series record lists its members (gmd:aggregationInfo), so a map's XML goes stale
+    whenever a member's title changes, a member is unpublished, or a member is deleted.
+    The dependency runs member -> series, so the refresh has to run in that direction too.
     """
-    regenerate_metadata(instance.datasets)
+    maps = getattr(instance, "maps", None)
+    if maps is not None:
+        regenerate_metadata(maps.all())
 
 
-def stash_series_members(instance, sender, **kwargs):
-    """Remember a map's members before it is deleted."""
-    setattr(instance, _PENDING_MEMBERS_ATTR, list(instance.datasets))
+def stash_owning_series(instance, sender, **kwargs):
+    """Remember a dataset's maps before the MapLayer link is nulled out."""
+    maps = getattr(instance, "maps", None)
+    setattr(instance, _PENDING_SERIES_ATTR, list(maps.all()) if maps is not None else [])
 
 
-def refresh_orphaned_series_members(instance, sender, **kwargs):
-    """Drop the now-dangling parentIdentifier from a deleted map's former members."""
-    members = getattr(instance, _PENDING_MEMBERS_ATTR, None)
-    if members:
-        regenerate_metadata(members)
+def refresh_orphaned_series(instance, sender, **kwargs):
+    """Drop a deleted dataset from the aggregationInfo of the maps that listed it."""
+    stashed = getattr(instance, _PENDING_SERIES_ATTR, None)
+    if stashed:
+        regenerate_metadata(stashed)
 
 
 def connect():
@@ -70,11 +73,9 @@ def connect():
             dispatch_uid=f"zalf_sync_csw_type_{sender.__name__.lower()}",
         )
 
-    # Members carry the map uuid as gmd:parentIdentifier, so they follow the map.
-    signals.post_save.connect(sync_series_members, sender=Map, dispatch_uid="zalf_sync_series_members")
-    signals.pre_delete.connect(stash_series_members, sender=Map, dispatch_uid="zalf_stash_series_members")
-    signals.post_delete.connect(
-        refresh_orphaned_series_members, sender=Map, dispatch_uid="zalf_refresh_orphaned_series_members"
-    )
+    # A series lists its members, so member changes invalidate the map's record.
+    signals.post_save.connect(refresh_owning_series, sender=Dataset, dispatch_uid="zalf_refresh_owning_series")
+    signals.pre_delete.connect(stash_owning_series, sender=Dataset, dispatch_uid="zalf_stash_owning_series")
+    signals.post_delete.connect(refresh_orphaned_series, sender=Dataset, dispatch_uid="zalf_refresh_orphaned_series")
 
     logger.debug("ZALF catalogue signals connected")
