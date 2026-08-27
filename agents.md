@@ -170,8 +170,28 @@ docker compose -f docker-compose-test.yml exec -T db sh -c "psql -U postgres -c 
 2. Test locally using Docker: `docker compose exec django python manage.py test`
 3. Run full test suite: `docker compose -f docker-compose-test.yml exec django ./test.sh`
 4. Check code quality: `flake8` and `black`
-5. Commit with descriptive messages
-6. Push and create PR to `main`
+5. **Update `zalf_docs/upstream_divergences.md`** if the change adds, removes or alters a
+   divergence from upstream GeoNode (see below)
+6. Commit with descriptive messages
+7. Push and create PR to `main`
+
+### Documenting fork divergences (required)
+
+This is a **fork** of `GeoNode/geonode`. `zalf_docs/upstream_divergences.md` is the map of
+where we deliberately differ, and it is what makes an upstream merge reviewable instead of
+archaeological.
+
+Any change to `zalf-rdm/geonode` that touches a divergence must update that file **in the same
+PR**. That includes:
+
+- new files or apps upstream does not have
+- edits to upstream files (the risky ones — record *why*)
+- new ZALF-specific settings or environment variables
+- new known limitations, or limitations that were resolved
+
+Feature-level detail belongs in its own `zalf_docs/` page (as with
+`data_publication_workflow.md` and `orcid_only_login.md`); `upstream_divergences.md` carries
+the overview and links out to them.
 
 ### Testing Changes
 
