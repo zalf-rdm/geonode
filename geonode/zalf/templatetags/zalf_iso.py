@@ -8,7 +8,7 @@ import logging
 
 from django import template
 
-from geonode.zalf.catalogue import iso_scope_code, series_members
+from geonode.zalf.catalogue import is_non_geographic, iso_scope_code, series_members
 
 logger = logging.getLogger(__name__)
 
@@ -25,3 +25,9 @@ def zalf_iso_scope_code(resource):
 def zalf_series_members(resource):
     """(uuid, title) pairs for the published datasets a map aggregates; empty otherwise."""
     return series_members(resource)
+
+
+@register.simple_tag
+def zalf_is_non_geographic(resource):
+    """True when the resource has no meaningful geographic extent to publish."""
+    return is_non_geographic(resource)

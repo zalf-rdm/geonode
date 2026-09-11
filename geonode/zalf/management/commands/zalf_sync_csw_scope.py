@@ -71,7 +71,9 @@ class Command(BaseCommand):
                 label = f"{instance.resource_type} {instance.id} '{instance.title}' -> {scope_code}"
 
                 # Same guard as the upstream regenerate_xml command: never clobber XML a
-                # user uploaded and asked to keep.
+                # user uploaded and asked to keep. sync_csw_type() carries the same guard,
+                # so a preserved resource is left entirely alone rather than having its
+                # csw_type derived out of step with its XML.
                 if instance.metadata_uploaded and instance.metadata_uploaded_preserve:
                     self.stdout.write(f"  skip (custom XML preserved): {label}")
                     skipped += 1

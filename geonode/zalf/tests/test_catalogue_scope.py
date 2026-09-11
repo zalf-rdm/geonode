@@ -23,7 +23,9 @@ from geonode.zalf.catalogue import (
     ISO_SCOPE_DATASET,
     ISO_SCOPE_NON_GEOGRAPHIC,
     ISO_SCOPE_SERIES,
+    is_non_geographic,
     iso_scope_code,
+    owning_series,
     series_members,
 )
 
@@ -159,7 +161,7 @@ class SeriesMembersTest(TestCase):
         ]
 
     def test_series_members_resolves_the_datasets(self):
-        self.assertEqual([(self.dataset.uuid, self.dataset.title)], series_members(self.map))
+        self.assertEqual([self.dataset.uuid], series_members(self.map))
 
     def test_map_without_layers_has_no_members(self):
         self.assertEqual([], series_members(create_single_map("series_empty_map")))
@@ -194,13 +196,23 @@ class SeriesMembersTest(TestCase):
         for later in (f"{{{GMD}}}language", f"{{{GMD}}}extent"):
             self.assertLess(children.index(f"{{{GMD}}}aggregationInfo"), children.index(later))
 
-    def test_saving_a_member_refreshes_the_series(self):
-        """The map's record embeds member uuids, so members must push updates upward."""
-        ResourceBase.objects.filter(pk=self.map.pk).update(metadata_xml="<gmd:MD_Metadata/>")
+    def test_unpublishing_a_member_drops_it_from_the_series(self):
+        self.map.save()
+        self.assertEqual([self.dataset.uuid], self.aggregate_uuids(self.map))
+
+        self.dataset.is_published = False
+        self.dataset.save()
+
+        self.assertEqual([], self.aggregate_uuids(self.map))
+
+    def test_a_save_touching_nothing_embedded_does_not_refresh(self):
+        """Guards the cost: only uuid/is_published changes warrant a re-render."""
+        self.map.save()
+        before = ResourceBase.objects.get(pk=self.map.pk).metadata_xml
 
         self.dataset.save()
 
-        self.assertEqual([self.dataset.uuid], self.aggregate_uuids(self.map))
+        self.assertEqual(before, ResourceBase.objects.get(pk=self.map.pk).metadata_xml)
 
     def test_deleting_a_member_drops_it_from_the_series(self):
         self.map.save()
@@ -238,9 +250,14 @@ class CswExposureTest(TestCase):
         matched = [x.attrib for x in root if "numberOfRecordsMatched" in x.attrib]
         return ast.literal_eval(matched[0].get("numberOfRecordsMatched", "0")) if matched else 0
 
-    def test_default_filter_exposes_datasets_and_maps(self):
-        self.assertEqual({"resource_type__in": ["dataset", "map"]}, settings.PYCSW["FILTER"])
+    @override_settings(PYCSW={**settings.PYCSW, "FILTER": {"resource_type__in": ["dataset", "map"]}})
+    def test_filter_exposes_datasets_and_maps(self):
+        """Pinned rather than asserting settings.PYCSW["FILTER"]: it is env-configurable."""
         self.assertEqual(2, self._records_matched())
+
+    def test_maps_are_exposed_under_the_shipped_default(self):
+        """The shipped default has to include maps, however a deployment overrides it."""
+        self.assertIn("map", settings.PYCSW["FILTER"].get("resource_type__in", []))
 
     def test_dublin_core_full_records_serialize(self):
         """QGIS asks for outputSchema=csw/2.0.2 with elementsetname=full.
@@ -334,3 +351,107 @@ class SyncCswScopeCommandTest(TestCase):
         call_command("zalf_sync_csw_scope", verbosity=0)
 
         self.assertEqual(custom, ResourceBase.objects.get(pk=self.dataset.pk).metadata_xml)
+
+
+@override_settings(**ZALF_TEMPLATE_SETTINGS)
+class HierarchyLevelNameTest(TestCase):
+    """ISO 19115 makes hierarchyLevelName mandatory once hierarchyLevel != 'dataset'."""
+
+    def level_names(self, resource):
+        tree = parsed_metadata(resource)
+        return [el.text.strip() for el in tree.iterfind(f"{{{GMD}}}hierarchyLevelName/{{{GCO}}}CharacterString")]
+
+    def test_series_carries_a_hierarchy_level_name(self):
+        map_obj = create_single_map("hln_map")
+        map_obj.save()
+        self.assertEqual([ISO_SCOPE_SERIES], self.level_names(map_obj))
+
+    def test_non_geographic_dataset_carries_a_hierarchy_level_name(self):
+        dataset = make_dataset("hln_tabular", subtype="tabular")
+        dataset.save()
+        self.assertEqual([ISO_SCOPE_NON_GEOGRAPHIC], self.level_names(dataset))
+
+    def test_plain_dataset_omits_it(self):
+        """'dataset' is the exempt value -- emitting a name there would be noise."""
+        dataset = make_dataset("hln_vector", subtype="vector")
+        dataset.save()
+        self.assertEqual([], self.level_names(dataset))
+
+    def test_level_description_accompanies_non_exempt_dq_levels(self):
+        """DQ_Scope needs levelDescription for levels other than dataset/series."""
+        dataset = make_dataset("dq_tabular", subtype="tabular")
+        dataset.save()
+        tree = parsed_metadata(dataset)
+        self.assertIsNotNone(tree.find(f".//{{{GMD}}}DQ_Scope/{{{GMD}}}levelDescription"))
+
+    def test_series_dq_level_needs_no_description(self):
+        map_obj = create_single_map("dq_map")
+        map_obj.save()
+        tree = parsed_metadata(map_obj)
+        self.assertIsNone(tree.find(f".//{{{GMD}}}DQ_Scope/{{{GMD}}}levelDescription"))
+
+
+@override_settings(**ZALF_TEMPLATE_SETTINGS)
+class NonGeographicExtentTest(TestCase):
+    """The extent guard keys on "no meaningful extent", not on the scope code."""
+
+    def has_bbox(self, resource):
+        return parsed_metadata(resource).find(f".//{{{GMD}}}EX_GeographicBoundingBox") is not None
+
+    def test_tabular_collection_map_is_non_geographic(self):
+        map_obj = create_single_map("nongeo_collection", subtype="tabular-collection")
+        self.assertTrue(is_non_geographic(map_obj))
+        # ...but still a series by scope code
+        self.assertEqual(ISO_SCOPE_SERIES, iso_scope_code(map_obj))
+
+    def test_tabular_collection_map_publishes_no_extent(self):
+        map_obj = create_single_map("nongeo_collection_xml", subtype="tabular-collection")
+        map_obj.save()
+        self.assertFalse(self.has_bbox(map_obj))
+
+    def test_ordinary_map_keeps_its_extent(self):
+        map_obj = create_single_map("geo_map_xml")
+        map_obj.save()
+        self.assertTrue(self.has_bbox(map_obj))
+
+
+class MembershipSymmetryTest(TestCase):
+    """Both directions must agree on membership, FK or name (see review finding)."""
+
+    def setUp(self):
+        self.dataset = make_dataset("symmetry_member", subtype="vector")
+        self.map = create_single_map("symmetry_map")
+
+    def test_fk_only_layer_is_visible_from_both_directions(self):
+        """Upstream Map.datasets matches on name only, so an FK-only layer was invisible."""
+        MapLayer.objects.create(map=self.map, dataset=self.dataset, name=None, order=0)
+
+        self.assertEqual([self.dataset.uuid], series_members(self.map))
+        self.assertIn(self.map, list(owning_series(self.dataset)))
+
+    def test_name_only_layer_is_visible_from_both_directions(self):
+        """Upstream Dataset.maps follows the FK only, so a name-only layer never refreshed."""
+        MapLayer.objects.create(map=self.map, dataset=None, name=self.dataset.alternate, order=0)
+
+        self.assertEqual([self.dataset.uuid], series_members(self.map))
+        self.assertIn(self.map, list(owning_series(self.dataset)))
+
+    def test_unrelated_dataset_owns_no_series(self):
+        self.assertEqual([], list(owning_series(make_dataset("symmetry_orphan", subtype="vector"))))
+
+
+class PreservedXmlTest(TestCase):
+    """A resource preserving uploaded XML must not have csw_type derived out of step."""
+
+    def test_csw_type_is_left_alone(self):
+        dataset = make_dataset("preserved_tabular", subtype="tabular")
+        ResourceBase.objects.filter(pk=dataset.pk).update(
+            csw_type=ISO_SCOPE_DATASET, metadata_uploaded=True, metadata_uploaded_preserve=True
+        )
+
+        dataset.refresh_from_db()
+        dataset.save()
+
+        # the signal must respect the same guard the backfill command uses, otherwise
+        # dc:type and summary records contradict the preserved full record
+        self.assertEqual(ISO_SCOPE_DATASET, ResourceBase.objects.get(pk=dataset.pk).csw_type)

@@ -4,7 +4,8 @@
 {% load zalf_iso %}
 {% zalf_iso_scope_code layer as scope_code %}
 {% zalf_series_members layer as series_member_list %}
-<gmd:MD_Metadata xmlns:gmd="http://www.isotc211.org/2005/gmd" xmlns:gml="http://www.opengis.net/gml" xmlns:gml32="http://www.opengis.net/gml/3.2" xmlns:gmx="http://www.isotc211.org/2005/gmx" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:gco="http://www.isotc211.org/2005/gco" xsi:schemaLocation="http://www.isotc211.org/2005/gmd http://www.isotc211.org/2005/gmd/gmd.xsd">
+{% zalf_is_non_geographic layer as non_geographic %}
+<gmd:MD_Metadata xmlns:gmd="http://www.isotc211.org/2005/gmd" xmlns:gml="http://www.opengis.net/gml" xmlns:gmx="http://www.isotc211.org/2005/gmx" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:gco="http://www.isotc211.org/2005/gco" xsi:schemaLocation="http://www.isotc211.org/2005/gmd http://www.isotc211.org/2005/gmd/gmd.xsd">
    <gmd:fileIdentifier>
      <gco:CharacterString>{{layer.uuid}}</gco:CharacterString>
    </gmd:fileIdentifier>
@@ -17,6 +18,16 @@
    <gmd:hierarchyLevel>
     <gmd:MD_ScopeCode codeSpace="ISOTC211/19115" codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ScopeCode" codeListValue="{{ scope_code }}">{{ scope_code }}</gmd:MD_ScopeCode>
    </gmd:hierarchyLevel>
+   {% if scope_code != 'dataset' %}
+   {% comment %}
+   ISO 19115 makes hierarchyLevelName mandatory once hierarchyLevel is not "dataset" --
+   which is every series and every nonGeographicDataset. The XSD leaves it optional, so
+   only a conformance validator catches its absence.
+   {% endcomment %}
+   <gmd:hierarchyLevelName>
+     <gco:CharacterString>{{ scope_code }}</gco:CharacterString>
+   </gmd:hierarchyLevelName>
+   {% endif %}
 
    {% for label, contact_roles in layer.get_defined_multivalue_contact_roles.items %}
    {% for contact_role in contact_roles %}
@@ -380,7 +391,7 @@
        gmd:aggregationInfo is 0..n and sits between resourceConstraints and
        spatialRepresentationType in the AbstractMD_Identification sequence.
        {% endcomment %}
-       {% for member_uuid, member_title in series_member_list %}
+       {% for member_uuid in series_member_list %}
        <gmd:aggregationInfo>
          <gmd:MD_AggregateInformation>
            <gmd:aggregateDataSetIdentifier>
@@ -417,9 +428,10 @@
        assigns one to every tabular dataset), so publishing an extent for them would
        claim worldwide coverage. gmd:extent is optional in MD_DataIdentification, so
        omitting it stays schema-valid. The temporal extent below is kept: it is
-       meaningful for tables.
+       meaningful for tables. Keyed on is_non_geographic() rather than the scope code so
+       that tabular-collection maps -- a series of tables -- are covered as well.
        {% endcomment %}
-       {% if scope_code != 'nonGeographicDataset' %}
+       {% if not non_geographic %}
        <gmd:extent>
          <gmd:EX_Extent>
            <gmd:geographicElement>
@@ -449,10 +461,17 @@
            <gmd:temporalElement>
              <gmd:EX_TemporalExtent>
                <gmd:extent>
-                 <gml32:TimePeriod gml32:id="T_01">
-                   <gml32:beginPosition>{{layer.temporal_extent_start|date:"c"}}</gml32:beginPosition>
-                   <gml32:endPosition>{{layer.temporal_extent_end|date:"c"}}</gml32:endPosition>
-                 </gml32:TimePeriod>
+                 {% comment %}
+                 gml:, not gml32:. This record's own xsi:schemaLocation cites
+                 http://www.isotc211.org/2005/gmd/gmd.xsd, whose EX_TemporalExtent/extent
+                 expects GML under http://www.opengis.net/gml. Emitting the /gml/3.2
+                 namespace here made every record with a temporal extent invalid against
+                 the schema it declares. Matches upstream full_metadata.xml.
+                 {% endcomment %}
+                 <gml:TimePeriod gml:id="T_01">
+                   <gml:beginPosition>{{layer.temporal_extent_start|date:"c"}}</gml:beginPosition>
+                   <gml:endPosition>{{layer.temporal_extent_end|date:"c"}}</gml:endPosition>
+                 </gml:TimePeriod>
                </gmd:extent>
              </gmd:EX_TemporalExtent>
            </gmd:temporalElement>
@@ -546,6 +565,19 @@
            <gmd:level>
              <gmd:MD_ScopeCode codeSpace="ISOTC211/19115" codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ScopeCode" codeListValue="{{ scope_code }}">{{ scope_code }}</gmd:MD_ScopeCode>
            </gmd:level>
+           {% if scope_code != 'dataset' and scope_code != 'series' %}
+           {% comment %}
+           ISO 19115 requires levelDescription on DQ_Scope for any level other than
+           "dataset" or "series"; those two are explicitly exempt.
+           {% endcomment %}
+           <gmd:levelDescription>
+             <gmd:MD_ScopeDescription>
+               <gmd:other>
+                 <gco:CharacterString>{{ scope_code }}</gco:CharacterString>
+               </gmd:other>
+             </gmd:MD_ScopeDescription>
+           </gmd:levelDescription>
+           {% endif %}
          </gmd:DQ_Scope>
        </gmd:scope>
        <gmd:lineage>

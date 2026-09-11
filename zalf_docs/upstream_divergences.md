@@ -124,14 +124,39 @@ Also in the template:
   the 2005 gmxCodelists `DS_AssociationTypeCode`, which has no whole-to-part value —
   `crossReference` is its generic one. Change `SERIES_ASSOCIATION_TYPE` in
   `geonode/zalf/catalogue.py` if a harvester needs something else.
-- The geographic extent is suppressed for `nonGeographicDataset`, because the datapackage
-  importer assigns every tabular dataset a placeholder world bbox.
+- The geographic extent is suppressed for anything `is_non_geographic()` reports, which
+  covers tabular datasets **and** `tabular-collection` maps (a series of tables is still a
+  series by scope code, but the union of its members' placeholder world bboxes is just the
+  world again). Keyed on that helper rather than on the scope code for exactly that reason.
+- `gmd:hierarchyLevelName` is emitted whenever the scope code is not `dataset`, and
+  `DQ_Scope/gmd:levelDescription` whenever it is neither `dataset` nor `series` — both are
+  conditionally mandatory in ISO 19115 and both are optional in the XSD, so only a
+  conformance check catches their absence.
+- The temporal extent uses `gml:` (`http://www.opengis.net/gml`), matching upstream. The fork
+  had switched it to a `gml32:` prefix bound to `http://www.opengis.net/gml/3.2`, which made
+  every record carrying a temporal extent invalid against the very schema its own
+  `xsi:schemaLocation` cites.
+
+**Membership is defined once.** Upstream's two accessors disagree: `Map.datasets` matches on
+`MapLayer.name`, while `Dataset.maps` follows the `MapLayer.dataset` FK — so a layer with one
+but not the other is visible from one direction and invisible from the other.
+`series_member_datasets()` and `owning_series()` in `geonode/zalf/catalogue.py` both accept
+FK **or** name, so the series record and the refresh that keeps it current cannot disagree.
 
 `geonode/zalf/signals.py` connects upstream's `catalogue_post_save` / `catalogue_pre_delete`
 for `Map` (upstream wires only `Dataset` and `Document`), keeps `csw_type` in sync, and — since
-the dependency runs member → series — regenerates a dataset's owning maps whenever it is saved
-or deleted. The delete case needs a `pre_delete` stash: `MapLayer.dataset` is
-`on_delete=SET_NULL`, so by `post_delete` the link is already gone.
+the dependency runs member → series — regenerates a dataset's owning maps when it is saved or
+deleted. Two details:
+
+- The refresh compares a fingerprint of what the series record actually embeds (member uuid
+  plus `is_published`). A dataset save that changes nothing else would otherwise cost a pycsw
+  dispatch and a full template render per owning map.
+- The delete case needs a `pre_delete` stash: `MapLayer.dataset` is `on_delete=SET_NULL`, so
+  by `post_delete` the link is already gone.
+
+`sync_csw_type()` skips resources with `metadata_uploaded_preserve`, matching the backfill
+command. `csw_type` drives dc:type and brief/summary `hierarchyLevel` while the preserved XML
+drives the full record; deriving one without the other makes them contradict.
 
 Backfill existing records with `manage.py zalf_sync_csw_scope` (supports `--dry-run`,
 `--type`, `--id`).
@@ -202,8 +227,19 @@ Companion to the `contrib_datapackage` importer, which stamps imported tables wi
   filter on it. They can read it out of the record.
 - **Saving a dataset costs one CSW dispatch per owning map**, because the map's record embeds
   its member list. Fine at current volumes; move to Celery if dataset saves get slow.
-- **`csw_wkt_geometry` still holds the world bbox for tabular datasets**, so CSW bbox queries
-  keep matching them even though their ISO record no longer advertises an extent.
+- **Extent suppression only reaches `elementSetName=full`.** pycsw dumps the stored XML only
+  for `full`; for `brief`/`summary` (the CSW default) it rebuilds the record and appends
+  `EX_GeographicBoundingBox` from `csw_wkt_geometry` unconditionally (`apiso.py`, outside any
+  `esn` guard). A tabular record requested as `summary` therefore still comes back declaring
+  `nonGeographicDataset` *and* a world bbox, and still matches BBOX queries.
+
+  Not safely fixable at our layer, and all three candidate fixes were tested and rejected:
+  an empty string makes PostGIS raise `parse error - invalid geometry` inside
+  `st_intersects(st_geomfromtext(...))`, failing every BBOX query; `POLYGON EMPTY` is valid to
+  PostGIS and correctly non-intersecting but makes pycsw's `wkt2geom` return
+  `(nan, nan, nan, nan)`, emitting `<gco:Decimal>nan</gco:Decimal>`; `NULL` would be clean on
+  both sides but the column is `NOT NULL`, so allowing it means a migration on an upstream
+  model. Harvesters requesting `full` — QGIS among them — are unaffected.
 - **`layer.restriction_code_type` does not exist on any model** (the field is
   `restriction_code`). The `{% if %}` guarding the resource-constraints block in
   `zalf_metadata.xml` is therefore always false, and access constraints never appear in ISO
