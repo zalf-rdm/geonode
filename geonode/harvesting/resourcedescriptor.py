@@ -20,7 +20,7 @@
 import dataclasses
 import datetime as dt
 import typing
-import uuid  # noqa: F401  (RecordDescription.uuid below shadows it; the annotation needs the module)
+from uuid import UUID
 
 from django.contrib.gis import geos
 
@@ -76,7 +76,7 @@ class RecordDistribution:
 
 @dataclasses.dataclass()
 class RecordDescription:
-    uuid: uuid.UUID
+    uuid: UUID
     identification: RecordIdentification
     distribution: RecordDistribution
     point_of_contact: typing.Optional[RecordDescriptionContact] = None
