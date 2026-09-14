@@ -22,7 +22,7 @@
                 {% include './_geonode_config.html' with plugins_config_key='map_embed' is_embed='true' %}
             {% endblock %}
             <div class="gn-metadata-page">
-                {% include './snippets/metadata_view.html' with resource=resource metadata_groups=metadata_groups %}
+                {% include './snippets/metadata_view.html' with resource=resource metadata_groups=metadata_groups is_embed=True %}
             </div>
         </div>
     </body>
