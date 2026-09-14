@@ -20,7 +20,7 @@
 import dataclasses
 import datetime as dt
 import typing
-import uuid
+import uuid  # noqa: F401  (RecordDescription.uuid below shadows it; the annotation needs the module)
 
 from django.contrib.gis import geos
 
