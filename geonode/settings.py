@@ -1169,9 +1169,7 @@ CATALOGUE = {
 # CSW GetCapabilities document, in the INSPIRE ExtendedCapabilities of the apiso profile,
 # in the OpenSearch description and in /ident.json, so they are deployment specific and
 # are configured through the environment rather than by patching this file.
-PYCSW_ORGANIZATION = os.getenv(
-    "PYCSW_ORGANIZATION", "Leibniz Centre for Agricultural Landscape Research (ZALF) e. V."
-)
+PYCSW_ORGANIZATION = os.getenv("PYCSW_ORGANIZATION", "Leibniz Centre for Agricultural Landscape Research (ZALF) e. V.")
 PYCSW_ORGANIZATION_URL = os.getenv("PYCSW_ORGANIZATION_URL", "https://www.zalf.de")
 PYCSW_CONTACT_EMAIL = os.getenv("PYCSW_CONTACT_EMAIL", "dataservice@zalf.de")
 
