@@ -1492,3 +1492,40 @@ class CswContactsTest(GeoNodeBaseTestSupport):
         from geonode.catalogue.backends.pycsw_local_mappings import MD_CORE_MODEL
 
         self.assertEqual("csw_contacts", MD_CORE_MODEL["mappings"]["pycsw:Contacts"])
+
+
+class TestPublisherCsv(GeoNodeBaseTestSupport):
+    """
+    pycsw assigns pycsw:Publisher straight to an lxml .text in csw2._write_record.
+    Mapping it at ResourceBase.publisher -- a multi-valued contact role returning a
+    list of Profiles -- made every GetRecords response fail with "Argument must be
+    bytes or unicode, got 'list'" as soon as any matched resource had a publisher.
+    Resources without one were masked by the falsy empty list, which is why this
+    only surfaced once maps entered the catalogue (#707).
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.rb = ResourceBase.objects.create(uuid=str(uuid4()), owner=get_user_model().objects.get(username="admin"))
+        self.user, _ = get_user_model().objects.get_or_create(username="csw_publisher")
+        self.user.first_name = "Ada"
+        self.user.last_name = "Lovelace"
+        self.user.save()
+
+    def test_returns_a_string_not_a_list(self):
+        # The regression itself: lxml .text must accept the value.
+        self.rb.publisher = self.user
+        self.assertIsInstance(self.rb.publisher_csv, str)
+
+    def test_publisher_name_is_carried_through(self):
+        self.rb.publisher = self.user
+        self.assertEqual("Ada Lovelace", self.rb.publisher_csv)
+
+    def test_no_publisher_yields_an_empty_string(self):
+        self.assertEqual("", self.rb.publisher_csv)
+
+    def test_pycsw_mapping_points_at_the_serializer(self):
+        # Guards the repoint: mapping at the raw list property is what broke CSW.
+        from geonode.catalogue.backends.pycsw_local_mappings import MD_CORE_MODEL
+
+        self.assertEqual("publisher_csv", MD_CORE_MODEL["mappings"]["pycsw:Publisher"])

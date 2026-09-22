@@ -1284,6 +1284,12 @@ PYCSW = {
     }
 }
 
+# Which resources the CSW exposes. GeoNodeRepository.query() falls back to datasets only,
+# which hides maps from harvesters entirely; maps are published as ISO "series" (see
+# geonode.zalf.catalogue). Read by geonode.catalogue.backends.pycsw_plugin, not by pycsw
+# itself, so it sits beside "CONFIGURATION" rather than inside it.
+PYCSW["FILTER"] = ast.literal_eval(os.getenv("PYCSW_FILTER", "{'resource_type__in': ['dataset', 'map']}"))
+
 _DATETIME_INPUT_FORMATS = ["%Y-%m-%d %H:%M:%S.%f %Z", "%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S%Z"]
 DATETIME_INPUT_FORMATS = DATETIME_INPUT_FORMATS + _DATETIME_INPUT_FORMATS
 
