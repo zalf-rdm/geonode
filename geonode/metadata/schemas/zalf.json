@@ -122,7 +122,34 @@
       }
     }
   },
-    "fundings": {
+  "research_domains": {
+    "type": "array",
+    "title": "Research Domains",
+    "description": "Research disciplines associated with the resource",
+    "geonode:handler": "zalf",
+    "default": [],
+    "items": {
+      "type": "object",
+      "title": "Research Domain",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name"
+        },
+        "description": {
+          "type": "string",
+          "title": "Description"
+        },
+        "order_id": {
+          "type": "integer",
+          "title": "Display Order",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "fundings": {
     "type": "array",
     "title": "Funders",
     "description": "Organisations and awards funding this resource.",
