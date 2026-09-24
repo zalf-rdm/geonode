@@ -220,6 +220,34 @@ class Region(MPTTModel):
         order_insertion_by = ["name"]
 
 
+class GeoKeyword(models.Model):
+    """A stable geographic identifier from a hierarchical vocabulary."""
+
+    source = models.CharField(max_length=64)
+    level = models.PositiveSmallIntegerField()
+    layer_name = models.CharField(max_length=255)
+    gid = models.CharField(max_length=255)
+    name = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f"{self.source}: {self.name} ({self.gid})"
+
+    class Meta:
+        ordering = ("source", "level", "name")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("source", "gid"),
+                name="base_geokeyword_unique_source_gid",
+            )
+        ]
+        indexes = [
+            models.Index(fields=("source", "level"), name="base_geokey_source_level_idx"),
+            models.Index(fields=("gid",), name="base_geokey_gid_idx"),
+        ]
+        verbose_name = _("Geographic Keyword")
+        verbose_name_plural = _("Geographic Keywords")
+
+
 class RestrictionCodeType(models.Model):
     """
     Metadata information about the spatial representation type.
@@ -972,7 +1000,6 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     other_description = models.TextField(
         _("Other Description"), max_length=6000, blank=True, help_text=other_description_help_text
     )
-
     conformity_results = models.CharField(
         _("Conformity Result"),
         max_length=40,
@@ -1034,6 +1061,13 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     )
     regions = models.ManyToManyField(
         Region, verbose_name=_("Keywords Region"), null=True, blank=True, help_text=regions_help_text
+    )
+    geo_keywords = models.ManyToManyField(
+        GeoKeyword,
+        verbose_name=_("Geographic Keywords"),
+        blank=True,
+        related_name="resources",
+        help_text=_("Structured geographic identifiers associated with the resource"),
     )
 
     use_constraint_restrictions = models.ManyToManyField(
