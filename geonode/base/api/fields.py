@@ -31,6 +31,7 @@ from geonode.base.models import (
     Organization,
     Funding,
     HierarchicalKeyword,
+    GeoKeyword,
 )
 
 
@@ -112,6 +113,27 @@ class KeywordsDynamicRelationField(DynamicRelationField):
             )
         keyword.save()
         return keyword
+
+
+class GeoKeywordsDynamicRelationField(DynamicRelationField):
+    """Resolve pre-provisioned geographic keywords without nested creation."""
+
+    def to_internal_value_single(self, data, serializer):
+        try:
+            if isinstance(data, str):
+                data = json.loads(data)
+        except ValueError:
+            return super().to_internal_value_single(data, serializer)
+
+        if not isinstance(data, dict):
+            return super().to_internal_value_single(data, serializer)
+
+        source = data.get("source")
+        gid = data.get("gid")
+        try:
+            return GeoKeyword.objects.get(source=source, gid=gid)
+        except GeoKeyword.DoesNotExist as exc:
+            raise ValidationError(f"Geographic keyword {source}:{gid} does not exist.") from exc
 
 
 class ComplexDynamicRelationField(DynamicRelationField):

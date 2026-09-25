@@ -21,6 +21,7 @@ from django.utils.translation import gettext as _
 
 from geonode.base.models import (
     Funding,
+    GeoKeyword,
     Organization,
     RelatedIdentifier,
     RelatedIdentifierType,
@@ -71,6 +72,7 @@ M2M_RESTRICTION_FIELDS = {
 M2M_COMPLEX_FIELDS = {
     "fundings",
     "related_identifier",
+    "geo_keywords",
 }
 
 # Whether a scalar column accepts NULL is read off the model itself (see _coerce_scalar below)
@@ -222,6 +224,8 @@ class ZalfHandler(MetadataHandler):
                 }
                 for a in dataset.attribute_set.order_by("display_order", "pk")
             ]
+        if field_name == "geo_keywords":
+            return list(resource.geo_keywords.values("source", "level", "layer_name", "gid", "name"))
 
         # Scalar: return value directly (dates as ISO strings)
         value = getattr(resource, field_name, None)
@@ -318,9 +322,31 @@ class ZalfHandler(MetadataHandler):
             resource.related_identifier.set(rel_ids)
             return
 
-        if field_name == "attribute_set":
-            # rows are saved directly on the Attribute model; nothing goes to context["base"]
-            self._update_attributes(resource, field_name, json_instance.get(field_name), context, errors)
+        if field_name == "geo_keywords":
+            data = json_instance.get(field_name) or []
+            geo_keywords = []
+            for item in data:
+                if not isinstance(item, dict):
+                    continue
+                try:
+                    geo_keywords.append(
+                        GeoKeyword.objects.get(
+                            source=item.get("source"),
+                            gid=item.get("gid"),
+                        )
+                    )
+                except GeoKeyword.DoesNotExist:
+                    self._set_error(
+                        errors,
+                        [field_name],
+                        _("Geographic keyword %(source)s:%(gid)s does not exist.")
+                        % {
+                            "source": item.get("source"),
+                            "gid": item.get("gid"),
+                        },
+                    )
+            if not errors.get(field_name):
+                resource.geo_keywords.set(geo_keywords)
             return
 
         # Scalar field — safe to setattr and add to context["base"]
