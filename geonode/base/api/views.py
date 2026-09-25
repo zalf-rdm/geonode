@@ -57,6 +57,7 @@ from geonode.base.models import (
     Configuration,
     ExtraMetadata,
     Funding,
+    GeoKeyword,
     License,
     LinkedResource,
     Organization,
@@ -113,6 +114,7 @@ from .serializers import (
     HierarchicalKeywordSerializer,
     TopicCategorySerializer,
     RegionSerializer,
+    GeoKeywordSerializer,
     ThesaurusKeywordSerializer,
     SimpleThesaurusKeywordLabelSerializer,
     RestrictionCodeTypeSerializer,
@@ -213,6 +215,27 @@ class RegionViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin,
     queryset = Region.objects.all()
     serializer_class = RegionSerializer
     pagination_class = GeoNodeApiPagination
+
+
+class GeoKeywordViewSet(
+    WithDynamicViewSetMixin,
+    CreateModelMixin,
+    ListModelMixin,
+    RetrieveModelMixin,
+    GenericViewSet,
+):
+    """List geographic keywords and allow administrators to provision them."""
+
+    permission_classes = [AllowAny]
+    filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter]
+    queryset = GeoKeyword.objects.all()
+    serializer_class = GeoKeywordSerializer
+    pagination_class = GeoNodeApiPagination
+
+    def get_permissions(self):
+        if self.action == "create":
+            return [IsAdminUser()]
+        return [AllowAny()]
 
 
 class HierarchicalKeywordViewSet(WithDynamicViewSetMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet):

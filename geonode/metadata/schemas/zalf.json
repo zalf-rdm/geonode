@@ -87,6 +87,41 @@
     "geonode:handler": "zalf",
     "ui:options": { "widget": "textarea", "rows": 3 }
   },
+  "geo_keywords": {
+    "type": "array",
+    "title": "Geographic Keywords",
+    "description": "Structured geographic identifiers associated with the resource",
+    "geonode:handler": "zalf",
+    "default": [],
+    "items": {
+      "type": "object",
+      "title": "Geographic Keyword",
+      "required": ["source", "level", "layer_name", "gid", "name"],
+      "properties": {
+        "source": {
+          "type": "string",
+          "title": "Vocabulary"
+        },
+        "level": {
+          "type": "integer",
+          "title": "Hierarchy Level",
+          "minimum": 0
+        },
+        "layer_name": {
+          "type": "string",
+          "title": "Source Layer"
+        },
+        "gid": {
+          "type": "string",
+          "title": "Geographic Identifier"
+        },
+        "name": {
+          "type": "string",
+          "title": "Name"
+        }
+      }
+    }
+  },
     "fundings": {
     "type": "array",
     "title": "Funders",

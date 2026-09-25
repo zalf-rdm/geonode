@@ -65,6 +65,7 @@ from geonode.base.models import (
     RelatedProject,
     Funding,
     LinkedResource,
+    GeoKeyword,
 )
 from geonode.documents.models import Document
 from geonode.geoapps.models import GeoApp
@@ -73,6 +74,7 @@ from geonode.base.api.fields import (
     ComplexDynamicRelationField,
     RelatedIdentifierDynamicRelationField,
     FundingsDynamicRelationField,
+    GeoKeywordsDynamicRelationField,
     KeywordsDynamicRelationField,
 )
 from geonode.layers.utils import get_download_handlers, get_default_dataset_download_handler
@@ -204,6 +206,13 @@ class SimpleRegionSerializer(DynamicModelSerializer):
         model = Region
         name = "Region"
         fields = ("code", "name")
+
+
+class SimpleGeoKeywordSerializer(DynamicModelSerializer):
+    class Meta:
+        model = GeoKeyword
+        name = "GeoKeyword"
+        fields = ("source", "level", "layer_name", "gid", "name")
 
 
 class SimpleRelatedIdentifierType(DynamicModelSerializer):
@@ -714,7 +723,6 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     table_of_content = serializers.CharField(required=False, allow_blank=True)
     technical_info = serializers.CharField(required=False, allow_blank=True)
     other_description = serializers.CharField(required=False, allow_blank=True)
-
     related_identifier = RelatedIdentifierDynamicRelationField(SimpleRelatedIdentifierSerializer, embed=True, many=True)
     fundings = FundingsDynamicRelationField(FundingSerializer, embed=True, many=True)
 
@@ -781,6 +789,11 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     keywords = KeywordsDynamicRelationField(SimpleHierarchicalKeywordSerializer, many=True)
     tkeywords = ComplexDynamicRelationField(SimpleThesaurusKeywordSerializer, many=True)
     regions = DynamicRelationField(SimpleRegionSerializer, embed=True, many=True, read_only=True)
+    geo_keywords = GeoKeywordsDynamicRelationField(
+        SimpleGeoKeywordSerializer,
+        embed=True,
+        many=True,
+    )
     category = ComplexDynamicRelationField(SimpleTopicCategorySerializer, embed=True)
     spatial_representation_type = ComplexDynamicRelationField(SpatialRepresentationTypeSerializer, embed=True)
     blob = serializers.JSONField(required=False, write_only=True)
@@ -858,6 +871,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "table_of_content",
             "technical_info",
             "other_description",
+            "geo_keywords",
             "related_identifier",
             "fundings",
             "conformity_results",
@@ -1057,6 +1071,13 @@ class RegionSerializer(BaseResourceCountSerializer):
         count_type = "regions"
         view_name = "regions-list"
         fields = "__all__"
+
+
+class GeoKeywordSerializer(DynamicModelSerializer):
+    class Meta:
+        name = "geo_keywords"
+        model = GeoKeyword
+        fields = ("id", "source", "level", "layer_name", "gid", "name")
 
 
 class TopicCategorySerializer(BaseResourceCountSerializer):
