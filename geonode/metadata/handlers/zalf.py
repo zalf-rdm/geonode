@@ -203,6 +203,8 @@ class ZalfHandler(MetadataHandler):
                     }
                 )
             return result
+        if field_name == "geo_keywords":
+            return list(resource.geo_keywords.values("source", "level", "layer_name", "gid", "name"))
 
         if field_name == "attribute_set":
             dataset = resource.get_real_instance()
@@ -321,6 +323,10 @@ class ZalfHandler(MetadataHandler):
                     continue
             resource.related_identifier.set(rel_ids)
             return
+
+        if field_name == "attribute_set":
+            # rows are saved directly on the Attribute model; nothing goes to context["base"]
+            self._update_attributes(resource, field_name, json_instance.get(field_name), context, errors)
 
         if field_name == "geo_keywords":
             data = json_instance.get(field_name) or []
