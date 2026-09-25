@@ -22,6 +22,7 @@ from django.utils.translation import gettext as _
 from geonode.base.models import (
     Funding,
     GeoKeyword,
+    ResearchDomain,
     Organization,
     RelatedIdentifier,
     RelatedIdentifierType,
@@ -71,6 +72,7 @@ M2M_COMPLEX_FIELDS = {
     "fundings",
     "related_identifier",
     "geo_keywords",
+    "research_domains",
 }
 
 # Whether a scalar column accepts NULL is read off the model itself (see _coerce_scalar below)
@@ -191,6 +193,9 @@ class ZalfHandler(MetadataHandler):
         if field_name == "geo_keywords":
             return list(resource.geo_keywords.values("source", "level", "layer_name", "gid", "name"))
 
+        if field_name == "research_domains":
+            return list(resource.research_domains.values("name", "description", "order_id"))
+
         # Scalar: return value directly (dates as ISO strings)
         value = getattr(resource, field_name, None)
         if value is not None and hasattr(value, "isoformat"):
@@ -246,7 +251,7 @@ class ZalfHandler(MetadataHandler):
                     except Organization.DoesNotExist:
                         logger.warning(f"ZalfHandler: Organization pk={org_pk} not found, skipping funder")
                         continue
-                funding, _ = Funding.objects.get_or_create(
+                funding, _created = Funding.objects.get_or_create(
                     organization=org,
                     award_number=item.get("award_number") or "",
                     award_uri=item.get("award_uri") or "",
@@ -275,7 +280,7 @@ class ZalfHandler(MetadataHandler):
                         "relation_type": rt,
                         "resource_type_general": rtg,
                     }
-                    ri, _ = RelatedIdentifier.objects.get_or_create(
+                    ri, _created = RelatedIdentifier.objects.get_or_create(
                         **lookup,
                         defaults={"description": item.get("description") or ""},
                     )
@@ -311,6 +316,24 @@ class ZalfHandler(MetadataHandler):
                     )
             if not errors.get(field_name):
                 resource.geo_keywords.set(geo_keywords)
+            return
+
+        if field_name == "research_domains":
+            data = json_instance.get(field_name) or []
+            research_domains = []
+            for item in data:
+                if not isinstance(item, dict):
+                    continue
+                try:
+                    research_domains.append(ResearchDomain.objects.get(name=item.get("name")))
+                except ResearchDomain.DoesNotExist:
+                    self._set_error(
+                        errors,
+                        [field_name],
+                        _("Research domain '%(name)s' does not exist.") % {"name": item.get("name")},
+                    )
+            if not errors.get(field_name):
+                resource.research_domains.set(research_domains)
             return
 
         # Scalar field — safe to setattr and add to context["base"]

@@ -78,6 +78,7 @@ from geonode.base.models import (
     Group,
     LinkedResource,
     GeoKeyword,
+    ResearchDomain,
 )
 
 from geonode.layers.models import Dataset
@@ -754,6 +755,18 @@ class BaseApiTests(APITestCase):
                 "name": geo_keyword.name,
             }
         ]
+        research_domain = ResearchDomain.objects.create(
+            name="Soil Science",
+            description="Research focused on soils.",
+            order_id=2,
+        )
+        research_domains = [
+            {
+                "name": research_domain.name,
+                "description": research_domain.description,
+                "order_id": research_domain.order_id,
+            }
+        ]
         # Check user permissions
         for resource_type in ["dataset", "document", "map"]:
             resource = ResourceBase.objects.filter(owner__username="bobby", resource_type=resource_type).first()
@@ -769,6 +782,7 @@ class BaseApiTests(APITestCase):
                 "doi": "321-12345-987654321",
                 "is_published": False,
                 "geo_keywords": geo_keywords,
+                "research_domains": research_domains,
             }
             response = self.client.patch(f"{url}/{resource.id}/", data=data, format="json")
             self.assertEqual(response.status_code, 200, response.status_code)
@@ -782,6 +796,7 @@ class BaseApiTests(APITestCase):
             )
             self.assertEqual("321-12345-987654321", response.data["resource"]["doi"], response.data["resource"]["doi"])
             self.assertEqual(geo_keywords, response.data["resource"]["geo_keywords"])
+            self.assertEqual(research_domains, response.data["resource"]["research_domains"])
             self.assertEqual(
                 False, response.data["resource"]["is_published"], response.data["resource"]["is_published"]
             )
@@ -804,6 +819,23 @@ class BaseApiTests(APITestCase):
 
         self.assertEqual(response.status_code, 201, response.data)
         self.assertTrue(GeoKeyword.objects.filter(source="GADM", gid="BRA.17_1").exists())
+
+    def test_admin_can_provision_research_domain(self):
+        self.assertTrue(self.client.login(username="admin", password="admin"))
+        payload = {
+            "name": "Crop Production",
+            "description": "Crop production research.",
+            "order_id": 1,
+        }
+
+        response = self.client.post(
+            reverse("research_domains-list"),
+            data=payload,
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertTrue(ResearchDomain.objects.filter(name="Crop Production").exists())
 
     def test_resource_serializer_validation(self):
         """
