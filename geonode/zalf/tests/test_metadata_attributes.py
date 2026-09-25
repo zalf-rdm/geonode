@@ -163,6 +163,19 @@ class ZalfAttributeTableTests(TestCase):
         self.assertEqual(self.density.featureinfo_type, Attribute.TYPE_PROPERTY)
         self.assertTrue(self.density.visible)
 
+    def test_update_never_writes_to_the_resourcebase_columns(self):
+        """context["base"] is applied with QuerySet.update(), which only accepts real columns.
+
+        attribute_set is a related table, so leaking it there makes every metadata save fail
+        with FieldDoesNotExist -- for maps and documents too.
+        """
+        for resource in (self.dataset, create_single_map("zalf_attribute_map_base")):
+            context = {}
+            self.handler.update_resource(
+                resource, FIELD, {FIELD: [{"pk": self.depth.pk, "attribute_label": "Depth"}]}, context, {}
+            )
+            self.assertNotIn(FIELD, context.get("base", {}), resource.resource_type)
+
     def test_update_ignores_resources_without_attributes(self):
         map_resource = create_single_map("zalf_attribute_map_update")
         errors = self._update(map_resource, [{"pk": self.depth.pk, "attribute_label": "from a map"}])

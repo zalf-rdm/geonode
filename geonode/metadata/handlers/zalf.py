@@ -325,8 +325,10 @@ class ZalfHandler(MetadataHandler):
             return
 
         if field_name == "attribute_set":
-            # rows are saved directly on the Attribute model; nothing goes to context["base"]
+            # rows are saved directly on the Attribute model; nothing goes to context["base"],
+            # which only takes real ResourceBase columns (QuerySet.update())
             self._update_attributes(resource, field_name, json_instance.get(field_name), context, errors)
+            return
 
         if field_name == "geo_keywords":
             data = json_instance.get(field_name) or []
