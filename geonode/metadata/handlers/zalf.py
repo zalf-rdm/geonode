@@ -29,6 +29,8 @@ from geonode.base.models import (
     ResourceTypeGeneral,
     RestrictionCodeType,
 )
+from geonode.layers.models import Attribute
+from geonode.metadata.exceptions import UnsetFieldException
 from geonode.metadata.handlers.abstract import MetadataHandler
 
 logger = logging.getLogger(__name__)
@@ -80,12 +82,21 @@ M2M_COMPLEX_FIELDS = {
 # Conformity choices for the oneOf schema population
 CONFORMITY_CHOICES = ["Passed", "Not Passed", "Unknown"]
 
+# Editable text columns of a dataset's attribute table and their max_length on the Attribute model
+ATTRIBUTE_TEXT_FIELDS = {
+    "attribute_label": 255,
+    "description": 2048,
+    "attribute_unit": 50,
+    "attribute_method": 2000,
+}
+
 
 class ZalfHandler(MetadataHandler):
     """
     Handles ZALF-specific metadata fields:
       - Scalar text/date fields (title_translated, abstract_translated, etc.)
       - M2M restriction fields (use_constraint_restrictions, restriction_other)
+      - The attribute table of datasets (attribute_set: labels, descriptions, units, methods, ...)
     """
 
     def __init__(self):
@@ -133,6 +144,11 @@ class ZalfHandler(MetadataHandler):
                 item_props["resource_type_general"]["oneOf"] = [
                     {"const": t.label, "title": t.label, "description": t.description}
                     for t in ResourceTypeGeneral.objects.order_by("label")
+                ]
+            elif property_name == "attribute_set":
+                item_props = subschema["items"]["properties"]
+                item_props["featureinfo_type"]["oneOf"] = [
+                    {"const": value, "title": str(label)} for value, label in Attribute.TYPES
                 ]
 
         # Reorder all properties to match the key order defined in zalf.json.
@@ -187,7 +203,29 @@ class ZalfHandler(MetadataHandler):
                     }
                 )
             return result
+        if field_name == "geo_keywords":
+            return list(resource.geo_keywords.values("source", "level", "layer_name", "gid", "name"))
 
+        if field_name == "attribute_set":
+            dataset = resource.get_real_instance()
+            if not hasattr(dataset, "attribute_set"):
+                # only datasets have attributes; leave the field out so the client hides it
+                raise UnsetFieldException()
+            return [
+                {
+                    "pk": a.pk,
+                    "attribute": a.attribute or "",
+                    "attribute_type": a.attribute_type or "",
+                    "attribute_label": a.attribute_label or "",
+                    "description": a.description or "",
+                    "attribute_unit": a.attribute_unit or "",
+                    "attribute_method": a.attribute_method or "",
+                    "display_order": a.display_order,
+                    "visible": a.visible,
+                    "featureinfo_type": a.featureinfo_type,
+                }
+                for a in dataset.attribute_set.order_by("display_order", "pk")
+            ]
         if field_name == "geo_keywords":
             return list(resource.geo_keywords.values("source", "level", "layer_name", "gid", "name"))
 
@@ -286,6 +324,12 @@ class ZalfHandler(MetadataHandler):
             resource.related_identifier.set(rel_ids)
             return
 
+        if field_name == "attribute_set":
+            # rows are saved directly on the Attribute model; nothing goes to context["base"],
+            # which only takes real ResourceBase columns (QuerySet.update())
+            self._update_attributes(resource, field_name, json_instance.get(field_name), context, errors)
+            return
+
         if field_name == "geo_keywords":
             data = json_instance.get(field_name) or []
             geo_keywords = []
@@ -330,6 +374,76 @@ class ZalfHandler(MetadataHandler):
                 [field_name],
                 self.localize_message(context, "metadata_error_store", {"fieldname": field_name, "exc": e}),
             )
+
+    def _update_attributes(self, resource, field_name, data, context, errors):
+        """Edit the attribute table of a dataset.
+
+        Rows are matched by pk within this dataset. Attributes are never created or deleted here:
+        GeoServer and the importers own the attribute list, so unknown pks are ignored and rows
+        missing from the payload stay untouched. An invalid value is reported on its cell and
+        leaves that value unchanged.
+        """
+        dataset = resource.get_real_instance()
+        if not hasattr(dataset, "attribute_set") or not isinstance(data, list):
+            return
+        attributes = {a.pk: a for a in dataset.attribute_set.all()}
+        featureinfo_types = {value for value, _label in Attribute.TYPES}
+
+        def cell_error(index, name, message):
+            self._set_error(
+                errors,
+                [field_name, str(index), name],
+                self.localize_message(context, "metadata_error_store", {"fieldname": name, "exc": message}),
+            )
+
+        for index, item in enumerate(data):
+            if not isinstance(item, dict):
+                continue
+            attribute = attributes.get(item.get("pk"))
+            if attribute is None:
+                logger.warning(
+                    f"ZalfHandler: attribute pk={item.get('pk')} does not belong to dataset {dataset.pk}, skipping"
+                )
+                continue
+
+            changed = []
+            for name, max_length in ATTRIBUTE_TEXT_FIELDS.items():
+                if name not in item:
+                    continue
+                value = item[name] or None  # empty text is stored as NULL
+                if value is not None and (not isinstance(value, str) or len(value) > max_length):
+                    cell_error(index, name, f"expected text of at most {max_length} characters")
+                    continue
+                if getattr(attribute, name) != value:
+                    setattr(attribute, name, value)
+                    changed.append(name)
+
+            if "display_order" in item:
+                value = item["display_order"]
+                if isinstance(value, bool) or not isinstance(value, int):
+                    cell_error(index, "display_order", "expected an integer")
+                elif attribute.display_order != value:
+                    attribute.display_order = value
+                    changed.append("display_order")
+
+            if "visible" in item:
+                value = item["visible"]
+                if not isinstance(value, bool):
+                    cell_error(index, "visible", "expected true or false")
+                elif attribute.visible != value:
+                    attribute.visible = value
+                    changed.append("visible")
+
+            if "featureinfo_type" in item:
+                value = item["featureinfo_type"]
+                if value not in featureinfo_types:
+                    cell_error(index, "featureinfo_type", f"unknown feature info type {value!r}")
+                elif attribute.featureinfo_type != value:
+                    attribute.featureinfo_type = value
+                    changed.append("featureinfo_type")
+
+            if changed:
+                attribute.save(update_fields=changed)
 
     def post_save(self, resource, json_instance, context, errors, **kwargs):
         """

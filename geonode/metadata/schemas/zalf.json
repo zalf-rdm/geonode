@@ -407,5 +407,35 @@
     "description": "other restrictions and legal prerequisites for accessing and using the resource or metadata",
     "ui:options": { "widget": "textarea", "rows": 5 },
     "geonode:handler": "base"
+  },
+  "attribute_set": {
+    "type": "array",
+    "title": "Attributes",
+    "description": "Attribute table of the dataset: labels, descriptions, units and methods of its columns. Attributes come from the data source and cannot be added or removed here.",
+    "ui:options": {
+      "addable": false,
+      "removable": false,
+      "orderable": false,
+      "label": false,
+      "geonode-ui:group": "Attributes",
+      "geonode-ui:hideIfEmpty": true
+    },
+    "items": {
+      "type": "object",
+      "title": "Attribute",
+      "properties": {
+        "pk": {"type": "integer", "title": "ID", "readOnly": true, "ui:widget": "hidden"},
+        "attribute": {"type": "string", "title": "Name", "description": "Name of the attribute in the data source", "readOnly": true},
+        "attribute_type": {"type": "string", "title": "Type", "description": "Data type of the attribute", "readOnly": true},
+        "attribute_label": {"type": "string", "title": "Label", "description": "Title of the attribute as displayed in GeoNode", "maxLength": 255},
+        "description": {"type": "string", "title": "Description", "description": "Description of the attribute", "maxLength": 2048, "ui:options": {"widget": "textarea", "rows": 2}},
+        "attribute_unit": {"type": "string", "title": "Unit", "description": "Unit of the attribute values", "maxLength": 50},
+        "attribute_method": {"type": "string", "title": "Method", "description": "Method used to obtain the attribute values", "maxLength": 2000, "ui:options": {"widget": "textarea", "rows": 2}},
+        "display_order": {"type": "integer", "title": "Display Order", "description": "Order in which the attribute is displayed in identify results", "ui:widget": "hidden"},
+        "visible": {"type": "boolean", "title": "Visible", "description": "Show the attribute in identify results", "ui:widget": "hidden"},
+        "featureinfo_type": {"type": "string", "title": "Feature Info Type", "description": "How the attribute is rendered in the GetFeatureInfo template"}
+      }
+    },
+    "geonode:handler": "zalf"
   }
 }
