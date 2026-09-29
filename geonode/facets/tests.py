@@ -17,8 +17,9 @@
 #
 #########################################################################
 
-import logging
 import json
+import logging
+from datetime import datetime, timezone
 from tastypie.test import TestApiClient
 from uuid import uuid4
 
@@ -161,6 +162,7 @@ class TestFacets(GeoNodeBaseTestSupport):
                 subtype="vector",
                 is_approved=True,
                 is_published=True,
+                date=datetime(2020 + (x // 5), 1, 1, tzinfo=timezone.utc),
             )
 
             # These are the assigned keywords to the Resources
@@ -248,12 +250,54 @@ class TestFacets(GeoNodeBaseTestSupport):
         obj = json.loads(res.content)
         self.assertIn("facets", obj)
         facets_list = obj["facets"]
-        # 10, not upstream's 9: this fork registers AuthorFacetProvider in FACET_PROVIDERS in
-        # addition to upstream's eight providers (the thesaurus one expands into t_0 and t_1).
-        self.assertEqual(10, len(facets_list))
+        # 11, not upstream's 9: this fork additionally registers author and date providers
+        # (the thesaurus provider expands into t_0 and t_1).
+        self.assertEqual(11, len(facets_list))
         fmap = self._facets_to_map(facets_list)
-        for name in ("group", "category", "owner", "author", "t_0", "t_1", "featured", "resourcetype", "keyword"):
+        for name in (
+            "group",
+            "category",
+            "owner",
+            "author",
+            "date",
+            "t_0",
+            "t_1",
+            "featured",
+            "resourcetype",
+            "keyword",
+        ):
             self.assertIn(name, fmap)
+
+        date_info = fmap["date"]
+        self.assertEqual("filter{date}", date_info["filter"])
+        self.assertEqual("date", date_info["type"])
+
+    def test_date_facet_returns_chronological_year_buckets(self):
+        req = self.rf.get(reverse("get_facet", args=["date"]), data={"page_size": 200})
+        res: JsonResponse = GetFacetView.as_view()(req, "date")
+        obj = json.loads(res.content)
+
+        self.assertEqual("date", obj["name"])
+        self.assertEqual(
+            [
+                {"key": 2020, "label": "2020", "count": 5},
+                {"key": 2021, "label": "2021", "count": 5},
+                {"key": 2022, "label": "2022", "count": 5},
+                {"key": 2023, "label": "2023", "count": 5},
+            ],
+            obj["topics"]["items"],
+        )
+
+    def test_date_facet_honors_resource_filters(self):
+        req = self.rf.get(
+            reverse("get_facet", args=["date"]),
+            data={"page_size": 200, "filter{date.gte}": "2022-01-01T00:00:00"},
+        )
+        res: JsonResponse = GetFacetView.as_view()(req, "date")
+        obj = json.loads(res.content)
+
+        self.assertEqual([2022, 2023], [item["key"] for item in obj["topics"]["items"]])
+        self.assertEqual([5, 5], [item["count"] for item in obj["topics"]["items"]])
 
     def test_facets_rich(self):
         # make sure the resources are in
@@ -270,8 +314,8 @@ class TestFacets(GeoNodeBaseTestSupport):
         obj = json.loads(res.content)
 
         facets_list = obj["facets"]
-        # See test_facets_base: this fork registers one provider more than upstream.
-        self.assertEqual(10, len(facets_list))
+        # See test_facets_base: this fork registers two providers more than upstream.
+        self.assertEqual(11, len(facets_list))
         fmap = self._facets_to_map(facets_list)
         for expected in (  # fmt: skip
             {
