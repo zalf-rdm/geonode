@@ -18,12 +18,17 @@
 #########################################################################
 import ast
 import logging
+import operator
 from distutils.util import strtobool
+from functools import reduce
 from itertools import groupby
 
 from rest_framework.filters import SearchFilter, BaseFilterBackend
 
-from django.db.models import Subquery
+from django.core.exceptions import FieldDoesNotExist
+from django.db import models
+from django.db.models import Exists, OuterRef, Subquery
+from django.db.models.constants import LOOKUP_SEP
 
 from geonode.base.models import ThesaurusKeyword
 from geonode.favorite.models import Favorite
@@ -35,6 +40,59 @@ logger = logging.getLogger(__name__)
 class DynamicSearchFilter(SearchFilter):
     def get_search_fields(self, view, request):
         return request.GET.getlist("search_fields", [])
+
+    def _relation_root(self, queryset, search_field):
+        """Return the first relation traversed by a dynamic search field."""
+        field_name = str(search_field)
+        if field_name and field_name[0] in self.lookup_prefixes:
+            field_name = field_name[1:]
+        root = field_name.split(LOOKUP_SEP, 1)[0]
+        try:
+            field = queryset.model._meta.get_field(root)
+        except FieldDoesNotExist:
+            return None
+        return root if field.is_relation else None
+
+    def filter_queryset(self, request, queryset, view):
+        """
+        Search related field groups with independent EXISTS clauses.
+
+        DRF's default SearchFilter puts all related lookups in one subquery. When
+        a resource search spans contacts, keywords, projects, and funding, those
+        joins multiply each other before duplicate elimination. A correlated
+        subquery per relation keeps the same OR-across-fields and AND-across-terms
+        semantics without building that Cartesian intermediate result.
+        """
+        search_fields = self.get_search_fields(view, request)
+        search_terms = self.get_search_terms(request)
+
+        if not search_fields or not search_terms:
+            return queryset
+
+        direct_lookups = []
+        related_lookups = {}
+        for search_field in search_fields:
+            orm_lookup = self.construct_search(str(search_field), queryset)
+            relation_root = self._relation_root(queryset, search_field)
+            if relation_root:
+                related_lookups.setdefault(relation_root, []).append(orm_lookup)
+            else:
+                direct_lookups.append(orm_lookup)
+
+        for term_index, term in enumerate(search_terms):
+            conditions = [models.Q(**{lookup: term}) for lookup in direct_lookups]
+            for relation_index, lookups in enumerate(related_lookups.values()):
+                related_condition = reduce(
+                    operator.or_,
+                    (models.Q(**{lookup: term}) for lookup in lookups),
+                )
+                related_queryset = queryset.model._default_manager.filter(pk=OuterRef("pk")).filter(related_condition)
+                alias = f"_dynamic_search_{term_index}_{relation_index}"
+                queryset = queryset.alias(**{alias: Exists(related_queryset)})
+                conditions.append(models.Q(**{alias: True}))
+            queryset = queryset.filter(reduce(operator.or_, conditions))
+
+        return queryset
 
 
 class ExtentFilter(BaseFilterBackend):
