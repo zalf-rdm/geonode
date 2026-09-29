@@ -3,7 +3,6 @@ from urllib.parse import urlparse
 
 from django.conf import settings
 
-
 logger = logging.getLogger(__name__)
 
 
