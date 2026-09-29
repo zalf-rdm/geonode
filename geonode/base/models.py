@@ -248,6 +248,22 @@ class GeoKeyword(models.Model):
         verbose_name_plural = _("Geographic Keywords")
 
 
+class ResearchDomain(models.Model):
+    """A research discipline used to classify repository resources."""
+
+    name = models.CharField(max_length=200, unique=True)
+    description = models.TextField(max_length=1000, blank=True, default="")
+    order_id = models.PositiveIntegerField(default=0, db_index=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        ordering = ("order_id", "name")
+        verbose_name = _("Research Domain")
+        verbose_name_plural = _("Research Domains")
+
+
 class RestrictionCodeType(models.Model):
     """
     Metadata information about the spatial representation type.
@@ -1068,6 +1084,13 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         blank=True,
         related_name="resources",
         help_text=_("Structured geographic identifiers associated with the resource"),
+    )
+    research_domains = models.ManyToManyField(
+        ResearchDomain,
+        verbose_name=_("Research Domains"),
+        blank=True,
+        related_name="resources",
+        help_text=_("Research disciplines associated with the resource"),
     )
 
     use_constraint_restrictions = models.ManyToManyField(

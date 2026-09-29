@@ -58,6 +58,7 @@ from geonode.base.models import (
     ExtraMetadata,
     Funding,
     GeoKeyword,
+    ResearchDomain,
     License,
     LinkedResource,
     Organization,
@@ -115,6 +116,7 @@ from .serializers import (
     TopicCategorySerializer,
     RegionSerializer,
     GeoKeywordSerializer,
+    ResearchDomainSerializer,
     ThesaurusKeywordSerializer,
     SimpleThesaurusKeywordLabelSerializer,
     RestrictionCodeTypeSerializer,
@@ -230,6 +232,27 @@ class GeoKeywordViewSet(
     filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter]
     queryset = GeoKeyword.objects.all()
     serializer_class = GeoKeywordSerializer
+    pagination_class = GeoNodeApiPagination
+
+    def get_permissions(self):
+        if self.action == "create":
+            return [IsAdminUser()]
+        return [AllowAny()]
+
+
+class ResearchDomainViewSet(
+    WithDynamicViewSetMixin,
+    CreateModelMixin,
+    ListModelMixin,
+    RetrieveModelMixin,
+    GenericViewSet,
+):
+    """List research domains and allow administrators to provision them."""
+
+    permission_classes = [AllowAny]
+    filter_backends = [DynamicFilterBackend, DynamicSortingFilter, DynamicSearchFilter]
+    queryset = ResearchDomain.objects.all()
+    serializer_class = ResearchDomainSerializer
     pagination_class = GeoNodeApiPagination
 
     def get_permissions(self):

@@ -92,6 +92,7 @@ SYNC_M2M_FIELDS = [
     "tkeywords",
     "regions",
     "geo_keywords",
+    "research_domains",
     "related_projects",
     "fundings",
     "related_identifier",

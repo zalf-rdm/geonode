@@ -66,6 +66,7 @@ from geonode.base.models import (
     Funding,
     LinkedResource,
     GeoKeyword,
+    ResearchDomain,
 )
 from geonode.documents.models import Document
 from geonode.geoapps.models import GeoApp
@@ -75,6 +76,7 @@ from geonode.base.api.fields import (
     RelatedIdentifierDynamicRelationField,
     FundingsDynamicRelationField,
     GeoKeywordsDynamicRelationField,
+    ResearchDomainsDynamicRelationField,
     KeywordsDynamicRelationField,
 )
 from geonode.layers.utils import get_download_handlers, get_default_dataset_download_handler
@@ -213,6 +215,13 @@ class SimpleGeoKeywordSerializer(DynamicModelSerializer):
         model = GeoKeyword
         name = "GeoKeyword"
         fields = ("source", "level", "layer_name", "gid", "name")
+
+
+class SimpleResearchDomainSerializer(DynamicModelSerializer):
+    class Meta:
+        model = ResearchDomain
+        name = "ResearchDomain"
+        fields = ("name", "description", "order_id")
 
 
 class SimpleRelatedIdentifierType(DynamicModelSerializer):
@@ -794,6 +803,11 @@ class ResourceBaseSerializer(DynamicModelSerializer):
         embed=True,
         many=True,
     )
+    research_domains = ResearchDomainsDynamicRelationField(
+        SimpleResearchDomainSerializer,
+        embed=True,
+        many=True,
+    )
     category = ComplexDynamicRelationField(SimpleTopicCategorySerializer, embed=True)
     spatial_representation_type = ComplexDynamicRelationField(SpatialRepresentationTypeSerializer, embed=True)
     blob = serializers.JSONField(required=False, write_only=True)
@@ -872,6 +886,7 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "technical_info",
             "other_description",
             "geo_keywords",
+            "research_domains",
             "related_identifier",
             "fundings",
             "conformity_results",
@@ -1078,6 +1093,13 @@ class GeoKeywordSerializer(DynamicModelSerializer):
         name = "geo_keywords"
         model = GeoKeyword
         fields = ("id", "source", "level", "layer_name", "gid", "name")
+
+
+class ResearchDomainSerializer(DynamicModelSerializer):
+    class Meta:
+        name = "research_domains"
+        model = ResearchDomain
+        fields = ("id", "name", "description", "order_id")
 
 
 class TopicCategorySerializer(BaseResourceCountSerializer):
