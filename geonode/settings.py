@@ -2180,6 +2180,10 @@ FACET_PROVIDERS = [
     {"class": "geonode.facets.providers.category.CategoryFacetProvider", "config": {"order": 5, "type": "select"}},
     {"class": "geonode.facets.providers.keyword.KeywordFacetProvider", "config": {"order": 6, "type": "select"}},
     {"class": "geonode.facets.providers.region.RegionFacetProvider", "config": {"order": 7, "type": "select"}},
+    {
+        "class": "geonode.facets.providers.related_project.RelatedProjectFacetProvider",
+        "config": {"order": 12, "type": "select"},
+    },
     # OwnerFacetProvider is upstream's; AuthorFacetProvider is this fork's addition. The fork
     # replaced rather than added, which silently dropped the "owner" facet from the API even
     # though OwnerFacetProvider was still defined in geonode/facets/providers/users.py. Both are
