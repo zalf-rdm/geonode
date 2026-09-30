@@ -1038,36 +1038,38 @@ class BaseApiTests(APITestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 5)
-        self.assertEqual(response.data["total"], 26)
+        # Spatial search only returns resources with a reliable extent (or a
+        # matching GADM boundary); global and placeholder extents are ignored.
+        self.assertEqual(response.data["total"], 14)
         # Pagination
-        self.assertEqual(len(response.data["resources"]), 26)
+        self.assertEqual(len(response.data["resources"]), 14)
 
         response = self.client.get(
             f"{url}?page_size=26&extent=0,0,100,100&filter{{metadata_only}}=false", format="json"
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 5)
-        self.assertEqual(response.data["total"], 26)
+        self.assertEqual(response.data["total"], 14)
         # Pagination
-        self.assertEqual(len(response.data["resources"]), 26)
+        self.assertEqual(len(response.data["resources"]), 14)
 
         response = self.client.get(
             f"{url}?page_size=26&extent=-10,-10,-1,-1&filter{{metadata_only}}=false", format="json"
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 5)
-        self.assertEqual(response.data["total"], 12)
+        self.assertEqual(response.data["total"], 0)
         # Pagination
-        self.assertEqual(len(response.data["resources"]), 12)
+        self.assertEqual(len(response.data["resources"]), 0)
 
         # Extent Filter: Crossing Dateline
         extent = "-180.0000,56.9689,-162.5977,70.7435,155.9180,56.9689,180.0000,70.7435"
         response = self.client.get(f"{url}?page_size=26&extent={extent}&filter{{metadata_only}}=false", format="json")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 5)
-        self.assertEqual(response.data["total"], 12)
+        self.assertEqual(response.data["total"], 0)
         # Pagination
-        self.assertEqual(len(response.data["resources"]), 12)
+        self.assertEqual(len(response.data["resources"]), 0)
 
     def test_sort_resources(self):
         """
