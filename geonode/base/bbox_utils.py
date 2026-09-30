@@ -32,6 +32,7 @@ from shapely.ops import split
 from shapely.geometry import mapping, Polygon, LineString, GeometryCollection
 
 from django.contrib.gis.geos import Polygon as DjangoPolygon
+from django.db.models import F, FloatField, Func, OuterRef, Q, Subquery
 
 from geonode import GeoNodeException
 from geonode.utils import bbox_to_projection
@@ -71,6 +72,34 @@ def polygon_from_bbox(bbox, srid=4326):
     return poly
 
 
+class _BoundingCoordinate(Func):
+    """Read a coordinate from a geometry's bounding box in PostGIS."""
+
+    output_field = FloatField()
+    template = "%(function)s(Box3D(%(expressions)s))"
+
+
+def _spatial_search_queryset(queryset):
+    """Add reusable aliases required by reliable extent and GADM matching."""
+    # Import lazily because ResourceBase imports this module for bbox helpers.
+    from geonode.base.models import GeoKeyword
+
+    deepest_gadm_level = (
+        GeoKeyword.objects.filter(resources=OuterRef("pk"), source__iexact="GADM")
+        .order_by("-level")
+        .values("level")[:1]
+    )
+    return queryset.alias(
+        _bbox_min_x=_BoundingCoordinate("ll_bbox_polygon", function="ST_XMin"),
+        _bbox_max_x=_BoundingCoordinate("ll_bbox_polygon", function="ST_XMax"),
+        _bbox_min_y=_BoundingCoordinate("ll_bbox_polygon", function="ST_YMin"),
+        _bbox_max_y=_BoundingCoordinate("ll_bbox_polygon", function="ST_YMax"),
+        _bbox_width=F("_bbox_max_x") - F("_bbox_min_x"),
+        _bbox_height=F("_bbox_max_y") - F("_bbox_min_y"),
+        _deepest_gadm_level=Subquery(deepest_gadm_level),
+    )
+
+
 def filter_bbox(queryset, bbox):
     """
     Filters a queryset by a provided bounding box.
@@ -87,7 +116,12 @@ def filter_bbox(queryset, bbox):
             _bbox_index += 1
         bboxes[_bbox_index].append(_y)
 
-    search_queryset = None
+    queryset = _spatial_search_queryset(queryset)
+    spatial_filter = Q(pk__in=[])
+    placeholder_extents = (
+        polygon_from_bbox((-1, -1, 0, 0)),
+        polygon_from_bbox((0, 0, 22, 22)),
+    )
     for _bbox in bboxes:
         _bbox = list(map(Decimal, _bbox))
         search_polygon = polygon_from_bbox((_bbox[0], _bbox[1], _bbox[2], _bbox[3]))
@@ -95,10 +129,21 @@ def filter_bbox(queryset, bbox):
             DjangoPolygon.from_ewkt(_p.wkt)
             for _p in split_polygon(json.loads(search_polygon.json), output_format="polygons")
         ]:
-            _qs = queryset.filter(ll_bbox_polygon__intersects=search_polygon_dl)
-            search_queryset = _qs if search_queryset is None else search_queryset | _qs
+            reliable_extent = (
+                Q(ll_bbox_polygon__intersects=search_polygon_dl)
+                & Q(_bbox_width__lte=180)
+                & Q(_bbox_height__lt=170)
+                & ~Q(ll_bbox_polygon__equals=placeholder_extents[0])
+                & ~Q(ll_bbox_polygon__equals=placeholder_extents[1])
+            )
+            gadm_boundary = Q(
+                geo_keywords__source__iexact="GADM",
+                geo_keywords__level=F("_deepest_gadm_level"),
+                geo_keywords__geometry__intersects=search_polygon_dl,
+            )
+            spatial_filter |= reliable_extent | gadm_boundary
 
-    return search_queryset
+    return queryset.filter(spatial_filter).distinct()
 
 
 def check_crossing(lon1: float, lon2: float, validate: bool = False, dlon_threshold: float = 180.0):

@@ -753,6 +753,7 @@ class BaseApiTests(APITestCase):
                 "layer_name": geo_keyword.layer_name,
                 "gid": geo_keyword.gid,
                 "name": geo_keyword.name,
+                "geometry": None,
             }
         ]
         research_domain = ResearchDomain.objects.create(
@@ -803,12 +804,17 @@ class BaseApiTests(APITestCase):
 
     def test_admin_can_provision_geo_keyword(self):
         self.assertTrue(self.client.login(username="admin", password="admin"))
+        geometry = {
+            "type": "MultiPolygon",
+            "coordinates": [[[[-41, -9], [-40, -9], [-40, -8], [-41, -9]]]],
+        }
         payload = {
             "source": "GADM",
             "level": 1,
             "layer_name": "gid_1",
             "gid": "BRA.17_1",
             "name": "Pernambuco",
+            "geometry": geometry,
         }
 
         response = self.client.post(
@@ -818,7 +824,22 @@ class BaseApiTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, 201, response.data)
-        self.assertTrue(GeoKeyword.objects.filter(source="GADM", gid="BRA.17_1").exists())
+        keyword = GeoKeyword.objects.get(source="GADM", gid="BRA.17_1")
+        self.assertIsNotNone(keyword.geometry)
+
+        replacement = {
+            "type": "MultiPolygon",
+            "coordinates": [[[[-42, -10], [-41, -10], [-41, -9], [-42, -10]]]],
+        }
+        response = self.client.patch(
+            reverse("geo_keywords-detail", kwargs={"pk": keyword.pk}),
+            data={"geometry": replacement},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200, response.data)
+        keyword.refresh_from_db()
+        self.assertAlmostEqual(keyword.geometry.extent[0], -42)
 
     def test_admin_can_provision_research_domain(self):
         self.assertTrue(self.client.login(username="admin", password="admin"))
