@@ -143,7 +143,11 @@ def filter_bbox(queryset, bbox):
             )
             spatial_filter |= reliable_extent | gadm_boundary
 
-    return queryset.filter(spatial_filter).distinct()
+    # Keep the outer queryset non-distinct. The GADM relation can duplicate rows,
+    # but wrapping matching primary keys in a subquery removes those duplicates
+    # without changing queryset combinability for callers using ``|``.
+    matching_pks = queryset.filter(spatial_filter).values("pk")
+    return queryset.filter(pk__in=Subquery(matching_pks))
 
 
 def check_crossing(lon1: float, lon2: float, validate: bool = False, dlon_threshold: float = 180.0):
