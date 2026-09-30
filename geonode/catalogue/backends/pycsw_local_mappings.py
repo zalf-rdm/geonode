@@ -87,7 +87,7 @@ MD_CORE_MODEL = {
         "pycsw:SpecificationDate": "specificationdate",
         "pycsw:SpecificationDateType": "specificationdatetype",
         "pycsw:Creator": "creator",
-        "pycsw:Publisher": "publisher",
+        "pycsw:Publisher": "publisher_csv",
         "pycsw:Contributor": "contributor",
         "pycsw:Relation": "relation",
         "pycsw:Platform": "platform",

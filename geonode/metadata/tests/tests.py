@@ -29,6 +29,8 @@ from rest_framework import status
 from django.utils.translation import gettext as _
 
 from rest_framework.test import APITestCase
+from geonode.layers.models import Dataset
+from geonode.base.populate_test_data import create_single_dataset
 from geonode.metadata.settings import MODEL_SCHEMA
 from geonode.metadata.manager import metadata_manager
 from geonode.metadata.i18n import I18nCache
@@ -1018,3 +1020,45 @@ class CleanupHandlerTests(TestCase):
             context["errors"]["title"]["__errors"][0].startswith("metadata_error_sanitized"),
             f'Unexpected error {context["errors"]["title"]["__errors"]}',
         )
+
+
+class MetadataEditorCatalogueRefreshTests(APITestCase):
+    """A metadata edit must reach the CSW, and must not lose the edit doing so.
+
+    The schema_instance view holds a bare ResourceBase (ResourceBase.objects is not
+    polymorphic), while metadata_manager.update_schema_instance rebinds to
+    get_real_instance() internally. Saving the parent therefore only reached
+    sender=ResourceBase receivers, never the sender=Dataset/Document/Map ones that
+    regenerate the catalogue XML -- so every edit made here stayed invisible over CSW.
+
+    Deliberately a standalone class: MetadataApiTests builds its cases around fake
+    schemas and mocked handlers, and this one needs the real ones end to end.
+    """
+
+    def setUp(self):
+        # create_single_dataset() creates the admin profile it assigns as owner, so the
+        # dataset has to come first -- a bare APITestCase loads no user fixtures.
+        self.dataset = create_single_dataset("metadata_editor_roundtrip")
+        self.client.force_login(self.dataset.owner)
+
+    @patch("geonode.base.api.permissions.UserHasPerms.has_permission", return_value=True)
+    def test_metadata_edit_refreshes_the_catalogue_xml(self, mock_has_permission):
+        dataset = self.dataset
+        new_abstract = "Abstract set through the metadata editor"
+
+        # PATCH rather than PUT: it is what the editor sends, and it validates only the
+        # keys supplied. A full PUT would also drag in whatever fields other tests have
+        # left in the module-level sparse_field_registry singleton (see
+        # geonode/metadata/handlers/sparse.py) and fail on those instead.
+        url = reverse("metadata-schema_instance", kwargs={"pk": dataset.pk})
+        response = self.client.patch(url, data={"abstract": new_abstract}, format="json")
+        self.assertEqual(status.HTTP_200_OK, response.status_code, getattr(response, "data", response.content))
+
+        # the edit survived on both the parent row and the concrete instance: title and
+        # abstract live on base_resourcebase and, via modeltranslation on the inherited
+        # fields, as *_en columns on the child table
+        self.assertEqual(new_abstract, ResourceBase.objects.get(pk=dataset.pk).abstract)
+        self.assertEqual(new_abstract, Dataset.objects.get(pk=dataset.pk).abstract)
+
+        # ...and the catalogue XML was regenerated from it
+        self.assertIn(new_abstract, ResourceBase.objects.get(pk=dataset.pk).metadata_xml or "")
