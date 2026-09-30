@@ -49,6 +49,31 @@ class OrganizationRelationField(DynamicRelationField):
 class UserSerializer(base_serializers.DynamicModelSerializer):
     link = base_serializers.AutoLinkField(read_only=True)
 
+    # The client asks for these; without them it falls back to the username, which for an
+    # ORCID login *is* the bare ORCID iD -- so landing pages showed "0000-0002-..." where a
+    # person's name belongs (#702).
+    full_name = serializers.SerializerMethodField(read_only=True)
+    orcid_url = serializers.SerializerMethodField(read_only=True)
+
+    @staticmethod
+    def get_full_name(instance):
+        """Display name, or "" when the profile carries no name at all.
+
+        Deliberately empty rather than falling back to the username: the caller can then
+        decide what to show instead (an ORCID iD is better rendered as a link than as a
+        bare string), whereas a username baked in here looks like a real name.
+        """
+        return (instance.get_full_name() or "").strip()
+
+    @staticmethod
+    def get_orcid_url(instance):
+        """Resolvable ORCID record URL, or "" when the profile has no iD.
+
+        Built server-side so sandbox deployments follow SOCIALACCOUNT_ORCID_BASE_URL
+        instead of the client hardcoding orcid.org.
+        """
+        return instance.get_orcid_url() if hasattr(instance, "get_orcid_url") else ""
+
     class Meta:
         ref_name = "UserProfile"
         model = get_user_model()
@@ -59,8 +84,10 @@ class UserSerializer(base_serializers.DynamicModelSerializer):
             "username",
             "first_name",
             "last_name",
+            "full_name",
             "department",
             "orcid_identifier",
+            "orcid_url",
             "avatar",
             "organization",
             "perms",

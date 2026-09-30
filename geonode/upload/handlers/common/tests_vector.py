@@ -22,7 +22,7 @@ import uuid
 from celery.canvas import Signature
 from celery import group
 from django.conf import settings
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from mock import MagicMock, patch
 from geonode.upload.api.exceptions import UpsertException
@@ -43,6 +43,16 @@ from geoserver.catalog import Catalog
 from geonode.upload.tests.utils import TransactionImporterBaseTestSupport
 from geonode.utils import OGC_Servers_Handler
 from geonode.upload.utils import create_vrt_file, has_incompatible_field_names
+
+
+class TestFieldTypeMapping(SimpleTestCase):
+    def test_get_type_supports_time_fields(self):
+        field = ogr.FieldDefn("observed_time", ogr.OFTTime)
+
+        self.assertEqual(
+            BaseVectorFileHandler()._get_type(field),
+            "django.db.models.TimeField",
+        )
 
 
 class TestBaseVectorFileHandler(TestCase):

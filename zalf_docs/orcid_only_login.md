@@ -68,11 +68,34 @@ The switch leans on django-allauth ≥ 0.62 (`SOCIALACCOUNT_ONLY`, pinned 0.63.6
 | `geonode/templates/account/login.html` | Local form + "or" divider wrapped in `{% if not SOCIALACCOUNT_ONLY %}` (the flag is provided by allauth's LoginView context). |
 | `geonode/people/templates/people/profile_detail.html` | Email/password links gated — the `account_email` / `account_change_password` URL names don't exist in social-only mode and would raise `NoReverseMatch` (500). |
 | `geonode/urls.py` | `account/ajax_login` registered only when local login is allowed. |
+| `geonode/people/api/serializers.py` | `UserSerializer` exposes `full_name` and `orcid_url` (see *Display name and ORCID iD in the API* below). |
 
 Notes:
 
 - `account_signup` / `account_login` URL names stay registered (other templates reverse them); the views themselves are closed/restricted.
 - Admin and API auth are untouched because `SOCIALACCOUNT_ONLY` acts only inside allauth's views — `django.contrib.auth.backends.ModelBackend` remains in `AUTHENTICATION_BACKENDS`.
+
+### Display name and ORCID iD in the API
+
+`UserSerializer` serves two read-only fields the client needs in order to render a person
+properly:
+
+| Field | Value |
+|---|---|
+| `full_name` | `get_full_name()`, or `""` when the profile carries no name |
+| `orcid_url` | `get_orcid_url()`, or `""` when the profile has no iD |
+
+Two deliberate choices:
+
+- **`full_name` is empty rather than the username.** Under ORCID-only login the username *is*
+  the bare ORCID iD, so falling back to it here would hand the client an identifier dressed up
+  as a person's name — which is exactly how landing pages came to display
+  `0000 0002 1825 0097` (issue #702). Empty lets the caller decide what to show instead.
+- **`orcid_url` is built server-side** so it follows `SOCIALACCOUNT_ORCID_BASE_URL`. A client
+  hardcoding `orcid.org` would emit links to non-existent records on sandbox deployments.
+
+`full_name` is read in five places in geonode-mapstore-client, so it affects name rendering
+beyond any single page.
 
 ## Verification checklist
 

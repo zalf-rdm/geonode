@@ -13,7 +13,8 @@
                         {% trans "Structured descriptive information for this resource, organized by thematic sections for easier navigation and review." %}
                     </p>
                     <div class="gn-metadata-hero__actions">
-                        {% if resource.detail_url %}
+                        {% comment %}hidden when embedded in the View Metadata dialog: the link would open inside the iframe{% endcomment %}
+                        {% if resource.detail_url and not is_embed %}
                         <a class="gn-metadata-btn gn-metadata-btn--primary" href="{{ resource.detail_url }}">
                             <i class="fa fa-arrow-left"></i>
                             {% trans "Back to Resource" %}

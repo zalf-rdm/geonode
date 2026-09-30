@@ -77,6 +77,8 @@ from geonode.base.models import (
     License,
     Group,
     LinkedResource,
+    GeoKeyword,
+    ResearchDomain,
 )
 
 from geonode.layers.models import Dataset
@@ -737,6 +739,34 @@ class BaseApiTests(APITestCase):
         Ensure we can perform write operation against the Resource Bases.
         """
         url = reverse("base-resources-list")
+        geo_keyword = GeoKeyword.objects.create(
+            source="GADM",
+            level=2,
+            layer_name="gid_2",
+            gid="BRA.17.101_2",
+            name="Lagoa Grande",
+        )
+        geo_keywords = [
+            {
+                "source": geo_keyword.source,
+                "level": geo_keyword.level,
+                "layer_name": geo_keyword.layer_name,
+                "gid": geo_keyword.gid,
+                "name": geo_keyword.name,
+            }
+        ]
+        research_domain = ResearchDomain.objects.create(
+            name="Soil Science",
+            description="Research focused on soils.",
+            order_id=2,
+        )
+        research_domains = [
+            {
+                "name": research_domain.name,
+                "description": research_domain.description,
+                "order_id": research_domain.order_id,
+            }
+        ]
         # Check user permissions
         for resource_type in ["dataset", "document", "map"]:
             resource = ResourceBase.objects.filter(owner__username="bobby", resource_type=resource_type).first()
@@ -751,6 +781,8 @@ class BaseApiTests(APITestCase):
                 "attribution": "Foo Attribution",
                 "doi": "321-12345-987654321",
                 "is_published": False,
+                "geo_keywords": geo_keywords,
+                "research_domains": research_domains,
             }
             response = self.client.patch(f"{url}/{resource.id}/", data=data, format="json")
             self.assertEqual(response.status_code, 200, response.status_code)
@@ -763,9 +795,47 @@ class BaseApiTests(APITestCase):
                 "Foo Attribution", response.data["resource"]["attribution"], response.data["resource"]["attribution"]
             )
             self.assertEqual("321-12345-987654321", response.data["resource"]["doi"], response.data["resource"]["doi"])
+            self.assertEqual(geo_keywords, response.data["resource"]["geo_keywords"])
+            self.assertEqual(research_domains, response.data["resource"]["research_domains"])
             self.assertEqual(
                 False, response.data["resource"]["is_published"], response.data["resource"]["is_published"]
             )
+
+    def test_admin_can_provision_geo_keyword(self):
+        self.assertTrue(self.client.login(username="admin", password="admin"))
+        payload = {
+            "source": "GADM",
+            "level": 1,
+            "layer_name": "gid_1",
+            "gid": "BRA.17_1",
+            "name": "Pernambuco",
+        }
+
+        response = self.client.post(
+            reverse("geo_keywords-list"),
+            data=payload,
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertTrue(GeoKeyword.objects.filter(source="GADM", gid="BRA.17_1").exists())
+
+    def test_admin_can_provision_research_domain(self):
+        self.assertTrue(self.client.login(username="admin", password="admin"))
+        payload = {
+            "name": "Crop Production",
+            "description": "Crop production research.",
+            "order_id": 1,
+        }
+
+        response = self.client.post(
+            reverse("research_domains-list"),
+            data=payload,
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertTrue(ResearchDomain.objects.filter(name="Crop Production").exists())
 
     def test_resource_serializer_validation(self):
         """

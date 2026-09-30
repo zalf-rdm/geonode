@@ -37,6 +37,8 @@ from geonode.base.models import (
     TopicCategory,
     SpatialRepresentationType,
     Region,
+    GeoKeyword,
+    ResearchDomain,
     RestrictionCodeType,
     ContactRole,
     Link,
@@ -126,6 +128,20 @@ class RegionAdmin(TabbedTranslationAdmin):
         "name",
     )
     group_fieldsets = True
+
+
+class GeoKeywordAdmin(admin.ModelAdmin):
+    model = GeoKeyword
+    list_display = ("source", "level", "layer_name", "gid", "name")
+    list_filter = ("source", "level", "layer_name")
+    search_fields = ("gid", "name")
+
+
+class ResearchDomainAdmin(admin.ModelAdmin):
+    model = ResearchDomain
+    list_display = ("name", "order_id", "description")
+    list_editable = ("order_id",)
+    search_fields = ("name", "description")
 
 
 class SpatialRepresentationTypeAdmin(TabbedTranslationAdmin):
@@ -420,6 +436,8 @@ class ThesaurusKeywordLabelAdmin(admin.ModelAdmin):
 
 admin.site.register(TopicCategory, TopicCategoryAdmin)
 admin.site.register(Region, RegionAdmin)
+admin.site.register(GeoKeyword, GeoKeywordAdmin)
+admin.site.register(ResearchDomain, ResearchDomainAdmin)
 admin.site.register(SpatialRepresentationType, SpatialRepresentationTypeAdmin)
 admin.site.register(RestrictionCodeType, RestrictionCodeTypeAdmin)
 admin.site.register(ContactRole, ContactRoleAdmin)

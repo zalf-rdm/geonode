@@ -17,8 +17,9 @@
 #
 #########################################################################
 
-import logging
 import json
+import logging
+from datetime import datetime, timezone
 from tastypie.test import TestApiClient
 from uuid import uuid4
 
@@ -37,6 +38,7 @@ from geonode.base.models import (
     TopicCategory,
     HierarchicalKeyword,
     GroupProfile,
+    RelatedProject,
 )
 from geonode.facets.models import facet_registry
 from geonode.facets.providers.baseinfo import FeaturedFacetProvider
@@ -44,6 +46,7 @@ from geonode.facets.providers.category import CategoryFacetProvider
 from geonode.facets.providers.group import GroupFacetProvider
 from geonode.facets.providers.keyword import KeywordFacetProvider
 from geonode.facets.providers.region import RegionFacetProvider
+from geonode.facets.providers.related_project import RelatedProjectFacetProvider
 from geonode.facets.views import ListFacetsView, GetFacetView
 from geonode.tests.base import GeoNodeBaseTestSupport
 from django.contrib.auth.models import Group
@@ -64,6 +67,7 @@ class TestFacets(GeoNodeBaseTestSupport):
         cls._create_categories()
         cls._create_keywords()
         cls._create_groups()
+        cls._create_related_projects()
         cls._create_resources()
         cls.rf = RequestFactory()
 
@@ -150,6 +154,13 @@ class TestFacets(GeoNodeBaseTestSupport):
             cls.kw[code] = HierarchicalKeyword.objects.create(slug=code, name=name)
 
     @classmethod
+    def _create_related_projects(cls):
+        cls.related_projects = {
+            "P0": RelatedProject.objects.create(label="P0", display_name="Project Alpha"),
+            "P1": RelatedProject.objects.create(label="P1", display_name="Project Beta"),
+        }
+
+    @classmethod
     def _create_resources(self):
         public_perm_spec = {"users": {"AnonymousUser": ["view_resourcebase"]}, "groups": {}}
         for x in range(20):
@@ -161,6 +172,7 @@ class TestFacets(GeoNodeBaseTestSupport):
                 subtype="vector",
                 is_approved=True,
                 is_published=True,
+                date=datetime(2020 + (x // 5), 1, 1, tzinfo=timezone.utc),
             )
 
             # These are the assigned keywords to the Resources
@@ -235,6 +247,11 @@ class TestFacets(GeoNodeBaseTestSupport):
                 if x in idx:
                     d.category = self.cats[cat]
 
+            if x in (0, 1, 2):
+                d.related_projects.add(self.related_projects["P0"])
+            if x in (2, 3):
+                d.related_projects.add(self.related_projects["P1"])
+
             d.save()
             d.set_permissions(public_perm_spec)
 
@@ -248,12 +265,83 @@ class TestFacets(GeoNodeBaseTestSupport):
         obj = json.loads(res.content)
         self.assertIn("facets", obj)
         facets_list = obj["facets"]
-        # 10, not upstream's 9: this fork registers AuthorFacetProvider in FACET_PROVIDERS in
-        # addition to upstream's eight providers (the thesaurus one expands into t_0 and t_1).
-        self.assertEqual(10, len(facets_list))
+        # 12, not upstream's 9: this fork additionally registers author, date, and related-project providers
+        # (the thesaurus provider expands into t_0 and t_1).
+        self.assertEqual(12, len(facets_list))
         fmap = self._facets_to_map(facets_list)
-        for name in ("group", "category", "owner", "author", "t_0", "t_1", "featured", "resourcetype", "keyword"):
+        for name in (
+            "group",
+            "category",
+            "owner",
+            "author",
+            "date",
+            "related_project",
+            "t_0",
+            "t_1",
+            "featured",
+            "resourcetype",
+            "keyword",
+        ):
             self.assertIn(name, fmap)
+
+        date_info = fmap["date"]
+        self.assertEqual("filter{date}", date_info["filter"])
+        self.assertEqual("date", date_info["type"])
+
+        project_info = fmap["related_project"]
+        self.assertEqual("filter{related_projects.pk.in}", project_info["filter"])
+        self.assertEqual("related_project", project_info["type"])
+
+    def test_related_project_facet_returns_counts_and_filters_resources(self):
+        provider = RelatedProjectFacetProvider()
+        total, topics = provider.get_facet_items(ResourceBase.objects.all(), end=20)
+
+        self.assertEqual(2, total)
+        self.assertEqual(
+            [
+                {"key": self.related_projects["P0"].pk, "label": "Project Alpha", "count": 3},
+                {"key": self.related_projects["P1"].pk, "label": "Project Beta", "count": 2},
+            ],
+            topics,
+        )
+
+        req = self.rf.get(
+            reverse("get_facet", args=["related_project"]),
+            data={"filter{related_projects.pk.in}": self.related_projects["P1"].pk, "page_size": 20},
+        )
+        res: JsonResponse = GetFacetView.as_view()(req, "related_project")
+        obj = json.loads(res.content)
+        self.assertEqual(
+            {"Project Alpha": 1, "Project Beta": 2},
+            {topic["label"]: topic["count"] for topic in obj["topics"]["items"]},
+        )
+
+    def test_date_facet_returns_chronological_year_buckets(self):
+        req = self.rf.get(reverse("get_facet", args=["date"]), data={"page_size": 200})
+        res: JsonResponse = GetFacetView.as_view()(req, "date")
+        obj = json.loads(res.content)
+
+        self.assertEqual("date", obj["name"])
+        self.assertEqual(
+            [
+                {"key": 2020, "label": "2020", "count": 5},
+                {"key": 2021, "label": "2021", "count": 5},
+                {"key": 2022, "label": "2022", "count": 5},
+                {"key": 2023, "label": "2023", "count": 5},
+            ],
+            obj["topics"]["items"],
+        )
+
+    def test_date_facet_honors_resource_filters(self):
+        req = self.rf.get(
+            reverse("get_facet", args=["date"]),
+            data={"page_size": 200, "filter{date.gte}": "2022-01-01T00:00:00"},
+        )
+        res: JsonResponse = GetFacetView.as_view()(req, "date")
+        obj = json.loads(res.content)
+
+        self.assertEqual([2022, 2023], [item["key"] for item in obj["topics"]["items"]])
+        self.assertEqual([5, 5], [item["count"] for item in obj["topics"]["items"]])
 
     def test_facets_rich(self):
         # make sure the resources are in
@@ -270,8 +358,8 @@ class TestFacets(GeoNodeBaseTestSupport):
         obj = json.loads(res.content)
 
         facets_list = obj["facets"]
-        # See test_facets_base: this fork registers one provider more than upstream.
-        self.assertEqual(10, len(facets_list))
+        # See test_facets_base: this fork registers three providers more than upstream.
+        self.assertEqual(12, len(facets_list))
         fmap = self._facets_to_map(facets_list)
         for expected in (  # fmt: skip
             {
