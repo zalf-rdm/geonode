@@ -1,7 +1,6 @@
 {% extends "account/base.html" %}
 
 {% load i18n %}
-{% load static %}
 
 {% block title %}{% trans "Log out" %}{% endblock %}
 
@@ -12,7 +11,7 @@
       <div class="panel-body text-center" style="padding: 30px 40px;">
         <i class="fa fa-sign-out fa-3x text-muted" aria-hidden="true"></i>
         <h2 style="margin-top: 15px;">{% trans "Log out" %}</h2>
-        <form id="global-logout-form" method="POST" action="{{ global_logout_action_url|default:'/account/logout/global/' }}" style="margin-top: 20px;">
+        <form id="global-logout-finalize-form" method="POST" action="{{ global_logout_action_url }}" style="margin-top: 20px;">
           {% csrf_token %}
           <button type="submit" class="btn btn-primary btn-block">{% trans "Log out" %}</button>
         </form>
@@ -21,6 +20,6 @@
   </div>
 </div>
 {% if auto_submit %}<script>
-  document.getElementById('global-logout-form').submit();
+  document.getElementById('global-logout-finalize-form').submit();
 </script>{% endif %}
 {% endblock body_outer %}

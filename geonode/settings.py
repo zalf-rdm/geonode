@@ -1057,6 +1057,23 @@ LOGOUT_URL = os.getenv("LOGOUT_URL", f"{SITEURL}account/logout/")
 ACCOUNT_LOGIN_REDIRECT_URL = os.getenv("LOGIN_REDIRECT_URL", SITEURL)
 ACCOUNT_LOGOUT_REDIRECT_URL = os.getenv("LOGOUT_REDIRECT_URL", SITEURL)
 
+_default_upload_tool_logout_url = urljoin(SITEURL, "upload/accounts/logout/global/")
+
+# Global logout is coordinated through the Upload Tool so that its separate
+# Django session is cleared before GeoNode ends the Identity-e SSO session.
+UPLOAD_TOOL_GLOBAL_LOGOUT_URL = os.getenv(
+    "UPLOAD_TOOL_GLOBAL_LOGOUT_URL",
+    _default_upload_tool_logout_url,
+)
+OIDC_POST_LOGOUT_REDIRECT_URL = os.getenv(
+    "OIDC_POST_LOGOUT_REDIRECT_URL",
+    ACCOUNT_LOGOUT_REDIRECT_URL,
+)
+UPLOAD_TOOL_GLOBAL_LOGOUT_COMPLETE_URL = os.getenv(
+    "UPLOAD_TOOL_GLOBAL_LOGOUT_COMPLETE_URL",
+    urljoin(UPLOAD_TOOL_GLOBAL_LOGOUT_URL, "complete/") if UPLOAD_TOOL_GLOBAL_LOGOUT_URL else "",
+)
+
 # Backend
 DEFAULT_WORKSPACE = os.getenv("DEFAULT_WORKSPACE", "geonode")
 CASCADE_WORKSPACE = os.getenv("CASCADE_WORKSPACE", "geonode")
@@ -2363,11 +2380,10 @@ SOCIALACCOUNT_LOGOUT_REDIRECT_URL = os.environ.get(
     "SOCIALACCOUNT_LOGOUT_REDIRECT_URL", "https://sandbox.orcid.org/signout"
 )
 #
-#   Keycloak OIDC RP-initiated logout endpoint: ends the Keycloak SSO session
-#   during "Log out from GeoNode and ORCID" (otherwise the next login is a
-#   silent re-login).  SOCIALACCOUNT_LOGOUT_REDIRECT_URL is passed as
-#   post_logout_redirect_uri and must be whitelisted in the Keycloak client
-#   ("Valid post logout redirect URIs").
+#   Keycloak OIDC RP-initiated logout endpoint. Global logout uses
+#   UPLOAD_TOOL_GLOBAL_LOGOUT_COMPLETE_URL as its callback, then the Upload Tool
+#   returns to OIDC_POST_LOGOUT_REDIRECT_URL (repository home). Whitelist the
+#   completion URL in the GeoNode client's "Valid post logout redirect URIs".
 #
 SOCIALACCOUNT_PROVIDER_END_SESSION_URL = os.environ.get(
     "SOCIALACCOUNT_PROVIDER_END_SESSION_URL",

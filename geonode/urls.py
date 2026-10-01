@@ -43,6 +43,8 @@ from geonode import geoserver
 from geonode.utils import check_ogc_backend
 from geonode.base import register_url_event
 from .people.views import CustomSignupView, CustomLoginView
+from geonode.zalf.oidc import oidc_callback, oidc_login
+from geonode.zalf.views import global_logout_start
 from oauth2_provider.urls import app_name as oauth2_app_name, base_urlpatterns, oidc_urlpatterns
 
 admin.autodiscover()
@@ -102,6 +104,9 @@ urlpatterns += [
     # Social views
     re_path(r"^account/signup/", CustomSignupView.as_view(), name="account_signup"),
     re_path(r"^account/login/", CustomLoginView.as_view(), name="account_login"),
+    path("account/logout/", global_logout_start, name="account_logout"),
+    path("account/oidc/<str:provider_id>/login/", oidc_login, name="openid_connect_login"),
+    path("account/oidc/<str:provider_id>/login/callback/", oidc_callback, name="openid_connect_callback"),
     re_path(r"^account/", include("allauth.urls")),
     re_path(r"^invitations/", include("geonode.invitations.urls", namespace="geonode.invitations")),
     re_path(r"^people/", include("geonode.people.urls")),

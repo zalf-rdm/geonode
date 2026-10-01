@@ -57,7 +57,7 @@ class KeycloakSilentSSOMiddlewareTests(SimpleTestCase):
         self.assertNotIn("sso_hint", response.cookies)
 
     def test_logout_deletes_shared_hint(self):
-        request = self.factory.post("/account/logout/")
+        request = self.factory.post("/account/logout/global/finalize/")
         request.COOKIES["sso_hint"] = "true"
         request.user = _User(is_authenticated=False)
 
