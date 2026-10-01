@@ -38,11 +38,14 @@ from geonode.base.models import (
     TopicCategory,
     HierarchicalKeyword,
     GroupProfile,
+    Funding,
+    Organization,
     RelatedProject,
 )
 from geonode.facets.models import facet_registry
 from geonode.facets.providers.baseinfo import FeaturedFacetProvider
 from geonode.facets.providers.category import CategoryFacetProvider
+from geonode.facets.providers.funding import FundingFacetProvider
 from geonode.facets.providers.group import GroupFacetProvider
 from geonode.facets.providers.keyword import KeywordFacetProvider
 from geonode.facets.providers.region import RegionFacetProvider
@@ -68,6 +71,7 @@ class TestFacets(GeoNodeBaseTestSupport):
         cls._create_keywords()
         cls._create_groups()
         cls._create_related_projects()
+        cls._create_fundings()
         cls._create_resources()
         cls.rf = RequestFactory()
 
@@ -161,6 +165,17 @@ class TestFacets(GeoNodeBaseTestSupport):
         }
 
     @classmethod
+    def _create_fundings(cls):
+        cls.funding_organizations = {
+            "F0": Organization.objects.create(organization="European Commission", abbreviation="EC"),
+            "F1": Organization.objects.create(organization="German Research Foundation", abbreviation="DFG"),
+        }
+        cls.fundings = {
+            key: Funding.objects.create(organization=organization, award_title=f"Award {key}")
+            for key, organization in cls.funding_organizations.items()
+        }
+
+    @classmethod
     def _create_resources(self):
         public_perm_spec = {"users": {"AnonymousUser": ["view_resourcebase"]}, "groups": {}}
         for x in range(20):
@@ -251,6 +266,10 @@ class TestFacets(GeoNodeBaseTestSupport):
                 d.related_projects.add(self.related_projects["P0"])
             if x in (2, 3):
                 d.related_projects.add(self.related_projects["P1"])
+            if x in (0, 1, 2):
+                d.fundings.add(self.fundings["F0"])
+            if x in (2, 3):
+                d.fundings.add(self.fundings["F1"])
 
             d.save()
             d.set_permissions(public_perm_spec)
@@ -265,9 +284,10 @@ class TestFacets(GeoNodeBaseTestSupport):
         obj = json.loads(res.content)
         self.assertIn("facets", obj)
         facets_list = obj["facets"]
-        # 12, not upstream's 9: this fork additionally registers author, date, and related-project providers
+        # 13, not upstream's 9: this fork additionally registers author, date,
+        # funding, and related-project providers
         # (the thesaurus provider expands into t_0 and t_1).
-        self.assertEqual(12, len(facets_list))
+        self.assertEqual(13, len(facets_list))
         fmap = self._facets_to_map(facets_list)
         for name in (
             "group",
@@ -275,6 +295,7 @@ class TestFacets(GeoNodeBaseTestSupport):
             "owner",
             "author",
             "date",
+            "funding",
             "related_project",
             "t_0",
             "t_1",
@@ -291,6 +312,46 @@ class TestFacets(GeoNodeBaseTestSupport):
         project_info = fmap["related_project"]
         self.assertEqual("filter{related_projects.pk.in}", project_info["filter"])
         self.assertEqual("related_project", project_info["type"])
+
+        funding_info = fmap["funding"]
+        self.assertEqual("Fundings", str(funding_info["label"]))
+        self.assertEqual("filter{fundings.organization.pk.in}", funding_info["filter"])
+        self.assertEqual("funding", funding_info["type"])
+
+    def test_funding_facet_returns_organization_counts_and_filters_resources(self):
+        provider = FundingFacetProvider()
+        total, topics = provider.get_facet_items(ResourceBase.objects.all(), end=20)
+
+        self.assertEqual(2, total)
+        self.assertEqual(
+            [
+                {
+                    "key": self.funding_organizations["F0"].pk,
+                    "label": "European Commission",
+                    "count": 3,
+                },
+                {
+                    "key": self.funding_organizations["F1"].pk,
+                    "label": "German Research Foundation",
+                    "count": 2,
+                },
+            ],
+            topics,
+        )
+
+        req = self.rf.get(
+            reverse("get_facet", args=["funding"]),
+            data={
+                "filter{fundings.organization.pk.in}": self.funding_organizations["F1"].pk,
+                "page_size": 20,
+            },
+        )
+        res: JsonResponse = GetFacetView.as_view()(req, "funding")
+        obj = json.loads(res.content)
+        self.assertEqual(
+            {"European Commission": 1, "German Research Foundation": 2},
+            {topic["label"]: topic["count"] for topic in obj["topics"]["items"]},
+        )
 
     def test_related_project_facet_returns_counts_and_filters_resources(self):
         provider = RelatedProjectFacetProvider()
@@ -358,8 +419,8 @@ class TestFacets(GeoNodeBaseTestSupport):
         obj = json.loads(res.content)
 
         facets_list = obj["facets"]
-        # See test_facets_base: this fork registers three providers more than upstream.
-        self.assertEqual(12, len(facets_list))
+        # See test_facets_base: this fork registers four providers more than upstream.
+        self.assertEqual(13, len(facets_list))
         fmap = self._facets_to_map(facets_list)
         for expected in (  # fmt: skip
             {
