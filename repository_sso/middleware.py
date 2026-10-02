@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 from django.conf import settings
 from django.contrib.auth import logout
 from django.http import HttpResponse, HttpResponseForbidden, HttpResponseRedirect
-from django.urls import reverse
+from django.urls import Resolver404, resolve, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from .models import SessionBinding
@@ -18,13 +18,27 @@ class CentralSSOMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
+    @staticmethod
+    def _is_admin_request(request):
+        match = getattr(request, "resolver_match", None)
+        if match is None:
+            try:
+                match = resolve(request.path_info)
+            except Resolver404:
+                return False
+        return "admin" in match.namespaces
+
     def __call__(self, request):
         if getattr(settings, "KEYCLOAK_SSO_ENABLED", False):
             if request.session.get("_auth_user_id"):
                 binding = SessionBinding.objects.filter(
                     session_key=request.session.session_key
                 ).first()
-                if not binding or binding.revoked or revocations_for(binding).exists():
+                if not binding and self._is_admin_request(request):
+                    # Django admin remains available to local staff/superusers.
+                    # Their session is intentionally not linked to Keycloak.
+                    pass
+                elif not binding or binding.revoked or revocations_for(binding).exists():
                     logout(request)
                 elif request.path_info.endswith("/logout/"):
                     # Logout must remain available even during an IdP outage.
@@ -67,6 +81,8 @@ class CentralSSOMiddleware:
 
     def process_view(self, request, view_func, view_args, view_kwargs):
         if not getattr(settings, "KEYCLOAK_SSO_ENABLED", False):
+            return None
+        if self._is_admin_request(request):
             return None
         name = request.resolver_match.url_name
         if name == "repository_sso_backchannel_logout":

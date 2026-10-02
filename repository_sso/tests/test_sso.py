@@ -221,10 +221,9 @@ class CentralSSOTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertNotIn("_auth_user_id", self.client.session)
 
-    def test_all_browser_login_entries_use_keycloak(self):
+    def test_public_browser_login_entries_use_keycloak(self):
         for path in (
             "/account/login/",
-            "/admin/login/",
             "/dev-login/",
             "/account/ajax_login",
         ):
@@ -237,6 +236,18 @@ class CentralSSOTests(TestCase):
                 self.assertEqual(
                     parse_qs(urlparse(response.url).query)["next"], ["/protected/"]
                 )
+
+    def test_admin_namespace_keeps_local_login_and_session(self):
+        response = self.client.get("/admin/login/?next=/admin/")
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("/account/oidc/", response.get("Location", ""))
+
+        self.client.force_login(self.user)
+        response = self.client.get("/admin/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Signed in")
+        self.assertIn("_auth_user_id", self.client.session)
+        self.assertFalse(SessionBinding.objects.exists())
 
     def test_local_password_login_cannot_authenticate(self):
         self.client.post(
