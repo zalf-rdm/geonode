@@ -73,3 +73,7 @@ As suítes completas das aplicações e refresh verdadeiramente simultâneo em P
 ### Retomada em 2026-10-02
 
 A API Kubernetes `10.14.10.140:6443` estava inacessível após interrupção da conexão do usuário. A cópia dos novos assets MapStore para o cluster ficou pendente até a reconexão da VPN/rede ZALF. A nova tentativa de teste público encontrou timeouts de navegação; isso não substitui os resultados concluídos em 2026-10-01.
+
+As PRs estão abertas e coordenadas: [GeoNode #780](https://github.com/zalf-rdm/geonode/pull/780), [Upload Tool #554](https://github.com/zalf-rdm/upload-tool/pull/554), [MapStore #151](https://github.com/zalf-rdm/geonode-mapstore-client/pull/151). As issues #778/#553 têm os passos comprovados marcados e os passos de release pendentes separados.
+
+Na retomada, o teste de logout pelo menu com os assets compilados servidos somente ao navegador passou para Upload e GeoNode em desktop (1440 px): SSO, credenciais obrigatórias na reentrada, abas antigas do Upload/GeoNode/catálogo anônimas e replay do cookie antigo rejeitado; zero erros JavaScript. Isso valida a compilação, mas não substitui a implantação dos assets no cluster. A validação Flake8/Black do GeoNode passou no CI após correção de formatação.
