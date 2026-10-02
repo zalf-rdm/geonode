@@ -756,6 +756,7 @@ class BaseApiTests(APITestCase):
                 "layer_name": geo_keyword.layer_name,
                 "gid": geo_keyword.gid,
                 "name": geo_keyword.name,
+                "geometry": None,
             }
         ]
         research_domain = ResearchDomain.objects.create(
@@ -806,12 +807,17 @@ class BaseApiTests(APITestCase):
 
     def test_admin_can_provision_geo_keyword(self):
         self.assertTrue(self.client.login(username="admin", password="admin"))
+        geometry = {
+            "type": "MultiPolygon",
+            "coordinates": [[[[-41, -9], [-40, -9], [-40, -8], [-41, -9]]]],
+        }
         payload = {
             "source": "GADM",
             "level": 1,
             "layer_name": "gid_1",
             "gid": "BRA.17_1",
             "name": "Pernambuco",
+            "geometry": geometry,
         }
 
         response = self.client.post(
@@ -821,7 +827,22 @@ class BaseApiTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, 201, response.data)
-        self.assertTrue(GeoKeyword.objects.filter(source="GADM", gid="BRA.17_1").exists())
+        keyword = GeoKeyword.objects.get(source="GADM", gid="BRA.17_1")
+        self.assertIsNotNone(keyword.geometry)
+
+        replacement = {
+            "type": "MultiPolygon",
+            "coordinates": [[[[-42, -10], [-41, -10], [-41, -9], [-42, -10]]]],
+        }
+        response = self.client.patch(
+            reverse("geo_keywords-detail", kwargs={"pk": keyword.pk}),
+            data={"geometry": replacement},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200, response.data)
+        keyword.refresh_from_db()
+        self.assertAlmostEqual(keyword.geometry.extent[0], -42)
 
     def test_admin_can_provision_research_domain(self):
         self.assertTrue(self.client.login(username="admin", password="admin"))
@@ -1020,36 +1041,38 @@ class BaseApiTests(APITestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 5)
-        self.assertEqual(response.data["total"], 26)
+        # Spatial search only returns resources with a reliable extent (or a
+        # matching GADM boundary); global and placeholder extents are ignored.
+        self.assertEqual(response.data["total"], 14)
         # Pagination
-        self.assertEqual(len(response.data["resources"]), 26)
+        self.assertEqual(len(response.data["resources"]), 14)
 
         response = self.client.get(
             f"{url}?page_size=26&extent=0,0,100,100&filter{{metadata_only}}=false", format="json"
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 5)
-        self.assertEqual(response.data["total"], 26)
+        self.assertEqual(response.data["total"], 14)
         # Pagination
-        self.assertEqual(len(response.data["resources"]), 26)
+        self.assertEqual(len(response.data["resources"]), 14)
 
         response = self.client.get(
             f"{url}?page_size=26&extent=-10,-10,-1,-1&filter{{metadata_only}}=false", format="json"
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 5)
-        self.assertEqual(response.data["total"], 12)
+        self.assertEqual(response.data["total"], 0)
         # Pagination
-        self.assertEqual(len(response.data["resources"]), 12)
+        self.assertEqual(len(response.data["resources"]), 0)
 
         # Extent Filter: Crossing Dateline
         extent = "-180.0000,56.9689,-162.5977,70.7435,155.9180,56.9689,180.0000,70.7435"
         response = self.client.get(f"{url}?page_size=26&extent={extent}&filter{{metadata_only}}=false", format="json")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 5)
-        self.assertEqual(response.data["total"], 12)
+        self.assertEqual(response.data["total"], 0)
         # Pagination
-        self.assertEqual(len(response.data["resources"]), 12)
+        self.assertEqual(len(response.data["resources"]), 0)
 
     def test_sort_resources(self):
         """

@@ -132,9 +132,13 @@ class RegionAdmin(TabbedTranslationAdmin):
 
 class GeoKeywordAdmin(admin.ModelAdmin):
     model = GeoKeyword
-    list_display = ("source", "level", "layer_name", "gid", "name")
+    list_display = ("source", "level", "layer_name", "gid", "name", "has_geometry")
     list_filter = ("source", "level", "layer_name")
     search_fields = ("gid", "name")
+
+    @admin.display(boolean=True, description="Boundary")
+    def has_geometry(self, obj):
+        return bool(obj.geometry)
 
 
 class ResearchDomainAdmin(admin.ModelAdmin):

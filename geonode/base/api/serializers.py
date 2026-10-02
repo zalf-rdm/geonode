@@ -211,10 +211,12 @@ class SimpleRegionSerializer(DynamicModelSerializer):
 
 
 class SimpleGeoKeywordSerializer(DynamicModelSerializer):
+    geometry = fields.GeometryField(read_only=True, required=False)
+
     class Meta:
         model = GeoKeyword
         name = "GeoKeyword"
-        fields = ("source", "level", "layer_name", "gid", "name")
+        fields = ("source", "level", "layer_name", "gid", "name", "geometry")
 
 
 class SimpleResearchDomainSerializer(DynamicModelSerializer):
@@ -1089,10 +1091,12 @@ class RegionSerializer(BaseResourceCountSerializer):
 
 
 class GeoKeywordSerializer(DynamicModelSerializer):
+    geometry = fields.GeometryField(required=False, allow_null=True)
+
     class Meta:
         name = "geo_keywords"
         model = GeoKeyword
-        fields = ("id", "source", "level", "layer_name", "gid", "name")
+        fields = ("id", "source", "level", "layer_name", "gid", "name", "geometry")
 
 
 class ResearchDomainSerializer(DynamicModelSerializer):
