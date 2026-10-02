@@ -208,6 +208,19 @@ class CentralSSOTests(TestCase):
                 503,
             )
 
+    def test_login_health_probe_does_not_redirect_or_authenticate(self):
+        response = self.client.get("/account/login/", HTTP_USER_AGENT="kube-probe/1.31")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, b"OK")
+        self.assertNotIn("_auth_user_id", self.client.session)
+        response = self.client.post(
+            "/account/login/",
+            {"login": "existing", "password": "local-password"},
+            HTTP_USER_AGENT="kube-probe/1.31",
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertNotIn("_auth_user_id", self.client.session)
+
     def test_all_browser_login_entries_use_keycloak(self):
         for path in (
             "/account/login/",
@@ -278,6 +291,17 @@ class CentralSSOTests(TestCase):
         self.assertEqual(
             Client().get("/", HTTP_ACCEPT="application/json").status_code, 200
         )
+
+    def test_catalogue_and_localized_landing_restore_central_sso(self):
+        for path in ("/catalogue/?q=soil", "/pt/"):
+            client = Client()
+            response = client.get(path, HTTP_ACCEPT="text/html")
+            self.assertEqual(response.status_code, 302)
+            query = parse_qs(urlparse(response.url).query)
+            self.assertEqual(query["auth_params"], ["prompt=none"])
+            self.assertEqual(query["next"], [path])
+            self.assertEqual(client.get(path, HTTP_ACCEPT="text/html").status_code, 200)
+            self.assertEqual(Client().get(path, HTTP_ACCEPT="application/json").status_code, 200)
 
     def test_oidc_login_registers_existing_user_without_changing_permissions(self):
         self.user.is_staff = True

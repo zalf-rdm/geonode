@@ -2429,7 +2429,9 @@ KEYCLOAK_SSO_CLIENT_SECRET = SOCIALACCOUNT_CLIENT_SECRET
 KEYCLOAK_SSO_CLIENT_ID = SOCIALACCOUNT_CLIENT_ID
 KEYCLOAK_SSO_PROVIDER_ID = SOCIALACCOUNT_PROVIDER
 KEYCLOAK_SSO_POST_LOGOUT_URL = os.environ.get("KEYCLOAK_SSO_POST_LOGOUT_URL", SITEURL)
-KEYCLOAK_SSO_LANDING_PATHS = ("/", "/en/", "/de/")
+KEYCLOAK_SSO_LANDING_PATHS = ("/", "/catalogue/", "/catalogue") + tuple(
+    f"/{code}/" for code in {language.split("-")[0] for language, _ in LANGUAGES}
+)
 INSTALLED_APPS += ("repository_sso",)
 if KEYCLOAK_SSO_ENABLED:
     AUTH_EXEMPT_URLS += (rf"^{FORCE_SCRIPT_NAME or ''}/sso/backchannel-logout/$",)

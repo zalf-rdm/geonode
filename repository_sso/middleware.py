@@ -74,6 +74,14 @@ class CentralSSOMiddleware:
         if name in ("account_logout", "logout"):
             return global_logout(request)
         if name in ("account_login", "login", "dev_login", "account_ajax_login"):
+            # Existing Kubernetes probes use the login route as a health check.
+            # Return no login form or credentials flow to this GET-only probe.
+            if (
+                name == "account_login"
+                and request.method == "GET"
+                and request.headers.get("User-Agent", "").startswith("kube-probe/")
+            ):
+                return HttpResponse("OK")
             return self.login_redirect(request)
         if name in (
             "account_signup",

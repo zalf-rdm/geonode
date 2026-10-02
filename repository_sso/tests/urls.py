@@ -22,6 +22,8 @@ def protected(request):
 
 urlpatterns = [
     path("", home),
+    path("catalogue/", home),
+    path("pt/", home),
     path("protected/", protected),
     path("", include("repository_sso.urls")),
     path(

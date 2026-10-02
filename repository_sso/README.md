@@ -2,13 +2,13 @@
 
 Implementation: [GeoNode #778](https://github.com/zalf-rdm/geonode/issues/778) and [Upload Tool #553](https://github.com/zalf-rdm/upload-tool/issues/553). Source branches: `feature/778-keycloak-session-authority` and `feature/553-keycloak-session-authority`.
 
-`repository_sso` is an application-owned Django integration, vendored in both repositories. Keep its Python modules, migrations, and protocol tests synchronized. The logout template deliberately uses each application's own base template and block. GeoNode retains its profile/group adapter; Upload Tool retains its existing login signals and group mappings. No MapStore bundle change is required: browser login/logout entry routes are handled by GeoNode.
+`repository_sso` is an application-owned Django integration, vendored in both repositories. Keep its Python modules, migrations, and protocol tests synchronized. The logout template deliberately uses each application's own base template and block. GeoNode retains its profile/group adapter; Upload Tool retains its existing login signals and group mappings. Browser login/logout entry routes are handled by GeoNode. The coordinated ZALF MapStore navigation fix uses canonical `/upload/` and `/catalogue/` URLs.
 
 ## Behavior
 
 With `KEYCLOAK_SSO_ENABLED=true` (the default), interactive login goes through the configured Keycloak OIDC provider, including Django admin and development-login routes. Application password/signup/reset entry points cannot authenticate locally. Accounts and resource permissions remain in each application. Existing SocialAccounts are identified by the existing provider ID and Keycloak `sub`; automatic email linking is disabled.
 
-Opening an anonymous home page attempts OIDC with `prompt=none`. An existing Keycloak session establishes the second application's session without asking for credentials. A missing SSO session returns to the anonymous page, with a per-application 60-second probe cooldown. Explicit login starts the ordinary Keycloak flow. Protected deep links use the ordinary login flow. Session/CSRF cookies remain separate, including when the apps share a host through `/upload/`.
+Opening an anonymous home page or GeoNode catalogue attempts OIDC with `prompt=none`. An existing Keycloak session establishes the second application's session without asking for credentials. A missing SSO session returns to the anonymous page, with a per-application 60-second probe cooldown. Explicit login starts the ordinary Keycloak flow. Protected deep links use the ordinary login flow. Session/CSRF cookies remain separate, including when the apps share a host through `/upload/`.
 
 The callback validates the ID token with the configured realm's signing keys and client audience, then requires matching UserInfo subject and a Keycloak `sid`. It binds the resulting Django session to that identity in the application database. Unbound sessions created before activation must authenticate again.
 
@@ -63,4 +63,22 @@ SSO_TEST_DB=/tmp/upload-sso-qa.sqlite SSO_TEST_CLIENT=upload SSO_TEST_ISSUER=htt
 
 Then run `node repository_sso/tests/browser.cjs` from GeoNode root with Playwright/Chromium installed and available to Node (set `NODE_PATH` to the installed `node_modules` directory when needed). All fixture identities are synthetic; fixtures are never included in application URL configurations.
 
-No cluster/client configuration or deployment was changed. Full application suites, real ORCID/Keycloak authentication, PostgreSQL concurrency, deployed callback reachability, and real branded-page browser QA remain release checks. Keep both issues open until deployment verification is recorded.
+## Live test deployment — 2026-10-01
+
+At the user’s request, the integration was copied to the running GeoNode pod and both Upload Tool web pods on `kubernetes-admin@fizz.cluster`, and both migrations and Django system checks passed. This is a temporary container filesystem overlay; a container restart or redeploy restores the image version. The source branches still need the normal image/release workflow.
+
+The existing `ORCID` realm at `https://identity-e.dataservice.zalf.de/` was configured using the supplied administrator credentials. Both existing confidential clients now use PKCE S256, RS256, refresh tokens, session-required backchannel logout, and the exact Repository home post-logout redirect. GeoNode’s backchannel is `https://repository-e.dataservice.zalf.de/sso/backchannel-logout/`; Upload Tool’s public backchannel is `https://repository-e.dataservice.zalf.de/upload/sso/backchannel-logout/`. Existing broker identities and client callback allowlists were preserved.
+
+Real Chromium login with the supplied ORCID Sandbox account passed, followed by silent SSO into `/upload/`. The shipped profile dropdowns submit a CSRF-protected POST directly to global logout. Logout from either app returned to the anonymous Repository, and replaying the previous cookies did not restore access in either app. Deleting the QA session at Keycloak also delivered backchannel logout: matching bindings were revoked in both application databases, visible from both Upload Tool pods. Actual menus were exercised at 320/360/375/390/412/430/768/1440 px, with visible logout controls at least 44 px high and no document horizontal overflow. Phone screenshots were visually inspected.
+
+The existing Upload Tool Kubernetes health probe uses the account-login URL. Central SSO would redirect that request and cause container restarts. GET requests to that route with the Kubernetes probe user agent now receive only `OK`; ordinary browser requests and all login POSTs continue to Keycloak. The new regression confirms that neither probe GET nor POST authenticates locally. Both live pods’ health probes return HTTP 200, and 30 isolated integration tests pass per app (60 executions).
+
+Full application suites and true concurrent PostgreSQL token-refresh verification remain outstanding. ORCID Registry cookies are governed by the external broker; the tested global logout ends Keycloak and application sessions. Keep the issues open until the permanent release and remaining checks are recorded.
+
+## ORCID reauthentication and catalogue handoff
+
+The final test realm broker uses `config.defaultScope=openid`, `config.prompt=login`, and `config.acceptsPromptNoneForwardFromClient=false`. ORCID processes `prompt` only for an OpenID request; `/authenticate` alone silently reused the ORCID browser cookie after global logout. Existing Keycloak SSO still allows cross-app navigation without a password prompt. The ORCID plugin does not expose `prompt` in its admin UI; configure it through the Admin API. See [ORCID official OpenID documentation](https://github.com/ORCID/ORCID-Source/blob/main/orcid-web/ORCID_AUTH_WITH_OPENID_CONNECT.md).
+
+The landing-path allowlist includes GeoNode `/catalogue/` and localized app roots. This establishes a GeoNode session when the first login was in Upload Tool, before the catalogue SPA receives its user configuration. HTML requests probe once; JSON/API requests do not. The additional regression covers the catalogue destination/query and Portuguese root, no redirect loop, and JSON exclusion. The current isolated suites pass 31 tests per app.
+
+Final sanitized Keycloak JSON and annotated screenshots are in GeoNode `testing/keycloak-sso-2026-10-01/`. Full application suites and true simultaneous PostgreSQL refresh remain unverified. Temporary pod overlays must be replaced by released images.
