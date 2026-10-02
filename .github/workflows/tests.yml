@@ -109,6 +109,12 @@ jobs:
           # .coverage.<host>.<pid>.<rand>. Clear any leftovers before the first one.
           $DC exec -T django bash -lc 'cd /usr/src/geonode && coverage erase' </dev/null
 
+          echo "::group::Repository SSO isolated protocol suite"
+          $DC exec -T django bash -lc '
+            cd /usr/src/geonode
+            python -m django test repository_sso.tests --settings=repository_sso.tests.settings' </dev/null
+          echo "::endgroup::"
+
           reset_dbs() {
             $DC exec -T db psql -U postgres -q -c \
               "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname LIKE 'test_%';" </dev/null >/dev/null
@@ -131,6 +137,7 @@ jobs:
           SUITES=$(cat <<EOF
           Smoke|geonode.tests.smoke geonode.tests.test_rest_api geonode.tests.test_search geonode.tests.test_utils geonode.tests.test_headers geonode.tests.test_load_thesaurus
           ZALF|geonode.zalf
+          Repository SSO PostgreSQL|repository_sso.tests.test_postgres_concurrency
           Main|$MAIN_TESTS
           Security|$SECURITY_TESTS
           GIS Backend|$GIS_TESTS

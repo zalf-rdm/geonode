@@ -1,6 +1,6 @@
 # Repository authentication through Keycloak
 
-Implementation: [GeoNode #778](https://github.com/zalf-rdm/geonode/issues/778) and [Upload Tool #553](https://github.com/zalf-rdm/upload-tool/issues/553). Source branches: `feature/778-keycloak-session-authority` and `feature/553-keycloak-session-authority`.
+Implementation: [GeoNode #778](https://github.com/zalf-rdm/geonode/issues/778) and [Upload Tool #553](https://github.com/zalf-rdm/upload-tool/issues/553). The coordinated runtime changes were merged in GeoNode PR #780 and Upload Tool PR #554.
 
 `repository_sso` is an application-owned Django integration, vendored in both repositories. Keep its Python modules, migrations, and protocol tests synchronized. The logout template deliberately uses each application's own base template and block. GeoNode retains its profile/group adapter; Upload Tool retains its existing login signals and group mappings. Browser login/logout entry routes are handled by GeoNode. The coordinated ZALF MapStore navigation fix uses canonical `/upload/` and `/catalogue/` URLs.
 
@@ -73,7 +73,7 @@ Real Chromium login with the supplied ORCID Sandbox account passed, followed by 
 
 The existing Upload Tool Kubernetes health probe uses the account-login URL. Central SSO would redirect that request and cause container restarts. GET requests to that route with the Kubernetes probe user agent now receive only `OK`; ordinary browser requests and all login POSTs continue to Keycloak. The new regression confirms that neither probe GET nor POST authenticates locally. Both live pods’ health probes return HTTP 200, and 30 isolated integration tests pass per app (60 executions).
 
-Full application suites and true concurrent PostgreSQL token-refresh verification remain outstanding. ORCID Registry cookies are governed by the external broker; the tested global logout ends Keycloak and application sessions. Keep the issues open until the permanent release and remaining checks are recorded.
+ORCID Registry cookies are governed by the external broker; the tested global logout ends Keycloak and application sessions.
 
 ## ORCID reauthentication and catalogue handoff
 
@@ -81,4 +81,12 @@ The final test realm broker uses `config.defaultScope=openid`, `config.prompt=lo
 
 The landing-path allowlist includes GeoNode `/catalogue/` and localized app roots. This establishes a GeoNode session when the first login was in Upload Tool, before the catalogue SPA receives its user configuration. HTML requests probe once; JSON/API requests do not. The additional regression covers the catalogue destination/query and Portuguese root, no redirect loop, and JSON exclusion. The current isolated suites pass 31 tests per app.
 
-Final sanitized Keycloak JSON and annotated screenshots are in GeoNode `testing/keycloak-sso-2026-10-01/`. Full application suites and true simultaneous PostgreSQL refresh remain unverified. Temporary pod overlays must be replaced by released images.
+Final sanitized Keycloak JSON and annotated screenshots are in GeoNode `testing/keycloak-sso-2026-10-01/`. The permanent images deployed on 2026-10-02 are Upload Tool `0.1.346` and GeoNode `v5.0.3-zalf001.27`; the latter includes MapStore client `5.0.1.post54`.
+
+## Release verification — 2026-10-02
+
+GeoNode's full GitHub Actions suite passed in run `36986366532`. Upload Tool passed 189 application tests and 32 isolated SSO tests in its Docker/PostgreSQL environment. Both repositories include a PostgreSQL-only concurrent refresh regression. The test starts two independent database connections with the same stale binding and verifies that the row lock permits exactly one refresh request and persists a single rotating-token result. The same two-connection check passed against each deployed application's PostgreSQL database using a synthetic binding that was deleted after the assertion.
+
+The identity audit compares local accounts with Keycloak subjects without logging names, email addresses, credentials, tokens, or complete authorization URLs. The realm had six enabled users, all federated through ORCID. All six were already linked in GeoNode. Upload Tool had three links; one additional local account matched a subject already vetted in GeoNode by unique email and exact full name. Its dry run and applied link both passed, preserving its local ID, groups, submissions, and permissions.
+
+Legacy migration is still required before declaring activation complete for every existing user. The audit found 11 unlinked GeoNode accounts and 21 unlinked Upload Tool accounts used during the preceding year. Keycloak has no subjects to pair with them yet. Automatic email linking remains disabled because it could transfer an account's permissions to an unverified identity. An administrator must verify each owner, provision or federate that person in Keycloak, run `link_keycloak_identity` without `--apply`, inspect the pairing, and then apply it. Service identities need an explicit non-browser authentication policy. Keep issues #778 and #553 open until this list reaches zero or every remaining account has an approved documented exception.
