@@ -78,4 +78,10 @@ As PRs estão abertas e coordenadas: [GeoNode #780](https://github.com/zalf-rdm/
 
 Na retomada, o teste de logout pelo menu com os assets compilados servidos somente ao navegador passou para Upload e GeoNode em desktop (1440 px): SSO, credenciais obrigatórias na reentrada, abas antigas do Upload/GeoNode/catálogo anônimas e replay do cookie antigo rejeitado; zero erros JavaScript. Isso valida a compilação, mas não substitui a implantação dos assets no cluster. A validação Flake8/Black do GeoNode passou no CI após correção de formatação.
 
-O teste mobile encontrou o mesmo `/upload` no rodapé React, além da navbar. Os dois componentes ZALF foram corrigidos para `/upload/`. O teste agora abre o menu e seleciona explicitamente a navbar, e verifica separadamente o href do rodapé, evitando confundir um link visível no rodapé com um item do menu fechado. A implantação dos assets corrigidos permanece pendente.
+O teste mobile encontrou o mesmo `/upload` no rodapé React, além da navbar. Os dois componentes ZALF foram corrigidos para `/upload/`. O teste agora abre o menu e seleciona explicitamente a navbar, e verifica separadamente o href do rodapé, evitando confundir um link visível no rodapé com um item do menu fechado.
+
+Após a VPN ser restabelecida em 2026-10-02, o build MapStore final foi copiado para o volume estático do Nginx de teste. O estado anterior foi salvo no pod em `/tmp/mapstore-dist-before-sso-20261002.tar.gz`. Os hashes de `gn-catalogue.js` e `gn-components.js` no volume coincidiram com o build local, e a resposta HTTP pública continha `/upload/` tanto na navbar quanto no rodapé.
+
+Com esses assets implantados, os dois casos mobile de 390 px passaram: logout iniciado no Upload e no GeoNode, reentrada exigindo credenciais ORCID, abas antigas do Upload/GeoNode/catálogo anônimas, replay do cookie antigo rejeitado e zero erros JavaScript. O fluxo com login iniciado exclusivamente em `/upload/wizard/overview/`, seguido de `/catalogue/#/` e da página inicial autenticada, também passou novamente em 1440 e 390 px. Os dois pods Upload continuaram saudáveis e o liveness probe `/en/accounts/login/` respondeu com sucesso.
+
+Essa implantação continua sendo uma sobreposição temporária em containers/volume de teste. As imagens e os assets devem ser publicados pelo fluxo normal das três PRs para sobreviver a um redeploy.
