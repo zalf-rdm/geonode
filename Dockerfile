@@ -23,7 +23,13 @@ RUN chmod +x /usr/bin/celery-cmd
 # RUN cd /usr/src/geonode-contribs/geonode-logstash; pip install --upgrade  -e . \
 #     cd /usr/src/geonode-contribs/ldap; pip install --upgrade  -e .
 
-RUN yes w | pip install -e .
+# The project intentionally allows the latest compatible ZALF MapStore client.
+# CI supplies a unique value for each image build so a manual workflow rerun
+# resolves newly published Python packages instead of restoring this layer.
+ARG PYTHON_DEPENDENCY_CACHE_BUST=local
+RUN echo "Refreshing Python dependencies (${PYTHON_DEPENDENCY_CACHE_BUST})" \
+    && yes w | pip install --no-cache-dir -e . \
+    && python -c "from importlib.metadata import version; print('Installed MapStore client:', version('zalf-django-geonode-mapstore-client'))"
 
 # Cleanup apt update lists
 RUN apt-get autoremove --purge &&\
