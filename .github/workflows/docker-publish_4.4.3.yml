@@ -1,4 +1,4 @@
-name: Docker Build and Push
+name: Build GeoNode 4.4.3 image (legacy)
 
 on:
   push:
