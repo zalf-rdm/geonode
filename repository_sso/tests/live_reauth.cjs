@@ -89,7 +89,8 @@ async function scenario(browser, app, lang, width) {
     const oldState = await context.storageState();
     if (app === 'upload') await navigate(page, '/upload/' + lang + '/');
     await logout(page, app);console.log('STEP logged out');
-    const menu = page.getByRole('link', { name: 'Upload', exact: true }).first();
+    assert.equal(await page.locator('.zalf-footer-shell').getByRole('link', { name: 'Upload', exact: true }).getAttribute('href'), '/upload/');
+    const menu = page.locator('a.zalf-navigation__link').filter({ hasText: /^Upload$/ }).first();
     if (!await menu.isVisible()) await page.locator('.zalf-navigation__toggle').click();
     console.log('UPLOAD_LINK',await menu.getAttribute('href'));
     await menu.click();console.log('AFTER_UPLOAD_CLICK',new URL(page.url()).host,new URL(page.url()).pathname);
