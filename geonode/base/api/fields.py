@@ -52,7 +52,11 @@ class RelatedIdentifierDynamicRelationField(DynamicRelationField):
             }
             r = RelatedIdentifier.objects.filter(**lookup).first()
             if not r:
-                r = RelatedIdentifier(**lookup)
+                # has to be saved here: an unsaved instance has no pk, and the m2m
+                # set() at save time rejects it with "the value for field
+                # relatedidentifier is None" -- a 500 for every identifier we see
+                # for the first time.
+                r = RelatedIdentifier.objects.create(**lookup)
         except TypeError:
             raise ParseError(detail="Could not convert related_identifier to internal object ...", code=400)
         return r
