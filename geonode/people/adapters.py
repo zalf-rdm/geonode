@@ -27,6 +27,7 @@ django-allauth.
 import logging
 import re
 import jwt
+from repository_sso.adapters import SilentProbeMixin
 import requests
 
 from urllib.parse import urlencode
@@ -411,3 +412,7 @@ class GenericOpenIDConnectAdapter(OAuth2Adapter, SocialAccountAdapter):
         user = sociallogin.user
         if user.pk:
             _update_user_groups_from_social(sociallogin, user)
+
+
+class CentralKeycloakSocialAdapter(SilentProbeMixin, GenericOpenIDConnectAdapter):
+    """Preserve GeoNode profile/group mapping with central authentication."""
