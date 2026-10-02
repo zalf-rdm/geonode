@@ -79,6 +79,9 @@ from geonode.base.models import (
     LinkedResource,
     GeoKeyword,
     ResearchDomain,
+    RelatedIdentifier,
+    RelatedIdentifierType,
+    RelationType,
 )
 
 from geonode.layers.models import Dataset
@@ -4579,3 +4582,54 @@ class MapCachingTest(GeoNodeBaseTestSupport):
         # Check that the permissions in the layers are the same
         for layer1, layer2 in zip(data1["map"]["maplayers"], data2["map"]["maplayers"]):
             self.assertEqual(layer1["dataset"]["perms"], layer2["dataset"]["perms"])
+
+
+class RelatedIdentifierApiTests(GeoNodeBaseTestSupport):
+    """Setting related identifiers through the resource API, see #784."""
+
+    def setUp(self):
+        super().setUp()
+        self.dataset = create_single_dataset("dataset_for_related_identifier")
+        self.identifier_type = RelatedIdentifierType.objects.create(label="DOI", description="DOI")
+        self.relation_type = RelationType.objects.create(label="IsSourceOf", description="IsSourceOf")
+        self.url = reverse("base-resources-detail", kwargs={"pk": self.dataset.pk})
+        self.assertTrue(self.client.login(username="admin", password="admin"))
+
+    def _payload(self, identifier):
+        return json.dumps(
+            {
+                "related_identifier": [
+                    {
+                        "related_identifier": identifier,
+                        "related_identifier_type": {"label": self.identifier_type.label},
+                        "relation_type": {"label": self.relation_type.label},
+                    }
+                ]
+            }
+        )
+
+    def test_unknown_related_identifier_is_created_and_attached(self):
+        """A related identifier the catalogue has not seen before used to be built
+        unsaved, which made the m2m assignment fail with a 500 at save time."""
+        identifier = "10.1016/j.advwatres.2010.08.002"
+        self.assertFalse(RelatedIdentifier.objects.filter(related_identifier=identifier).exists())
+
+        response = self.client.patch(self.url, data=self._payload(identifier), content_type="application/json")
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(1, RelatedIdentifier.objects.filter(related_identifier=identifier).count())
+        self.assertEqual([identifier], [r.related_identifier for r in self.dataset.related_identifier.all()])
+
+    def test_known_related_identifier_is_reused(self):
+        identifier = "10.5194/hess-22-4401-2018"
+        existing = RelatedIdentifier.objects.create(
+            related_identifier=identifier,
+            related_identifier_type=self.identifier_type,
+            relation_type=self.relation_type,
+        )
+
+        response = self.client.patch(self.url, data=self._payload(identifier), content_type="application/json")
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(1, RelatedIdentifier.objects.filter(related_identifier=identifier).count())
+        self.assertEqual([existing.pk], [r.pk for r in self.dataset.related_identifier.all()])
