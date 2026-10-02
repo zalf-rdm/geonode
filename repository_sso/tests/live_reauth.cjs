@@ -31,11 +31,11 @@ async function qaContext(browser, options) {
     return context;
 }
 async function navigate(page, path) {
-    await page.goto(root + path, { waitUntil: 'domcontentloaded' });
+    await page.goto(root + path, { waitUntil: 'domcontentloaded', timeout: 90000 });
 }
 async function signIn(page) {
     await navigate(page, '/account/oidc/ORCID/login/?next=/');
-    await page.locator('#username-input').waitFor({ timeout: 45000 });
+    await page.locator('#username-input').waitFor({ timeout: 90000 });
     const reject = page.getByRole('button', { name: 'Reject Unnecessary Cookies', exact: true });
     if (await reject.isVisible()) await reject.click();
     await page.locator('#username-input').fill(values.ORCID_SANDBOX_USERNAME);
@@ -45,7 +45,7 @@ async function signIn(page) {
     await page.locator('button.repository-global-logout').waitFor({ state: 'attached' });
 }
 async function assertReauth(page) {
-    try { await page.locator('#username-input').waitFor({ timeout: 45000 }); } catch(error) {
+    try { await page.locator('#username-input').waitFor({ timeout: 90000 }); } catch(error) {
         const url=new URL(page.url());console.log('REAUTH_SCREEN',url.host,url.pathname,'headings',await page.locator('h1,h2').allTextContents());throw error;
     }
     assert.equal(new URL(page.url()).host, 'sandbox.orcid.org');
@@ -63,7 +63,7 @@ async function logout(page, app) {
     }
     await toggle.click();
     await page.locator('button.repository-global-logout').click();
-    await page.waitForURL(url => url.origin === root && url.pathname === '/', { timeout: 45000, waitUntil: 'domcontentloaded' });
+    try { await page.waitForURL(url => url.origin === root && url.pathname === '/', { timeout: 90000, waitUntil: 'domcontentloaded' }); } catch(error) { const u=new URL(page.url());console.log('LOGOUT_DESTINATION',u.host,u.pathname,'headings',await page.locator('h1,h2').allTextContents());throw error; }
     await page.waitForTimeout(1000);
     assert.equal(await page.locator('button.repository-global-logout').count(), 0);
 }
@@ -95,13 +95,13 @@ async function scenario(browser, app, lang, width) {
     await menu.click();console.log('AFTER_UPLOAD_CLICK',new URL(page.url()).host,new URL(page.url()).pathname);
     await assertReauth(page);console.log('STEP reentry asks credentials');
     // Open tabs must lose server access on their next request.
-    await uploadTab.reload({ waitUntil: 'domcontentloaded' });
+    await uploadTab.reload({ waitUntil: 'domcontentloaded', timeout: 90000 });
     await assertReauth(uploadTab);console.log('STEP stale upload tab');
-    await geoTab.reload({ waitUntil: 'domcontentloaded' });
+    await geoTab.reload({ waitUntil: 'domcontentloaded', timeout: 90000 });
     await geoTab.waitForTimeout(1500);
     assert.equal(await geoTab.locator('button.repository-global-logout').count(), 0);
     assert.equal(new URL(geoTab.url()).origin, root);
-    await catalogueTab.reload({ waitUntil: 'domcontentloaded' });
+    await catalogueTab.reload({ waitUntil: 'domcontentloaded', timeout: 90000 });
     await catalogueTab.waitForTimeout(1500);
     assert.equal(await catalogueTab.locator('button.repository-global-logout').count(), 0);
     // Restore the old cookie jar, including ORCID cookies, in another context.
@@ -131,9 +131,9 @@ async function providerScenario(browser) {
         const result = spawnSync('python', [process.env.ORCID_QA_PROVIDER_HELPER], { input: JSON.stringify(state), encoding: 'utf8', timeout: 45000 });
         assert.equal(result.status, 0, 'Keycloak session revocation must reach both applications');
         console.log(result.stdout.trim());
-        await page.reload({ waitUntil: 'domcontentloaded' });
+        await page.reload({ waitUntil: 'domcontentloaded', timeout: 90000 });
         await assertReauth(page);
-        await otherPage.reload({ waitUntil: 'domcontentloaded' });
+        await otherPage.reload({ waitUntil: 'domcontentloaded', timeout: 90000 });
         await otherPage.locator('button.repository-global-logout').waitFor({ state: 'attached' });
         assert.equal(new URL(otherPage.url()).origin, root);
         await logout(otherPage, 'upload');

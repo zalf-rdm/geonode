@@ -414,6 +414,5 @@ class GenericOpenIDConnectAdapter(OAuth2Adapter, SocialAccountAdapter):
             _update_user_groups_from_social(sociallogin, user)
 
 
-
 class CentralKeycloakSocialAdapter(SilentProbeMixin, GenericOpenIDConnectAdapter):
     """Preserve GeoNode profile/group mapping with central authentication."""

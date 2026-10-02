@@ -219,8 +219,13 @@ handler500 = "geonode.views.err500"
 
 if settings.KEYCLOAK_SSO_ENABLED:
     from repository_sso import oidc as central_oidc
+
     urlpatterns = [
         re_path(r"^", include("repository_sso.urls")),
         re_path(r"^account/oidc/(?P<provider_id>[^/]+)/login/$", central_oidc.login, name="openid_connect_login"),
-        re_path(r"^account/oidc/(?P<provider_id>[^/]+)/login/callback/$", central_oidc.callback, name="openid_connect_callback"),
+        re_path(
+            r"^account/oidc/(?P<provider_id>[^/]+)/login/callback/$",
+            central_oidc.callback,
+            name="openid_connect_callback",
+        ),
     ] + urlpatterns
