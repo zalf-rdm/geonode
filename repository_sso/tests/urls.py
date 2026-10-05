@@ -20,6 +20,16 @@ def protected(request):
     return HttpResponse("Protected")
 
 
+admin_patterns = (
+    [
+        path("", home, name="index"),
+        path("login/", home, name="login"),
+        path("logout/", home, name="logout"),
+    ],
+    "admin",
+)
+
+
 urlpatterns = [
     path("", home),
     path("catalogue/", home),
@@ -34,8 +44,7 @@ urlpatterns = [
         oidc.callback,
         name="openid_connect_callback",
     ),
-    path("admin/login/", home, name="login"),
-    path("admin/logout/", home, name="logout"),
+    path("admin/", include(admin_patterns, namespace="admin")),
     path("dev-login/", home, name="dev_login"),
     path("account/ajax_login", home, name="account_ajax_login"),
     path("account/", include("allauth.urls")),
