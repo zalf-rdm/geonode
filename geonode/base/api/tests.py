@@ -4567,8 +4567,14 @@ class RelatedIdentifierApiTests(GeoNodeBaseTestSupport):
     def setUp(self):
         super().setUp()
         self.dataset = create_single_dataset("dataset_for_related_identifier")
-        self.identifier_type = RelatedIdentifierType.objects.create(label="DOI", description="DOI")
-        self.relation_type = RelationType.objects.create(label="IsSourceOf", description="IsSourceOf")
+        # "label" is the primary key on both models and initial_data.json already
+        # ships "DOI" and "IsSourceOf", so creating them outright is a PK clash.
+        self.identifier_type, _ = RelatedIdentifierType.objects.get_or_create(
+            label="DOI", defaults={"description": "DOI"}
+        )
+        self.relation_type, _ = RelationType.objects.get_or_create(
+            label="IsSourceOf", defaults={"description": "IsSourceOf"}
+        )
         self.url = reverse("base-resources-detail", kwargs={"pk": self.dataset.pk})
         self.assertTrue(self.client.login(username="admin", password="admin"))
 
