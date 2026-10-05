@@ -33,6 +33,7 @@ FACET_TYPE_KEYWORD = "keyword"
 FACET_TYPE_GROUP = "group"
 FACET_TYPE_DATE = "date"
 FACET_TYPE_RELATED_PROJECT = "related_project"
+FACET_TYPE_FUNDING = "funding"
 
 logger = logging.getLogger(__name__)
 

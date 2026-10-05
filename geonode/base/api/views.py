@@ -47,7 +47,7 @@ from rest_framework.decorators import action
 from rest_framework.parsers import JSONParser, MultiPartParser
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
-from rest_framework.mixins import CreateModelMixin, ListModelMixin, RetrieveModelMixin
+from rest_framework.mixins import CreateModelMixin, ListModelMixin, RetrieveModelMixin, UpdateModelMixin
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated, IsAuthenticatedOrReadOnly
 
 from geonode.maps.models import Map
@@ -224,6 +224,7 @@ class GeoKeywordViewSet(
     CreateModelMixin,
     ListModelMixin,
     RetrieveModelMixin,
+    UpdateModelMixin,
     GenericViewSet,
 ):
     """List geographic keywords and allow administrators to provision them."""
@@ -235,7 +236,7 @@ class GeoKeywordViewSet(
     pagination_class = GeoNodeApiPagination
 
     def get_permissions(self):
-        if self.action == "create":
+        if self.action in ("create", "update", "partial_update"):
             return [IsAdminUser()]
         return [AllowAny()]
 

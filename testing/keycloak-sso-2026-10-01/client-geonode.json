@@ -1,0 +1,92 @@
+{
+  "id": "80f5fc2d-a235-4540-94b3-59a556d61992",
+  "clientId": "repository-e.dataservice.zalf.de",
+  "name": "repository-e.dataservice.zalf.de",
+  "description": "client for geonode repository-e test environment",
+  "rootUrl": "https://repository-e.dataservice.zalf.de/",
+  "adminUrl": "https://repository-e.dataservice.zalf.de/",
+  "baseUrl": "https://repository-e.dataservice.zalf.de/",
+  "surrogateAuthRequired": false,
+  "enabled": true,
+  "alwaysDisplayInConsole": true,
+  "clientAuthenticatorType": "client-secret",
+  "redirectUris": [
+    "https://repository-e.dataservice.zalf.de/account/oidc/ORCID/login/callback/",
+    "*"
+  ],
+  "webOrigins": [
+    "*"
+  ],
+  "notBefore": 0,
+  "bearerOnly": false,
+  "consentRequired": true,
+  "standardFlowEnabled": true,
+  "implicitFlowEnabled": false,
+  "directAccessGrantsEnabled": true,
+  "serviceAccountsEnabled": true,
+  "publicClient": false,
+  "frontchannelLogout": false,
+  "protocol": "openid-connect",
+  "attributes": {
+    "client.secret.creation.time": "1763977097",
+    "standard.token.exchange.enabled": "false",
+    "login_theme": "upload-tool",
+    "frontchannel.logout.session.required": "true",
+    "post.logout.redirect.uris": "https://repository-e.dataservice.zalf.de/",
+    "oauth2.device.authorization.grant.enabled": "false",
+    "use.jwks.url": "false",
+    "backchannel.logout.revoke.offline.tokens": "false",
+    "use.refresh.tokens": "true",
+    "realm_client": "false",
+    "oidc.ciba.grant.enabled": "false",
+    "id.token.signed.response.alg": "RS256",
+    "backchannel.logout.session.required": "true",
+    "backchannel.logout.url": "https://repository-e.dataservice.zalf.de/sso/backchannel-logout/",
+    "display.on.consent.screen": "false",
+    "pkce.code.challenge.method": "S256",
+    "dpop.bound.access.tokens": "false"
+  },
+  "authenticationFlowBindingOverrides": {},
+  "fullScopeAllowed": true,
+  "nodeReRegistrationTimeout": -1,
+  "protocolMappers": [
+    {
+      "id": "ce801675-3435-4b8d-8980-c9c0a4b23e2f",
+      "name": "user-group",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-group-membership-mapper",
+      "consentRequired": false,
+      "config": {
+        "full.path": "false",
+        "introspection.token.claim": "false",
+        "userinfo.token.claim": "true",
+        "multivalued": "true",
+        "id.token.claim": "false",
+        "lightweight.claim": "false",
+        "access.token.claim": "false",
+        "claim.name": "groups"
+      }
+    }
+  ],
+  "defaultClientScopes": [
+    "web-origins",
+    "service_account",
+    "acr",
+    "roles",
+    "profile",
+    "basic",
+    "email"
+  ],
+  "optionalClientScopes": [
+    "address",
+    "phone",
+    "offline_access",
+    "organization",
+    "microprofile-jwt"
+  ],
+  "access": {
+    "view": true,
+    "configure": true,
+    "manage": true
+  }
+}

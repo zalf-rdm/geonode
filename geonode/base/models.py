@@ -45,7 +45,7 @@ from django.contrib.auth import get_user_model
 from django.db.models.fields.json import JSONField
 from django.utils.functional import cached_property, classproperty
 from django.contrib.gis.geos import GEOSGeometry, Polygon, Point
-from django.contrib.gis.db.models import PolygonField
+from django.contrib.gis.db.models import MultiPolygonField, PolygonField
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.contrib.contenttypes.models import ContentType
@@ -228,6 +228,12 @@ class GeoKeyword(models.Model):
     layer_name = models.CharField(max_length=255)
     gid = models.CharField(max_length=255)
     name = models.CharField(max_length=255)
+    geometry = MultiPolygonField(
+        srid=4326,
+        null=True,
+        blank=True,
+        help_text=_("Verified boundary used for geographic discovery"),
+    )
 
     def __str__(self):
         return f"{self.source}: {self.name} ({self.gid})"

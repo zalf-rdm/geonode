@@ -55,7 +55,12 @@
                     <li><a  href="/help/">{% trans "Help" %}</a></li>
                     <li role="separator" class="divider"></li>
                 {% endif %}
-                <li><a href="/account/logout/?next=/">{% trans "Log out" %}</a></li>
+                <li>
+                    <form method="post" action="{% url 'account_logout' %}" style="margin: 0;">
+                        {% csrf_token %}
+                        <button type="submit" class="repository-global-logout" style="display: block; width: 100%; min-height: 44px; padding: 3px 20px; text-align: left; border: 0; background: transparent; color: #fff;">{% trans "Log out" %}</button>
+                    </form>
+                </li>
             </ul>
         </div>
     </li>

@@ -795,7 +795,6 @@ MIDDLEWARE = (
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "geonode.zalf.middleware.KeycloakSilentSSOMiddleware",
-    "allauth.account.middleware.AccountMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.contrib.sites.middleware.CurrentSiteMiddleware",
@@ -805,6 +804,8 @@ MIDDLEWARE = (
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "repository_sso.middleware.CentralSSOMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  # ref to: http://whitenoise.evans.io/en/stable/django.html#enable-whitenoise
@@ -2183,8 +2184,9 @@ FACET_PROVIDERS = [
     {"class": "geonode.facets.providers.region.RegionFacetProvider", "config": {"order": 7, "type": "select"}},
     {
         "class": "geonode.facets.providers.related_project.RelatedProjectFacetProvider",
-        "config": {"order": 12, "type": "select"},
+        "config": {"order": 13, "type": "select"},
     },
+    {"class": "geonode.facets.providers.funding.FundingFacetProvider", "config": {"order": 12, "type": "select"}},
     # OwnerFacetProvider is upstream's; AuthorFacetProvider is this fork's addition. The fork
     # replaced rather than added, which silently dropped the "owner" facet from the API even
     # though OwnerFacetProvider was still defined in geonode/facets/providers/users.py. Both are
@@ -2419,3 +2421,25 @@ ZALF_DATACITE_ACCOUNTS = _json.loads(os.getenv("ZALF_DATACITE_ACCOUNTS", "[]"))
 # Allowed groups for publishing data collections (derived from accounts).
 # Admins can always publish regardless of group membership.
 PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS = sorted({g for acct in ZALF_DATACITE_ACCOUNTS for g in acct.get("groups", [])})
+
+# Keycloak is the authority for browser authentication and application sessions.
+KEYCLOAK_SSO_ENABLED = os.environ.get("KEYCLOAK_SSO_ENABLED", "true").lower() == "true"
+KEYCLOAK_SSO_ISSUER = SOCIALACCOUNT_PROVIDER_ROOT.rstrip("/")
+KEYCLOAK_SSO_CLIENT_SECRET = SOCIALACCOUNT_CLIENT_SECRET
+KEYCLOAK_SSO_CLIENT_ID = SOCIALACCOUNT_CLIENT_ID
+KEYCLOAK_SSO_PROVIDER_ID = SOCIALACCOUNT_PROVIDER
+KEYCLOAK_SSO_POST_LOGOUT_URL = os.environ.get("KEYCLOAK_SSO_POST_LOGOUT_URL", SITEURL)
+KEYCLOAK_SSO_LANDING_PATHS = ("/", "/catalogue/", "/catalogue") + tuple(
+    f"/{code}/" for code in {language.split("-")[0] for language, _ in LANGUAGES}
+)
+INSTALLED_APPS += ("repository_sso",)
+if KEYCLOAK_SSO_ENABLED:
+    AUTH_EXEMPT_URLS += (rf"^{FORCE_SCRIPT_NAME or ''}/sso/backchannel-logout/$",)
+    SOCIALACCOUNT_ONLY = True
+    SOCIALACCOUNT_LOGIN_ON_GET = True
+    ACCOUNT_LOGOUT_ON_GET = False
+    SOCIALACCOUNT_EMAIL_AUTHENTICATION = False
+    SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = False
+    # OIDC callbacks carry authenticated session information, including the ID token.
+    SOCIALACCOUNT_ADAPTER = "geonode.people.adapters.CentralKeycloakSocialAdapter"
+    MIDDLEWARE = tuple(item for item in MIDDLEWARE if item != "geonode.zalf.middleware.KeycloakSilentSSOMiddleware")
