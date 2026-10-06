@@ -13,6 +13,15 @@ from django.db.models import Q
 from .models import LogoutEvent, SessionBinding
 
 LOGOUT_EVENT = "http://schemas.openid.net/event/backchannel-logout"
+# Marks a session created by the Django admin login, which has no Keycloak binding.
+LOCAL_ADMIN_SESSION = "repository_sso_local_admin"
+
+
+def is_local_admin_session(request):
+    user = request.user
+    return bool(
+        request.session.get(LOCAL_ADMIN_SESSION) and user.is_active and user.is_staff
+    )
 
 
 @lru_cache(maxsize=8)

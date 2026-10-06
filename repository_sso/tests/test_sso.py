@@ -249,6 +249,52 @@ class CentralSSOTests(TestCase):
         self.assertIn("_auth_user_id", self.client.session)
         self.assertFalse(SessionBinding.objects.exists())
 
+    def admin_login(self, client=None, **flags):
+        client = client or self.client
+        user = get_user_model().objects.create_user(
+            username="local-admin", password="admin-password", **flags
+        )
+        response = client.post(
+            "/admin/password-login/",
+            {"username": "local-admin", "password": "admin-password"},
+        )
+        return user, response
+
+    def test_admin_login_session_stays_authenticated_site_wide(self):
+        _, response = self.admin_login(is_staff=True, is_superuser=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.client.get("/protected/").status_code, 200)
+        self.assertContains(self.client.get("/", HTTP_ACCEPT="text/html"), "Signed in")
+        self.assertContains(self.client.get("/admin/"), "Signed in")
+        self.assertFalse(SessionBinding.objects.exists())
+
+    def test_admin_login_session_survives_unresolvable_redirect_paths(self):
+        # e.g. /admin/ before LocaleMiddleware redirects it to /en-us/admin/
+        self.admin_login(is_staff=True)
+        self.assertEqual(self.client.get("/unprefixed/admin/").status_code, 404)
+        self.assertContains(self.client.get("/admin/"), "Signed in")
+
+    def test_admin_login_session_ends_when_staff_status_is_removed(self):
+        user, _ = self.admin_login(is_staff=True)
+        self.assertEqual(self.client.get("/protected/").status_code, 200)
+        user.is_staff = False
+        user.save(update_fields=["is_staff"])
+        self.assertEqual(self.client.get("/protected/").status_code, 302)
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_non_admin_login_of_staff_is_not_trusted_site_wide(self):
+        staff = get_user_model().objects.create_user(username="staff", is_staff=True)
+        self.client.force_login(staff)
+        self.assertEqual(self.client.get("/protected/").status_code, 302)
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_local_admin_logout_is_local(self):
+        self.admin_login(is_staff=True)
+        response = self.client.post("/account/logout/")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, "http://testserver/")
+        self.assertNotIn("_auth_user_id", self.client.session)
+
     def test_local_password_login_cannot_authenticate(self):
         self.client.post(
             "/account/login/", {"login": "existing", "password": "local-password"}

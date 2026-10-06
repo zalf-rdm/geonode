@@ -1,5 +1,6 @@
 from django.http import HttpResponse
 from django.urls import include, path
+from django.contrib.auth import authenticate, login as auth_login
 from django.contrib.auth.decorators import login_required
 from repository_sso import oidc
 from repository_sso.models import SessionBinding
@@ -20,9 +21,25 @@ def protected(request):
     return HttpResponse("Protected")
 
 
+@csrf_exempt
+@require_POST
+def admin_password_login(request):
+    # Stands in for django.contrib.admin's LoginView inside the admin namespace.
+    user = authenticate(
+        request,
+        username=request.POST.get("username"),
+        password=request.POST.get("password"),
+    )
+    if user is None or not user.is_staff:
+        return HttpResponse("Invalid", status=400)
+    auth_login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+    return HttpResponse("Signed in")
+
+
 admin_patterns = (
     [
         path("", home, name="index"),
+        path("password-login/", admin_password_login, name="password_login"),
         path("login/", home, name="login"),
         path("logout/", home, name="logout"),
     ],

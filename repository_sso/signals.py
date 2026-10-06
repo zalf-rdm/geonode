@@ -3,7 +3,7 @@ from django.contrib.auth.signals import user_logged_in
 from django.dispatch import receiver
 
 from .models import SessionBinding
-from .protocol import revocations_for
+from .protocol import LOCAL_ADMIN_SESSION, revocations_for
 
 
 @receiver(user_logged_in, dispatch_uid="repository_sso.bind_session")
@@ -14,9 +14,15 @@ def bind_session(sender, request, user, **kwargs):
         "repository_sso_pending", None
     )
     if not pending:
-        # Middleware rejects browser sessions created by other login backends.
+        # Middleware rejects browser sessions created by other login backends,
+        # except the Django admin login of active staff/superusers.
+        from .middleware import CentralSSOMiddleware
+
+        if user.is_staff and CentralSSOMiddleware._is_admin_request(request):
+            request.session[LOCAL_ADMIN_SESSION] = True
         return
     request.session.pop("repository_sso_pending", None)
+    request.session.pop(LOCAL_ADMIN_SESSION, None)
     claims, raw = pending
     if not request.session.session_key:
         request.session.create()
