@@ -104,9 +104,7 @@ class Handler(BaseHTTPRequestHandler):
             )
         if path.endswith("/certs"):
             jwk = json.loads(jwt.algorithms.RSAAlgorithm.to_jwk(KEY.public_key()))
-            return self.send_json(
-                {"keys": [{**jwk, "kid": "fixture", "use": "sig", "alg": "RS256"}]}
-            )
+            return self.send_json({"keys": [{**jwk, "kid": "fixture", "use": "sig", "alg": "RS256"}]})
         if path.endswith("/userinfo"):
             raw = self.headers["Authorization"].removeprefix("Bearer ")
             claims = jwt.decode(
@@ -121,9 +119,7 @@ class Handler(BaseHTTPRequestHandler):
         if path.endswith("/auth"):
             if args.get("prompt") == "none" and sid not in SESSIONS:
                 return self.redirect(
-                    args["redirect_uri"]
-                    + "?"
-                    + urlencode({"error": "login_required", "state": args["state"]})
+                    args["redirect_uri"] + "?" + urlencode({"error": "login_required", "state": args["state"]})
                 )
             if sid not in SESSIONS:
                 sid = uuid.uuid4().hex
@@ -136,9 +132,7 @@ class Handler(BaseHTTPRequestHandler):
                 args.get("code_challenge"),
             )
             return self.redirect(
-                args["redirect_uri"]
-                + "?"
-                + urlencode({"code": code, "state": args["state"]}),
+                args["redirect_uri"] + "?" + urlencode({"code": code, "state": args["state"]}),
                 "fixture_sso=" + sid + "; Path=/; HttpOnly; SameSite=Lax",
             )
         if path.endswith("/logout"):
@@ -152,18 +146,11 @@ class Handler(BaseHTTPRequestHandler):
                 )["sid"]
             SESSIONS.discard(sid)
             backchannel(sid)
-            return self.redirect(
-                args["post_logout_redirect_uri"], "fixture_sso=; Max-Age=0; Path=/"
-            )
+            return self.redirect(args["post_logout_redirect_uri"], "fixture_sso=; Max-Age=0; Path=/")
         self.send_json({"error": "not_found"}, 404)
 
     def do_POST(self):
-        args = {
-            k: v[0]
-            for k, v in parse_qs(
-                self.rfile.read(int(self.headers["Content-Length"])).decode()
-            ).items()
-        }
+        args = {k: v[0] for k, v in parse_qs(self.rfile.read(int(self.headers["Content-Length"])).decode()).items()}
         if urlparse(self.path).path == "/fixture/revoke/":
             cookies = SimpleCookie(self.headers.get("Cookie", ""))
             sid = cookies["fixture_sso"].value if "fixture_sso" in cookies else None
@@ -175,21 +162,13 @@ class Handler(BaseHTTPRequestHandler):
             if client != args.get("client_id") or sid not in SESSIONS:
                 return self.send_json({"error": "invalid_grant"}, 400)
             return self.send_json(tokens(client, sid))
-        client, sid, callback, challenge = CODES.pop(
-            args.get("code"), (None, None, None, None)
-        )
+        client, sid, callback, challenge = CODES.pop(args.get("code"), (None, None, None, None))
         actual = (
-            base64.urlsafe_b64encode(
-                hashlib.sha256(args.get("code_verifier", "").encode()).digest()
-            )
+            base64.urlsafe_b64encode(hashlib.sha256(args.get("code_verifier", "").encode()).digest())
             .decode()
             .rstrip("=")
         )
-        if (
-            not client
-            or callback != args.get("redirect_uri")
-            or (challenge and challenge != actual)
-        ):
+        if not client or callback != args.get("redirect_uri") or (challenge and challenge != actual):
             return self.send_json({"error": "invalid_grant"}, 400)
         self.send_json(tokens(client, sid))
 

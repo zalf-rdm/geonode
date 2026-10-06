@@ -53,9 +53,7 @@ urlpatterns = [
     path("pt/", home),
     path("protected/", protected),
     path("", include("repository_sso.urls")),
-    path(
-        "account/oidc/<str:provider_id>/login/", oidc.login, name="openid_connect_login"
-    ),
+    path("account/oidc/<str:provider_id>/login/", oidc.login, name="openid_connect_login"),
     path(
         "account/oidc/<str:provider_id>/login/callback/",
         oidc.callback,
@@ -73,9 +71,7 @@ urlpatterns = [
 @login_required(login_url="/account/login/")
 def expire_fixture_refresh(request):
     # Synthetic integration fixture only, never included by application URLconf.
-    SessionBinding.objects.filter(session_key=request.session.session_key).update(
-        check_after=0
-    )
+    SessionBinding.objects.filter(session_key=request.session.session_key).update(check_after=0)
     return HttpResponse(status=200)
 
 

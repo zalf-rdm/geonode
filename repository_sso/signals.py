@@ -10,9 +10,7 @@ from .protocol import LOCAL_ADMIN_SESSION, revocations_for
 def bind_session(sender, request, user, **kwargs):
     if not getattr(settings, "KEYCLOAK_SSO_ENABLED", False):
         return
-    pending = getattr(request, "repository_sso_identity", None) or request.session.pop(
-        "repository_sso_pending", None
-    )
+    pending = getattr(request, "repository_sso_identity", None) or request.session.pop("repository_sso_pending", None)
     if not pending:
         # Middleware rejects browser sessions created by other login backends,
         # except the Django admin login of active staff/superusers.

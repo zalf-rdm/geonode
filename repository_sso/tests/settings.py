@@ -41,9 +41,7 @@ AUTHENTICATION_BACKENDS = [
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
 KEYCLOAK_SSO_ENABLED = True
-KEYCLOAK_SSO_ISSUER = os.environ.get(
-    "SSO_TEST_ISSUER", "https://identity.example/realms/repository"
-)
+KEYCLOAK_SSO_ISSUER = os.environ.get("SSO_TEST_ISSUER", "https://identity.example/realms/repository")
 KEYCLOAK_SSO_CLIENT_ID = os.environ.get("SSO_TEST_CLIENT", "repository")
 KEYCLOAK_SSO_PROVIDER_ID = "keycloak"
 KEYCLOAK_SSO_CLIENT_SECRET = "stub-secret"
@@ -63,10 +61,7 @@ SOCIALACCOUNT_PROVIDERS = {
                 "name": "Keycloak",
                 "client_id": KEYCLOAK_SSO_CLIENT_ID,
                 "secret": "stub-secret",
-                "settings": {
-                    "server_url": KEYCLOAK_SSO_ISSUER
-                    + "/.well-known/openid-configuration"
-                },
+                "settings": {"server_url": KEYCLOAK_SSO_ISSUER + "/.well-known/openid-configuration"},
             }
         ],
     }

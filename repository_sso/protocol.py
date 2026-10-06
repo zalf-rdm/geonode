@@ -19,17 +19,13 @@ LOCAL_ADMIN_SESSION = "repository_sso_local_admin"
 
 def is_local_admin_session(request):
     user = request.user
-    return bool(
-        request.session.get(LOCAL_ADMIN_SESSION) and user.is_active and user.is_staff
-    )
+    return bool(request.session.get(LOCAL_ADMIN_SESSION) and user.is_active and user.is_staff)
 
 
 @lru_cache(maxsize=8)
 def signing_keys(issuer):
     # Never fetch URLs supplied by a token. Only the configured Keycloak realm.
-    return jwt.PyJWKClient(
-        issuer.rstrip("/") + "/protocol/openid-connect/certs", timeout=5
-    )
+    return jwt.PyJWKClient(issuer.rstrip("/") + "/protocol/openid-connect/certs", timeout=5)
 
 
 def decode_token(raw, required):
@@ -60,9 +56,7 @@ def validate_logout_token(raw):
         raise ValueError("Logout tokens must not contain a nonce")
     for name in ("jti", "sid", "sub"):
         value = claims.get(name)
-        if value is not None and (
-            not isinstance(value, str) or not value or len(value) > 255
-        ):
+        if value is not None and (not isinstance(value, str) or not value or len(value) > 255):
             raise ValueError("Invalid logout identifier")
     if not claims.get("sid") and not claims.get("sub"):
         raise ValueError("Logout must identify a subject or session")
@@ -111,21 +105,11 @@ def logout_url(request):
         "client_id": settings.KEYCLOAK_SSO_CLIENT_ID,
         "post_logout_redirect_uri": settings.KEYCLOAK_SSO_POST_LOGOUT_URL,
     }
-    binding = SessionBinding.objects.filter(
-        session_key=request.session.session_key
-    ).first()
-    token = (
-        binding.id_token
-        if binding and binding.id_token
-        else request.session.get("repository_sso_id_token")
-    )
+    binding = SessionBinding.objects.filter(session_key=request.session.session_key).first()
+    token = binding.id_token if binding and binding.id_token else request.session.get("repository_sso_id_token")
     if token:
         params["id_token_hint"] = token
-    return (
-        settings.KEYCLOAK_SSO_ISSUER.rstrip("/")
-        + "/protocol/openid-connect/logout?"
-        + urlencode(params)
-    )
+    return settings.KEYCLOAK_SSO_ISSUER.rstrip("/") + "/protocol/openid-connect/logout?" + urlencode(params)
 
 
 class AuthorityUnavailable(Exception):
@@ -135,9 +119,7 @@ class AuthorityUnavailable(Exception):
 def refresh_session(request, binding):
     """Serialize refresh across workers; rotating tokens live in the binding row."""
     with transaction.atomic():
-        current = SessionBinding.objects.select_for_update().get(
-            session_key=binding.session_key
-        )
+        current = SessionBinding.objects.select_for_update().get(session_key=binding.session_key)
         if current.revoked or revocations_for(current).exists():
             return False
         if time.time() < current.check_after:
@@ -159,10 +141,7 @@ def refresh_binding(binding):
             },
             timeout=5,
         )
-        if (
-            response.status_code == 400
-            and response.json().get("error") == "invalid_grant"
-        ):
+        if response.status_code == 400 and response.json().get("error") == "invalid_grant":
             return False
         if response.status_code != 200:
             raise AuthorityUnavailable()

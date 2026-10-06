@@ -23,17 +23,11 @@ class CentralSSOTests(TestCase):
     def setUp(self):
         self.key_patch = patch(
             "repository_sso.protocol.signing_keys",
-            return_value=SimpleNamespace(
-                get_signing_key_from_jwt=lambda token: SimpleNamespace(
-                    key=KEY.public_key()
-                )
-            ),
+            return_value=SimpleNamespace(get_signing_key_from_jwt=lambda token: SimpleNamespace(key=KEY.public_key())),
         )
         self.key_patch.start()
         self.addCleanup(self.key_patch.stop)
-        self.user = get_user_model().objects.create_user(
-            username="existing", password="local-password"
-        )
+        self.user = get_user_model().objects.create_user(username="existing", password="local-password")
         self.factory = RequestFactory()
 
     def token(self, **changes):
@@ -49,9 +43,7 @@ class CentralSSOTests(TestCase):
         claims.update(changes)
         return jwt.encode(claims, KEY, algorithm="RS256")
 
-    def binding(
-        self, client=None, sid="sso-session", subject="keycloak-user", issued_at=None
-    ):
+    def binding(self, client=None, sid="sso-session", subject="keycloak-user", issued_at=None):
         client = client or self.client
         client.force_login(self.user)
         session = client.session
@@ -70,17 +62,13 @@ class CentralSSOTests(TestCase):
     def test_signed_backchannel_revokes_matching_session_and_cookie_replay(self):
         binding = self.binding()
         old_cookie = self.client.cookies["repository_session"].value
-        response = Client().post(
-            "/sso/backchannel-logout/", {"logout_token": self.token()}
-        )
+        response = Client().post("/sso/backchannel-logout/", {"logout_token": self.token()})
         self.assertEqual(response.status_code, 200)
         binding.refresh_from_db()
         self.assertTrue(binding.revoked)
         self.client.cookies["repository_session"] = old_cookie
         self.assertEqual(self.client.get("/protected/").status_code, 302)
-        self.assertFalse(
-            SessionStore(session_key=binding.session_key).exists(binding.session_key)
-        )
+        self.assertFalse(SessionStore(session_key=binding.session_key).exists(binding.session_key))
 
     def test_other_sso_sessions_and_subjects_survive(self):
         self.binding()
@@ -97,9 +85,7 @@ class CentralSSOTests(TestCase):
         unrelated = self.binding(Client(), subject="another-user")
         claims = jwt.decode(self.token(), options={"verify_signature": False})
         claims.pop("sid")
-        revoke_sessions(
-            validate_logout_token(jwt.encode(claims, KEY, algorithm="RS256"))
-        )
+        revoke_sessions(validate_logout_token(jwt.encode(claims, KEY, algorithm="RS256")))
         other.refresh_from_db()
         unrelated.refresh_from_db()
         self.assertTrue(other.revoked)
@@ -123,22 +109,16 @@ class CentralSSOTests(TestCase):
         }
         request.repository_sso_identity = (claims, "id-token")
         login(request, self.user, backend="django.contrib.auth.backends.ModelBackend")
-        self.assertTrue(
-            SessionBinding.objects.get(session_key=request.session.session_key).revoked
-        )
+        self.assertTrue(SessionBinding.objects.get(session_key=request.session.session_key).revoked)
 
     def test_jwt_replay_is_rejected(self):
         token = self.token()
         self.assertEqual(
-            self.client.post(
-                "/sso/backchannel-logout/", {"logout_token": token}
-            ).status_code,
+            self.client.post("/sso/backchannel-logout/", {"logout_token": token}).status_code,
             200,
         )
         self.assertEqual(
-            self.client.post(
-                "/sso/backchannel-logout/", {"logout_token": token}
-            ).status_code,
+            self.client.post("/sso/backchannel-logout/", {"logout_token": token}).status_code,
             400,
         )
         self.assertEqual(LogoutEvent.objects.count(), 1)
@@ -181,9 +161,7 @@ class CentralSSOTests(TestCase):
             "x" * 17000,
         ):
             self.assertEqual(
-                self.client.post(
-                    "/sso/backchannel-logout/", {"logout_token": token}
-                ).status_code,
+                self.client.post("/sso/backchannel-logout/", {"logout_token": token}).status_code,
                 400,
             )
 
@@ -202,9 +180,7 @@ class CentralSSOTests(TestCase):
             side_effect=jwt.PyJWKClientConnectionError("offline"),
         ):
             self.assertEqual(
-                self.client.post(
-                    "/sso/backchannel-logout/", {"logout_token": self.token()}
-                ).status_code,
+                self.client.post("/sso/backchannel-logout/", {"logout_token": self.token()}).status_code,
                 503,
             )
 
@@ -230,12 +206,8 @@ class CentralSSOTests(TestCase):
             with self.subTest(path=path):
                 response = self.client.get(path + "?next=/protected/")
                 self.assertEqual(response.status_code, 302)
-                self.assertTrue(
-                    response.url.startswith("/account/oidc/keycloak/login/")
-                )
-                self.assertEqual(
-                    parse_qs(urlparse(response.url).query)["next"], ["/protected/"]
-                )
+                self.assertTrue(response.url.startswith("/account/oidc/keycloak/login/"))
+                self.assertEqual(parse_qs(urlparse(response.url).query)["next"], ["/protected/"])
 
     def test_admin_namespace_keeps_local_login_and_session(self):
         response = self.client.get("/admin/login/?next=/admin/")
@@ -251,9 +223,7 @@ class CentralSSOTests(TestCase):
 
     def admin_login(self, client=None, **flags):
         client = client or self.client
-        user = get_user_model().objects.create_user(
-            username="local-admin", password="admin-password", **flags
-        )
+        user = get_user_model().objects.create_user(username="local-admin", password="admin-password", **flags)
         response = client.post(
             "/admin/password-login/",
             {"username": "local-admin", "password": "admin-password"},
@@ -296,9 +266,7 @@ class CentralSSOTests(TestCase):
         self.assertNotIn("_auth_user_id", self.client.session)
 
     def test_local_password_login_cannot_authenticate(self):
-        self.client.post(
-            "/account/login/", {"login": "existing", "password": "local-password"}
-        )
+        self.client.post("/account/login/", {"login": "existing", "password": "local-password"})
         self.assertNotIn("_auth_user_id", self.client.session)
 
     def test_signup_and_password_reset_are_disabled(self):
@@ -320,13 +288,9 @@ class CentralSSOTests(TestCase):
 
     def test_logout_ignores_next_and_local_only_options(self):
         self.binding()
-        response = self.client.post(
-            "/account/logout/?next=https://attacker.example/", {"range": "idp-only"}
-        )
+        response = self.client.post("/account/logout/?next=https://attacker.example/", {"range": "idp-only"})
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(
-            response.url.startswith(ISSUER + "/protocol/openid-connect/logout?")
-        )
+        self.assertTrue(response.url.startswith(ISSUER + "/protocol/openid-connect/logout?"))
         query = parse_qs(urlparse(response.url).query)
         self.assertEqual(query["id_token_hint"], ["real-user-id-token"])
         self.assertEqual(query["post_logout_redirect_uri"], ["http://testserver/"])
@@ -341,13 +305,9 @@ class CentralSSOTests(TestCase):
     def test_anonymous_landing_probes_once_and_rest_endpoints_do_not(self):
         response = self.client.get("/", HTTP_ACCEPT="text/html")
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(
-            parse_qs(urlparse(response.url).query)["auth_params"], ["prompt=none"]
-        )
+        self.assertEqual(parse_qs(urlparse(response.url).query)["auth_params"], ["prompt=none"])
         self.assertEqual(self.client.get("/", HTTP_ACCEPT="text/html").status_code, 200)
-        self.assertEqual(
-            Client().get("/", HTTP_ACCEPT="application/json").status_code, 200
-        )
+        self.assertEqual(Client().get("/", HTTP_ACCEPT="application/json").status_code, 200)
 
     def test_catalogue_and_localized_landing_restore_central_sso(self):
         for path in ("/catalogue/?q=soil", "/pt/"):
@@ -403,9 +363,7 @@ class CentralSSOTests(TestCase):
         request.session = SessionStore()
         adapter = SessionOIDCAdapter(request, "keycloak")
         raw = self.token(exp=int(time.time()) + 300)
-        upstream = SimpleNamespace(
-            account=SimpleNamespace(extra_data={"sub": "wrong-user"})
-        )
+        upstream = SimpleNamespace(account=SimpleNamespace(extra_data={"sub": "wrong-user"}))
         with patch(
             "allauth.socialaccount.providers.openid_connect.views.OpenIDConnectOAuth2Adapter.complete_login",
             return_value=upstream,
@@ -432,13 +390,9 @@ class CentralSSOTests(TestCase):
             status_code=200,
             json=lambda: {"id_token": raw, "refresh_token": "rotated-refresh"},
         )
-        with patch(
-            "repository_sso.protocol.requests.post", return_value=response
-        ) as post:
+        with patch("repository_sso.protocol.requests.post", return_value=response) as post:
             self.assertTrue(refresh_session(request, binding))
-            self.assertEqual(
-                post.call_args.kwargs["data"]["grant_type"], "refresh_token"
-            )
+            self.assertEqual(post.call_args.kwargs["data"]["grant_type"], "refresh_token")
         binding.refresh_from_db()
         self.assertEqual(binding.refresh_token, "rotated-refresh")
 
@@ -449,9 +403,7 @@ class CentralSSOTests(TestCase):
             check_after=0, refresh_token="old-refresh"
         )
         session.save()
-        response = SimpleNamespace(
-            status_code=400, json=lambda: {"error": "invalid_grant"}
-        )
+        response = SimpleNamespace(status_code=400, json=lambda: {"error": "invalid_grant"})
         with patch("repository_sso.protocol.requests.post", return_value=response):
             self.assertEqual(self.client.get("/protected/").status_code, 302)
         binding.refresh_from_db()
@@ -466,9 +418,7 @@ class CentralSSOTests(TestCase):
             check_after=0, refresh_token="old-refresh"
         )
         session.save()
-        with patch(
-            "repository_sso.protocol.requests.post", side_effect=requests.Timeout()
-        ):
+        with patch("repository_sso.protocol.requests.post", side_effect=requests.Timeout()):
             self.assertEqual(self.client.get("/protected/").status_code, 503)
         self.assertIn("_auth_user_id", self.client.session)
 
@@ -498,9 +448,7 @@ class CentralSSOTests(TestCase):
         from allauth.socialaccount.models import SocialAccount
 
         other = get_user_model().objects.create_user(username="other")
-        SocialAccount.objects.create(
-            provider="keycloak", uid="vetted-subject", user=other
-        )
+        SocialAccount.objects.create(provider="keycloak", uid="vetted-subject", user=other)
         with self.assertRaises(CommandError):
             call_command(
                 "link_keycloak_identity",
@@ -518,14 +466,10 @@ class CentralSSOTests(TestCase):
         binding.save()
         stale = SessionBinding.objects.get(pk=binding.pk)
         raw = self.token(exp=int(time.time()) + 300)
-        response = SimpleNamespace(
-            status_code=200, json=lambda: {"id_token": raw, "refresh_token": "rotated"}
-        )
+        response = SimpleNamespace(status_code=200, json=lambda: {"id_token": raw, "refresh_token": "rotated"})
         request = self.factory.get("/")
         request.session = self.client.session
-        with patch(
-            "repository_sso.protocol.requests.post", return_value=response
-        ) as post:
+        with patch("repository_sso.protocol.requests.post", return_value=response) as post:
             self.assertTrue(refresh_session(request, binding))
             self.assertTrue(refresh_session(request, stale))
             self.assertEqual(post.call_count, 1)

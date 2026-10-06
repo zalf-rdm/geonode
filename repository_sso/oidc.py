@@ -21,11 +21,7 @@ class SessionOIDCAdapter(OpenIDConnectOAuth2Adapter):
         try:
             claims = decode_token(raw, ["iss", "aud", "exp", "iat", "sub", "sid"])
             for name in ("sub", "sid"):
-                if (
-                    not isinstance(claims[name], str)
-                    or not claims[name]
-                    or len(claims[name]) > 255
-                ):
+                if not isinstance(claims[name], str) or not claims[name] or len(claims[name]) > 255:
                     raise ValueError("Invalid identity")
             if claims.get("azp", app.client_id) != app.client_id:
                 raise ValueError("Invalid authorized party")
@@ -41,26 +37,18 @@ class SessionOIDCAdapter(OpenIDConnectOAuth2Adapter):
         login.account.extra_data = data
         request.repository_sso_identity = (claims, raw)
         request.session["repository_sso_pending"] = [claims, raw]
-        request.session["repository_sso_refresh_token"] = response.get(
-            "refresh_token", ""
-        )
-        request.session["repository_sso_check_after"] = min(
-            time.time() + 60, claims["exp"] - 10
-        )
+        request.session["repository_sso_refresh_token"] = response.get("refresh_token", "")
+        request.session["repository_sso_check_after"] = min(time.time() + 60, claims["exp"] - 10)
         return login
 
 
 def login(request, provider_id):
     if provider_id != settings.KEYCLOAK_SSO_PROVIDER_ID:
         return HttpResponseNotFound()
-    return OAuth2LoginView.adapter_view(SessionOIDCAdapter(request, provider_id))(
-        request
-    )
+    return OAuth2LoginView.adapter_view(SessionOIDCAdapter(request, provider_id))(request)
 
 
 def callback(request, provider_id):
     if provider_id != settings.KEYCLOAK_SSO_PROVIDER_ID:
         return HttpResponseNotFound()
-    return OAuth2CallbackView.adapter_view(SessionOIDCAdapter(request, provider_id))(
-        request
-    )
+    return OAuth2CallbackView.adapter_view(SessionOIDCAdapter(request, provider_id))(request)

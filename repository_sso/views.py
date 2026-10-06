@@ -46,16 +46,12 @@ def global_logout(request):
         return render(request, "repository_sso/logout.html")
     if request.method != "POST":
         return HttpResponse(status=405)
-    binding = SessionBinding.objects.filter(
-        session_key=request.session.session_key
-    ).first()
+    binding = SessionBinding.objects.filter(session_key=request.session.session_key).first()
     if not binding and is_local_admin_session(request):
         # A local admin session has no Keycloak session to end.
         auth_logout(request)
         return HttpResponseRedirect(settings.KEYCLOAK_SSO_POST_LOGOUT_URL)
     target = logout_url(request)
-    SessionBinding.objects.filter(session_key=request.session.session_key).update(
-        revoked=True
-    )
+    SessionBinding.objects.filter(session_key=request.session.session_key).update(revoked=True)
     auth_logout(request)
     return HttpResponseRedirect(target)
