@@ -90,3 +90,34 @@ class TrainingResource(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class DatasetDeliveryAudit(models.Model):
+    """Latest post-publication delivery audit for a spatial dataset."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        RUNNING = "running", "Running"
+        PASSED = "passed", "Passed"
+        FAILED = "failed", "Failed"
+        SKIPPED = "skipped", "Skipped"
+
+    dataset = models.OneToOneField(
+        "layers.Dataset",
+        on_delete=models.CASCADE,
+        related_name="delivery_audit",
+    )
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
+    result = models.JSONField(default=dict, blank=True)
+    attempt_count = models.PositiveIntegerField(default=0)
+    scheduled_at = models.DateTimeField(null=True, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        return f"{self.dataset_id}: {self.status}"

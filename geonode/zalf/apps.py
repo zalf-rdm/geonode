@@ -54,5 +54,8 @@ class UploadAppConfig(AppConfig):
 
     def ready(self):
         super().ready()
+        # Register post-publication Dataset hooks.
+        from geonode.zalf import signals  # noqa: F401
+
         logger.debug("Initialize ZALF module ...")
         self.run_setup_hooks()

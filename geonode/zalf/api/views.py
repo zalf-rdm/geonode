@@ -18,6 +18,7 @@ from geonode.maps.models import Map
 from geonode.security.registry import permissions_registry
 from geonode.maps.utils import compare_metadata, get_syncable_resources, sync_metadata
 from geonode.zalf.api.serializer import PublishSerializer
+from geonode.zalf.models import DatasetDeliveryAudit
 from geonode.zalf.api.datacite import (
     validate_doi_prefix,
     register_doi,
@@ -33,6 +34,53 @@ allowed_authentication_classes = [
     BasicAuthentication,
     OAuth2Authentication,
 ]
+
+
+@api_view(["GET", "POST"])
+@authentication_classes(allowed_authentication_classes)
+def dataset_delivery_audit_view(request, dataset_id):
+    """Return the latest audit or explicitly schedule another owner/staff audit."""
+    from geonode.layers.models import Dataset
+    from geonode.zalf.delivery_audit_scheduler import schedule_delivery_audit
+
+    dataset = get_object_or_404(Dataset, pk=dataset_id)
+    if not request.user.is_authenticated:
+        raise PermissionDenied(_("Authentication required"))
+    if request.user != dataset.owner and not request.user.is_staff and not request.user.is_superuser:
+        raise PermissionDenied(_("Permission Denied"))
+
+    if request.method == "POST":
+        scheduled = schedule_delivery_audit(dataset)
+        if not scheduled:
+            if not dataset.is_published or not dataset.is_approved:
+                return Response(
+                    {"dataset_id": dataset.pk, "scheduled": False, "reason": "dataset is not public and approved"},
+                    status=status.HTTP_409_CONFLICT,
+                )
+            return Response(
+                {"dataset_id": dataset.pk, "scheduled": False, "reason": "audit already pending or running"},
+                status=status.HTTP_409_CONFLICT,
+            )
+        return Response({"dataset_id": dataset.pk, "scheduled": True}, status=status.HTTP_202_ACCEPTED)
+
+    try:
+        audit = dataset.delivery_audit
+    except DatasetDeliveryAudit.DoesNotExist:
+        return Response(
+            {"dataset_id": dataset.pk, "status": "not_audited", "result": {}},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    return Response(
+        {
+            "dataset_id": dataset.pk,
+            "status": audit.status,
+            "attempt_count": audit.attempt_count,
+            "scheduled_at": audit.scheduled_at,
+            "started_at": audit.started_at,
+            "finished_at": audit.finished_at,
+            "result": audit.result,
+        }
+    )
 
 
 def _get_owner(id):
@@ -89,6 +137,7 @@ def _restore_owner_perms(resource, owner_perms):
 
 
 def _update_resource_status(resource, is_approved=None, is_published=None):
+    was_delivery_ready = bool(resource.is_approved and resource.is_published)
     updates = {}
     if is_approved is not None:
         updates["is_approved"] = is_approved
@@ -130,6 +179,11 @@ def _update_resource_status(resource, is_approved=None, is_published=None):
     # every set_permissions() call.  Restore them so the resource does not
     # appear to be "taken over by admin" after approval/publication.
     _restore_owner_perms(resource, owner_perms)
+    is_delivery_ready = bool(resource.is_approved and resource.is_published)
+    if is_delivery_ready and not was_delivery_ready and resource.resource_type == "dataset":
+        from geonode.zalf.delivery_audit_scheduler import schedule_delivery_audit
+
+        schedule_delivery_audit(resource.get_real_instance())
 
 
 def _approve_data_collection(user, map_resource: Map, requesting_user=None):

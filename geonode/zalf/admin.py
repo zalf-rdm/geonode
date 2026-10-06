@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import HighlightedCase, SpotlightBanner, TrainingResource
+from .models import DatasetDeliveryAudit, HighlightedCase, SpotlightBanner, TrainingResource
 
 
 @admin.register(HighlightedCase)
@@ -26,3 +26,20 @@ class TrainingResourceAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("title",)}
     search_fields = ("title", "organizer")
     ordering = ("order",)
+
+
+@admin.register(DatasetDeliveryAudit)
+class DatasetDeliveryAuditAdmin(admin.ModelAdmin):
+    list_display = ("dataset_id", "status", "attempt_count", "scheduled_at", "finished_at")
+    list_filter = ("status",)
+    readonly_fields = (
+        "dataset",
+        "status",
+        "result",
+        "attempt_count",
+        "scheduled_at",
+        "started_at",
+        "finished_at",
+        "created_at",
+        "updated_at",
+    )
