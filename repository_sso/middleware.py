@@ -8,7 +8,12 @@ from django.urls import Resolver404, resolve, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from .models import SessionBinding
-from .protocol import AuthorityUnavailable, refresh_session, revocations_for
+from .protocol import (
+    AuthorityUnavailable,
+    is_local_admin_session,
+    refresh_session,
+    revocations_for,
+)
 from .views import global_logout
 
 
@@ -31,12 +36,11 @@ class CentralSSOMiddleware:
     def __call__(self, request):
         if getattr(settings, "KEYCLOAK_SSO_ENABLED", False):
             if request.session.get("_auth_user_id"):
-                binding = SessionBinding.objects.filter(
-                    session_key=request.session.session_key
-                ).first()
-                if not binding and self._is_admin_request(request):
+                binding = SessionBinding.objects.filter(session_key=request.session.session_key).first()
+                if not binding and (is_local_admin_session(request) or self._is_admin_request(request)):
                     # Django admin remains available to local staff/superusers.
-                    # Their session is intentionally not linked to Keycloak.
+                    # Their session is intentionally not linked to Keycloak and,
+                    # once created by the admin login, is valid site-wide.
                     pass
                 elif not binding or binding.revoked or revocations_for(binding).exists():
                     logout(request)
@@ -47,9 +51,7 @@ class CentralSSOMiddleware:
                     try:
                         active = refresh_session(request, binding)
                     except AuthorityUnavailable:
-                        return HttpResponse(
-                            "Identity service temporarily unavailable.", status=503
-                        )
+                        return HttpResponse("Identity service temporarily unavailable.", status=503)
                     if not active:
                         binding.revoked = True
                         binding.save(update_fields=["revoked"])
@@ -60,9 +62,7 @@ class CentralSSOMiddleware:
 
     def login_redirect(self, request, passive=False):
         target = request.GET.get("next", settings.LOGIN_REDIRECT_URL)
-        if not url_has_allowed_host_and_scheme(
-            target, {request.get_host()}, require_https=request.is_secure()
-        ):
+        if not url_has_allowed_host_and_scheme(target, {request.get_host()}, require_https=request.is_secure()):
             target = "/"
         params = {"next": target}
         if passive:

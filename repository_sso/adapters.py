@@ -3,9 +3,7 @@ from django.http import HttpResponseRedirect
 
 
 class SilentProbeMixin:
-    def on_authentication_error(
-        self, request, provider, error=None, exception=None, extra_context=None
-    ):
+    def on_authentication_error(self, request, provider, error=None, exception=None, extra_context=None):
         target = request.session.pop("repository_sso_probe", None)
         if target and request.GET.get("error") in (
             "login_required",

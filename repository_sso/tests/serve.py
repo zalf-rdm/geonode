@@ -23,9 +23,7 @@ user, _ = get_user_model().objects.get_or_create(
         "is_staff": True,
     },
 )
-SocialAccount.objects.get_or_create(
-    user=user, provider="keycloak", uid="synthetic-existing-user"
-)
+SocialAccount.objects.get_or_create(user=user, provider="keycloak", uid="synthetic-existing-user")
 
 
 class ThreadedServer(ThreadingMixIn, WSGIServer):

@@ -24,17 +24,11 @@ def check_sso(app_configs, **kwargs):
         "KEYCLOAK_SSO_CLIENT_SECRET",
     ):
         if not getattr(settings, name, None):
-            errors.append(
-                Error(f"{name} is required for central SSO.", id="repository_sso.E002")
-            )
+            errors.append(Error(f"{name} is required for central SSO.", id="repository_sso.E002"))
     from urllib.parse import urlparse
 
     for name in ("KEYCLOAK_SSO_ISSUER", "KEYCLOAK_SSO_POST_LOGOUT_URL"):
         value = urlparse(getattr(settings, name, ""))
         if value.scheme not in ("http", "https") or not value.netloc:
-            errors.append(
-                Error(
-                    f"{name} must be an absolute HTTP(S) URL.", id="repository_sso.E003"
-                )
-            )
+            errors.append(Error(f"{name} must be an absolute HTTP(S) URL.", id="repository_sso.E003"))
     return errors
