@@ -23,6 +23,7 @@ import tempfile
 
 
 from django.conf import settings
+from django.db import transaction
 from django.db.models.query import QuerySet
 from django.contrib.auth.models import Group
 from django.contrib.auth import get_user_model
@@ -42,7 +43,13 @@ from geonode.security.permissions import (
 from geonode.resource.manager import ResourceManager, ResourceManagerInterface
 from geonode.geoserver.signals import geofence_rule_assign
 from .geofence import AutoPriorityBatch
-from .tasks import geoserver_set_style, geoserver_delete_map, geoserver_create_style, geoserver_cascading_delete
+from .tasks import (
+    geoserver_set_style,
+    geoserver_delete_map,
+    geoserver_create_style,
+    geoserver_cascading_delete,
+    synch_guardian,
+)
 from .helpers import (
     gs_catalog,
     set_time_info,
@@ -277,6 +284,14 @@ class GeoServerResourceManager(ResourceManagerInterface):
                                 _resource.set_dirty_state()
                         else:
                             _resource.set_dirty_state()
+                            # ResourceManager clears dirty_state when it finishes
+                            # processing. Pass the resource explicitly so the task
+                            # does not depend on observing that transient flag.
+                            transaction.on_commit(
+                                lambda resource_id=_resource.pk: synch_guardian.apply_async(
+                                    args=(resource_id,), expiration=300
+                                )
+                            )
         except Exception as e:
             logger.exception(e)
             return False
