@@ -468,9 +468,19 @@ def geoserver_delete_map(self, object_id):
     retry_backoff_max=30,
     retry_jitter=False,
 )
-def synch_guardian():
+def synch_guardian(self, resource_id=None):
     """
-    Sync resources with Guardian and clear their dirty state
+    Sync GeoFence with Guardian and clear the resource dirty state.
+
+    ``resource_id`` makes delayed permission updates reliable even when the
+    caller clears ``dirty_state`` before the Celery worker starts. A call with
+    no id retains the existing batch-sync behavior for scheduled/manual jobs.
     """
     if getattr(settings, "DELAYED_SECURITY_SIGNALS", False):
-        sync_resources_with_guardian()
+        resource = None
+        if resource_id is not None:
+            resource = Dataset.objects.filter(pk=resource_id).first()
+            if resource is None:
+                logger.info("Skipping GeoFence sync for missing dataset %s", resource_id)
+                return
+        sync_resources_with_guardian(resource=resource)

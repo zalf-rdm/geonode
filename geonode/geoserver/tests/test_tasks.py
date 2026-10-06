@@ -1,7 +1,10 @@
 from unittest.mock import create_autospec, patch
 
 from geonode.base.populate_test_data import all_public, create_models, remove_models
-from geonode.geoserver.tasks import geoserver_create_style, geoserver_set_style
+from django.test import override_settings
+
+from geonode.geoserver.manager import GeoServerResourceManager
+from geonode.geoserver.tasks import geoserver_create_style, geoserver_set_style, synch_guardian
 from geonode.geoserver.signals import geoserver_automatic_default_style_set
 from geonode.layers.models import Dataset
 from geonode.layers.populate_datasets_data import create_dataset_data
@@ -80,3 +83,25 @@ class TasksTest(GeoNodeBaseTestSupport):
         self.assertIsInstance(args_list[2], str)
 
         self.assertDictEqual({"base_file": None}, kwargs_list)
+
+    @override_settings(DELAYED_SECURITY_SIGNALS=True, GEOFENCE_SECURITY_ENABLED=True)
+    @patch("geonode.geoserver.manager.synch_guardian.apply_async")
+    def test_delayed_permissions_schedule_resource_sync_after_commit(self, mocked_sync):
+        dataset = Dataset.objects.first()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            result = GeoServerResourceManager().set_permissions(str(dataset.uuid), instance=dataset, permissions={})
+
+        self.assertTrue(result)
+        mocked_sync.assert_called_once_with(args=(dataset.pk,), expiration=300)
+
+    @override_settings(DELAYED_SECURITY_SIGNALS=True, GEOFENCE_SECURITY_ENABLED=True)
+    @patch("geonode.geoserver.tasks.sync_resources_with_guardian")
+    def test_delayed_permissions_sync_explicit_resource_even_when_clean(self, mocked_sync):
+        dataset = Dataset.objects.first()
+        dataset.clear_dirty_state()
+
+        synch_guardian(resource_id=dataset.pk)
+
+        synced_resource = mocked_sync.call_args.kwargs["resource"]
+        self.assertEqual(synced_resource.pk, dataset.pk)
