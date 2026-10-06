@@ -28,6 +28,8 @@ rules; checks the GeoServer layer; validates the GWC gridset, 512-pixel tile,
 and WFS requests. The WMS request is aligned to the configured grid and is only
 accepted when its response is an image with
 `geowebcache-cache-result: HIT|MISS`. HTTP 200 exception XML is a failure.
+The probe does not use an administrative mutation endpoint, but an ordinary
+GWC `MISS` naturally writes that single requested tile/metatile to the cache.
 
 For vector layers the task reports the source SRID, reprojection requirement,
 GiST/SP-GiST geometry index, PostgreSQL analyze timestamps and estimated rows.

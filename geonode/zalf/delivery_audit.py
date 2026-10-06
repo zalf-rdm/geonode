@@ -1,8 +1,9 @@
-"""Read-only delivery checks for newly published spatial datasets.
+"""Non-administrative delivery checks for newly published spatial datasets.
 
 The audit intentionally does not rewrite styles or mutate GeoServer. Optional
 seeding is isolated behind an explicit, bounded policy and is disabled by
-default in settings.
+default in settings. As with any tiled WMS GET, the single aligned probe may
+populate its requested GWC tile/metatile when the result is a MISS.
 """
 
 import math
