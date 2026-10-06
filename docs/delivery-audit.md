@@ -23,7 +23,7 @@ approved and published.
 ## Checks
 
 The task compares anonymous Guardian permissions with exact-layer GeoFence
-rules; checks the GeoServer layer; validates the GWC gridset, 256-pixel tile,
+rules; checks the GeoServer layer; validates the GWC gridset, 512-pixel tile,
 2x2 metatile, format and `STYLES` parameter filter; and performs anonymous WMS
 and WFS requests. The WMS request is aligned to the configured grid and is only
 accepted when its response is an image with
@@ -42,7 +42,7 @@ The defaults match the ZALF MapStore/GWC contract:
 | --- | --- | --- |
 | `ZALF_DELIVERY_AUDIT_GRIDSET` | `EPSG:3857x2` | Required client gridset |
 | `ZALF_DELIVERY_AUDIT_FORMAT` | `image/png8` | Cached WMS format |
-| `ZALF_DELIVERY_AUDIT_TILE_SIZE` | `256` | Tile width and height |
+| `ZALF_DELIVERY_AUDIT_TILE_SIZE` | `512` | `EPSG:3857x2` tile width and height |
 | `ZALF_DELIVERY_AUDIT_META_FACTOR` | `2` | Expected metatile width/height |
 | `ZALF_DELIVERY_AUDIT_TILE_ZOOM` | `7` | Aligned audit tile zoom |
 | `ZALF_DELIVERY_AUDIT_GEOMETRY_SAMPLE` | `1000` | Maximum sampled geometries |

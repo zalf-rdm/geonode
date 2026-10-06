@@ -17,7 +17,7 @@ AUDIT_SETTINGS = {
     "ZALF_DELIVERY_AUDIT_REQUEST_TIMEOUT": 5,
     "ZALF_DELIVERY_AUDIT_GRIDSET": "EPSG:3857x2",
     "ZALF_DELIVERY_AUDIT_FORMAT": "image/png8",
-    "ZALF_DELIVERY_AUDIT_TILE_SIZE": 256,
+    "ZALF_DELIVERY_AUDIT_TILE_SIZE": 512,
     "ZALF_DELIVERY_AUDIT_META_FACTOR": 2,
     "ZALF_DELIVERY_AUDIT_TILE_ZOOM": 1,
     "ZALF_DELIVERY_AUDIT_GEOMETRY_SAMPLE": 10,
@@ -60,7 +60,7 @@ GWC_XML = b"""<GeoServerLayer>
 GRID_XML = b"""<gridSet><name>EPSG:3857x2</name>
   <extent><coords><double>-20037508.342789244</double><double>-20037508.342789244</double>
   <double>20037508.342789244</double><double>20037508.342789244</double></coords></extent>
-  <tileWidth>256</tileWidth><tileHeight>256</tileHeight>
+  <tileWidth>512</tileWidth><tileHeight>512</tileHeight>
   <resolutions><double>78271.51696402048</double><double>39135.75848201024</double></resolutions>
 </gridSet>"""
 
