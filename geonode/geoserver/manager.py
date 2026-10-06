@@ -43,13 +43,8 @@ from geonode.security.permissions import (
 from geonode.resource.manager import ResourceManager, ResourceManagerInterface
 from geonode.geoserver.signals import geofence_rule_assign
 from .geofence import AutoPriorityBatch
-from .tasks import (
-    geoserver_set_style,
-    geoserver_delete_map,
-    geoserver_create_style,
-    geoserver_cascading_delete,
-    synch_guardian,
-)
+from .tasks import geoserver_set_style, geoserver_delete_map, geoserver_create_style, geoserver_cascading_delete
+from .tasks import synch_guardian
 from .helpers import (
     gs_catalog,
     set_time_info,
