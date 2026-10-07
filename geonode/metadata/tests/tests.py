@@ -399,14 +399,14 @@ class MetadataApiTests(APITestCase):
     @patch("geonode.people.utils.get_available_users")
     def test_profile_autocomplete_no_query(self, mock_get_available_users):
         """
-        Test that the queryset is restricted to available users
+        Test that available users are returned in stable username order
         """
 
         mocked_available_users = [self.test_user_1, self.test_user_2]
 
-        mock_get_available_users.return_value = get_user_model().objects.filter(
-            pk__in=[u.pk for u in mocked_available_users]
-        )
+        available_user_pks = [user.pk for user in mocked_available_users]
+        available_users = get_user_model().objects.filter(pk__in=available_user_pks)
+        mock_get_available_users.return_value = available_users.order_by("-username")
 
         request = self.factory.get(reverse("metadata_autocomplete_users"))
         request.user = self.test_user_1
