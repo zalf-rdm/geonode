@@ -261,7 +261,7 @@ class ProfileAutocomplete(autocomplete.Select2QuerySetView):
                 | Q(last_name__icontains=self.q)
             )
 
-        return qs
+        return qs.order_by("username")
 
     def get_results(self, context):
         def get_label(user):
