@@ -51,27 +51,32 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RenameField(
-            model_name="profile",
-            old_name="organization",
-            new_name="organization_text",
-        ),
-        migrations.AddField(
-            model_name="profile",
-            name="organization",
-            field=models.ForeignKey(
-                blank=True,
-                help_text="name of the responsible organization",
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="profiles",
-                to="base.organization",
-                verbose_name="Organization Name",
-            ),
-        ),
-        migrations.RunPython(forwards_populate_organization, backwards_populate_organization, elidable=True),
-        migrations.RemoveField(
-            model_name="profile",
-            name="organization_text",
+        # All DDL and data migration already applied in ZALF 4.4.3 — update state only
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.RenameField(
+                    model_name="profile",
+                    old_name="organization",
+                    new_name="organization_text",
+                ),
+                migrations.AddField(
+                    model_name="profile",
+                    name="organization",
+                    field=models.ForeignKey(
+                        blank=True,
+                        help_text="name of the responsible organization",
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="profiles",
+                        to="base.organization",
+                        verbose_name="Organization Name",
+                    ),
+                ),
+                migrations.RemoveField(
+                    model_name="profile",
+                    name="organization_text",
+                ),
+            ],
+            database_operations=[],
         ),
     ]
