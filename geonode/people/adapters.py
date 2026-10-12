@@ -284,8 +284,8 @@ def _diff_sync_user_groups(user, groups, group_role_mapper):
     """
     DIFF_SYNC: apply only the differences between the provider groups and GeoNode.
 
-    Every join/leave/promote/demote recalculates resource permissions, so unlike
-    FULL_SYNC this does not wipe and re-join: an unchanged login changes nothing.
+    Unlike FULL_SYNC this does not wipe and re-join: an unchanged login changes
+    nothing, so no membership writes and no permission cache invalidation happen.
     """
     # What the provider says: {group slug: is_manager}
     desired = {}

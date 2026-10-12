@@ -2036,7 +2036,7 @@ SOCIALACCOUNT_PROVIDERS = {
 #              Protects existing local memberships from accidental wipes.
 # - NO_SYNC:   Ignores provider group data entirely. Groups are managed manually within GeoNode.
 # - DIFF_SYNC: Like SAFE_SYNC, but only applies changed memberships/roles (join/leave/promote/demote)
-#              instead of wiping and re-joining all groups. Avoids recomputing resource permissions on every login.
+#              instead of wiping and re-joining all groups. An unchanged login writes nothing.
 SOCIALACCOUNT_SYNC_USER_GROUPS_ON_LOGIN = os.getenv("SOCIALACCOUNT_SYNC_USER_GROUPS_ON_LOGIN", "FULL_SYNC")
 
 DISPLAY_RATINGS = ast.literal_eval(os.getenv("DISPLAY_RATINGS", "True"))
