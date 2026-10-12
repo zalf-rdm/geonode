@@ -81,7 +81,7 @@ The final test realm broker uses `config.defaultScope=openid`, `config.prompt=lo
 
 The landing-path allowlist includes GeoNode `/catalogue/` and localized app roots. This establishes a GeoNode session when the first login was in Upload Tool, before the catalogue SPA receives its user configuration. HTML requests probe once; JSON/API requests do not. The additional regression covers the catalogue destination/query and Portuguese root, no redirect loop, and JSON exclusion. The current isolated suites pass 31 tests per app.
 
-Final sanitized Keycloak JSON and annotated screenshots are in GeoNode `testing/keycloak-sso-2026-10-01/`. The permanent images deployed on 2026-10-02 are Upload Tool `0.1.346` and GeoNode `v5.0.3-zalf001.27`; the latter includes MapStore client `5.0.1.post54`.
+The sanitized Keycloak JSON and annotated screenshots used during validation are local test artifacts and are not committed. The permanent images deployed on 2026-10-02 are Upload Tool `0.1.346` and GeoNode `v5.0.3-zalf001.27`; the latter includes MapStore client `5.0.1.post54`.
 
 ## Release verification — 2026-10-02
 
