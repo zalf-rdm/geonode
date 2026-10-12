@@ -310,18 +310,23 @@ ID_TOKEN_ISSUER = getattr(settings, "SOCIALACCOUNT_PROVIDERS", {}).get(PROVIDER_
 
 def _diff_sync_user_groups(user, groups, group_role_mapper):
     """
-    Reconcile the user's group memberships with the provider groups.
-    Only memberships or roles that differ are changed, so an unchanged login
-    does not trigger any permission recalculation.
+    DIFF_SYNC: apply only the differences between the provider groups and GeoNode.
+
+    Every join/leave/promote/demote recalculates resource permissions, so unlike
+    FULL_SYNC we do not wipe and re-join: an unchanged login changes nothing.
     """
+    # What the provider says: {group slug: is_manager}
     desired = {}
     if groups and not isinstance(groups, str):
         for group_role_name in groups:
             group_name, role_name = group_role_mapper.parse_group_and_role(group_role_name)
+            # the same group may be sent twice (e.g. "foo" and "foo.manager"): manager wins
             desired[group_name] = desired.get(group_name, False) or group_role_mapper.is_manager(role_name)
 
+    # What GeoNode has: {group slug: GroupMember}
     current = {member.group.slug: member for member in GroupMember.objects.filter(user=user).select_related("group")}
 
+    # Leave groups the provider no longer sends
     for slug, member in current.items():
         if slug not in desired:
             member.group.leave(user)
@@ -329,15 +334,16 @@ def _diff_sync_user_groups(user, groups, group_role_mapper):
     for slug, is_manager in desired.items():
         member = current.get(slug)
         if member is None:
+            # Join new groups with the right role at once; groups unknown to GeoNode are ignored
             groupprofile = GroupProfile.objects.filter(slug=slug).first()
             if groupprofile:
-                groupprofile.join(user)
-                if is_manager:
-                    groupprofile.promote(user)
-        elif is_manager and member.role != GroupMember.MANAGER:
-            member.group.promote(user)
-        elif not is_manager and member.role == GroupMember.MANAGER:
-            member.group.demote(user)
+                groupprofile.join(user, role=GroupMember.MANAGER if is_manager else GroupMember.MEMBER)
+        elif is_manager != (member.role == GroupMember.MANAGER):
+            # Role changed in the provider (compare manager or not, older joins may have an empty role)
+            if is_manager:
+                member.promote()
+            else:
+                member.demote()
 
 
 def _update_user_groups_from_social(sociallogin, user):
