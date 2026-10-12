@@ -25,7 +25,7 @@ services:
       test: "echo \"I'm alive.\""
 
     env_file:
-      - .devcontainer/.env
+      - .devcontainer/.env_orcid
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -82,5 +82,5 @@ services:
     ports:
      - "5432:5432"
 
-  rabbitmq:
+  redis:
     restart: "no"

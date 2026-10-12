@@ -121,6 +121,7 @@ See [`data_publication_workflow.md`](data_publication_workflow.md).
 | Date | Change | Files |
 |---|---|---|
 | 2026-10-05 | `RelatedIdentifierApiTests.setUp` switched from `objects.create` to `get_or_create` for `RelatedIdentifierType`/`RelationType`. Both labels are PKs already present in `initial_data.json`, so `setUp` raised `IntegrityError` on every run and the class could never pass. | `geonode/base/api/tests.py` |
+| 2026-10-12 | ORCID devcontainer fixed: overrode `redis` instead of the removed `rabbitmq` service (Compose rejected the project), and pointed `django`'s `env_file` at `.devcontainer/.env_orcid`. **Upstream file touched:** `.gitignore` now ignores `.devcontainer/.env_orcid`, which holds the Keycloak client secret and matched neither existing pattern. | `.devcontainer/docker-compose-orcid.yml`, `.gitignore` |
 
 ---
 

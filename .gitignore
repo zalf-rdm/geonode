@@ -97,5 +97,6 @@ scripts/spcgeonode/_volume_*
 !hooks/*
 
 .devcontainer/.env
+.devcontainer/.env_orcid
 *.env
 testing/
