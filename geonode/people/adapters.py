@@ -48,7 +48,7 @@ from django.http import HttpResponseRedirect
 from django.core.exceptions import ValidationError
 from django.utils.module_loading import import_string
 from django.core.exceptions import ImproperlyConfigured
-from geonode.groups.models import GroupProfile
+from geonode.groups.models import GroupMember, GroupProfile
 
 logger = logging.getLogger(__name__)
 
@@ -308,24 +308,83 @@ PROFILE_URL = getattr(settings, "SOCIALACCOUNT_PROVIDERS", {}).get(PROVIDER_ID, 
 ID_TOKEN_ISSUER = getattr(settings, "SOCIALACCOUNT_PROVIDERS", {}).get(PROVIDER_ID, {}).get("ID_TOKEN_ISSUER", "")
 
 
+def _diff_sync_user_groups(user, groups, group_role_mapper):
+    """
+    DIFF_SYNC: apply only the differences between the provider groups and GeoNode.
+
+    Every join/leave/promote/demote recalculates resource permissions, so unlike
+    FULL_SYNC we do not wipe and re-join: an unchanged login changes nothing.
+    """
+    # What the provider says: {group slug: is_manager}
+    desired = {}
+    if groups and not isinstance(groups, str):
+        for group_role_name in groups:
+            group_name, role_name = group_role_mapper.parse_group_and_role(group_role_name)
+            # the same group may be sent twice (e.g. "foo" and "foo.manager"): manager wins
+            desired[group_name] = desired.get(group_name, False) or group_role_mapper.is_manager(role_name)
+
+    # What GeoNode has: {group slug: GroupMember}
+    current = {member.group.slug: member for member in GroupMember.objects.filter(user=user).select_related("group")}
+
+    # Leave groups the provider no longer sends
+    for slug, member in current.items():
+        if slug not in desired:
+            member.group.leave(user)
+
+    for slug, is_manager in desired.items():
+        member = current.get(slug)
+        if member is None:
+            # Join new groups with the right role at once; groups unknown to GeoNode are ignored
+            groupprofile = GroupProfile.objects.filter(slug=slug).first()
+            if groupprofile:
+                groupprofile.join(user, role=GroupMember.MANAGER if is_manager else GroupMember.MEMBER)
+        elif is_manager != (member.role == GroupMember.MANAGER):
+            # Role changed in the provider (compare manager or not, older joins may have an empty role)
+            if is_manager:
+                member.promote()
+            else:
+                member.demote()
+
+
 def _update_user_groups_from_social(sociallogin, user):
+
+    # Retrieve the strategy from settings, defaulting FULL_SYNC
+    sync_strategy = getattr(settings, "SOCIALACCOUNT_SYNC_USER_GROUPS_ON_LOGIN", "FULL_SYNC")
+
+    if sync_strategy == "NO_SYNC":
+        return user
+
     extractor = get_data_extractor(sociallogin.account.provider)
     group_role_mapper = get_group_role_mapper(sociallogin.account.provider)
     try:
-        groups = extractor.extract_groups(sociallogin.account.extra_data) or extractor.extract_roles(
-            sociallogin.account.extra_data
-        )
+        # Try groups first
+        groups = extractor.extract_groups(sociallogin.account.extra_data)
 
-        # check here if user is member already of other groups and remove it form the ones that are not declared here...
+        # If groups are missing, try roles
+        if not isinstance(groups, list):
+            groups = extractor.extract_roles(sociallogin.account.extra_data)
+
+        # If groups is STILL "" (or None), it means BOTH were missing.
+        # If groups is [], this check will be FALSE, and the wipe will happen.
+        if sync_strategy in ("SAFE_SYNC", "DIFF_SYNC") and groups in ("", None):
+            return user
+
+        if sync_strategy == "DIFF_SYNC":
+            _diff_sync_user_groups(user, groups, group_role_mapper)
+            return user
+
+        # Perform the "Wipe" for FULL_SYNC or SAFE_SYNC (if we have data)
         for groupprofile in user.group_list_all():
             groupprofile.leave(user)
-        for group_role_name in groups:
-            group_name, role_name = group_role_mapper.parse_group_and_role(group_role_name)
-            groupprofile = GroupProfile.objects.filter(slug=group_name).first()
-            if groupprofile:
-                groupprofile.join(user)
-                if group_role_mapper.is_manager(role_name):
-                    groupprofile.promote(user)
+
+        if groups and not isinstance(groups, str):
+            for group_role_name in groups:
+                group_name, role_name = group_role_mapper.parse_group_and_role(group_role_name)
+                groupprofile = GroupProfile.objects.filter(slug=group_name).first()
+                if groupprofile:
+                    groupprofile.join(user)
+                    if group_role_mapper.is_manager(role_name):
+                        groupprofile.promote(user)
     except (AttributeError, NotImplementedError):
         pass  # extractor doesn't define a method for extracting field
     return user
