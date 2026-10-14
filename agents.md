@@ -145,6 +145,7 @@ docker compose -f docker-compose-test.yml exec -T db sh -c "psql -U postgres -c 
 - `/TESTING.md` - Comprehensive testing guide
 - `/CONTRIBUTING.md` - Contribution guidelines
 - `/README.md` - Project overview
+- `/zalf_docs/ui_review_spec.md` - Expected look and behaviour of the public site (branding, accessibility, links, legal, OGC, i18n, performance); run it with `/ui-review [base_url]` after frontend changes
 
 ### CI/CD
 - `/.github/workflows/tests.yml` - Test automation

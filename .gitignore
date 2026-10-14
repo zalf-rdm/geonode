@@ -100,3 +100,5 @@ scripts/spcgeonode/_volume_*
 .devcontainer/.env_orcid
 *.env
 testing/
+# Local output of the /ui-review skill (zalf_docs/ui_review_spec.md)
+ui-review-reports/
