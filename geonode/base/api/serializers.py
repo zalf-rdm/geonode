@@ -779,6 +779,9 @@ class ResourceBaseSerializer(DynamicModelSerializer):
     srid = serializers.CharField(required=False)
     group = ComplexDynamicRelationField(GroupSerializer, embed=True)
     share_count = serializers.CharField(required=False)
+    # ZALF: needed by the landing page counters (were dropped in the 5.0.3 merge)
+    popular_count = serializers.IntegerField(read_only=True)
+    download_count = serializers.IntegerField(read_only=True)
     featured = serializers.BooleanField(required=False)
     advertised = serializers.BooleanField(required=False)
     is_published = serializers.BooleanField(required=False)
@@ -924,6 +927,8 @@ class ResourceBaseSerializer(DynamicModelSerializer):
             "data_quality_statement",
             "group",
             "share_count",
+            "popular_count",
+            "download_count",
             "featured",
             "advertised",
             "is_published",

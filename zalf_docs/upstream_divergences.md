@@ -105,6 +105,8 @@ Fork-only Django app; no upstream counterpart, so it merges cleanly.
 - `api/datacite.py` — DataCite integration (tests: `tests/test_datacite.py`)
 - `api/cms_views.py`, `api/cms_serializers.py`, `api/cms_utils.py` — CMS endpoints
 - `middleware.py` — tests in `tests/test_middleware.py`
+- `api/views.py` `count_resource_view` — `POST /api/v2/resources/<pk>/view/`, landing page
+  view counter for every resource type (tests: `tests/test_view_counter.py`)
 - `models.py`, `migrations/0001_cms_initial.py` … `0003_training_extra_fields.py`
 - `views.py`, `urls.py`, `admin.py`, `templatetags/`
 
@@ -123,6 +125,8 @@ See [`data_publication_workflow.md`](data_publication_workflow.md).
 | 2026-10-05 | `RelatedIdentifierApiTests.setUp` switched from `objects.create` to `get_or_create` for `RelatedIdentifierType`/`RelationType`. Both labels are PKs already present in `initial_data.json`, so `setUp` raised `IntegrityError` on every run and the class could never pass. | `geonode/base/api/tests.py` |
 | 2026-10-12 | ORCID devcontainer fixed: overrode `redis` instead of the removed `rabbitmq` service (Compose rejected the project), and pointed `django`'s `env_file` at `.devcontainer/.env_orcid`. **Upstream file touched:** `.gitignore` now ignores `.devcontainer/.env_orcid`, which holds the Keycloak client secret and matched neither existing pattern. | `.devcontainer/docker-compose-orcid.yml`, `.gitignore` |
 | 2026-10-12 | `_diff_sync_user_groups` (DIFF_SYNC group strategy) simplified and commented: new members join with their role in one step (one permission recalculation instead of join + promote), and role changes compare manager/not-manager, so memberships stored with an empty role by older joins are not demoted needlessly. **Upstream code touched:** only this helper in `adapters.py`; the cherry-picked FULL/SAFE/NO_SYNC code is unchanged. | `geonode/people/adapters.py` |
+| 2026-10-15 | Plain devcontainer fixed like the ORCID one: the 3-space-indented `rabbitmq:` override broke YAML parsing and the service no longer exists, now overrides `redis`. | `.devcontainer/docker-compose.yml` |
+| 2026-10-15 | Landing page counters (#823): `popular_count` and `download_count` are returned again by the resource API as read-only fields (the 5.0.3 merge had dropped them, so the landing page always showed none). New fork-only endpoint `POST /api/v2/resources/<pk>/view/` counts landing page visits for all resource types — GeoNode only counted the dataset embed page, so maps/data collections stayed at 0. Owner and superusers are not counted, each resource once per browser session. **Upstream file touched:** `geonode/base/api/serializers.py` (two read-only fields). | `geonode/base/api/serializers.py`, `geonode/zalf/api/views.py`, `geonode/zalf/api/urls.py`, `geonode/zalf/tests/test_view_counter.py` |
 
 ---
 
