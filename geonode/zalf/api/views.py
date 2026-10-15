@@ -1,6 +1,7 @@
 import logging
 import datetime
 
+from django.db.models import F
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
@@ -350,6 +351,46 @@ def sync_metadata_view(request, mapid):
             errors.append({"resource_pk": resource.pk, "error": str(exc)})
 
     return Response({"synced": synced, "errors": errors}, status=status.HTTP_200_OK)
+
+
+# ---------------------------------------------------------------------------
+# Landing page view counter
+# ---------------------------------------------------------------------------
+
+# Session key holding the ids of the resources this browser session already counted
+VIEWED_SESSION_KEY = "zalf_viewed_resources"
+
+
+@api_view(["POST"])
+@authentication_classes(allowed_authentication_classes)
+def count_resource_view(request, pk):
+    """
+    POST /api/v2/resources/<pk>/view/
+
+    Called once by the landing page after it loaded. GeoNode only counted views of
+    the old dataset embed page, so maps (data collections), documents and the new
+    landing pages stayed at 0. Works for every resource type.
+
+    Not counted (mirrors `increment_download_count`): superusers and the owner.
+    Counted once per resource and browser session, so reloads do not inflate it.
+    Always answers 204 for a resource the user may see, so the client needs no logic.
+    """
+    # object permissions are stored on the base row, not on the polymorphic subclass
+    resource = get_object_or_404(ResourceBase, pk=pk).get_self_resource()
+    if not request.user.has_perm("base.view_resourcebase", resource):
+        raise Http404("Resource does not exist")
+
+    user = request.user
+    if user.is_superuser or (user.is_authenticated and resource.owner_id == user.pk):
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    viewed = request.session.get(VIEWED_SESSION_KEY, [])
+    if resource.pk not in viewed:
+        # direct update: no signals, no resource re-save
+        ResourceBase.objects.filter(pk=resource.pk).update(popular_count=F("popular_count") + 1)
+        request.session[VIEWED_SESSION_KEY] = viewed + [resource.pk]
+
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 # ---------------------------------------------------------------------------

@@ -82,6 +82,7 @@
     {% block header %}{% include 'geonode-mapstore-client/snippets/header.html' %}{% endblock header %}
 
   <div id="wrap">
+    <main id="main-content">
     {% block middle %}
     {% block institutional_hero %}{% endblock %}
     <div class="container {% block institutional_content_class %}{% endblock %}">
@@ -100,6 +101,7 @@
       {% endblock %}
     </div>
     {% endblock middle %}
+    </main>
 
   </div>
 
