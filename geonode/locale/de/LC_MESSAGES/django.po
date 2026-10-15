@@ -758,7 +758,7 @@ msgid ""
 msgstr ""
 
 msgid "Keyword"
-msgstr "Schlüssel"
+msgstr "Schlagwort"
 
 #: geonode/base/models.py:892
 msgid "The date that the publisher accepted the resource into their system."
@@ -10160,3 +10160,173 @@ msgstr "Beendet nur Ihre Sitzung in diesem Repositorium. Bei ORCID und dem Ident
 #: geonode/templates/account/logout.html
 msgid "Ends your session everywhere: this repository, the identity provider and orcid.org. Logging in again will require your ORCID credentials. Recommended on shared computers."
 msgstr "Beendet Ihre Sitzung überall: in diesem Repositorium, beim Identitätsanbieter und auf orcid.org. Für eine erneute Anmeldung sind Ihre ORCID-Zugangsdaten erforderlich. Empfohlen an gemeinsam genutzten Computern."
+
+# ZALF UI review (zalf-rdm/geonode#828)
+msgid "All Data"
+msgstr "Alle Daten"
+
+msgid "Topics"
+msgstr "Themen"
+
+msgid "Tools & Services"
+msgstr "Werkzeuge & Dienste"
+
+msgid "Trainings"
+msgstr "Schulungen"
+
+msgid "LTE Maps"
+msgstr "LTE-Karten"
+
+msgid "DQ Kit"
+msgstr "DQ Kit"
+
+msgid "Search Datasets"
+msgstr "Datensätze suchen"
+
+msgid "Animals"
+msgstr "Tiere"
+
+msgid "Atmosphere"
+msgstr "Atmosphäre"
+
+msgid "Climate"
+msgstr "Klima"
+
+msgid "Forest"
+msgstr "Wald"
+
+msgid "Hydrology"
+msgstr "Hydrologie"
+
+msgid "Landscape"
+msgstr "Landschaft"
+
+msgid "Long Term Field Experiment"
+msgstr "Dauerfeldversuch"
+
+msgid "Plants"
+msgstr "Pflanzen"
+
+msgid "Soil Profiles"
+msgstr "Bodenprofile"
+
+msgid "Water"
+msgstr "Wasser"
+
+msgid "Developer"
+msgstr "Entwickler"
+
+msgid "OGC Services and API"
+msgstr "OGC-Dienste und API"
+
+msgid "FAQ"
+msgstr "FAQ"
+
+msgid "Data Policy"
+msgstr "Datenrichtlinie"
+
+msgid "How to Cite Us"
+msgstr "So zitieren Sie uns"
+
+msgid "Toggle navigation menu"
+msgstr "Navigationsmenü ein-/ausblenden"
+
+msgid "Primary navigation"
+msgstr "Hauptnavigation"
+
+msgid "Fundings"
+msgstr "Förderungen"
+
+msgid "Related project"
+msgstr "Zugehöriges Projekt"
+
+msgid "Authors"
+msgstr "Autor:innen"
+
+msgid "Imprint"
+msgstr "Impressum"
+
+msgid "Privacy"
+msgstr "Datenschutz"
+
+msgid "Cookies"
+msgstr "Cookies"
+
+msgid "Skip to main content"
+msgstr "Zum Hauptinhalt springen"
+
+msgid "Search"
+msgstr "Suchen"
+
+msgid "Clear search"
+msgstr "Suche löschen"
+
+msgid "Clear search suggestions"
+msgstr "Suchvorschläge löschen"
+
+msgid "Cookie notice"
+msgstr "Cookie-Hinweis"
+
+msgid "This website only uses cookies that are necessary for it to work, for example to keep you logged in. No tracking or analytics cookies are used."
+msgstr "Diese Website verwendet nur Cookies, die für ihren Betrieb notwendig sind, zum Beispiel um Sie angemeldet zu halten. Es werden keine Tracking- oder Analyse-Cookies verwendet."
+
+msgid "More about cookies"
+msgstr "Mehr zu Cookies"
+
+msgid "Which cookies the BonaRes Repository uses and why."
+msgstr "Welche Cookies das BonaRes-Repository verwendet und warum."
+
+msgid "The BonaRes Repository only uses cookies that are strictly necessary to operate the website. It does not use analytics, tracking or advertising cookies, so no consent is required for them (§ 25 (2) No. 2 TDDDG)."
+msgstr "Das BonaRes-Repository verwendet ausschließlich Cookies, die für den Betrieb der Website unbedingt erforderlich sind. Es werden keine Analyse-, Tracking- oder Werbe-Cookies eingesetzt; eine Einwilligung ist daher nicht erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG)."
+
+msgid "Data controller"
+msgstr "Verantwortliche Stelle"
+
+msgid "Data protection officer"
+msgstr "Datenschutzbeauftragte:r"
+
+#, python-format
+msgid "Further information on how personal data is processed is given in the <a href=\"%(privacy_url)s\">privacy policy</a>."
+msgstr "Weitere Informationen zur Verarbeitung personenbezogener Daten finden Sie in der <a href=\"%(privacy_url)s\">Datenschutzerklärung</a>."
+
+msgid "Cookies set by this website"
+msgstr "Von dieser Website gesetzte Cookies"
+
+msgid "Cookie"
+msgstr "Cookie"
+
+msgid "Lifetime"
+msgstr "Speicherdauer"
+
+msgid "Protects forms and requests against cross-site request forgery."
+msgstr "Schützt Formulare und Anfragen vor Cross-Site-Request-Forgery."
+
+msgid "1 year"
+msgstr "1 Jahr"
+
+msgid "Keeps you signed in after logging in with ORCID."
+msgstr "Hält Sie nach der Anmeldung mit ORCID angemeldet."
+
+msgid "Until you log out or the session expires"
+msgstr "Bis zur Abmeldung oder bis die Sitzung abläuft"
+
+msgid "Remembers the language you selected."
+msgstr "Speichert die von Ihnen gewählte Sprache."
+
+msgid "Until the end of the browser session"
+msgstr "Bis zum Ende der Browsersitzung"
+
+msgid "The website also stores a few settings in your browser's local storage (for example that you have closed the cookie notice). This data stays on your device and is not sent to us."
+msgstr "Außerdem speichert die Website einige Einstellungen im lokalen Speicher Ihres Browsers (zum Beispiel, dass Sie den Cookie-Hinweis geschlossen haben). Diese Daten bleiben auf Ihrem Gerät und werden nicht an uns übertragen."
+
+msgid "Login with ORCID"
+msgstr "Anmeldung mit ORCID"
+
+msgid "When you log in, you are redirected to our identity service (identity-e.dataservice.zalf.de) and to ORCID (orcid.org). These services set their own cookies, which are required for the login. ORCID's use of cookies is described in its privacy policy:"
+msgstr "Bei der Anmeldung werden Sie zu unserem Identitätsdienst (identity-e.dataservice.zalf.de) und zu ORCID (orcid.org) weitergeleitet. Diese Dienste setzen eigene Cookies, die für die Anmeldung erforderlich sind. Wie ORCID Cookies verwendet, ist in dessen Datenschutzerklärung beschrieben:"
+
+msgid "Managing cookies"
+msgstr "Cookies verwalten"
+
+msgid "You can view and delete cookies in your browser settings. If you block the cookies listed above, logging in and some forms will not work."
+msgstr "Sie können Cookies in den Einstellungen Ihres Browsers einsehen und löschen. Wenn Sie die oben genannten Cookies blockieren, funktionieren die Anmeldung und einige Formulare nicht."
