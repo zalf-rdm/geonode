@@ -1,7 +1,39 @@
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 
+from geonode.base.models import ResourceBase
+from geonode.utils import resolve_object
 from geonode.zalf.models import HighlightedCase, TrainingResource
 from geonode.zalf.api.cms_utils import render_markdown
+
+
+def landing_page_url(resource):
+    """
+    URL of the ZALF landing page of a resource. Uses the same type segments as the
+    landing routes of the client (#/landing/<map|tabular-collection|dataset|document>/<pk>);
+    tabular datasets are datasets. Other types have no landing page and keep their own page.
+    """
+    # resource_type can be empty for resources not created through the resource manager
+    polymorphic_ctype = getattr(resource, "polymorphic_ctype", None)
+    resource_type = resource.resource_type or (polymorphic_ctype.model if polymorphic_ctype else None)
+    if resource_type == "map":
+        segment = "tabular-collection" if resource.subtype == "tabular-collection" else "map"
+    elif resource_type in ("dataset", "document"):
+        segment = resource_type
+    else:
+        return resource.get_absolute_url()
+    return f"/catalogue/#/landing/{segment}/{resource.pk}"
+
+
+def resolve_landing_uuid(request, uuid):
+    """
+    /landing/<uuid>/ -> the landing page of the resource.
+
+    Stable target for DOIs (zalf-rdm/geonode#823): GeoNode's /catalogue/uuid/<uuid>
+    redirects to the viewer (for a data collection: the map), not to the landing page.
+    Same permission check as /catalogue/uuid/<uuid>.
+    """
+    resource = resolve_object(request, ResourceBase, {"uuid": uuid})
+    return redirect(landing_page_url(resource))
 
 
 def case_detail(request, slug):
