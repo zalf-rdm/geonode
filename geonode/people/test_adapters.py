@@ -6,7 +6,7 @@ from django.test import override_settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 
-from geonode.groups.models import GroupProfile
+from geonode.groups.models import GroupMember, GroupProfile
 from geonode.tests.base import GeoNodeBaseTestSupport
 from geonode.people import adapters
 
@@ -492,3 +492,91 @@ class GenericOpenIDConnectAdapterTestCase(GeoNodeBaseTestSupport):
 
         # User should STILL be in 'bar' because we are not syncing
         self.assertTrue(self.user.groups.filter(groupprofile__slug="bar").exists())
+
+    def _mock_extractor(self, mock_get_extractor, groups, roles=""):
+        mock_ext = mock.MagicMock()
+        mock_ext.extract_groups.return_value = groups
+        mock_ext.extract_roles.return_value = roles
+        mock_get_extractor.return_value = mock_ext
+        self.mock_sociallogin.account.extra_data = {"groups": groups}
+
+    def _bar_member(self):
+        return GroupMember.objects.get(group=self.group_bar, user=self.user)
+
+    @mock.patch("geonode.people.adapters.get_data_extractor")
+    @override_settings(SOCIALACCOUNT_SYNC_USER_GROUPS_ON_LOGIN="DIFF_SYNC")
+    def test_diff_sync_keeps_unchanged_membership(self, mock_get_extractor):
+        """Verify DIFF_SYNC does not touch memberships that did not change."""
+        self._mock_extractor(mock_get_extractor, ["bar"])
+        member_before = self._bar_member()
+
+        with mock.patch.object(GroupMember, "_handle_perms") as mock_handle_perms:
+            adapters._update_user_groups_from_social(self.mock_sociallogin, self.user)
+            mock_handle_perms.assert_not_called()
+
+        member_after = self._bar_member()
+        self.assertEqual(member_before.pk, member_after.pk)
+        self.assertEqual(member_before.joined, member_after.joined)
+
+    @mock.patch("geonode.people.adapters.get_data_extractor")
+    @override_settings(SOCIALACCOUNT_SYNC_USER_GROUPS_ON_LOGIN="DIFF_SYNC")
+    def test_diff_sync_joins_new_group(self, mock_get_extractor):
+        """Verify DIFF_SYNC joins new groups and keeps existing ones untouched."""
+        dj_group, _ = Group.objects.get_or_create(name="Foo Group")
+        GroupProfile.objects.get_or_create(slug="foo", defaults={"group": dj_group, "title": "Foo Group"})
+        self._mock_extractor(mock_get_extractor, ["bar", "foo"])
+        member_before = self._bar_member()
+
+        adapters._update_user_groups_from_social(self.mock_sociallogin, self.user)
+
+        self.assertEqual(member_before.pk, self._bar_member().pk)
+        self.assertTrue(self.user.groups.filter(groupprofile__slug="foo").exists())
+        self.assertTrue(GroupMember.objects.filter(group__slug="foo", user=self.user).exists())
+
+    @mock.patch("geonode.people.adapters.get_data_extractor")
+    @override_settings(SOCIALACCOUNT_SYNC_USER_GROUPS_ON_LOGIN="DIFF_SYNC")
+    def test_diff_sync_leaves_removed_group(self, mock_get_extractor):
+        """Verify DIFF_SYNC leaves groups the provider no longer sends."""
+        self._mock_extractor(mock_get_extractor, [])
+
+        adapters._update_user_groups_from_social(self.mock_sociallogin, self.user)
+
+        self.assertFalse(GroupMember.objects.filter(group=self.group_bar, user=self.user).exists())
+        self.assertFalse(self.user.groups.filter(groupprofile__slug="bar").exists())
+
+    @mock.patch("geonode.people.adapters.get_data_extractor")
+    @override_settings(SOCIALACCOUNT_SYNC_USER_GROUPS_ON_LOGIN="DIFF_SYNC")
+    def test_diff_sync_promotes_and_demotes(self, mock_get_extractor):
+        """Verify DIFF_SYNC only changes the role when the provider role changes."""
+        member_before = self._bar_member()
+
+        self._mock_extractor(mock_get_extractor, ["bar.manager"])
+        adapters._update_user_groups_from_social(self.mock_sociallogin, self.user)
+        self.assertEqual(self._bar_member().role, GroupMember.MANAGER)
+        self.assertEqual(self._bar_member().pk, member_before.pk)
+
+        self._mock_extractor(mock_get_extractor, ["bar.member"])
+        adapters._update_user_groups_from_social(self.mock_sociallogin, self.user)
+        self.assertEqual(self._bar_member().role, GroupMember.MEMBER)
+        self.assertEqual(self._bar_member().pk, member_before.pk)
+
+    @mock.patch("geonode.people.adapters.get_data_extractor")
+    @override_settings(SOCIALACCOUNT_SYNC_USER_GROUPS_ON_LOGIN="DIFF_SYNC")
+    def test_diff_sync_skips_on_missing_key(self, mock_get_extractor):
+        """Verify DIFF_SYNC preserves memberships if group data is missing."""
+        self._mock_extractor(mock_get_extractor, "", "")
+        self.mock_sociallogin.account.extra_data = {"id": "123"}
+
+        adapters._update_user_groups_from_social(self.mock_sociallogin, self.user)
+
+        self.assertTrue(GroupMember.objects.filter(group=self.group_bar, user=self.user).exists())
+
+    @mock.patch("geonode.people.adapters.get_data_extractor")
+    @override_settings(SOCIALACCOUNT_SYNC_USER_GROUPS_ON_LOGIN="DIFF_SYNC")
+    def test_diff_sync_ignores_unknown_group(self, mock_get_extractor):
+        """Verify DIFF_SYNC ignores provider groups that do not exist locally."""
+        self._mock_extractor(mock_get_extractor, ["does-not-exist"])
+
+        adapters._update_user_groups_from_social(self.mock_sociallogin, self.user)
+
+        self.assertFalse(GroupMember.objects.filter(user=self.user).exists())
