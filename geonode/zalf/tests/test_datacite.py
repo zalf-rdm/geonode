@@ -502,6 +502,16 @@ class TestBuildDatacitePayload(TestCase):
         self.assertTrue(payload["data"]["attributes"]["url"].startswith("https://example.org/"))
 
     @patch("geonode.zalf.api.datacite.get_datacite_xml", return_value=None)
+    def test_url_points_to_landing_page_by_uuid(self, mock_xml):
+        """The DOI resolves to the landing page, not to the map viewer (#823)."""
+        resource = self._make_resource(uuid_val="0b5a4c9e-1d2f-4a3b-9c8d-7e6f5a4b3c2d")
+        payload = build_datacite_payload(resource, "10.20387", doi_suffix="s")
+        self.assertEqual(
+            payload["data"]["attributes"]["url"],
+            "https://example.org/landing/0b5a4c9e-1d2f-4a3b-9c8d-7e6f5a4b3c2d/",
+        )
+
+    @patch("geonode.zalf.api.datacite.get_datacite_xml", return_value=None)
     def test_event_parameter_forwarded(self, mock_xml):
         resource = self._make_resource()
         payload = build_datacite_payload(resource, "10.20387", doi_suffix="s", event="register")
