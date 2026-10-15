@@ -292,10 +292,10 @@ def build_datacite_payload(resource, doi_prefix, doi_suffix=None, event="publish
 
     doi = f"{doi_prefix}/{doi_suffix}"
 
-    # Landing page URL — use the stable UUID link so the DOI always resolves
-    # correctly regardless of resource type or pk changes.
+    # Landing page URL — the stable UUID link always resolves to the ZALF landing page,
+    # regardless of resource type or pk changes (/catalogue/uuid/ led to the map viewer).
     site_url = settings.SITEURL.rstrip("/")
-    url = f"{site_url}/catalogue/uuid/{resource.uuid}"
+    url = f"{site_url}/landing/{resource.uuid}/"
 
     # Try to obtain DataCite XML from pycsw
     datacite_xml = get_datacite_xml(resource)
