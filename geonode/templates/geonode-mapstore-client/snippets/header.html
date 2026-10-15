@@ -1,6 +1,84 @@
 {% load i18n %}
 {% load static %}
 
+{% trans "Skip to main content" as skip_label %}
+{% trans "Search Datasets" as search_label %}
+{% trans "Search" as search_apply_label %}
+{% trans "Clear search" as search_clear_label %}
+{% trans "Clear search suggestions" as search_clear_suggestions_label %}
+{% trans "Cookie notice" as cookie_notice_label %}
+{% trans "This website only uses cookies that are necessary for it to work, for example to keep you logged in. No tracking or analytics cookies are used." as cookie_notice_text %}
+{% trans "More about cookies" as cookie_notice_link %}
+{% trans "OK" as cookie_notice_ok %}
+<style>
+    /* Visible only while focused, so keyboard users can jump past the header. */
+    .zalf-skip-link {
+        position: absolute;
+        top: -100px;
+        left: 16px;
+        z-index: 10000;
+        padding: 10px 16px;
+        border-radius: 8px;
+        background: #ffffff;
+        color: #1a6b3c;
+        font-weight: 600;
+        text-decoration: none;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+    .zalf-skip-link:focus {
+        top: 12px;
+        outline: 3px solid #1a6b3c;
+        outline-offset: 2px;
+    }
+    .zalf-cookie-notice {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        left: 16px;
+        z-index: 9999;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px 20px;
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 16px 20px;
+        border-radius: 8px;
+        background: #0b0b0b;
+        color: #f4f4f4;
+        font-size: 14px;
+        line-height: 1.5;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+    .zalf-cookie-notice[hidden] {
+        display: none;
+    }
+    .zalf-cookie-notice p {
+        flex: 1 1 320px;
+        margin: 0;
+    }
+    .zalf-cookie-notice a {
+        color: #ffffff;
+        text-decoration: underline;
+    }
+    .zalf-cookie-notice button {
+        padding: 8px 18px;
+        border: 0;
+        border-radius: 8px;
+        background: #3a7412;
+        color: #ffffff;
+        font-weight: 600;
+    }
+    .zalf-cookie-notice button:focus-visible {
+        outline: 3px solid #ffffff;
+        outline-offset: 2px;
+    }
+</style>
+<a class="zalf-skip-link" href="#main-content">{{ skip_label }}</a>
+<div class="zalf-cookie-notice" role="region" aria-label="{{ cookie_notice_label }}" hidden>
+    <p>{{ cookie_notice_text }} <a href="{% url 'privacy-cookies' %}">{{ cookie_notice_link }}</a></p>
+    <button type="button" class="zalf-cookie-notice__dismiss">{{ cookie_notice_ok }}</button>
+</div>
 <div class="zalf-navigation-shell" data-zalf-source="server">
     <header class="gn-main-header zalf-navigation" data-zalf-source="server" role="banner">
         <div class="zalf-navigation__inner">
@@ -114,7 +192,66 @@
         const searchInput = root.querySelector('#gn-search-bar input');
 
         if (searchInput) {
-            searchInput.placeholder = '{% trans "Search Datasets" %}';
+            searchInput.placeholder = '{{ search_label|escapejs }}';
+            searchInput.setAttribute('aria-label', '{{ search_label|escapejs }}');
+        }
+
+        // The search bar comes from the client package; its buttons only contain icons.
+        [
+            ['#gn-search-bar-apply', '{{ search_apply_label|escapejs }}'],
+            ['#gn-search-bar-clear', '{{ search_clear_label|escapejs }}'],
+            ['#gn-search-bar-clear-suggestions', '{{ search_clear_suggestions_label|escapejs }}']
+        ].forEach(([selector, label]) => {
+            const button = root.querySelector(selector);
+            if (button && !button.getAttribute('aria-label')) {
+                button.setAttribute('aria-label', label);
+            }
+        });
+
+        // Cookie notice: informational only (all cookies are strictly necessary).
+        // The dismissal is kept in localStorage so the notice itself sets no cookie.
+        const cookieNotice = document.querySelector('.zalf-cookie-notice');
+        if (cookieNotice) {
+            const storageKey = 'zalf-cookie-notice-dismissed';
+            let dismissed = false;
+            try {
+                dismissed = window.localStorage.getItem(storageKey) === '1';
+            } catch (error) {
+                dismissed = false;
+            }
+            if (!dismissed) {
+                cookieNotice.hidden = false;
+            }
+            const dismissButton = cookieNotice.querySelector('.zalf-cookie-notice__dismiss');
+            if (dismissButton) {
+                dismissButton.addEventListener('click', function() {
+                    cookieNotice.hidden = true;
+                    try {
+                        window.localStorage.setItem(storageKey, '1');
+                    } catch (error) {
+                        // Storage unavailable (private mode): hide for this page view only.
+                    }
+                });
+            }
+        }
+
+        // Skip link: pages render their content differently (Django templates,
+        // MapStore catalogue, home page), so resolve the target when used.
+        const skipLink = document.querySelector('.zalf-skip-link');
+        if (skipLink) {
+            skipLink.addEventListener('click', function(event) {
+                // Keep the URL hash untouched: the catalogue uses hash routing.
+                event.preventDefault();
+                const target = document.querySelector('#main-content, main, [role="main"], .ms-resources-grid, h1');
+                if (!target) {
+                    return;
+                }
+                if (!target.hasAttribute('tabindex')) {
+                    target.setAttribute('tabindex', '-1');
+                }
+                target.focus();
+                target.scrollIntoView({ block: 'start' });
+            });
         }
 
         function closeDropdowns(except) {
@@ -230,6 +367,21 @@
         document.addEventListener('click', function(event) {
             if (!root.contains(event.target)) {
                 closeDropdowns();
+            }
+        });
+
+        // Escape closes an open dropdown and returns focus to its toggle.
+        document.addEventListener('keydown', function(event) {
+            if (event.key !== 'Escape') {
+                return;
+            }
+            const openDropdown = dropdowns.find((dropdown) => dropdown.classList.contains('is-open'));
+            if (openDropdown) {
+                setDropdownState(openDropdown, false);
+                const button = openDropdown.querySelector('.zalf-navigation__dropdown-toggle');
+                if (button) {
+                    button.focus();
+                }
             }
         });
 

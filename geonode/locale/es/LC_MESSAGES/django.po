@@ -10263,3 +10263,127 @@ msgstr "Permiso Denegado"
 
 #~ msgid "Thumbnail saved"
 #~ msgstr "Miniatura guardada"
+
+# ZALF UI review (zalf-rdm/geonode#828)
+msgid "All Data"
+msgstr "Todos los datos"
+
+msgid "Topics"
+msgstr "Temas"
+
+msgid "Tools & Services"
+msgstr "Herramientas y servicios"
+
+msgid "Trainings"
+msgstr "Formación"
+
+msgid "LTE Maps"
+msgstr "Mapas LTE"
+
+msgid "DQ Kit"
+msgstr "DQ Kit"
+
+msgid "Search Datasets"
+msgstr "Buscar conjuntos de datos"
+
+msgid "Animals"
+msgstr "Animales"
+
+msgid "Atmosphere"
+msgstr "Atmósfera"
+
+msgid "Climate"
+msgstr "Clima"
+
+msgid "Forest"
+msgstr "Bosque"
+
+msgid "Hydrology"
+msgstr "Hidrología"
+
+msgid "Landscape"
+msgstr "Paisaje"
+
+msgid "Long Term Field Experiment"
+msgstr "Ensayo de campo de larga duración"
+
+msgid "Plants"
+msgstr "Plantas"
+
+msgid "Soil Profiles"
+msgstr "Perfiles de suelo"
+
+msgid "Water"
+msgstr "Agua"
+
+msgid "Developer"
+msgstr "Desarrolladores"
+
+msgid "OGC Services and API"
+msgstr "Servicios OGC y API"
+
+msgid "FAQ"
+msgstr "Preguntas frecuentes"
+
+msgid "Data Policy"
+msgstr "Política de datos"
+
+msgid "How to Cite Us"
+msgstr "Cómo citarnos"
+
+msgid "Toggle navigation menu"
+msgstr "Mostrar/ocultar menú de navegación"
+
+msgid "Primary navigation"
+msgstr "Navegación principal"
+
+msgid "Fundings"
+msgstr "Financiaciones"
+
+msgid "Related project"
+msgstr "Proyecto relacionado"
+
+msgid "Authors"
+msgstr "Autores"
+
+msgid "Register / Login via ORCID"
+msgstr "Registrarse / Iniciar sesión con ORCID"
+
+msgid "What is ORCID?"
+msgstr "¿Qué es ORCID?"
+
+msgid "Why do we use ORCID?"
+msgstr "¿Por qué usamos ORCID?"
+
+msgid "ORCID iD icon"
+msgstr "Icono de ORCID iD"
+
+msgid "Imprint"
+msgstr "Aviso legal"
+
+msgid "Privacy"
+msgstr "Privacidad"
+
+msgid "Cookies"
+msgstr "Cookies"
+
+msgid "Skip to main content"
+msgstr "Saltar al contenido principal"
+
+msgid "Search"
+msgstr "Buscar"
+
+msgid "Clear search"
+msgstr "Borrar búsqueda"
+
+msgid "Clear search suggestions"
+msgstr "Borrar sugerencias de búsqueda"
+
+msgid "Cookie notice"
+msgstr "Aviso de cookies"
+
+msgid "This website only uses cookies that are necessary for it to work, for example to keep you logged in. No tracking or analytics cookies are used."
+msgstr "Este sitio web solo utiliza las cookies necesarias para su funcionamiento, por ejemplo para mantener la sesión iniciada. No se utilizan cookies de seguimiento ni de análisis."
+
+msgid "More about cookies"
+msgstr "Más sobre las cookies"

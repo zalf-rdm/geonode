@@ -10200,3 +10200,127 @@ msgstr "Tutte le risorse"
 
 #~ msgid "{}: {}"
 #~ msgstr "{}: {}"
+
+# ZALF UI review (zalf-rdm/geonode#828)
+msgid "All Data"
+msgstr "Tutti i dati"
+
+msgid "Topics"
+msgstr "Temi"
+
+msgid "Tools & Services"
+msgstr "Strumenti e servizi"
+
+msgid "Trainings"
+msgstr "Formazione"
+
+msgid "LTE Maps"
+msgstr "Mappe LTE"
+
+msgid "DQ Kit"
+msgstr "DQ Kit"
+
+msgid "Search Datasets"
+msgstr "Cerca dataset"
+
+msgid "Animals"
+msgstr "Animali"
+
+msgid "Atmosphere"
+msgstr "Atmosfera"
+
+msgid "Climate"
+msgstr "Clima"
+
+msgid "Forest"
+msgstr "Foresta"
+
+msgid "Hydrology"
+msgstr "Idrologia"
+
+msgid "Landscape"
+msgstr "Paesaggio"
+
+msgid "Long Term Field Experiment"
+msgstr "Esperimento di campo di lunga durata"
+
+msgid "Plants"
+msgstr "Piante"
+
+msgid "Soil Profiles"
+msgstr "Profili del suolo"
+
+msgid "Water"
+msgstr "Acqua"
+
+msgid "Developer"
+msgstr "Sviluppatori"
+
+msgid "OGC Services and API"
+msgstr "Servizi OGC e API"
+
+msgid "FAQ"
+msgstr "FAQ"
+
+msgid "Data Policy"
+msgstr "Politica dei dati"
+
+msgid "How to Cite Us"
+msgstr "Come citarci"
+
+msgid "Toggle navigation menu"
+msgstr "Apri/chiudi il menu di navigazione"
+
+msgid "Primary navigation"
+msgstr "Navigazione principale"
+
+msgid "Fundings"
+msgstr "Finanziamenti"
+
+msgid "Related project"
+msgstr "Progetto correlato"
+
+msgid "Authors"
+msgstr "Autori"
+
+msgid "Register / Login via ORCID"
+msgstr "Registrati / Accedi con ORCID"
+
+msgid "What is ORCID?"
+msgstr "Che cos’è ORCID?"
+
+msgid "Why do we use ORCID?"
+msgstr "Perché usiamo ORCID?"
+
+msgid "ORCID iD icon"
+msgstr "Icona ORCID iD"
+
+msgid "Imprint"
+msgstr "Note legali"
+
+msgid "Privacy"
+msgstr "Privacy"
+
+msgid "Cookies"
+msgstr "Cookie"
+
+msgid "Skip to main content"
+msgstr "Vai al contenuto principale"
+
+msgid "Search"
+msgstr "Cerca"
+
+msgid "Clear search"
+msgstr "Cancella ricerca"
+
+msgid "Clear search suggestions"
+msgstr "Cancella suggerimenti di ricerca"
+
+msgid "Cookie notice"
+msgstr "Informativa sui cookie"
+
+msgid "This website only uses cookies that are necessary for it to work, for example to keep you logged in. No tracking or analytics cookies are used."
+msgstr "Questo sito utilizza solo cookie necessari al suo funzionamento, ad esempio per mantenere l’accesso. Non vengono utilizzati cookie di tracciamento o di analisi."
+
+msgid "More about cookies"
+msgstr "Maggiori informazioni sui cookie"
