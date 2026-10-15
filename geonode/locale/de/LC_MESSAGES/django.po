@@ -663,10 +663,8 @@ msgid "license of the dataset"
 msgstr "Lizenz des Datensatzes"
 
 #: geonode/base/models.py:850
-#, fuzzy
-#| msgid "license of the dataset"
 msgid "license of the metadata"
-msgstr "Lizenz des Datensatzes"
+msgstr "Lizenz der Metadaten"
 
 #: geonode/base/models.py:851
 msgid "language used within the dataset"
@@ -9521,9 +9519,6 @@ msgstr "Zugriff verweigert"
 
 #~ msgid "Toggle navigation"
 #~ msgstr "Navigation umschalten"
-
-#~ msgid "Search"
-#~ msgstr "Suchen"
 
 #, fuzzy
 #~| msgid "Create a new layer"

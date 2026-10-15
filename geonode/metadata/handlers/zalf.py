@@ -33,6 +33,7 @@ from geonode.base.models import (
 from geonode.layers.models import Attribute
 from geonode.metadata.exceptions import UnsetFieldException
 from geonode.metadata.handlers.abstract import MetadataHandler
+from geonode.metadata.handlers.base import LicenseSubHandler
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +99,7 @@ class ZalfHandler(MetadataHandler):
     Handles ZALF-specific metadata fields:
       - Scalar text/date fields (title_translated, abstract_translated, etc.)
       - M2M restriction fields (use_constraint_restrictions, restriction_other)
+      - metadata_license (FK to License, same select as "license")
       - The attribute table of datasets (attribute_set: labels, descriptions, units, methods, ...)
     """
 
@@ -127,6 +129,9 @@ class ZalfHandler(MetadataHandler):
                 subschema["oneOf"] = [{"const": v, "title": _(v)} for v in CONFORMITY_CHOICES]
             elif property_name in M2M_RESTRICTION_FIELDS:
                 subschema["ui:options"] = {"geonode-ui:autocomplete": reverse("metadata_autocomplete_restrictioncodes")}
+            elif property_name == "metadata_license":
+                # same license list as the "license" field (zalf-rdm/geonode#810)
+                LicenseSubHandler.update_subschema(subschema, lang)
             elif property_name == "fundings":
                 item_props = subschema["items"]["properties"]
                 item_props["organization"]["oneOf"] = [
@@ -169,6 +174,9 @@ class ZalfHandler(MetadataHandler):
         return jsonschema
 
     def get_jsonschema_instance(self, resource, field_name, context, errors, lang=None):
+        if field_name == "metadata_license":
+            return LicenseSubHandler.serialize(resource.metadata_license)
+
         if field_name in M2M_RESTRICTION_FIELDS:
             m2m = getattr(resource, field_name)
             return [{"id": r.identifier, "label": r.identifier} for r in m2m.all()]
@@ -267,6 +275,21 @@ class ZalfHandler(MetadataHandler):
         return value
 
     def update_resource(self, resource, field_name, json_instance, context, errors, **kwargs):
+        if field_name == "metadata_license":
+            # FK to License, stored like the scalar columns (QuerySet.update via context["base"])
+            try:
+                value = LicenseSubHandler.deserialize(json_instance.get(field_name))
+                resource.metadata_license = value
+                context.setdefault("base", {})[field_name] = value
+            except Exception as e:
+                logger.warning(f"ZalfHandler: error setting field {field_name}: {e}")
+                self._set_error(
+                    errors,
+                    [field_name],
+                    self.localize_message(context, "metadata_error_store", {"fieldname": field_name, "exc": e}),
+                )
+            return
+
         if field_name in M2M_RESTRICTION_FIELDS:
             data = json_instance.get(field_name) or []
             identifiers = [item["id"] for item in data if isinstance(item, dict) and "id" in item]

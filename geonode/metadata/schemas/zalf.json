@@ -273,7 +273,7 @@
     },
     "required": ["id"],
     "geonode:handler": "base",
-    "geonode:required": true
+    "geonode:required": false
   },
   "edition": {
     "type": ["string", "null"],
@@ -301,6 +301,18 @@
     "required": ["id"],
     "geonode:handler": "base",
     "geonode:required": true
+  },
+  "metadata_license": {
+    "type": "object",
+    "title": "Metadata License",
+    "description": "license of the metadata",
+    "properties": {
+      "id": { "type": "string" },
+      "label": { "type": "string" }
+    },
+    "required": ["id"],
+    "geonode:handler": "zalf",
+    "geonode:required": false
   },
   "data_quality_statement": {
     "type": ["string", "null"],
