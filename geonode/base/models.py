@@ -1002,7 +1002,7 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
     # clue that the first holds English text and the second German. See #676.
     abstract = models.CharField(_("Abstract (English)"), max_length=6000, help_text=abstract_help_text)
     abstract_translated = models.TextField(
-        _("Abstract (German)"), max_length=2000, help_text=abstract_translated_help_text
+        _("Abstract (German)"), max_length=6000, help_text=abstract_translated_help_text
     )
 
     # description type elements
@@ -1130,7 +1130,7 @@ class ResourceBase(PolymorphicModel, PermissionLevelMixin, ItemBase):
         help_text=license_help_text,
         on_delete=models.SET_NULL,
     )
-    data_lineage = models.TextField(_("Data Lineage"), max_length=2048, blank=True, help_text=data_lineage_help_text)
+    data_lineage = models.TextField(_("Data Lineage"), max_length=6000, blank=True, help_text=data_lineage_help_text)
     metadata_license = models.ForeignKey(
         License,
         null=True,
