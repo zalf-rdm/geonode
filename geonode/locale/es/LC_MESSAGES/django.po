@@ -1012,9 +1012,6 @@ msgstr "Frecuencia de Actualización"
 msgid "Keyword"
 msgstr "Palabra claves"
 
-msgid "Keyword"
-msgstr "Palabra claves"
-
 msgid "keywords"
 msgstr "palabras claves"
 
@@ -9741,9 +9738,6 @@ msgstr "Permiso Denegado"
 #~ msgid "Toggle navigation"
 #~ msgstr "Activar navegación"
 
-#~ msgid "Search"
-#~ msgstr "Buscar"
-
 #, fuzzy
 #~| msgid "Create a new layer"
 #~ msgid "Create a new dataset"
@@ -10418,3 +10412,25 @@ msgstr "Operado por ZALF"
 
 msgid "CoreTrustSeal certification record"
 msgstr "Registro de certificación CoreTrustSeal"
+
+# Navigation bar (zalf-rdm/geonode#832)
+msgid "Tools"
+msgstr "Herramientas"
+
+msgid "LTE Map"
+msgstr "Mapa LTE"
+
+msgid "Long Term Experiments (LTE)"
+msgstr "Experimentos de larga duración (LTE)"
+
+msgid "Submit Data"
+msgstr "Enviar datos"
+
+msgid "Publications"
+msgstr "Publicaciones"
+
+msgid "How to Cite Data"
+msgstr "Cómo citar los datos"
+
+msgid "Login"
+msgstr "Iniciar sesión"

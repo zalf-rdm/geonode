@@ -791,9 +791,6 @@ msgstr ""
 msgid "Keyword"
 msgstr "Mot-clés"
 
-msgid "Keyword"
-msgstr "Mot-clés"
-
 msgid "keywords"
 msgstr "mots-clés"
 
@@ -990,10 +987,6 @@ msgstr "DOI"
 #: geonode/templates/metadata_detail.html:375
 msgid "Maintenance Frequency"
 msgstr "Fréquence de maintenance"
-
-#: geonode/base/models.py:1012 geonode/people/models.py:114
-msgid "keywords"
-msgstr "mots-clés"
 
 #: geonode/base/models.py:1019
 #, fuzzy
@@ -9649,9 +9642,6 @@ msgstr "Autorisation refusée"
 #~ msgid "Toggle navigation"
 #~ msgstr "Basculer la navigation"
 
-#~ msgid "Search"
-#~ msgstr "Chercher"
-
 #, fuzzy
 #~| msgid "Create a new layer"
 #~ msgid "Create a new dataset"
@@ -10218,3 +10208,25 @@ msgstr "Exploité par ZALF"
 
 msgid "CoreTrustSeal certification record"
 msgstr "Certificat de certification CoreTrustSeal"
+
+# Navigation bar (zalf-rdm/geonode#832)
+msgid "Tools"
+msgstr "Outils"
+
+msgid "LTE Map"
+msgstr "Carte LTE"
+
+msgid "Long Term Experiments (LTE)"
+msgstr "Expériences de longue durée (LTE)"
+
+msgid "Submit Data"
+msgstr "Soumettre des données"
+
+msgid "Publications"
+msgstr "Publications"
+
+msgid "How to Cite Data"
+msgstr "Comment citer les données"
+
+msgid "Login"
+msgstr "Connexion"
