@@ -14,7 +14,6 @@
 
     {% dataset_list_url as url_dataset_browse %}
     {% map_list_url as url_maps_browse %}
-    {% url 'developer' as url_developer %}
 
     {% blocktrans %}
     <p>The GeoNode provides access to data sets and a map editing application allows users to browse existing maps and contribute their own.</p>
@@ -22,9 +21,6 @@
     <h4 id="browsing-data">Browsing Layers</h4>
     <p>The <a href="{{ url_dataset_browse }}">Layers</a> tab allows you to browse data uploaded to this GeoNode.</p>
     <p>All data can be downloaded in a variety of formats, for use in other applications.</p>
-
-    <h4 id="developer-access">Developer Access</h4>
-    <p>The <a href="{{ url_developer }}"> Developer</a> page is the place for developers to get started building applications against the GeoNode. It includes instructions on using the web services, links to the source code of the GeoNode, and information about the open source projects used to create it.</p>
 
     <h4 id="browsing-maps">Browsing Maps</h4>
     <p>The GeoNode allows users to create and share maps with one another.</p>
@@ -70,7 +66,6 @@
   <ul class="list-group">
     <li class="list-group-item"><h3>{% trans "Sections" %}</h3></li>
     <li class="list-group-item"><a href="#browsing-data">{% trans "Browsing Layers" %}</a></li>
-    <li class="list-group-item"><a href="#developer-access">{% trans "Developer Access" %}</a></li>
     <li class="list-group-item"><a href="#browsing-maps">{% trans "Browsing Maps" %}</a></li>
     <li class="list-group-item"><a href="#creating-a-map">{% trans "Creating a Map" %}</a></li>
     <li class="list-group-item"><a href="#exporting-a-map">{% trans "Exporting a Map" %}</a></li>
