@@ -61,6 +61,13 @@ urlpatterns = [
     # Extra Pages
     re_path(r"^about/$", TemplateView.as_view(template_name="about.html"), name="about"),
     re_path(r"^faq/$", TemplateView.as_view(template_name="zalf/faq.html"), name="faq"),
+    # Static route on purpose: repository_sso redirects account_login straight to
+    # Keycloak, so the ORCID explanation cannot live on the allauth login page.
+    re_path(
+        r"^what_is_orcid/$",
+        TemplateView.as_view(template_name="zalf/what_is_orcid.html"),
+        name="what_is_orcid",
+    ),
     re_path(r"^upload/$", TemplateView.as_view(template_name="upload.html"), name="upload"),
     re_path(r"^publications/$", TemplateView.as_view(template_name="publications.html"), name="publications"),
     re_path(r"^data_policy/$", TemplateView.as_view(template_name="data_policy.html"), name="data_policy"),

@@ -82,12 +82,16 @@
 <div class="zalf-navigation-shell" data-zalf-source="server">
     <header class="gn-main-header zalf-navigation" data-zalf-source="server" role="banner">
         <div class="zalf-navigation__inner">
+            {# Temporary branding (#851): ZALF mark + repository name. When a #}
+            {# dedicated repository logo exists, swap the asset and the label.  #}
             <a class="zalf-navigation__brand" href="{% url 'home' %}">
                 <img
                     class="zalf-navigation__brand-logo"
-                    src="{% static 'mapstore/img/bonares-logo-white.png' %}"
-                    alt="BonaRes"
+                    src="{% static 'mapstore/img/logo_zalf_white_mark.png' %}"
+                    alt="ZALF"
                 >
+                <span class="zalf-navigation__brand-divider" aria-hidden="true"></span>
+                <span class="zalf-navigation__brand-name">BonaRes Repository</span>
             </a>
 
             <button
@@ -120,7 +124,8 @@
                             </div>
                             <div class="zalf-navigation__dropdown-column">
                                 <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Landscape">{% trans "Landscape" %}</a>
-                                <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Long%20Term%20Field%20Experiment">{% trans "Long Term Field Experiment" %}</a>
+                                {# The query stays "Long Term Field Experiment" — that is what the catalogue matches. #}
+                                <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Long%20Term%20Field%20Experiment">{% trans "Long Term Experiments (LTE)" %}</a>
                                 <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Plants">{% trans "Plants" %}</a>
                                 <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Soil%20Profiles">{% trans "Soil Profiles" %}</a>
                                 <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Water">{% trans "Water" %}</a>
@@ -130,19 +135,33 @@
 
                     <div class="zalf-navigation__dropdown" data-zalf-dropdown>
                         <button type="button" class="zalf-navigation__link zalf-navigation__dropdown-toggle" aria-expanded="false">
-                            {% trans "Tools & Services" %}
+                            {% trans "Tools" %}
                             <span class="zalf-navigation__dropdown-caret">▾</span>
                         </button>
                         <div class="zalf-navigation__dropdown-menu">
-                            <a class="zalf-navigation__dropdown-link" href="/trainings/">{% trans "Trainings" %}</a>
-                            <a class="zalf-navigation__dropdown-link" href="https://tools.bonares.de/ltfe/" target="_blank" rel="noreferrer">{% trans "LTE Maps" %}</a>
+                            {# "Trainings" removed until the material has been reviewed (#840). #}
+                            <a class="zalf-navigation__dropdown-link" href="https://tools.bonares.de/ltfe/" target="_blank" rel="noreferrer">{% trans "LTE Map" %}</a>
                             <a class="zalf-navigation__dropdown-link" href="https://tools.bonares.de/bp_db/" target="_blank" rel="noreferrer">{% trans "Soil Profiles" %}</a>
                             <a class="zalf-navigation__dropdown-link" href="https://dqkit.bonares.de/" target="_blank" rel="noreferrer">{% trans "DQ Kit" %}</a>
                         </div>
                     </div>
 
-                    <a class="zalf-navigation__link" href="{% url 'upload' %}">{% trans "Upload" %}</a>
+                    <a class="zalf-navigation__link" href="{% url 'upload' %}">{% trans "Submit Data" %}</a>
 
+                    <div class="zalf-navigation__dropdown" data-zalf-dropdown>
+                        <button type="button" class="zalf-navigation__link zalf-navigation__dropdown-toggle" aria-expanded="false">
+                            {% trans "Resources" %}
+                            <span class="zalf-navigation__dropdown-caret">▾</span>
+                        </button>
+                        <div class="zalf-navigation__dropdown-menu">
+                            <a class="zalf-navigation__dropdown-link" href="{% url 'publications' %}">{% trans "Publications" %}</a>
+                            <a class="zalf-navigation__dropdown-link" href="{% url 'data_policy' %}">{% trans "Data Policy" %}</a>
+                            <a class="zalf-navigation__dropdown-link" href="{% url 'how_to_cite' %}">{% trans "How to Cite Data" %}</a>
+                        </div>
+                    </div>
+
+                    {# Reduced to About + FAQ (#842); the technical pages (/developer/, #}
+                    {# /ogc_and_api/) stay reachable by URL until they are reviewed.    #}
                     <div class="zalf-navigation__dropdown" data-zalf-dropdown>
                         <button type="button" class="zalf-navigation__link zalf-navigation__dropdown-toggle" aria-expanded="false">
                             {% trans "About" %}
@@ -150,11 +169,10 @@
                         </button>
                         <div class="zalf-navigation__dropdown-menu">
                             <a class="zalf-navigation__dropdown-link" href="{% url 'about' %}">{% trans "About" %}</a>
-                            <a class="zalf-navigation__dropdown-link" href="{% url 'developer' %}">{% trans "Developer" %}</a>
-                            <a class="zalf-navigation__dropdown-link" href="{% url 'ogc_and_api' %}">{% trans "OGC Services and API" %}</a>
                             <a class="zalf-navigation__dropdown-link" href="{% url 'faq' %}">{% trans "FAQ" %}</a>
-                            <a class="zalf-navigation__dropdown-link" href="{% url 'data_policy' %}">{% trans "Data Policy" %}</a>
-                            <a class="zalf-navigation__dropdown-link" href="{% url 'how_to_cite' %}">{% trans "How to Cite Us" %}</a>
+                            {# Must NOT point at /account/login/: repository_sso redirects that #}
+                            {# straight to Keycloak, skipping the explanation entirely.         #}
+                            <a class="zalf-navigation__dropdown-link" href="{% url 'what_is_orcid' %}">{% trans "What is ORCID?" %}</a>
                         </div>
                     </div>
                 </nav>

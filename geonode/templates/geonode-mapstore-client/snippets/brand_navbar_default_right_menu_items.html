@@ -6,10 +6,11 @@
 
 {% if not request.user.is_authenticated %}
     {% if SOCIALACCOUNT_ONLY %}
-        {# ORCID-only: one branded button straight to the openid_connect provider (keycloak/ORCID) #}
-        <li><a id="sign-in" href="{% url 'openid_connect_login' provider_id=SOCIALACCOUNT_PROVIDER %}?next=/" class="nav-link btn btn-default"><img src="{% static 'geonode/img/orcid_id.svg' %}" alt="{% trans 'ORCID iD icon' %}" width="24" height="24" style="vertical-align: middle;"> {% trans "Register / Login via ORCID" %}</a></li>
-        {# benefits explanation lives on the login page (ORCID member requirement) #}
-        <li><a href="/account/login/?next=/" class="nav-link" title="{% trans 'Why do we use ORCID?' %}">{% trans "What is ORCID?" %}</a></li>
+        {# Keycloak/ORCID is enabled (SOCIALACCOUNT_ONLY), so log in straight at the #}
+        {# provider — never via /account/login/, which would add a dead click.       #}
+        {# Shortened to "Login" per #843; the icon keeps the sign-in method visible, #}
+        {# as ORCID's display guidelines expect.                                     #}
+        <li><a id="sign-in" href="{% url 'openid_connect_login' provider_id=SOCIALACCOUNT_PROVIDER %}?next=/" class="nav-link btn btn-default"><img src="{% static 'geonode/img/orcid_id.svg' %}" alt="{% trans 'ORCID iD icon' %}" width="24" height="24"> {% trans "Login" %}</a></li>
     {% else %}
         {% if settings.ACCOUNT_OPEN_SIGNUP and not settings.READ_ONLY %}
             <li><a href="/account/signup/?next=/" class="nav-link btn btn-default">{% trans "Register" %}</a></li>

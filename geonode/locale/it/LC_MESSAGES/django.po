@@ -375,9 +375,6 @@ msgstr ""
 msgid "Region"
 msgstr "Regione"
 
-msgid "Region"
-msgstr "Regione"
-
 msgid "Regions"
 msgstr "Regioni"
 
@@ -482,9 +479,6 @@ msgstr ""
 
 msgid "a DOI will be added by Admin before publication."
 msgstr "un DOI verrà aggiunto dall'amministratore prima della pubblicazione."
-
-msgid "summary of the intentions with which the resource(s) was developed"
-msgstr "sintesi delle intenzioni con cui la risorsa (o le risorse) sono state sviluppate"
 
 msgid ""
 "frequency with which modifications and deletions are made to the data after it is first "
@@ -797,52 +791,11 @@ msgstr "identificazione di quando un dato evento si è verificato"
 msgid "version of the cited resource"
 msgstr "versione della risorsa citata"
 
-#: geonode/base/models.py:823
-msgid ""
-"authority or function assigned, as to a ruler, legislative assembly, "
-"delegate, or the like."
-msgstr ""
-"autorità o funzione assegnata, ad esempio un regolatore, un'assemblea "
-"legislativa, un delegato o simili."
-
-#: geonode/base/models.py:825
-msgid "a DOI will be added by Admin before publication."
-msgstr "un DOI verrà aggiunto dall'amministratore prima della pubblicazione."
-
 #: geonode/base/models.py:826
 msgid "summary of the intentions with which the resource(s) was developed"
 msgstr ""
 "sintesi delle intenzioni con cui la risorsa (o le risorse) sono state "
 "sviluppate"
-
-#: geonode/base/models.py:828
-msgid ""
-"frequency with which modifications and deletions are made to the data after "
-"it is first produced"
-msgstr ""
-"frequenza con cui le modifiche e le cancellazioni sui dati vengono eseguite "
-"dopo essere stati prodotti la prima volta"
-
-#: geonode/base/models.py:831
-msgid ""
-"commonly used word(s) or formalised word(s) or phrase(s) used to describe "
-"the subject (space or comma-separated)"
-msgstr ""
-"parola (o parole) comunemente usate o parola (o parole) e frase (o frasi) "
-"formalizzate usate per descrivere il soggetto (separando attraverso spazio o "
-"virgola"
-
-#: geonode/base/models.py:835
-msgid ""
-"formalised word(s) or phrase(s) from a fixed thesaurus used to describe the "
-"subject (space or comma-separated)"
-msgstr ""
-"parola(e) o frase(i) formalizzate da un thesaurus fisso utilizzato per "
-"descrivere l'oggetto (spazio o delimitato da virgole)"
-
-#: geonode/base/models.py:838
-msgid "keyword identifies a location"
-msgstr "parola chiave che identifica una posizione"
 
 #: geonode/base/models.py:840
 msgid ""
@@ -875,47 +828,11 @@ msgstr ""
 "altre restrizioni e requisiti legali per l'accesso e l'uso della risorsa o "
 "dei metadati"
 
-#: geonode/base/models.py:849
-msgid "license of the dataset"
-msgstr "licenza del dataset"
-
 #: geonode/base/models.py:850
 #, fuzzy
 #| msgid "license of the dataset"
 msgid "license of the metadata"
 msgstr "licenza del dataset"
-
-#: geonode/base/models.py:851
-msgid "language used within the dataset"
-msgstr "lingua usata all'interno del dataset"
-
-#: geonode/base/models.py:853
-msgid ""
-"high-level geographic data thematic classification to assist in the grouping "
-"and search of available geographic data sets."
-msgstr ""
-"classificazione tematica di dati geografici di alto livello per facilitare "
-"il raggruppamento e la ricerca di set di dati geografici disponibili."
-
-#: geonode/base/models.py:856
-msgid "method used to represent geographic information in the dataset."
-msgstr "metodo di rappresentazione spaziale del dataset."
-
-#: geonode/base/models.py:857
-msgid "time period covered by the content of the dataset (start)"
-msgstr "periodo di tempo coperto dal contenuto del dataset (inizio)"
-
-#: geonode/base/models.py:858
-msgid "time period covered by the content of the dataset (end)"
-msgstr "periodo di tempo coperto dal contenuto del dataset (fine)"
-
-#: geonode/base/models.py:860
-msgid ""
-"general explanation of the data producer's knowledge about the lineage of a "
-"dataset"
-msgstr ""
-"spiegazione generale della conoscenza del produttore dei dati riguardo il "
-"lignaggio di un dataset"
 
 #: geonode/base/models.py:863
 msgid ""
@@ -1029,18 +946,6 @@ msgstr ""
 msgid "Security Rules Are Not Synched with GeoServer!"
 msgstr "Le regole di sicurezza non sono sincronizzate con GeoServer!"
 
-#: geonode/base/models.py:912
-msgid "Should this resource be advertised in home page?"
-msgstr "Pubblicare questa risorsa nella home page?"
-
-#: geonode/base/models.py:913
-msgid "Is this resource validated from a publisher or editor?"
-msgstr "Questa risorsa è stata convalidata da un editore o un curatore?"
-
-#: geonode/base/models.py:914
-msgid "Should this resource be published and searchable?"
-msgstr "Deve essere questa risorsa pubblica e ricercabile?"
-
 #: geonode/base/models.py:915
 msgid "If true, will be excluded from search"
 msgstr "Se Vero, l'elemento verrà escluso dalla ricerca"
@@ -1056,18 +961,6 @@ msgid ""
 "The resource source type, which can be one of \"LOCAL\", \"REMOTE\" or "
 "\"COPYREMOTE\"."
 msgstr ""
-
-#: geonode/base/models.py:918
-msgid "Hold the resource processing state."
-msgstr ""
-
-#: geonode/base/models.py:919
-msgid "name by which the cited resource is known"
-msgstr "nome attraverso cui la risorsa citata è conosciuta"
-
-#: geonode/base/models.py:920
-msgid "any other descriptive information about the dataset"
-msgstr "altre informazioni descrittive riguardo il dataset"
 
 #: geonode/base/models.py:921
 msgid "Previous Approved state."
@@ -1148,28 +1041,12 @@ msgstr "tipo di data"
 msgid "Edition"
 msgstr "Edizione"
 
-#: geonode/base/models.py:1000
-#: geonode/base/templates/base/_resourcebase_info_panel.html:163
-#: geonode/templates/metadata_detail.html:205
-msgid "Attribution"
-msgstr "Attribuzione"
-
-#: geonode/base/models.py:1002
-#: geonode/base/templates/base/_resourcebase_info_panel.html:156
-#: geonode/templates/metadata_detail.html:198
-msgid "DOI"
-msgstr "DOI"
-
 #: geonode/base/models.py:1004
 #: geonode/base/templates/base/_resourcebase_info_panel.html:202
 #: geonode/catalogue/templates/geonode_metadata_full.html:92
 #: geonode/templates/metadata_detail.html:375
 msgid "Maintenance Frequency"
 msgstr "Frequenza di revisione"
-
-#: geonode/base/models.py:1012 geonode/people/models.py:114
-msgid "keywords"
-msgstr "parole chiave"
 
 #: geonode/base/models.py:1019
 #, fuzzy
@@ -1230,50 +1107,10 @@ msgstr "Dichiarazione di qualità del dato"
 msgid "srid"
 msgstr ""
 
-#: geonode/base/models.py:1121
-msgid "CSW typename"
-msgstr "CSW typename"
-
-#: geonode/base/models.py:1123
-msgid "CSW schema"
-msgstr "CSW schema"
-
-#: geonode/base/models.py:1125
-msgid "CSW source"
-msgstr "CSW source"
-
-#: geonode/base/models.py:1126
-msgid "CSW insert date"
-msgstr "CSW insert date"
-
-#: geonode/base/models.py:1128
-msgid "CSW type"
-msgstr "CSW type"
-
-#: geonode/base/models.py:1130
-msgid "CSW anytext"
-msgstr "CSW anytext"
-
-#: geonode/base/models.py:1132
-msgid "CSW WKT geometry"
-msgstr "CSW WKT geometry"
-
-#: geonode/base/models.py:1137
-msgid "Metadata uploaded preserve"
-msgstr "Preserva i metadati caricati"
-
-#: geonode/base/models.py:1143 geonode/templates/metadata_detail.html:176
-msgid "Featured"
-msgstr "In primo piano"
-
 #: geonode/base/models.py:1144
 #, fuzzy
 #| msgid "Is Published"
 msgid "Was Published"
-msgstr "Pubblicato"
-
-#: geonode/base/models.py:1145
-msgid "Is Published"
 msgstr "Pubblicato"
 
 #: geonode/base/models.py:1146
@@ -1282,23 +1119,11 @@ msgstr "Pubblicato"
 msgid "Was Approved"
 msgstr "Mappa approvata"
 
-#: geonode/base/models.py:1147 geonode/templates/metadata_detail.html:150
-msgid "Approved"
-msgstr "Approvato(a)"
-
-#: geonode/base/models.py:1150
-msgid "Thumbnail url"
-msgstr "Url della miniatura"
-
 #: geonode/base/models.py:1151
 #, fuzzy
 #| msgid "Thumbnail"
 msgid "Thumbnail path"
 msgstr "Miniatura"
-
-#: geonode/base/models.py:1157
-msgid "State"
-msgstr "Stato"
 
 #: geonode/base/models.py:1167
 #, fuzzy
@@ -2128,9 +1953,6 @@ msgstr "Classifica velocità"
 
 msgid "Link to"
 msgstr "Collegamento a"
-
-msgid "Related resources"
-msgstr "Risorse collegate"
 
 # msgstr "Risorse correlate"
 msgid "File"
@@ -5029,10 +4851,6 @@ msgid ""
 msgstr ""
 "parola di uso comune (s) o una parola formalizzata (s) o la frase (s) "
 "utilizzati per descrivere il soggetto (spazio o separato da virgole"
-
-#: geonode/people/models.py:121
-msgid "language"
-msgstr "lingua"
 
 #: geonode/people/models.py:123
 msgid "Timezone"
@@ -8918,36 +8736,6 @@ msgstr "Tutte le risorse"
 #~ msgid "Mode"
 #~ msgstr "Modalità"
 
-#~ msgid "abstract"
-#~ msgstr "abstract"
-
-#~ msgid "purpose"
-#~ msgstr "finalità"
-
-#~ msgid "date"
-#~ msgstr "data"
-
-#~ msgid "edition"
-#~ msgstr "edizione"
-
-#~ msgid "maintenance frequency"
-#~ msgstr "frequenza di revisione"
-
-#~ msgid "restrictions"
-#~ msgstr "restrizioni"
-
-#~ msgid "restrictions other"
-#~ msgstr "altre restrizioni"
-
-#~ msgid "spatial representation type"
-#~ msgstr "tipo di rappresentazione spaziale"
-
-#~ msgid "supplemental information"
-#~ msgstr "informazioni supplementari"
-
-#~ msgid "data quality statement"
-#~ msgstr "dichiarazione di qualità del dato"
-
 #~ msgid "Create a Map"
 #~ msgstr "Crea una mappa"
 
@@ -8968,9 +8756,6 @@ msgstr "Tutte le risorse"
 
 #~ msgid "A Document was commented on"
 #~ msgstr "E' stato commentato un documento"
-
-#~ msgid "Link to"
-#~ msgstr "Collegamento a"
 
 #~ msgid "Your browser does not support the audio element."
 #~ msgstr "Il tuo browser non supporta l'elemento audio."
@@ -9651,9 +9436,6 @@ msgstr "Tutte le risorse"
 #~ msgid "Toggle navigation"
 #~ msgstr "Toggle navigation"
 
-#~ msgid "Search"
-#~ msgstr "Cerca"
-
 #, fuzzy
 #~| msgid "Create a new layer"
 #~ msgid "Create a new dataset"
@@ -10183,9 +9965,6 @@ msgstr "Tutte le risorse"
 #~ msgid "Save Map"
 #~ msgstr "Salva mappa"
 
-#~ msgid "Climate"
-#~ msgstr "Clima"
-
 #~ msgid "Geoscience"
 #~ msgstr "Geoscience"
 
@@ -10324,3 +10103,25 @@ msgstr "Questo sito utilizza solo cookie necessari al suo funzionamento, ad esem
 
 msgid "More about cookies"
 msgstr "Maggiori informazioni sui cookie"
+
+# Navigation bar (zalf-rdm/geonode#832)
+msgid "Tools"
+msgstr "Strumenti"
+
+msgid "LTE Map"
+msgstr "Mappa LTE"
+
+msgid "Long Term Experiments (LTE)"
+msgstr "Esperimenti di lunga durata (LTE)"
+
+msgid "Submit Data"
+msgstr "Invia dati"
+
+msgid "Publications"
+msgstr "Pubblicazioni"
+
+msgid "How to Cite Data"
+msgstr "Come citare i dati"
+
+msgid "Login"
+msgstr "Accedi"
