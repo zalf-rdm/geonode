@@ -10325,3 +10325,25 @@ msgstr "Cookies verwalten"
 
 msgid "You can view and delete cookies in your browser settings. If you block the cookies listed above, logging in and some forms will not work."
 msgstr "Sie können Cookies in den Einstellungen Ihres Browsers einsehen und löschen. Wenn Sie die oben genannten Cookies blockieren, funktionieren die Anmeldung und einige Formulare nicht."
+
+# Navigation bar (zalf-rdm/geonode#832)
+msgid "Tools"
+msgstr "Werkzeuge"
+
+msgid "LTE Map"
+msgstr "LTE-Karte"
+
+msgid "Long Term Experiments (LTE)"
+msgstr "Dauerfeldversuche (LTE)"
+
+msgid "Submit Data"
+msgstr "Daten einreichen"
+
+msgid "Publications"
+msgstr "Publikationen"
+
+msgid "How to Cite Data"
+msgstr "Daten zitieren"
+
+msgid "Login"
+msgstr "Anmelden"

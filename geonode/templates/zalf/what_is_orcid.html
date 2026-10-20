@@ -1,0 +1,61 @@
+{# Reachable explanation of the ORCID login. #}
+{# The panel on account/login.html cannot serve this purpose: with Keycloak SSO #}
+{# enabled, repository_sso's middleware redirects account_login straight to the #}
+{# provider, so that page never renders. This one is a plain static route.      #}
+{% extends "zalf/institutional_base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}
+    {% trans "What is ORCID?" %} — {{ block.super }}
+{% endblock %}
+
+{% block institutional_hero %}
+    {% trans "What is ORCID?" as hero_title %}
+    {% trans "Why this repository asks you to sign in with an ORCID iD." as hero_subtitle %}
+    {% include "zalf/institutional_hero.html" with title=hero_title subtitle=hero_subtitle %}
+{% endblock %}
+
+{% block body_outer %}
+
+<div class="page-header">
+    <h2>{% trans "Why do we use ORCID?" %}</h2>
+</div>
+
+<p>{% blocktrans %}This repository uses your ORCID iD to reliably attribute published research data to you.{% endblocktrans %}</p>
+
+<ul>
+    <li>{% trans "Your ORCID iD distinguishes you from every other researcher — even those sharing your name." %}</li>
+    <li>{% trans "The research data you publish here is unambiguously linked to you and your ORCID record." %}</li>
+    <li>{% trans "Your account is created automatically; your name and affiliation stay up to date." %}</li>
+    <li>{% trans "Your iD stays with you throughout your career, across employers and institutions." %}</li>
+</ul>
+
+<hr>
+
+<h2>{% trans "Sign in with your ORCID iD" %}</h2>
+
+<p>{% blocktrans %}One account for your research — no extra registration, no extra password.{% endblocktrans %}</p>
+
+{% if SOCIALACCOUNT_ONLY %}
+    <p style="margin: 24px 0;">
+        <a id="what-is-orcid-sign-in"
+           class="btn btn-primary btn-lg"
+           href="{% url 'openid_connect_login' provider_id=SOCIALACCOUNT_PROVIDER %}?next=/"
+           style="display: inline-flex; align-items: center; gap: 10px;">
+            <img src="{% static 'geonode/img/orcid_id.svg' %}" alt="{% trans 'ORCID iD icon' %}" width="24" height="24">
+            {% trans "Login" %}
+        </a>
+    </p>
+{% else %}
+    <p style="margin: 24px 0;">
+        <a id="what-is-orcid-sign-in" class="btn btn-primary btn-lg" href="/account/login/?next=/">{% trans "Login" %}</a>
+    </p>
+{% endif %}
+
+<p class="text-muted">
+    {% blocktrans trimmed %}Don't have an ORCID iD yet? You can register one for free during sign-in.
+    Learn more at <a href="https://info.orcid.org/researchers/" target="_blank" rel="noopener">orcid.org</a>.{% endblocktrans %}
+</p>
+
+{% endblock %}
