@@ -10326,6 +10326,37 @@ msgstr "Cookies verwalten"
 msgid "You can view and delete cookies in your browser settings. If you block the cookies listed above, logging in and some forms will not work."
 msgstr "Sie können Cookies in den Einstellungen Ihres Browsers einsehen und löschen. Wenn Sie die oben genannten Cookies blockieren, funktionieren die Anmeldung und einige Formulare nicht."
 
+# Footer (zalf-rdm/geonode#839)
+msgid "A repository for publishing, discovering, and reusing agricultural research data."
+msgstr "Ein Repositorium zum Veröffentlichen, Entdecken und Nachnutzen agrarwissenschaftlicher Forschungsdaten."
+
+msgid "Repository"
+msgstr "Repositorium"
+
+msgid "Legal"
+msgstr "Rechtliches"
+
+msgid "About the Repository"
+msgstr "Über das Repositorium"
+
+msgid "API & Services"
+msgstr "API & Dienste"
+
+msgid "How to Cite"
+msgstr "Zitieren"
+
+msgid "Privacy Policy"
+msgstr "Datenschutzerklärung"
+
+msgid "Certification"
+msgstr "Zertifizierung"
+
+msgid "Operated by ZALF"
+msgstr "Betrieben vom ZALF"
+
+msgid "CoreTrustSeal certification record"
+msgstr "CoreTrustSeal-Zertifizierungsnachweis"
+
 # Navigation bar (zalf-rdm/geonode#832)
 msgid "Tools"
 msgstr "Werkzeuge"

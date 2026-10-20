@@ -10178,6 +10178,37 @@ msgstr "Ce site n’utilise que les cookies nécessaires à son fonctionnement, 
 msgid "More about cookies"
 msgstr "En savoir plus sur les cookies"
 
+# Footer (zalf-rdm/geonode#839)
+msgid "A repository for publishing, discovering, and reusing agricultural research data."
+msgstr "Un entrepôt pour publier, découvrir et réutiliser les données de la recherche agricole."
+
+msgid "Repository"
+msgstr "Entrepôt"
+
+msgid "Legal"
+msgstr "Mentions légales"
+
+msgid "About the Repository"
+msgstr "À propos de l'entrepôt"
+
+msgid "API & Services"
+msgstr "API et services"
+
+msgid "How to Cite"
+msgstr "Comment citer"
+
+msgid "Privacy Policy"
+msgstr "Politique de confidentialité"
+
+msgid "Certification"
+msgstr "Certification"
+
+msgid "Operated by ZALF"
+msgstr "Exploité par ZALF"
+
+msgid "CoreTrustSeal certification record"
+msgstr "Certificat de certification CoreTrustSeal"
+
 # Navigation bar (zalf-rdm/geonode#832)
 msgid "Tools"
 msgstr "Outils"
