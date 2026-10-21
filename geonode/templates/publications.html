@@ -1,3 +1,6 @@
+{# Publications about the repository itself (#841), not datasets published in it. #}
+{# Titles, authors, years and venues were verified against Crossref and DataCite; #}
+{# the titles are reproduced as the registries hold them.                         #}
 {% extends "zalf/institutional_base.html" %}
 {% load i18n %}
 
@@ -7,113 +10,71 @@
 
 {% block institutional_hero %}
     {% trans "Publications" as hero_title %}
-    {% trans "Research and technical work from the BonaRes Repository and ZALF data infrastructure." as hero_subtitle %}
+    {% trans "Scientific publications, guidelines, and technical documentation related to the BonaRes Repository and its services." as hero_subtitle %}
     {% include "zalf/institutional_hero.html" with title=hero_title subtitle=hero_subtitle %}
 {% endblock %}
 
 {% block body_outer %}
 
+{# The theme hides .page-header; kept for consistency with the other #}
+{# institutional pages, worded to scope the page (#820).             #}
 <div class="page-header">
-    <h2>{% trans "Publications Related to the BonaRes Repository and ZALF Research Data Infrastructure" %}</h2>
+    <h2>{% trans "Publications about the BonaRes Repository and its Services" %}</h2>
 </div>
 
-<p>
-    {% trans "Below you will find selected scientific publications, reports, and technical papers describing the concepts, development, and applications of the BonaRes Repository, the ZALF Research Data Infrastructure, and associated data management practices." %}
-</p>
+<h2>{% trans "Scientific Publications" %}</h2>
+
+<article>
+    <h3>
+        <a href="https://doi.org/10.1016/j.compag.2026.111534" target="_blank" rel="noopener noreferrer">Long-Term Field Experiments Overview Map: An interactive open-access metadata platform to enhance networking and data reuse</a>
+    </h3>
+    <p><em>Dönmez, C., Specka, X., Hoffmann, C., Svoboda, N., Blanchy, G., Chenu, C., &amp; Helming, K. (2026). Computers and Electronics in Agriculture.</em></p>
+    <p>{% trans "Presents the LTE Overview Map, which supports the discovery of long-term field experiments and access to their metadata." %}</p>
+    <p>DOI: <a href="https://doi.org/10.1016/j.compag.2026.111534" target="_blank" rel="noopener noreferrer">https://doi.org/10.1016/j.compag.2026.111534</a></p>
+</article>
 
 <hr>
 
-<h2>{% trans "Peer-Reviewed Scientific Publications" %}</h2>
-
-<ul>
-
-    <li>
-        <strong>Lüke, C.; Hamer, M.; Diepenbroek, M.; Seibert, S.; Zscheischler, J.; et al. (2020).</strong><br>
-        {% trans "The BonaRes data portal: soil-related data for the sustainable bioeconomy." %}<br>
-        <em>Journal of Environmental Management</em>, 271, 110944.<br>
-        <a href="https://doi.org/10.1016/j.jenvman.2020.110944" target="_blank">https://doi.org/10.1016/j.jenvman.2020.110944</a>
-    </li>
-
-    <li class="mt-3">
-        <strong>Knirsch, S.; Fick, J.; Helming, K.; Siebert, S.; et al. (2020).</strong><br>
-        {% trans "Managing soil-related data in the BonaRes Data Centre." %}<br>
-        <em>Soil Systems</em>, 4(3), 48.<br>
-        <a href="https://doi.org/10.3390/soilsystems4030048" target="_blank">https://doi.org/10.3390/soilsystems4030048</a>
-    </li>
-
-    <li class="mt-3">
-        <strong>Schelhorn, D.; Asseng, S.; Kuhnert, M.; et al. (2021).</strong><br>
-        {% trans "Long-term agricultural experiments in Germany: a FAIR-oriented data publication workflow developed within the BonaRes Project." %}<br>
-        <em>Scientific Data</em>, 8, 123.<br>
-        <a href="https://doi.org/10.1038/s41597-021-00907-4" target="_blank">https://doi.org/10.1038/s41597-021-00907-4</a>
-    </li>
-
-    <li class="mt-3">
-        <strong>Jacobs, A.; Krüger, J.; et al. (2020).</strong><br>
-        {% trans "A research data management architecture for agricultural landscape research at ZALF." %}<br>
-        <em>ISPRS International Journal of Geo-Information</em>, 9(7), 423.<br>
-        <a href="https://doi.org/10.3390/ijgi9070423" target="_blank">https://doi.org/10.3390/ijgi9070423</a>
-    </li>
-
-</ul>
+<article>
+    <h3>
+        <a href="https://doi.org/10.1111/ejss.70103" target="_blank" rel="noopener noreferrer">Facilitating Effective Reuse of Soil Research Data: The BonaRes Repository</a>
+    </h3>
+    <p><em>Lachmuth, S., Dönmez, C., Hoffmann, C., Specka, X., Svoboda, N., &amp; Helming, K. (2025). European Journal of Soil Science.</em></p>
+    <p>{% trans "Introduces the BonaRes Repository, its infrastructure and specialized services, and examines how published datasets are reused in soil and agricultural research." %}</p>
+    <p>DOI: <a href="https://doi.org/10.1111/ejss.70103" target="_blank" rel="noopener noreferrer">https://doi.org/10.1111/ejss.70103</a></p>
+</article>
 
 <hr>
 
-<h2>{% trans "Technical Reports, Concepts, and Infrastructure Papers" %}</h2>
+<article>
+    <h3>
+        <a href="https://doi.org/10.1016/j.cageo.2019.07.005" target="_blank" rel="noopener noreferrer">The BonaRes metadata schema for geospatial soil-agricultural research data – Merging INSPIRE and DataCite metadata schemes</a>
+    </h3>
+    <p><em>Specka, X., Gärtner, P., Hoffmann, C., Svoboda, N., et al. (2019). Computers &amp; Geosciences.</em></p>
+    <p>{% trans "Describes the development of the BonaRes Metadata Schema, combining INSPIRE and DataCite standards to improve interoperability and data publication." %}</p>
+    <p>DOI: <a href="https://doi.org/10.1016/j.cageo.2019.07.005" target="_blank" rel="noopener noreferrer">https://doi.org/10.1016/j.cageo.2019.07.005</a></p>
+</article>
 
-<ul>
+<h2>{% trans "Guidelines" %}</h2>
 
-    <li>
-        <strong>BonaRes Data Centre (ZALF) Team (2018).</strong><br>
-        {% trans "BonaRes Data Policy and Research Data Management Guidelines." %}<br>
-        ZALF / BonaRes Report Series.
-    </li>
+<article>
+    <h3>
+        <a href="https://doi.org/10.20387/BonaRes-0nz6-1v51" target="_blank" rel="noopener noreferrer">Citing soil and agricultural research data</a>
+    </h3>
+    <p><em>Svoboda, N., Hoffmann, C., Specka, X., Schmidt, M., Atemkeng, M., &amp; Meier, K. (2024). BonaRes Series 2024/1.</em></p>
+    <p>{% trans "Provides guidance on data citation, DOI assignment, dataset versioning, and updates to published research data." %}</p>
+    <p>DOI: <a href="https://doi.org/10.20387/BonaRes-0nz6-1v51" target="_blank" rel="noopener noreferrer">https://doi.org/10.20387/BonaRes-0nz6-1v51</a></p>
+</article>
 
-    <li class="mt-3">
-        <strong>BonaRes Data Centre (ZALF) Team (2020).</strong><br>
-        {% trans "FAIR Principles in Practice: Implementing Findable, Accessible, Interoperable and Reusable Data Workflows for Soil and Agricultural Research." %}<br>
-        ZALF Research Data Infrastructure Documentation.
-    </li>
+<h2>{% trans "Technical Publications & Documentation" %}</h2>
 
-    <li class="mt-3">
-        <strong>ZALF Research Data Management Working Group (2021).</strong><br>
-        {% trans "ZALF Research Data Infrastructure – Architecture, Workflows and Interoperability Concept." %}<br>
-        <em>ZALF Technical Report</em>.
-    </li>
-
-</ul>
-
-<hr>
-
-<h2>{% trans "Conference Contributions and Presentations" %}</h2>
-
-<ul>
-
-    <li>
-        <strong>Hamer, M.; Diepenbroek, M.; et al. (2019).</strong><br>
-        {% trans "The BonaRes Repository: Supporting FAIR and open soil data publishing in Germany." %}<br>
-        EGU General Assembly, Vienna.
-    </li>
-
-    <li class="mt-3">
-        <strong>Schelhorn, D.; Seiffert, S.; et al. (2020).</strong><br>
-        {% trans "FAIR Data Workflows for Long-Term Field Experiments." %}<br>
-        iPRES — International Conference on Digital Preservation.
-    </li>
-
-    <li class="mt-3">
-        <strong>ZALF RDM Team (2022).</strong><br>
-        {% trans "From datasets to research products: building a consistent and interoperable repository infrastructure at ZALF." %}<br>
-        Open Science Conference (Leibniz).
-    </li>
-
-</ul>
-
-<hr>
-
-<h2>{% trans "Suggesting Additional Publications" %}</h2>
-<p>
-    {% trans "If you are aware of publications that cite or describe the BonaRes Repository or the ZALF Research Data Infrastructure, please contact the Research Data Management team so we can extend this list." %}
-</p>
+<article>
+    <h3>
+        <a href="https://doi.org/10.20387/BonaRes-5PGG-8YRP" target="_blank" rel="noopener noreferrer">The BonaRes Metadata Schema</a>
+    </h3>
+    <p><em>Gärtner, P., Svoboda, N., Kühnert, T., Zoarder, M., &amp; Heinrich, U. (2017). BonaRes Series.</em></p>
+    <p>{% trans "Provides detailed definitions and specifications of the BonaRes metadata elements, integrating INSPIRE and DataCite standards." %}</p>
+    <p>DOI: <a href="https://doi.org/10.20387/BonaRes-5PGG-8YRP" target="_blank" rel="noopener noreferrer">https://doi.org/10.20387/BonaRes-5PGG-8YRP</a></p>
+</article>
 
 {% endblock %}
