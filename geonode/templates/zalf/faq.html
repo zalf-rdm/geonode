@@ -1,63 +1,223 @@
-{% load static %}
-{% load client_version %}
-<!DOCTYPE html>
-<html class="msgapi">
-    <head>
-        {% include 'geonode-mapstore-client/snippets/head.html' %}
-        {% include 'geonode-mapstore-client/snippets/loader_style.html' %}
+{# FAQ (#848). Previously a React page in geonode-mapstore-client, which left it #}
+{# outside the institutional layout and meant every wording change waited on a   #}
+{# client package rebuild. It is now an ordinary static page like the others.    #}
+{#                                                                               #}
+{# The accordion is <details>/<summary>: collapsed by default, operable from the #}
+{# keyboard and exposed to assistive technology by the browser, with no script.  #}
+{% extends "zalf/institutional_base.html" %}
+{% load i18n %}
 
-        {% block custom_theme %}
-            {% include 'geonode-mapstore-client/snippets/custom_theme.html' %}
-        {% endblock %}
+{% block title %}
+    {% trans "Frequently Asked Questions" %} — {{ block.super }}
+{% endblock %}
 
-        {% block extra_head %}
-        {% endblock %}
-    </head>
-    <body class="msgapi ms2" data-ms2-container="ms2">
-        <div class="gn-page-wrapper {% if request.user_agent.is_mobile %}gn-mobile{% else %}gn-desktop{% endif %}">
-            <div class="gn-theme gn-homepage">
-                {% include 'geonode-mapstore-client/_geonode_config.html' with plugins_config_key='zalf_faq' %}
+{% block institutional_hero %}
+    {% trans "Frequently Asked Questions" as hero_title %}
+    {% trans "Find answers to common questions about finding, publishing, and reusing research data in the BonaRes Repository." as hero_subtitle %}
+    {% include "zalf/institutional_hero.html" with title=hero_title subtitle=hero_subtitle %}
+{% endblock %}
 
-                {% block header %}
-                    {% include 'geonode-mapstore-client/snippets/header.html' with show_hero=False %}
-                {% endblock %}
+{% block institutional_body %}
 
-                {% block container %}
-                    <div id="ms-container">
-                        <div class="gn-main-event-container">
-                            <div class="gn-main-event-content">
-                                <div class="gn-main-loader"></div>
-                                <div class="gn-main-event-text"></div>
-                            </div>
-                        </div>
-                    </div>
-                {% endblock %}
+{# The theme hides .page-header; kept for consistency with the other institutional pages. #}
+<div class="page-header">
+    <h2>{% trans "Frequently Asked Questions" %}</h2>
+</div>
 
-                <script>
-                    window.addEventListener('mapstore:ready', function(event) {
-                        const msAPI = event.detail;
-                        msAPI.setPluginsConfig((localConfig) => {
-                            return localConfig?.plugins?.zalf_faq || [];
-                        });
-                    });
-                </script>
+<style>
+    .zalf-faq-group + .zalf-faq-group {
+        margin-top: 40px;
+    }
+    .zalf-faq-list {
+        border: 1px solid rgba(22, 48, 38, 0.12);
+        border-radius: 12px;
+        background: #ffffff;
+        overflow: hidden;
+    }
+    .zalf-faq-item + .zalf-faq-item {
+        border-top: 1px solid rgba(22, 48, 38, 0.12);
+    }
+    .zalf-faq-item > summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 15px 20px;
+        color: #1a3529;
+        font-weight: 600;
+        line-height: 1.4;
+        cursor: pointer;
+        list-style: none;
+    }
+    /* Replace the native marker with a chevron on the right. */
+    .zalf-faq-item > summary::-webkit-details-marker {
+        display: none;
+    }
+    .zalf-faq-item > summary::after {
+        content: "";
+        flex: 0 0 auto;
+        width: 9px;
+        height: 9px;
+        border-right: 2px solid #4e9c18;
+        border-bottom: 2px solid #4e9c18;
+        transform: rotate(45deg) translate(-2px, -2px);
+        transition: transform 160ms ease;
+    }
+    .zalf-faq-item[open] > summary::after {
+        transform: rotate(-135deg);
+    }
+    .zalf-faq-item > summary:hover {
+        background: rgba(78, 156, 24, 0.06);
+    }
+    .zalf-faq-item > summary:focus-visible {
+        outline: 2px solid #4e9c18;
+        outline-offset: -2px;
+    }
+    .zalf-faq-answer {
+        padding: 0 20px 16px;
+        color: #536a61;
+    }
+    .zalf-faq-answer p {
+        margin: 0;
+    }
+    .zalf-faq-answer p + p {
+        margin-top: 10px;
+    }
+    .zalf-faq-answer a {
+        font-weight: 600;
+    }
 
-                {% block ms_scripts %}
-                    <script id="gn-script" src="{% static 'mapstore/dist/js/gn-components.js' %}?{% client_version %}"></script>
-                {% endblock %}
+    @media (max-width: 767px) {
+        .zalf-faq-item > summary {
+            padding: 13px 16px;
+        }
+        .zalf-faq-answer {
+            padding: 0 16px 14px;
+        }
+    }
+</style>
 
-                {% block footer %}
-                    {% include 'geonode-mapstore-client/snippets/footer.html' %}
-                {% endblock %}
-
-                {% block scripts %}
-                    <script src="{% static "lib/js/jquery.min.js" %}"></script>
-                    <script src="{% static "lib/js/bootstrap.min.js" %}"></script>
-                    <script type="text/javascript">
-                        $('.dropdown-toggle').dropdown();
-                    </script>
-                {% endblock %}
+<section class="zalf-faq-group">
+    <h2 id="finding-data">{% trans "Finding Data" %}</h2>
+    <div class="zalf-faq-list">
+        <details class="zalf-faq-item">
+            <summary>{% trans "What kind of data can I find in the BonaRes Repository?" %}</summary>
+            <div class="zalf-faq-answer">
+                <p>{% trans "The BonaRes Repository provides research datasets from soil science and agricultural research, with a particular focus on data from long-term field experiments (LTEs). The repository also includes soil measurements, field observations, and other research data relevant to soil and agricultural systems." %}</p>
             </div>
-        </div>
-    </body>
-</html>
+        </details>
+        <details class="zalf-faq-item">
+            <summary>{% trans "Can I find data from long-term field experiments (LTEs)?" %}</summary>
+            <div class="zalf-faq-answer">
+                <p>{% trans "Yes. The BonaRes Repository provides datasets from long-term field experiments, including soil, crop, and management data. The LTE Map tool can help you discover long-term field experiments and explore related information." %}</p>
+                <p><a href="https://tools.bonares.de/ltfe/" target="_blank" rel="noopener noreferrer">{% trans "LTE Map" %}</a></p>
+            </div>
+        </details>
+        <details class="zalf-faq-item">
+            <summary>{% trans "How can I find datasets?" %}</summary>
+            <div class="zalf-faq-answer">
+                <p>{% trans "Use the dataset search or browse by topic. You can refine your search using available filters and explore the metadata to identify relevant datasets." %}</p>
+                <p><a href="/catalogue/">{% trans "All Data" %}</a></p>
+            </div>
+        </details>
+        <details class="zalf-faq-item">
+            <summary>{% trans "Can I access datasets without registering?" %}</summary>
+            <div class="zalf-faq-answer">
+                <p>{% trans "Published, openly accessible datasets can be discovered and downloaded without an account. Access to any restricted resources depends on their specific access conditions." %}</p>
+            </div>
+        </details>
+    </div>
+</section>
+
+<section class="zalf-faq-group">
+    <h2 id="publishing-data">{% trans "Publishing Data" %}</h2>
+    <div class="zalf-faq-list">
+        <details class="zalf-faq-item">
+            <summary>{% trans "Who can publish data in the BonaRes Repository?" %}</summary>
+            <div class="zalf-faq-answer">
+                <p>{% trans "The repository is open to researchers from ZALF and other research institutions. You do not need to be part of the original BonaRes research initiative." %}</p>
+            </div>
+        </details>
+        <details class="zalf-faq-item">
+            <summary>{% trans "What types of data can I publish?" %}</summary>
+            <div class="zalf-faq-answer">
+                <p>{% trans "The repository accepts quality-controlled research data from soil, agricultural, and related environmental sciences. Datasets should be sufficiently documented to support scientific reuse." %}</p>
+            </div>
+        </details>
+        <details class="zalf-faq-item">
+            <summary>{% trans "How do I submit a dataset?" %}</summary>
+            <div class="zalf-faq-answer">
+                <p>{% trans "Select \"Submit Data\" in the main navigation. You will need to sign in and provide your data files together with the required metadata." %}</p>
+                <p><a href="{% url 'upload' %}">{% trans "Submit Data" %}</a></p>
+            </div>
+        </details>
+        <details class="zalf-faq-item">
+            <summary>{% trans "Will my dataset receive a DOI?" %}</summary>
+            <div class="zalf-faq-answer">
+                <p>{% trans "Yes. Published datasets receive a Digital Object Identifier (DOI), making them permanently identifiable and citable." %}</p>
+            </div>
+        </details>
+        <details class="zalf-faq-item">
+            <summary>{% trans "Can I update a dataset after publication?" %}</summary>
+            <div class="zalf-faq-answer">
+                <p>{% trans "Published datasets should remain stable and citable. If corrections or updates are necessary, please contact the repository team to discuss the appropriate procedure." %}</p>
+                <p><a href="mailto:dataservice@zalf.de">dataservice@zalf.de</a></p>
+            </div>
+        </details>
+    </div>
+</section>
+
+<section class="zalf-faq-group">
+    <h2 id="using-citing-data">{% trans "Using & Citing Data" %}</h2>
+    <div class="zalf-faq-list">
+        <details class="zalf-faq-item">
+            <summary>{% trans "Can I freely reuse data from the repository?" %}</summary>
+            <div class="zalf-faq-answer">
+                <p>{% trans "Published datasets are generally available for reuse. Please check the license and access conditions provided with each dataset." %}</p>
+            </div>
+        </details>
+        <details class="zalf-faq-item">
+            <summary>{% trans "How should I cite a dataset?" %}</summary>
+            <div class="zalf-faq-answer">
+                <p>{% trans "Use the citation information and DOI provided on the dataset's landing page. Additional guidance is available under Resources → How to Cite Data." %}</p>
+                <p><a href="{% url 'how_to_cite' %}">{% trans "How to Cite" %}</a></p>
+            </div>
+        </details>
+        <details class="zalf-faq-item">
+            <summary>{% trans "Which licenses are used?" %}</summary>
+            <div class="zalf-faq-answer">
+                <p>{% trans "The standard license specified in the BonaRes Data Policy is Creative Commons Attribution (CC BY). Always check the license assigned to the individual dataset." %}</p>
+                <p><a href="{% url 'data_policy' %}">{% trans "Data Policy" %}</a></p>
+            </div>
+        </details>
+    </div>
+</section>
+
+<section class="zalf-faq-group">
+    <h2 id="about-support">{% trans "About & Support" %}</h2>
+    <div class="zalf-faq-list">
+        <details class="zalf-faq-item">
+            <summary>{% trans "Who operates the BonaRes Repository?" %}</summary>
+            <div class="zalf-faq-answer">
+                <p>{% trans "The repository is operated and maintained by the Leibniz Centre for Agricultural Landscape Research (ZALF) in Müncheberg, Germany." %}</p>
+                <p><a href="{% url 'about' %}">{% trans "About the Repository" %}</a></p>
+            </div>
+        </details>
+        <details class="zalf-faq-item">
+            <summary>{% trans "Which data policies apply?" %}</summary>
+            <div class="zalf-faq-answer">
+                <p>{% trans "The BonaRes Data Policy governs dataset submission, publication, and reuse. Research data generated at ZALF is also subject to the institutional ZALF Data Policy. Both documents are available under Resources → Data Policy." %}</p>
+                <p><a href="{% url 'data_policy' %}">{% trans "Data Policy" %}</a></p>
+            </div>
+        </details>
+        <details class="zalf-faq-item">
+            <summary>{% trans "Who can I contact for support?" %}</summary>
+            <div class="zalf-faq-answer">
+                <p>{% trans "For questions about publishing, accessing, or reusing datasets, please contact the BonaRes Repository support team at ZALF." %}</p>
+                <p><a href="mailto:dataservice@zalf.de">dataservice@zalf.de</a></p>
+            </div>
+        </details>
+    </div>
+</section>
+
+{% endblock %}
