@@ -1,0 +1,135 @@
+{# Section navigation for the static pages (#858). Grouped like the navigation #}
+{# bar and the footer so the same vocabulary is used throughout.               #}
+{# Styles are inline rather than in the theme stylesheet: the theme ships from #}
+{# the geonode-mapstore-client package, so keeping them here lets this render  #}
+{# without waiting for that package to be rebuilt.                             #}
+{% load i18n %}
+
+<style>
+    /* The theme caps the hero and content at 960px, which left a ~668px text
+       column once the panel was in place, with wide margins either side. Widened
+       here so the change ships with this template instead of waiting on a
+       geonode-mapstore-client package rebuild; the hero is widened with it so the
+       two stay aligned. */
+    .zalf-institutional-hero__inner,
+    .zalf-institutional-content {
+        width: min(1200px, calc(100% - 32px));
+    }
+
+    .zalf-page-layout {
+        display: flex;
+        align-items: flex-start;
+        gap: 56px;
+    }
+    .zalf-page-layout__main {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .zalf-page-nav {
+        flex: 0 0 236px;
+        /* Clears the sticky header, which is 94px tall at desktop widths. */
+        position: sticky;
+        top: 110px;
+        padding: 22px 18px;
+        border: 1px solid rgba(31, 59, 45, 0.1);
+        border-radius: 14px;
+        background: #f6f9f4;
+        font-size: 0.94rem;
+    }
+    .zalf-page-nav__group + .zalf-page-nav__group {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid rgba(31, 59, 45, 0.1);
+    }
+    /* Scoped past `.zalf-institutional-content h2`, which would otherwise win on
+       specificity and render these group labels at 24px with a 2rem top margin. */
+    .zalf-page-nav .zalf-page-nav__title {
+        margin: 0 0 10px;
+        padding: 0 10px;
+        color: #5c7363;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        line-height: 1.4;
+        text-transform: uppercase;
+    }
+    .zalf-page-nav__list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    .zalf-page-nav__list li + li {
+        margin-top: 2px;
+    }
+    .zalf-page-nav__list a {
+        display: block;
+        padding: 7px 10px;
+        border-radius: 8px;
+        color: #132238;
+        text-decoration: none;
+        line-height: 1.4;
+        transition: background-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
+    }
+    .zalf-page-nav__list a:hover,
+    .zalf-page-nav__list a:focus {
+        background: rgba(78, 156, 24, 0.09);
+        color: #1f3b2d;
+        text-decoration: none;
+    }
+    .zalf-page-nav__list a:focus-visible {
+        outline: 2px solid #4e9c18;
+        outline-offset: 1px;
+    }
+    .zalf-page-nav__list a.is-active {
+        background: rgba(78, 156, 24, 0.14);
+        box-shadow: inset 3px 0 0 #4e9c18;
+        color: #1f3b2d;
+        font-weight: 600;
+    }
+
+    /* Below the Bootstrap md breakpoint the panel sits above the content. */
+    @media (max-width: 767px) {
+        .zalf-page-layout {
+            flex-direction: column;
+            gap: 28px;
+        }
+        .zalf-page-nav {
+            position: static;
+            flex: 0 0 auto;
+            width: 100%;
+        }
+    }
+</style>
+
+{% with current=request.resolver_match.url_name %}
+<nav class="zalf-page-nav" aria-label="{% trans 'Section navigation' %}">
+
+    <div class="zalf-page-nav__group">
+        <h2 class="zalf-page-nav__title">{% trans "Resources" %}</h2>
+        <ul class="zalf-page-nav__list">
+            <li><a href="{% url 'publications' %}"{% if current == 'publications' %} class="is-active" aria-current="page"{% endif %}>{% trans "Publications" %}</a></li>
+            <li><a href="{% url 'data_policy' %}"{% if current == 'data_policy' %} class="is-active" aria-current="page"{% endif %}>{% trans "Data Policy" %}</a></li>
+            <li><a href="{% url 'how_to_cite' %}"{% if current == 'how_to_cite' %} class="is-active" aria-current="page"{% endif %}>{% trans "How to Cite" %}</a></li>
+        </ul>
+    </div>
+
+    <div class="zalf-page-nav__group">
+        <h2 class="zalf-page-nav__title">{% trans "About" %}</h2>
+        <ul class="zalf-page-nav__list">
+            <li><a href="{% url 'about' %}"{% if current == 'about' %} class="is-active" aria-current="page"{% endif %}>{% trans "About the Repository" %}</a></li>
+            <li><a href="{% url 'what_is_orcid' %}"{% if current == 'what_is_orcid' %} class="is-active" aria-current="page"{% endif %}>{% trans "What is ORCID?" %}</a></li>
+            <li><a href="{% url 'ogc_and_api' %}"{% if current == 'ogc_and_api' %} class="is-active" aria-current="page"{% endif %}>{% trans "API & Services" %}</a></li>
+        </ul>
+    </div>
+
+    <div class="zalf-page-nav__group">
+        <h2 class="zalf-page-nav__title">{% trans "Legal" %}</h2>
+        <ul class="zalf-page-nav__list">
+            <li><a href="{% url 'imprint' %}"{% if current == 'imprint' %} class="is-active" aria-current="page"{% endif %}>{% trans "Imprint" %}</a></li>
+            <li><a href="{% url 'privacy' %}"{% if current == 'privacy' %} class="is-active" aria-current="page"{% endif %}>{% trans "Privacy Policy" %}</a></li>
+            <li><a href="{% url 'privacy-cookies' %}"{% if current == 'privacy-cookies' %} class="is-active" aria-current="page"{% endif %}>{% trans "Cookies" %}</a></li>
+        </ul>
+    </div>
+
+</nav>
+{% endwith %}
