@@ -53,6 +53,15 @@
     .zalf-cookie-notice[hidden] {
         display: none;
     }
+    /* Divides the two halves of the merged Information menu (#864). Kept here
+       rather than in the theme stylesheet so it ships with this template
+       instead of waiting on a geonode-mapstore-client package rebuild. */
+    .zalf-navigation__dropdown-separator {
+        display: block;
+        height: 1px;
+        margin: 8px 18px;
+        background: var(--zalf-nav-divider-soft, rgba(255, 255, 255, 0.18));
+    }
     .zalf-cookie-notice p {
         flex: 1 1 320px;
         margin: 0;
@@ -148,32 +157,26 @@
 
                     <a class="zalf-navigation__link" href="{% url 'upload' %}">{% trans "Submit Data" %}</a>
 
+                    {# Resources and About merged into one menu (#864): six entries across #}
+                    {# two dropdowns, and the extra toggle made the bar wider than it needs  #}
+                    {# to be — which bites in German. /developer/ was removed entirely for   #}
+                    {# the initial release (#844); /ogc_and_api/ stays reachable by URL      #}
+                    {# until it has been reviewed.                                           #}
                     <div class="zalf-navigation__dropdown" data-zalf-dropdown>
                         <button type="button" class="zalf-navigation__link zalf-navigation__dropdown-toggle" aria-expanded="false">
-                            {% trans "Resources" %}
+                            {% trans "Information" %}
                             <span class="zalf-navigation__dropdown-caret">▾</span>
                         </button>
                         <div class="zalf-navigation__dropdown-menu">
-                            <a class="zalf-navigation__dropdown-link" href="{% url 'publications' %}">{% trans "Publications" %}</a>
-                            <a class="zalf-navigation__dropdown-link" href="{% url 'data_policy' %}">{% trans "Data Policy" %}</a>
-                            <a class="zalf-navigation__dropdown-link" href="{% url 'how_to_cite' %}">{% trans "How to Cite Data" %}</a>
-                        </div>
-                    </div>
-
-                    {# Reduced to About + FAQ (#842). /developer/ was removed entirely #}
-                    {# for the initial release (#844); /ogc_and_api/ stays reachable by #}
-                    {# URL until it has been reviewed.                                  #}
-                    <div class="zalf-navigation__dropdown" data-zalf-dropdown>
-                        <button type="button" class="zalf-navigation__link zalf-navigation__dropdown-toggle" aria-expanded="false">
-                            {% trans "About" %}
-                            <span class="zalf-navigation__dropdown-caret">▾</span>
-                        </button>
-                        <div class="zalf-navigation__dropdown-menu">
-                            <a class="zalf-navigation__dropdown-link" href="{% url 'about' %}">{% trans "About" %}</a>
+                            <a class="zalf-navigation__dropdown-link" href="{% url 'about' %}">{% trans "About the Repository" %}</a>
                             <a class="zalf-navigation__dropdown-link" href="{% url 'faq' %}">{% trans "FAQ" %}</a>
                             {# Must NOT point at /account/login/: repository_sso redirects that #}
                             {# straight to Keycloak, skipping the explanation entirely.         #}
                             <a class="zalf-navigation__dropdown-link" href="{% url 'what_is_orcid' %}">{% trans "What is ORCID?" %}</a>
+                            <span class="zalf-navigation__dropdown-separator" role="separator"></span>
+                            <a class="zalf-navigation__dropdown-link" href="{% url 'publications' %}">{% trans "Publications" %}</a>
+                            <a class="zalf-navigation__dropdown-link" href="{% url 'data_policy' %}">{% trans "Data Policy" %}</a>
+                            <a class="zalf-navigation__dropdown-link" href="{% url 'how_to_cite' %}">{% trans "How to Cite Data" %}</a>
                         </div>
                     </div>
                 </nav>
