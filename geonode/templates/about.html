@@ -1,26 +1,116 @@
+{# About the repository (#847). The section anchors are listed in the side panel #}
+{# (zalf/institutional_nav.html), so the ids below are referenced from there.    #}
 {% extends "zalf/institutional_base.html" %}
 
 {% load i18n %}
-{% block title %} {% trans "About BonaRes Repository" %} — {{ block.super }} {% endblock %}
+{% block title %} {% trans "About the Repository" %} — {{ block.super }} {% endblock %}
 
 {% block institutional_hero %}
-  {% trans "About BonaRes Repository" as hero_title %}
-  {% trans "A trusted home for agricultural and environmental research data." as hero_subtitle %}
+  {% trans "About the Repository" as hero_title %}
+  {% trans "An open repository for soil and agricultural research data." as hero_subtitle %}
   {% include "zalf/institutional_hero.html" with title=hero_title subtitle=hero_subtitle %}
 {% endblock %}
 
 {% block institutional_body %}
+
+{# The theme hides .page-header; kept for consistency with the other institutional pages. #}
 <div class="page-header">
-  <h2>{% trans "About BonaRes Repository" %}</h2>
+  <h2>{% trans "About the BonaRes Repository" %}</h2>
 </div>
+
+<style>
+  .zalf-timeline {
+    margin: 0;
+    padding: 0 0 0 22px;
+    border-left: 2px solid rgba(78, 156, 24, 0.3);
+    list-style: none;
+  }
+  .zalf-timeline li {
+    position: relative;
+    padding-bottom: 20px;
+  }
+  .zalf-timeline li:last-child {
+    padding-bottom: 0;
+  }
+  .zalf-timeline li::before {
+    content: "";
+    position: absolute;
+    top: 7px;
+    left: -29px;
+    width: 12px;
+    height: 12px;
+    border: 2px solid #4e9c18;
+    border-radius: 50%;
+    background: #ffffff;
+  }
+  .zalf-timeline__when {
+    display: block;
+    color: #1f3b2d;
+    font-weight: 700;
+  }
+</style>
+
+<h2 id="about-the-repository">{% trans "About the BonaRes Repository" %}</h2>
+
 <p>
-　　{% trans "GeoNode is a geospatial content management system, a platform for the management and publication of geospatial data. It brings together mature and stable open-source software projects under a consistent and easy-to-use interface allowing non-specialized users to share data and create interactive maps." %}
+  {% trans "The BonaRes Repository is a research data repository for soil and agricultural research data. It enables researchers to publish, discover, access, and reuse research datasets." %}
 </p>
 <p>
-　　{% trans "Data management tools built into GeoNode allow for integrated creation of data, metadata, and map visualizations. Each dataset in the system can be shared publicly or restricted to allow access to only specific users. Social features like user profiles and rating systems allow for the development of communities around each platform to facilitate the use, management, and quality control of the data the GeoNode instance contains." %}
+  {% trans "The repository is open to researchers from ZALF and other research institutions, supporting the long-term availability and reuse of research data in accordance with the FAIR principles." %}
+</p>
+
+<hr>
+
+<h2 id="our-history">{% trans "Our History" %}</h2>
+
+<ul class="zalf-timeline">
+  <li>
+    <span class="zalf-timeline__when">{% trans "Originally" %}</span>
+    {% trans "Established as part of the BonaRes research initiative to manage and publish research data generated within the project." %}
+  </li>
+  <li>
+    <span class="zalf-timeline__when">2017</span>
+    {% trans "Opened to researchers beyond the BonaRes initiative, allowing the publication of external research datasets." %}
+  </li>
+  <li>
+    <span class="zalf-timeline__when">2024</span>
+    {% trans "ZALF committed to the long-term operation of the BonaRes Repository." %}
+  </li>
+  <li>
+    <span class="zalf-timeline__when">{% trans "Today" %}</span>
+    {% trans "An open research data repository for soil and agricultural research in Germany and beyond." %}
+  </li>
+</ul>
+
+<hr>
+
+<h2 id="operation-and-infrastructure">{% trans "Operation and Infrastructure" %}</h2>
+
+<p>
+  {% blocktrans trimmed %}
+  The BonaRes Repository is operated and maintained by the
+  <a href="https://www.zalf.de" target="_blank" rel="noopener noreferrer">Leibniz Centre for Agricultural Landscape Research (ZALF)</a>
+  in Müncheberg, Germany.
+  {% endblocktrans %}
 </p>
 <p>
-　　{% trans "It is also designed to be a flexible platform that software developers can extend, modify or integrate against to meet requirements in their own applications." %}
+  {% blocktrans trimmed %}
+  It is based on <a href="https://geonode.org/" target="_blank" rel="noopener noreferrer">GeoNode</a>,
+  an open-source platform for managing, publishing, and sharing geospatial data. ZALF is responsible
+  for the technical operation and continued development of the repository.
+  {% endblocktrans %}
+</p>
+
+<hr>
+
+<h2 id="contact">{% trans "Contact" %}</h2>
+
+<p>
+  {% trans "Have questions about the BonaRes Repository, data publication, or need technical support? Please contact the repository team at ZALF." %}
+</p>
+<p>
+  <strong>{% trans "Contact:" %}</strong>
+  <a href="mailto:dataservice@zalf.de">dataservice@zalf.de</a>
 </p>
 
 {% endblock %}
