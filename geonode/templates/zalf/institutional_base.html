@@ -3,3 +3,15 @@
 {% block institutional_content_class %}zalf-institutional-content{% endblock %}
 
 {% block footer %}{% include "zalf/institutional_footer.html" %}{% endblock %}
+
+{# The static pages render one full-width column; the section navigation (#858) #}
+{# turns that into panel + content. Pages fill `institutional_body`, not        #}
+{# `body_outer`, so the panel is not overridden away.                           #}
+{% block body_outer %}
+<div class="zalf-page-layout">
+    {% include "zalf/institutional_nav.html" %}
+    <div class="zalf-page-layout__main">
+        {% block institutional_body %}{% endblock %}
+    </div>
+</div>
+{% endblock %}
