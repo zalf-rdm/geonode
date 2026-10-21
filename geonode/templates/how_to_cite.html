@@ -1,105 +1,111 @@
+{# Citation guidance (#849). Deliberately short: the detailed recommendations    #}
+{# live in the published guidelines, which this page links to rather than        #}
+{# reproduces. Bibliographic details verified against DataCite.                  #}
 {% extends "zalf/institutional_base.html" %}
 {% load i18n %}
 
 {% block title %}
-    {% trans "How to Cite Us" %} — {{ block.super }}
+    {% trans "How to Cite Data" %} — {{ block.super }}
 {% endblock %}
 
 {% block institutional_hero %}
-    {% trans "How to Cite Us" as hero_title %}
-    {% trans "Guidance for acknowledging the repository and the datasets it preserves." as hero_subtitle %}
+    {% trans "How to Cite Data" as hero_title %}
+    {% trans "Guidance on citing research datasets published in the BonaRes Repository." as hero_subtitle %}
     {% include "zalf/institutional_hero.html" with title=hero_title subtitle=hero_subtitle %}
 {% endblock %}
 
 {% block institutional_body %}
 
+{# The theme hides .page-header; kept for consistency with the other institutional pages. #}
 <div class="page-header">
-    <h2>{% trans "How to Cite the ZALF Repository" %}</h2>
+    <h2>{% trans "How to Cite Data" %}</h2>
 </div>
 
+<style>
+    /* Callout for the published guidelines, so they stand out from the prose. */
+    .zalf-cite-callout {
+        margin-top: 8px;
+        padding: 22px 24px;
+        border: 1px solid rgba(78, 156, 24, 0.3);
+        border-left: 4px solid #4e9c18;
+        border-radius: 10px;
+        background: #f6f9f4;
+    }
+    .zalf-cite-callout__title {
+        margin: 0 0 4px;
+        color: #1f3b2d;
+        font-weight: 700;
+    }
+    .zalf-cite-callout__meta {
+        margin: 0 0 16px;
+        color: #536a61;
+    }
+    .zalf-cite-callout .btn-cite {
+        display: inline-block;
+        padding: 10px 20px;
+        border-radius: 999px;
+        background: #4e9c18;
+        color: #ffffff;
+        font-weight: 600;
+        text-decoration: none;
+    }
+    .zalf-cite-callout .btn-cite:hover,
+    .zalf-cite-callout .btn-cite:focus {
+        background: #3f7f14;
+        color: #ffffff;
+        text-decoration: none;
+    }
+    .zalf-cite-callout .btn-cite:focus-visible {
+        outline: 2px solid #1f3b2d;
+        outline-offset: 2px;
+    }
+</style>
+
+<h2 id="why-cite">{% trans "Why Cite Research Data?" %}</h2>
+
 <p>
-    {% trans "When using datasets, metadata, or other materials hosted in the ZALF Repository, we kindly request that you properly acknowledge the platform. Citation ensures transparency, credit to contributors, and supports the long-term sustainability of research data services." %}
+    {% trans "Research data are valuable scientific outputs and should be acknowledged when reused. Proper data citation gives credit to data creators, makes research more transparent, and allows others to identify and access the original datasets." %}
 </p>
 
 <hr>
 
-<h2>{% trans "1. Cite the ZALF Repository Platform" %}</h2>
-<p>{% trans "If you want to reference the repository as an infrastructure or as a data source in general, please use the following recommended citation:" %}</p>
+<h2 id="how-to-cite">{% trans "How to Cite a Dataset" %}</h2>
 
-<pre style="background:#f8f8f8; padding:1rem; border-radius:6px;">
-ZALF Repository ({{ now|date:"Y" }}).
-Leibniz Centre for Agricultural Landscape Research (ZALF).
-Available at: https://repository.zalf.de
-</pre>
-
-<hr>
-
-<h2>{% trans "2. Cite Individual Datasets" %}</h2>
 <p>
-    {% trans "Each dataset published in the ZALF Repository includes a preferred citation format. To cite a specific dataset, use the citation provided on the dataset’s page, which typically includes:" %}
+    {% trans "When using data from the BonaRes Repository, cite the dataset using the citation information provided on its landing page." %}
 </p>
+
+<p>{% trans "A dataset citation should generally include:" %}</p>
 
 <ul>
-    <li>{% trans "Authors / data creators" %}</li>
-    <li>{% trans "Year of publication" %}</li>
-    <li>{% trans "Dataset title" %}</li>
-    <li>{% trans "ZALF Repository as the data publisher" %}</li>
-    <li>{% trans "Persistent Identifier (PID or DOI)" %}</li>
-    <li>{% trans "Version, if available" %}</li>
+    <li><strong>{% trans "Author(s)" %}</strong> {% trans "or data creator(s)" %}</li>
+    <li><strong>{% trans "Year" %}</strong> {% trans "of publication" %}</li>
+    <li><strong>{% trans "Dataset title" %}</strong></li>
+    <li><strong>{% trans "Publisher" %}</strong> {% trans "(BonaRes Repository)" %}</li>
+    <li><strong>{% trans "Digital Object Identifier (DOI)" %}</strong></li>
 </ul>
 
-<p>{% trans "Example:" %}</p>
-
-<pre style="background:#f8f8f8; padding:1rem; border-radius:6px;">
-Müller, A.; Schmidt, L.; Hoffmann, M. (2024).
-Soil moisture measurements from the DEMM study area (v1.1).
-ZALF Repository.
-https://repository.zalf.de/dataset/abcd-1234
-</pre>
-
-<hr>
-
-<h2>{% trans "3. Citing Datasets Without a Provided Format" %}</h2>
 <p>
-    {% trans "If a dataset does not include a detailed citation suggestion, you may use the general pattern below:" %}
+    {% trans "Always use the DOI to link to the dataset and follow the citation information provided in its metadata." %}
 </p>
 
-<pre style="background:#f8f8f8; padding:1rem; border-radius:6px;">
-Author(s) (Year).
-Title of the dataset.
-ZALF Repository.
-Persistent Identifier (if available).
-URL
-</pre>
-
 <hr>
 
-<h2>{% trans "4. Referencing the Repository in Research Papers" %}</h2>
+<h2 id="guidelines">{% trans "Detailed Citation Guidelines" %}</h2>
+
 <p>
-    {% trans "When describing your data sources, methods, or Research Data Management practices, you may generally refer to the platform as follows:" %}
+    {% blocktrans trimmed %}
+    Our publication <em>Citing Soil and Agricultural Research Data</em> provides detailed
+    recommendations on dataset citation, DOI assignment, data collections, updates, and versioning.
+    {% endblocktrans %}
 </p>
 
-<pre style="background:#f8f8f8; padding:1rem; border-radius:6px;">
-"The research data used in this study were accessed through the ZALF Repository,
-the institutional research data platform of the Leibniz Centre for Agricultural Landscape Research (ZALF)."
-</pre>
-
-<hr>
-
-<h2>{% trans "5. Why Proper Citation Matters" %}</h2>
-
-<ul>
-    <li>{% trans "Ensures that data creators receive appropriate credit." %}</li>
-    <li>{% trans "Improves scientific transparency and reproducibility." %}</li>
-    <li>{% trans "Helps track dataset usage and scientific impact." %}</li>
-    <li>{% trans "Supports long-term maintenance and infrastructure funding." %}</li>
-</ul>
-
-<hr>
-
-<h2>{% trans "Contact" %}</h2>
-<p>
-    {% trans "If you have questions about how to cite datasets or the platform, feel free to contact the ZALF Research Data Management support team." %}
-</p>
+<div class="zalf-cite-callout">
+    <p class="zalf-cite-callout__title">{% trans "Citing Soil and Agricultural Research Data" %}</p>
+    <p class="zalf-cite-callout__meta">Svoboda, N., et al. (2024). BonaRes Series 2024/1.</p>
+    <a class="btn-cite" href="https://doi.org/10.20387/BonaRes-0nz6-1v51" target="_blank" rel="noopener noreferrer">
+        {% trans "Read the Citation Guidelines" %}
+    </a>
+</div>
 
 {% endblock %}
