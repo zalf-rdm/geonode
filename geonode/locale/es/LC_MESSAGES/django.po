@@ -10434,3 +10434,112 @@ msgstr "Cómo citar los datos"
 
 msgid "Login"
 msgstr "Iniciar sesión"
+
+# FAQ (zalf-rdm/geonode#848)
+msgid "Frequently Asked Questions"
+msgstr ""
+
+msgid "Find answers to common questions about finding, publishing, and reusing research data in the BonaRes Repository."
+msgstr ""
+
+msgid "Finding Data"
+msgstr ""
+
+msgid "Publishing Data"
+msgstr ""
+
+msgid "Using & Citing Data"
+msgstr ""
+
+msgid "About & Support"
+msgstr ""
+
+msgid "What kind of data can I find in the BonaRes Repository?"
+msgstr ""
+
+msgid "The BonaRes Repository provides research datasets from soil science and agricultural research, with a particular focus on data from long-term field experiments (LTEs). The repository also includes soil measurements, field observations, and other research data relevant to soil and agricultural systems."
+msgstr ""
+
+msgid "Can I find data from long-term field experiments (LTEs)?"
+msgstr ""
+
+msgid "Yes. The BonaRes Repository provides datasets from long-term field experiments, including soil, crop, and management data. The LTE Map tool can help you discover long-term field experiments and explore related information."
+msgstr ""
+
+msgid "How can I find datasets?"
+msgstr ""
+
+msgid "Use the dataset search or browse by topic. You can refine your search using available filters and explore the metadata to identify relevant datasets."
+msgstr ""
+
+msgid "Can I access datasets without registering?"
+msgstr ""
+
+msgid "Published, openly accessible datasets can be discovered and downloaded without an account. Access to any restricted resources depends on their specific access conditions."
+msgstr ""
+
+msgid "Who can publish data in the BonaRes Repository?"
+msgstr ""
+
+msgid "The repository is open to researchers from ZALF and other research institutions. You do not need to be part of the original BonaRes research initiative."
+msgstr ""
+
+msgid "What types of data can I publish?"
+msgstr ""
+
+msgid "The repository accepts quality-controlled research data from soil, agricultural, and related environmental sciences. Datasets should be sufficiently documented to support scientific reuse."
+msgstr ""
+
+msgid "How do I submit a dataset?"
+msgstr ""
+
+msgid "Select \"Submit Data\" in the main navigation. You will need to sign in and provide your data files together with the required metadata."
+msgstr ""
+
+msgid "Will my dataset receive a DOI?"
+msgstr ""
+
+msgid "Yes. Published datasets receive a Digital Object Identifier (DOI), making them permanently identifiable and citable."
+msgstr ""
+
+msgid "Can I update a dataset after publication?"
+msgstr ""
+
+msgid "Published datasets should remain stable and citable. If corrections or updates are necessary, please contact the repository team to discuss the appropriate procedure."
+msgstr ""
+
+msgid "Can I freely reuse data from the repository?"
+msgstr ""
+
+msgid "Published datasets are generally available for reuse. Please check the license and access conditions provided with each dataset."
+msgstr ""
+
+msgid "How should I cite a dataset?"
+msgstr ""
+
+msgid "Use the citation information and DOI provided on the dataset's landing page. Additional guidance is available under Resources → How to Cite Data."
+msgstr ""
+
+msgid "Which licenses are used?"
+msgstr ""
+
+msgid "The standard license specified in the BonaRes Data Policy is Creative Commons Attribution (CC BY). Always check the license assigned to the individual dataset."
+msgstr ""
+
+msgid "Who operates the BonaRes Repository?"
+msgstr ""
+
+msgid "The repository is operated and maintained by the Leibniz Centre for Agricultural Landscape Research (ZALF) in Müncheberg, Germany."
+msgstr ""
+
+msgid "Which data policies apply?"
+msgstr ""
+
+msgid "The BonaRes Data Policy governs dataset submission, publication, and reuse. Research data generated at ZALF is also subject to the institutional ZALF Data Policy. Both documents are available under Resources → Data Policy."
+msgstr ""
+
+msgid "Who can I contact for support?"
+msgstr ""
+
+msgid "For questions about publishing, accessing, or reusing datasets, please contact the BonaRes Repository support team at ZALF."
+msgstr ""

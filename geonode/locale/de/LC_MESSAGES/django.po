@@ -10378,3 +10378,112 @@ msgstr "Daten zitieren"
 
 msgid "Login"
 msgstr "Anmelden"
+
+# FAQ (zalf-rdm/geonode#848)
+msgid "Frequently Asked Questions"
+msgstr "Häufig gestellte Fragen"
+
+msgid "Find answers to common questions about finding, publishing, and reusing research data in the BonaRes Repository."
+msgstr "Antworten auf häufige Fragen zum Finden, Veröffentlichen und Nachnutzen von Forschungsdaten im BonaRes-Repository."
+
+msgid "Finding Data"
+msgstr "Daten finden"
+
+msgid "Publishing Data"
+msgstr "Daten veröffentlichen"
+
+msgid "Using & Citing Data"
+msgstr "Daten nutzen & zitieren"
+
+msgid "About & Support"
+msgstr "Über das Repository & Support"
+
+msgid "What kind of data can I find in the BonaRes Repository?"
+msgstr "Welche Daten finde ich im BonaRes-Repository?"
+
+msgid "The BonaRes Repository provides research datasets from soil science and agricultural research, with a particular focus on data from long-term field experiments (LTEs). The repository also includes soil measurements, field observations, and other research data relevant to soil and agricultural systems."
+msgstr "Das BonaRes-Repository stellt Forschungsdaten aus der Bodenkunde und der Agrarforschung bereit, mit einem Schwerpunkt auf Daten aus Dauerfeldversuchen (LTEs). Hinzu kommen Bodenmessungen, Feldbeobachtungen und weitere Forschungsdaten zu Boden- und Agrarsystemen."
+
+msgid "Can I find data from long-term field experiments (LTEs)?"
+msgstr "Finde ich Daten aus Dauerfeldversuchen (LTEs)?"
+
+msgid "Yes. The BonaRes Repository provides datasets from long-term field experiments, including soil, crop, and management data. The LTE Map tool can help you discover long-term field experiments and explore related information."
+msgstr "Ja. Das BonaRes-Repository stellt Datensätze aus Dauerfeldversuchen bereit, darunter Boden-, Ernte- und Bewirtschaftungsdaten. Die LTE-Karte hilft dabei, Dauerfeldversuche zu entdecken und zugehörige Informationen zu erkunden."
+
+msgid "How can I find datasets?"
+msgstr "Wie finde ich Datensätze?"
+
+msgid "Use the dataset search or browse by topic. You can refine your search using available filters and explore the metadata to identify relevant datasets."
+msgstr "Nutzen Sie die Datensatzsuche oder stöbern Sie nach Themen. Mit den verfügbaren Filtern grenzen Sie die Suche weiter ein; die Metadaten helfen, passende Datensätze zu erkennen."
+
+msgid "Can I access datasets without registering?"
+msgstr "Kann ich ohne Registrierung auf Datensätze zugreifen?"
+
+msgid "Published, openly accessible datasets can be discovered and downloaded without an account. Access to any restricted resources depends on their specific access conditions."
+msgstr "Veröffentlichte, offen zugängliche Datensätze lassen sich ohne Konto finden und herunterladen. Der Zugriff auf eingeschränkte Ressourcen richtet sich nach deren jeweiligen Zugriffsbedingungen."
+
+msgid "Who can publish data in the BonaRes Repository?"
+msgstr "Wer darf Daten im BonaRes-Repository veröffentlichen?"
+
+msgid "The repository is open to researchers from ZALF and other research institutions. You do not need to be part of the original BonaRes research initiative."
+msgstr "Das Repository steht Forschenden des ZALF und anderer Forschungseinrichtungen offen. Eine Zugehörigkeit zur ursprünglichen BonaRes-Initiative ist nicht erforderlich."
+
+msgid "What types of data can I publish?"
+msgstr "Welche Arten von Daten kann ich veröffentlichen?"
+
+msgid "The repository accepts quality-controlled research data from soil, agricultural, and related environmental sciences. Datasets should be sufficiently documented to support scientific reuse."
+msgstr "Das Repository nimmt qualitätsgeprüfte Forschungsdaten aus der Boden-, Agrar- und verwandten Umweltwissenschaften auf. Datensätze sollten so dokumentiert sein, dass eine wissenschaftliche Nachnutzung möglich ist."
+
+msgid "How do I submit a dataset?"
+msgstr "Wie reiche ich einen Datensatz ein?"
+
+msgid "Select \"Submit Data\" in the main navigation. You will need to sign in and provide your data files together with the required metadata."
+msgstr "Wählen Sie „Daten einreichen“ in der Hauptnavigation. Sie müssen sich anmelden und Ihre Datendateien zusammen mit den erforderlichen Metadaten bereitstellen."
+
+msgid "Will my dataset receive a DOI?"
+msgstr "Erhält mein Datensatz eine DOI?"
+
+msgid "Yes. Published datasets receive a Digital Object Identifier (DOI), making them permanently identifiable and citable."
+msgstr "Ja. Veröffentlichte Datensätze erhalten einen Digital Object Identifier (DOI) und sind damit dauerhaft identifizierbar und zitierbar."
+
+msgid "Can I update a dataset after publication?"
+msgstr "Kann ich einen Datensatz nach der Veröffentlichung aktualisieren?"
+
+msgid "Published datasets should remain stable and citable. If corrections or updates are necessary, please contact the repository team to discuss the appropriate procedure."
+msgstr "Veröffentlichte Datensätze sollen stabil und zitierbar bleiben. Sind Korrekturen oder Aktualisierungen nötig, wenden Sie sich bitte an das Repository-Team, um das weitere Vorgehen abzustimmen."
+
+msgid "Can I freely reuse data from the repository?"
+msgstr "Darf ich Daten aus dem Repository frei nachnutzen?"
+
+msgid "Published datasets are generally available for reuse. Please check the license and access conditions provided with each dataset."
+msgstr "Veröffentlichte Datensätze stehen grundsätzlich zur Nachnutzung bereit. Bitte prüfen Sie die Lizenz- und Zugriffsbedingungen des jeweiligen Datensatzes."
+
+msgid "How should I cite a dataset?"
+msgstr "Wie zitiere ich einen Datensatz?"
+
+msgid "Use the citation information and DOI provided on the dataset's landing page. Additional guidance is available under Resources → How to Cite Data."
+msgstr "Verwenden Sie die Zitationsangaben und die DOI auf der Landing-Page des Datensatzes. Weitere Hinweise finden Sie unter Ressourcen → Daten zitieren."
+
+msgid "Which licenses are used?"
+msgstr "Welche Lizenzen werden verwendet?"
+
+msgid "The standard license specified in the BonaRes Data Policy is Creative Commons Attribution (CC BY). Always check the license assigned to the individual dataset."
+msgstr "Die in der BonaRes-Datenrichtlinie festgelegte Standardlizenz ist Creative Commons Attribution (CC BY). Prüfen Sie stets die Lizenz des einzelnen Datensatzes."
+
+msgid "Who operates the BonaRes Repository?"
+msgstr "Wer betreibt das BonaRes-Repository?"
+
+msgid "The repository is operated and maintained by the Leibniz Centre for Agricultural Landscape Research (ZALF) in Müncheberg, Germany."
+msgstr "Das Repository wird vom Leibniz-Zentrum für Agrarlandschaftsforschung (ZALF) in Müncheberg, Deutschland, betrieben und gepflegt."
+
+msgid "Which data policies apply?"
+msgstr "Welche Datenrichtlinien gelten?"
+
+msgid "The BonaRes Data Policy governs dataset submission, publication, and reuse. Research data generated at ZALF is also subject to the institutional ZALF Data Policy. Both documents are available under Resources → Data Policy."
+msgstr "Die BonaRes-Datenrichtlinie regelt Einreichung, Veröffentlichung und Nachnutzung von Datensätzen. Am ZALF erhobene Forschungsdaten unterliegen zusätzlich der institutionellen ZALF-Datenrichtlinie. Beide Dokumente finden Sie unter Ressourcen → Datenrichtlinie."
+
+msgid "Who can I contact for support?"
+msgstr "An wen kann ich mich bei Fragen wenden?"
+
+msgid "For questions about publishing, accessing, or reusing datasets, please contact the BonaRes Repository support team at ZALF."
+msgstr "Bei Fragen zur Veröffentlichung, zum Zugriff oder zur Nachnutzung von Datensätzen wenden Sie sich bitte an das Support-Team des BonaRes-Repository am ZALF."
