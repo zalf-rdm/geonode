@@ -87,6 +87,24 @@
         font-weight: 600;
     }
 
+    /* Anchors within the current page, shown under its entry (#847). */
+    .zalf-page-nav__sections {
+        margin: 2px 0 0;
+        padding: 0 0 0 10px;
+        list-style: none;
+    }
+    .zalf-page-nav__sections a {
+        padding: 5px 10px;
+        border-left: 2px solid rgba(31, 59, 45, 0.14);
+        border-radius: 0 8px 8px 0;
+        color: rgba(19, 34, 56, 0.82);
+        font-size: 0.88rem;
+    }
+    .zalf-page-nav__sections a:hover,
+    .zalf-page-nav__sections a:focus {
+        border-left-color: #4e9c18;
+    }
+
     /* Below the Bootstrap md breakpoint the panel sits above the content. */
     @media (max-width: 767px) {
         .zalf-page-layout {
@@ -116,7 +134,18 @@
     <div class="zalf-page-nav__group">
         <h2 class="zalf-page-nav__title">{% trans "About" %}</h2>
         <ul class="zalf-page-nav__list">
-            <li><a href="{% url 'about' %}"{% if current == 'about' %} class="is-active" aria-current="page"{% endif %}>{% trans "About the Repository" %}</a></li>
+            <li>
+                <a href="{% url 'about' %}"{% if current == 'about' %} class="is-active" aria-current="page"{% endif %}>{% trans "About the Repository" %}</a>
+                {% if current == 'about' %}
+                    {# Mirrors the h2 ids in about.html. #}
+                    <ul class="zalf-page-nav__sections">
+                        <li><a href="#about-the-repository">{% trans "About the BonaRes Repository" %}</a></li>
+                        <li><a href="#our-history">{% trans "Our History" %}</a></li>
+                        <li><a href="#operation-and-infrastructure">{% trans "Operation and Infrastructure" %}</a></li>
+                        <li><a href="#contact">{% trans "Contact" %}</a></li>
+                    </ul>
+                {% endif %}
+            </li>
             <li><a href="{% url 'what_is_orcid' %}"{% if current == 'what_is_orcid' %} class="is-active" aria-current="page"{% endif %}>{% trans "What is ORCID?" %}</a></li>
             <li><a href="{% url 'ogc_and_api' %}"{% if current == 'ogc_and_api' %} class="is-active" aria-current="page"{% endif %}>{% trans "API & Services" %}</a></li>
         </ul>
