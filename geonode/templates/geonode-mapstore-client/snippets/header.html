@@ -53,14 +53,26 @@
     .zalf-cookie-notice[hidden] {
         display: none;
     }
-    /* Divides the two halves of the merged Information menu (#864). Kept here
-       rather than in the theme stylesheet so it ships with this template
+    /* Group labels inside the merged Help & Information menu (#866). Kept here
+       rather than in the theme stylesheet so they ship with this template
        instead of waiting on a geonode-mapstore-client package rebuild. */
-    .zalf-navigation__dropdown-separator {
+    .zalf-navigation__dropdown-heading {
         display: block;
-        height: 1px;
-        margin: 8px 18px;
-        background: var(--zalf-nav-divider-soft, rgba(255, 255, 255, 0.18));
+        margin: 2px 0 6px;
+        padding: 0 18px;
+        color: var(--zalf-nav-text-muted, rgba(244, 244, 244, 0.78));
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        line-height: 1.4;
+        text-transform: uppercase;
+    }
+    /* Only a heading that follows links needs a rule above it, so the first
+       group label in the menu stays flush with the top. */
+    .zalf-navigation__dropdown-link + .zalf-navigation__dropdown-heading {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid var(--zalf-nav-divider-soft, rgba(255, 255, 255, 0.18));
     }
     .zalf-cookie-notice p {
         flex: 1 1 320px;
@@ -157,25 +169,27 @@
 
                     <a class="zalf-navigation__link" href="{% url 'submit_data' %}">{% trans "Submit Data" %}</a>
 
-                    {# Resources and About merged into one menu (#864): six entries across #}
-                    {# two dropdowns, and the extra toggle made the bar wider than it needs  #}
-                    {# to be — which bites in German. /developer/ was removed entirely for   #}
-                    {# the initial release (#844), as was /ogc_and_api/ (#845).              #}
+                    {# Resources and About are one menu (#864), named and grouped under   #}
+                    {# labelled headings in #866: six entries across two dropdowns, and the #}
+                    {# extra toggle made the bar wider than it needs to be — which bites in  #}
+                    {# German. /developer/ was removed entirely for the initial release      #}
+                    {# (#844), as was /ogc_and_api/ (#845).                                  #}
                     <div class="zalf-navigation__dropdown" data-zalf-dropdown>
                         <button type="button" class="zalf-navigation__link zalf-navigation__dropdown-toggle" aria-expanded="false">
-                            {% trans "Information" %}
+                            {% trans "Help & Information" %}
                             <span class="zalf-navigation__dropdown-caret">▾</span>
                         </button>
                         <div class="zalf-navigation__dropdown-menu">
-                            <a class="zalf-navigation__dropdown-link" href="{% url 'about' %}">{% trans "About the Repository" %}</a>
-                            <a class="zalf-navigation__dropdown-link" href="{% url 'faq' %}">{% trans "FAQ" %}</a>
-                            {# Must NOT point at /account/login/: repository_sso redirects that #}
-                            {# straight to Keycloak, skipping the explanation entirely.         #}
-                            <a class="zalf-navigation__dropdown-link" href="{% url 'what_is_orcid' %}">{% trans "What is ORCID?" %}</a>
-                            <span class="zalf-navigation__dropdown-separator" role="separator"></span>
+                            <span class="zalf-navigation__dropdown-heading">{% trans "Resources" %}</span>
                             <a class="zalf-navigation__dropdown-link" href="{% url 'publications' %}">{% trans "Publications" %}</a>
                             <a class="zalf-navigation__dropdown-link" href="{% url 'data_policy' %}">{% trans "Data Policy" %}</a>
                             <a class="zalf-navigation__dropdown-link" href="{% url 'how_to_cite' %}">{% trans "How to Cite Data" %}</a>
+                            <span class="zalf-navigation__dropdown-heading">{% trans "About" %}</span>
+                            <a class="zalf-navigation__dropdown-link" href="{% url 'about' %}">{% trans "About the Repository" %}</a>
+                            {# Must NOT point at /account/login/: repository_sso redirects that #}
+                            {# straight to Keycloak, skipping the explanation entirely.         #}
+                            <a class="zalf-navigation__dropdown-link" href="{% url 'what_is_orcid' %}">{% trans "What is ORCID?" %}</a>
+                            <a class="zalf-navigation__dropdown-link" href="{% url 'faq' %}">{% trans "FAQ" %}</a>
                         </div>
                     </div>
                 </nav>

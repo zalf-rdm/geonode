@@ -10355,3 +10355,7 @@ msgstr ""
 
 msgid "Our team will get in touch with you to discuss the next steps and support you throughout the publication process."
 msgstr ""
+
+#: geonode/templates/geonode-mapstore-client/snippets/header.html
+msgid "Help & Information"
+msgstr "Aide et information"

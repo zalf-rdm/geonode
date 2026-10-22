@@ -10503,3 +10503,7 @@ msgstr "Wenn Sie in der Zwischenzeit Forschungsdaten veröffentlichen möchten, 
 
 msgid "Our team will get in touch with you to discuss the next steps and support you throughout the publication process."
 msgstr "Unser Team meldet sich bei Ihnen, um die nächsten Schritte zu besprechen und Sie während des gesamten Veröffentlichungsprozesses zu begleiten."
+
+#: geonode/templates/geonode-mapstore-client/snippets/header.html
+msgid "Help & Information"
+msgstr "Hilfe & Information"
