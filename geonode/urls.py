@@ -68,6 +68,13 @@ urlpatterns = [
         name="what_is_orcid",
     ),
     re_path(r"^upload/$", TemplateView.as_view(template_name="upload.html"), name="upload"),
+    # Temporary submission page (#867). Not under /upload/: the ingress routes that
+    # prefix to the separate Upload Tool deployment, so Django never sees it.
+    re_path(
+        r"^submit_data/$",
+        TemplateView.as_view(template_name="submit_data.html"),
+        name="submit_data",
+    ),
     re_path(r"^publications/$", TemplateView.as_view(template_name="publications.html"), name="publications"),
     re_path(r"^data_policy/$", TemplateView.as_view(template_name="data_policy.html"), name="data_policy"),
     re_path(r"^how_to_cite/$", TemplateView.as_view(template_name="how_to_cite.html"), name="how_to_cite"),
