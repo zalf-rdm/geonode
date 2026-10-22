@@ -1,3 +1,4 @@
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 
 from geonode.base.models import ResourceBase
@@ -68,6 +69,16 @@ def training_detail(request, slug):
 
 
 def trainings_list(request):
+    """
+    The training overview is only published while there is content (#850).
+
+    With no active training resources the page is a bare shell — a heading over an
+    empty grid — so it is hidden rather than shown empty. Adding resources in the
+    CMS publishes it again; no code change is needed for that. `training_detail`
+    already 404s for missing or inactive resources.
+    """
+    if not TrainingResource.objects.filter(is_active=True).exists():
+        raise Http404("No active training resources.")
     return render(request, "zalf/trainings.html")
 
 
