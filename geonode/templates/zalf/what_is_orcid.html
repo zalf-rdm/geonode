@@ -2,6 +2,10 @@
 {# The panel on account/login.html cannot serve this purpose: with Keycloak SSO #}
 {# enabled, repository_sso's middleware redirects account_login straight to the #}
 {# provider, so that page never renders. This one is a plain static route.      #}
+{#                                                                              #}
+{# The ORCID treatment from that panel is kept deliberately (#865): the iD icon #}
+{# and the benefits as a checklist, with sign-in presented as one self-contained#}
+{# call to action rather than a lone button between paragraphs.                 #}
 {% extends "zalf/institutional_base.html" %}
 {% load i18n %}
 {% load static %}
@@ -18,44 +22,146 @@
 
 {% block institutional_body %}
 
+{# The theme hides .page-header; kept for consistency with the other institutional pages. #}
 <div class="page-header">
-    <h2>{% trans "Why do we use ORCID?" %}</h2>
+    <h2>{% trans "What is ORCID?" %}</h2>
 </div>
 
-<p>{% blocktrans %}This repository uses your ORCID iD to reliably attribute published research data to you.{% endblocktrans %}</p>
+<style>
+    /* ORCID's own green, so the page is recognisable at a glance. */
+    .zalf-orcid {
+        --orcid-green: #a6ce39;
+    }
+    .zalf-orcid__intro {
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+    }
+    .zalf-orcid__mark {
+        flex: 0 0 auto;
+        width: 56px;
+        height: 56px;
+    }
+    .zalf-orcid__benefits {
+        margin: 20px 0 0;
+        padding: 0;
+        list-style: none;
+    }
+    .zalf-orcid__benefits li {
+        position: relative;
+        margin: 0 0 12px;
+        padding-left: 30px;
+    }
+    /* Checkmark, as on the original login panel. */
+    .zalf-orcid__benefits li::before {
+        content: "";
+        position: absolute;
+        top: 5px;
+        left: 4px;
+        width: 7px;
+        height: 13px;
+        border-right: 2.5px solid var(--orcid-green);
+        border-bottom: 2.5px solid var(--orcid-green);
+        transform: rotate(45deg);
+    }
 
-<ul>
-    <li>{% trans "Your ORCID iD distinguishes you from every other researcher — even those sharing your name." %}</li>
-    <li>{% trans "The research data you publish here is unambiguously linked to you and your ORCID record." %}</li>
-    <li>{% trans "Your account is created automatically; your name and affiliation stay up to date." %}</li>
-    <li>{% trans "Your iD stays with you throughout your career, across employers and institutions." %}</li>
-</ul>
+    /* Sign-in as one block: icon, heading, one line, button. */
+    .zalf-orcid__cta {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+        padding: 24px 26px;
+        border: 1px solid rgba(166, 206, 57, 0.55);
+        border-left: 4px solid var(--orcid-green);
+        border-radius: 10px;
+        background: #fbfdf5;
+    }
+    .zalf-orcid__cta-text {
+        flex: 1 1 260px;
+        min-width: 0;
+    }
+    .zalf-orcid__cta-lead {
+        margin: 0;
+        color: #536a61;
+    }
+    .zalf-orcid__button {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        flex: 0 0 auto;
+        padding: 12px 24px;
+        border-radius: 999px;
+        background: var(--orcid-green);
+        color: #1a3529;
+        font-size: 1rem;
+        font-weight: 700;
+        text-decoration: none;
+    }
+    .zalf-orcid__button:hover,
+    .zalf-orcid__button:focus {
+        background: #93b831;
+        color: #1a3529;
+        text-decoration: none;
+    }
+    .zalf-orcid__button:focus-visible {
+        outline: 2px solid #1f3b2d;
+        outline-offset: 2px;
+    }
 
-<hr>
+    @media (max-width: 575px) {
+        .zalf-orcid__intro {
+            flex-direction: column;
+            gap: 14px;
+        }
+        .zalf-orcid__button {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
 
-<h2>{% trans "Sign in with your ORCID iD" %}</h2>
+<div class="zalf-orcid">
 
-<p>{% blocktrans %}One account for your research — no extra registration, no extra password.{% endblocktrans %}</p>
+    <h2>{% trans "Why do we use ORCID?" %}</h2>
 
-{% if SOCIALACCOUNT_ONLY %}
-    <p style="margin: 24px 0;">
-        <a id="what-is-orcid-sign-in"
-           class="btn btn-primary btn-lg"
-           href="{% url 'openid_connect_login' provider_id=SOCIALACCOUNT_PROVIDER %}?next=/"
-           style="display: inline-flex; align-items: center; gap: 10px;">
-            <img src="{% static 'geonode/img/orcid_id.svg' %}" alt="{% trans 'ORCID iD icon' %}" width="24" height="24">
-            {% trans "Login" %}
-        </a>
+    <div class="zalf-orcid__intro">
+        <img class="zalf-orcid__mark" src="{% static 'geonode/img/orcid_id.svg' %}" alt="{% trans 'ORCID iD icon' %}" width="56" height="56">
+        <p>{% blocktrans %}This repository uses your ORCID iD to reliably attribute published research data to you.{% endblocktrans %}</p>
+    </div>
+
+    <ul class="zalf-orcid__benefits">
+        <li>{% trans "Your ORCID iD distinguishes you from every other researcher — even those sharing your name." %}</li>
+        <li>{% trans "The research data you publish here is unambiguously linked to you and your ORCID record." %}</li>
+        <li>{% trans "Your account is created automatically; your name and affiliation stay up to date." %}</li>
+        <li>{% trans "Your iD stays with you throughout your career, across employers and institutions." %}</li>
+    </ul>
+
+    <hr>
+
+    <h2>{% trans "Sign in with your ORCID iD" %}</h2>
+
+    <div class="zalf-orcid__cta">
+        <div class="zalf-orcid__cta-text">
+            {# The h2 above already says "Sign in with your ORCID iD"; no need to repeat it here. #}
+            <p class="zalf-orcid__cta-lead">{% blocktrans %}One account for your research — no extra registration, no extra password.{% endblocktrans %}</p>
+        </div>
+        {% if SOCIALACCOUNT_ONLY %}
+            <a id="what-is-orcid-sign-in" class="zalf-orcid__button" href="{% url 'openid_connect_login' provider_id=SOCIALACCOUNT_PROVIDER %}?next=/">
+                <img src="{% static 'geonode/img/orcid_id.svg' %}" alt="" aria-hidden="true" width="22" height="22">
+                {% trans "Login" %}
+            </a>
+        {% else %}
+            <a id="what-is-orcid-sign-in" class="zalf-orcid__button" href="/account/login/?next=/">{% trans "Login" %}</a>
+        {% endif %}
+    </div>
+
+    <p class="text-muted" style="margin-top: 18px;">
+        {% blocktrans trimmed %}Don't have an ORCID iD yet? You can register one for free during sign-in.
+        Learn more at <a href="https://info.orcid.org/researchers/" target="_blank" rel="noopener">orcid.org</a>.{% endblocktrans %}
     </p>
-{% else %}
-    <p style="margin: 24px 0;">
-        <a id="what-is-orcid-sign-in" class="btn btn-primary btn-lg" href="/account/login/?next=/">{% trans "Login" %}</a>
-    </p>
-{% endif %}
 
-<p class="text-muted">
-    {% blocktrans trimmed %}Don't have an ORCID iD yet? You can register one for free during sign-in.
-    Learn more at <a href="https://info.orcid.org/researchers/" target="_blank" rel="noopener">orcid.org</a>.{% endblocktrans %}
-</p>
+</div>
 
 {% endblock %}
