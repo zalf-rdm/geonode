@@ -1,5 +1,8 @@
 {# Section navigation for the static pages (#858). Grouped like the navigation #}
 {# bar and the footer so the same vocabulary is used throughout.               #}
+{#                                                                            #}
+{# Legal (Imprint, Privacy Policy, Cookies) is deliberately not here (#866):  #}
+{# it belongs in the footer, which carries all three.                         #}
 {# Styles are inline rather than in the theme stylesheet: the theme ships from #}
 {# the geonode-mapstore-client package, so keeping them here lets this render  #}
 {# without waiting for that package to be rebuilt.                             #}
@@ -148,15 +151,6 @@
             </li>
             <li><a href="{% url 'what_is_orcid' %}"{% if current == 'what_is_orcid' %} class="is-active" aria-current="page"{% endif %}>{% trans "What is ORCID?" %}</a></li>
             <li><a href="{% url 'faq' %}"{% if current == 'faq' %} class="is-active" aria-current="page"{% endif %}>{% trans "FAQ" %}</a></li>
-        </ul>
-    </div>
-
-    <div class="zalf-page-nav__group">
-        <h2 class="zalf-page-nav__title">{% trans "Legal" %}</h2>
-        <ul class="zalf-page-nav__list">
-            <li><a href="{% url 'imprint' %}"{% if current == 'imprint' %} class="is-active" aria-current="page"{% endif %}>{% trans "Imprint" %}</a></li>
-            <li><a href="{% url 'privacy' %}"{% if current == 'privacy' %} class="is-active" aria-current="page"{% endif %}>{% trans "Privacy Policy" %}</a></li>
-            <li><a href="{% url 'privacy-cookies' %}"{% if current == 'privacy-cookies' %} class="is-active" aria-current="page"{% endif %}>{% trans "Cookies" %}</a></li>
         </ul>
     </div>
 

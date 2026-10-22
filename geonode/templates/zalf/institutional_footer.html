@@ -7,9 +7,13 @@
                 <p class="zalf-institutional-footer__copy">{% trans "A repository for publishing, discovering, and reusing agricultural research data." %}</p>
                 <nav class="zalf-institutional-footer__legal" aria-label="{% trans 'Legal' %}">
                     <h3 class="zalf-institutional-footer__title">{% trans "Legal" %}</h3>
+                    {# Cookies joined the list in #866: the Legal group was taken out of the  #}
+                    {# static pages' side navigation, and the cookie notice is the only other  #}
+                    {# link to it — which is gone once the notice has been dismissed.          #}
                     <ul class="zalf-institutional-footer__links">
                         <li><a href="{% url 'imprint' %}">{% trans "Imprint" %}</a></li>
                         <li><a href="{% url 'privacy' %}">{% trans "Privacy Policy" %}</a></li>
+                        <li><a href="{% url 'privacy-cookies' %}">{% trans "Cookies" %}</a></li>
                     </ul>
                 </nav>
             </div>
