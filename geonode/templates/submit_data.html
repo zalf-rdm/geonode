@@ -1,0 +1,72 @@
+{# Temporary page while the submission process is revised (#867). #}
+{#                                                                                #}
+{# Deliberately NOT at /upload/: the ingress routes `/upload` as a Prefix to the  #}
+{# separate django-upload-tool deployment, so a page there would never be reached #}
+{# in production. The /upload/ route and upload.html are left as they are.        #}
+{#                                                                                #}
+{# Replace this page once the new submission workflow is available.               #}
+{% extends "zalf/institutional_base.html" %}
+{% load i18n %}
+
+{% block title %}
+    {% trans "Submit Data" %} — {{ block.super }}
+{% endblock %}
+
+{% block institutional_hero %}
+    {% trans "Submit Data" as hero_title %}
+    {% trans "Publish your research data in our repository." as hero_subtitle %}
+    {% include "zalf/institutional_hero.html" with title=hero_title subtitle=hero_subtitle %}
+{% endblock %}
+
+{% block institutional_body %}
+
+{# The theme hides .page-header; kept for consistency with the other institutional pages. #}
+<div class="page-header">
+    <h2>{% trans "Submit Data" %}</h2>
+</div>
+
+<style>
+    .zalf-submit__contact {
+        margin-top: 8px;
+        padding: 24px 26px;
+        border: 1px solid rgba(78, 156, 24, 0.3);
+        border-left: 4px solid #4e9c18;
+        border-radius: 10px;
+        background: #f6f9f4;
+    }
+    .zalf-submit__contact p {
+        margin: 0;
+    }
+    .zalf-submit__contact p + p {
+        margin-top: 12px;
+    }
+    .zalf-submit__mail {
+        display: inline-block;
+        margin-top: 4px;
+        font-size: 1.1rem;
+        font-weight: 700;
+    }
+</style>
+
+<h2>{% trans "Publish your research data in our repository" %}</h2>
+
+<p>
+    {% trans "We are currently working on improving the data submission process in our repository." %}
+</p>
+
+<div class="zalf-submit__contact">
+    <p>
+        {% blocktrans trimmed %}
+        In the meantime, if you would like to publish your research data, please contact our
+        Data Stewards.
+        {% endblocktrans %}
+    </p>
+    <p>
+        <a class="zalf-submit__mail" href="mailto:dataservice@zalf.de">dataservice@zalf.de</a>
+    </p>
+    <p>
+        {% trans "Our team will get in touch with you to discuss the next steps and support you throughout the publication process." %}
+    </p>
+</div>
+
+{% endblock %}

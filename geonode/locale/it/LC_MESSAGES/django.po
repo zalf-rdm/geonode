@@ -10265,3 +10265,19 @@ msgstr ""
 
 msgid "For questions about publishing, accessing, or reusing datasets, please contact the BonaRes Repository support team at ZALF."
 msgstr ""
+
+# Submit Data page (zalf-rdm/geonode#867)
+msgid "Publish your research data in our repository"
+msgstr ""
+
+msgid "Publish your research data in our repository."
+msgstr ""
+
+msgid "We are currently working on improving the data submission process in our repository."
+msgstr ""
+
+msgid "In the meantime, if you would like to publish your research data, please contact our Data Stewards."
+msgstr ""
+
+msgid "Our team will get in touch with you to discuss the next steps and support you throughout the publication process."
+msgstr ""
