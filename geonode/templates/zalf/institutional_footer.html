@@ -17,8 +17,8 @@
                 <h3 class="zalf-institutional-footer__title">{% trans "Repository" %}</h3>
                 <ul class="zalf-institutional-footer__links">
                     <li><a href="{% url 'about' %}">{% trans "About the Repository" %}</a></li>
-                    {# /upload is routed to the separate Upload Tool deployment by the ingress. #}
-                    <li><a href="{% url 'upload' %}">{% trans "Upload" %}</a></li>
+                    {# Temporary submission page (#867) while the upload tool is revised. #}
+                    <li><a href="{% url 'submit_data' %}">{% trans "Submit Data" %}</a></li>
                     <li><a href="{% url 'data_policy' %}">{% trans "Data Policy" %}</a></li>
                     <li><a href="{% url 'how_to_cite' %}">{% trans "How to Cite Data" %}</a></li>
                 </ul>
