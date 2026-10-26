@@ -1,21 +1,22 @@
 name: Security Audit
 
-# Two layers, because neither one sees the other's packages:
-#   * pip-audit  -- Python distributions installed in the runtime image.
-#   * Trivy      -- OS packages of every image docker-compose.yml pins (apt/apk).
-# CVE-2026-111497 (HTTP2Shell) sat in the second layer only: a vulnerable libbrotli/brotli-libs in
-# the nginx, django and geoserver images that no Python-level audit would ever have reported.
+# Scope: the GeoNode image this repository builds, and nothing else. Two layers, because neither
+# sees the other's packages:
+#   * pip-audit -- the Python distributions installed in the image.
+#   * Trivy     -- the image's OS packages (apt), which is where the base image's CVEs live.
+# CVE-2026-111497 (HTTP2Shell) sat in the second layer and in a wheel's statically linked copy, so a
+# Python-level audit alone would have reported nothing. Deployment of this image is configured
+# elsewhere (geonode-k8s), so auditing other services belongs there, not here.
 
 on:
   schedule:
-    # Mondays, 05:17 UTC. Early enough that the result is waiting at the start of the week.
+    # Mondays, 05:17 UTC: early enough that the result is waiting at the start of the week.
     - cron: "17 5 * * 1"
   pull_request:
     branches: [ main ]
     paths:
       - 'pyproject.toml'
       - 'Dockerfile'
-      - 'docker-compose.yml'
       - 'security/**'
       - '.github/workflows/security-audit.yml'
   workflow_dispatch:
@@ -28,80 +29,52 @@ permissions:
   contents: read
 
 jobs:
-  python-dependencies:
-    name: pip-audit
+  image:
+    name: Audit the image built from the Dockerfile
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # A pull request is audited against its own build. The scheduled run rebuilds from scratch
+      # instead: its whole purpose is to re-resolve apt and PyPI, which a restored cache would skip.
+      - name: Build the image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true
+          tags: geonode-audit:local
+          build-args: |
+            PYTHON_DEPENDENCY_CACHE_BUST=${{ github.run_id }}
+          no-cache: ${{ github.event_name == 'schedule' }}
+          cache-from: type=gha
 
       # Auditing the installed environment, not pyproject.toml: `pip-audit -r` re-resolves the
-      # dependency tree and dies trying to build GDAL from source, and the git-pinned pycsw and
-      # importer-datapackage have no resolvable release either. The image already has the exact
-      # versions that run in production.
-      - name: Resolve the GeoNode image from docker-compose.yml
-        id: image
-        run: |
-          image=$(grep -oE '^\s+image: geonode/geonode:\S+' docker-compose.yml | head -1 | awk '{print $2}')
-          test -n "$image"
-          echo "name=$image" >> "$GITHUB_OUTPUT"
-
+      # dependency tree and dies building GDAL from source, and the git-pinned pycsw and
+      # importer-datapackage have no release to resolve against.
       - name: Run pip-audit inside the image
         run: |
-          docker run --rm --entrypoint bash '${{ steps.image.outputs.name }}' -c \
+          docker run --rm --entrypoint bash geonode-audit:local -c \
             'pip install -q --no-cache-dir pip-audit && pip-audit --progress-spinner=off -f json' \
             > pip-audit.json
 
       - name: Compare against the known-advisory baseline
         run: python3 security/pip_audit_gate.py pip-audit.json --summary "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload the raw report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pip-audit-report
-          path: pip-audit.json
-          retention-days: 90
-
-  discover-images:
-    name: Collect pinned images
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    outputs:
-      images: ${{ steps.collect.outputs.images }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # docker-compose.yml stays the single source of truth for what is deployed, so the scan
-      # matrix cannot drift away from it when an image tag is bumped.
-      - name: Collect images
-        id: collect
-        run: |
-          images=$(grep -oE '^\s+image: \S+' docker-compose.yml | awk '{print $2}' | sort -u | jq -R . | jq -sc .)
-          echo "images=$images" >> "$GITHUB_OUTPUT"
-          echo "$images"
-
-  container-images:
-    name: Trivy
-    needs: discover-images
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        image: ${{ fromJSON(needs.discover-images.outputs.images) }}
-
-    steps:
-      # Report-only: these are upstream GeoNode images, so a finding is a "pull a rebuilt image or
-      # patch in the Dockerfile" task, not something a pull request here can fix. Switch
-      # exit-code to 1 once the standing findings in the base images are down to a reviewable few.
-      - name: Scan ${{ matrix.image }}
+      # Report-only: a finding here is usually upstream's (geonode-base, or Ubuntu itself), so it is
+      # a "rebuild and roll out" task rather than something this pull request can fix. The apt
+      # upgrade layer in the Dockerfile is what clears those once a distro fix exists.
+      - name: Scan the image for OS package CVEs
         uses: aquasecurity/trivy-action@0.36.0
         with:
-          image-ref: ${{ matrix.image }}
+          image-ref: geonode-audit:local
           scanners: vuln
           severity: HIGH,CRITICAL
           ignore-unfixed: true
@@ -109,14 +82,23 @@ jobs:
           output: trivy.txt
           exit-code: '0'
 
-      - name: Add the findings to the job summary
+      - name: Add the Trivy findings to the job summary
         if: always()
         run: |
           {
-            echo "## Trivy: \`${{ matrix.image }}\`"
+            echo "## Trivy: OS packages"
             echo
             echo '```'
-            # A clean image produces an empty report; say so rather than printing nothing.
             if [ -s trivy.txt ]; then cat trivy.txt; else echo "No fixable HIGH/CRITICAL findings."; fi
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the raw reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-reports
+          path: |
+            pip-audit.json
+            trivy.txt
+          retention-days: 90

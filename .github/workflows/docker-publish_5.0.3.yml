@@ -3,6 +3,11 @@ name: Docker Build and Push
 on:
   push:
     branches: [ "main" ]
+  # Weekly rebuild, a day after the security audit reports. The base image is digest-pinned, so
+  # this is what actually delivers distro patches: the Dockerfile's apt upgrade layer re-resolves
+  # here, and the Python layer re-resolves too via PYTHON_DEPENDENCY_CACHE_BUST.
+  schedule:
+    - cron: "41 4 * * 2"
   workflow_dispatch:
 
 env:
@@ -41,6 +46,7 @@ jobs:
           images: ${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=${{ env.BASE_VERSION }}.${{ github.run_number }}
+            type=schedule,pattern=${{ env.BASE_VERSION }}-{{date 'YYYYMMDD'}}
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
       - name: Build and push Docker image
@@ -52,5 +58,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             PYTHON_DEPENDENCY_CACHE_BUST=${{ github.run_id }}
+          # A scheduled run exists to re-resolve apt and PyPI, so it must not restore layers.
+          no-cache: ${{ github.event_name == 'schedule' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

@@ -59,29 +59,39 @@ hardreset: pull build reset
 
 develop: pull build up sync
 
-# Security auditing. Mirrors .github/workflows/security-audit.yml so a finding can be reproduced
-# locally before the weekly run reports it.
-GEONODE_IMAGE := $(shell grep -oE '^[[:space:]]+image: geonode/geonode:[^[:space:]]+' docker-compose.yml | head -1 | awk '{print $$2}')
+# Security auditing. Scope: the image this repository builds. Mirrors
+# .github/workflows/security-audit.yml so a finding can be reproduced before the weekly run reports
+# it. AUDIT_IMAGE defaults to the published build result; use audit-build for the working tree.
+AUDIT_IMAGE ?= zalf/geonode:latest
 
 audit:
 	# Audits the packages installed in the image, not pyproject.toml: pip-audit -r re-resolves the
 	# tree and fails on GDAL, and the git-pinned pycsw has no release to match.
-	docker run --rm --entrypoint bash $(GEONODE_IMAGE) -c \
+	docker run --rm --entrypoint bash $(AUDIT_IMAGE) -c \
 		'pip install -q --no-cache-dir pip-audit && pip-audit --progress-spinner=off -f json' \
 		> /tmp/pip-audit.json
 	python3 security/pip_audit_gate.py /tmp/pip-audit.json
 
 audit-baseline:
 	# Run after a dependency upgrade, then commit security/pip-audit-known.txt with the upgrade.
-	docker run --rm --entrypoint bash $(GEONODE_IMAGE) -c \
+	docker run --rm --entrypoint bash $(AUDIT_IMAGE) -c \
 		'pip install -q --no-cache-dir pip-audit && pip-audit --progress-spinner=off -f json' \
 		> /tmp/pip-audit.json
 	python3 security/pip_audit_gate.py /tmp/pip-audit.json --write-baseline
 
-audit-images:
-	# OS packages (apt/apk) of every image docker-compose.yml pins -- the layer pip-audit cannot see.
-	for image in $$(grep -oE '^[[:space:]]+image: [^[:space:]]+' docker-compose.yml | awk '{print $$2}' | sort -u); do \
-		echo "== $$image"; \
-		docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image \
-			--scanners vuln --severity HIGH,CRITICAL --ignore-unfixed "$$image"; \
-	done
+audit-image:
+	# OS packages (apt) -- the layer pip-audit cannot see, and where the base image's CVEs live.
+	docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image \
+		--scanners vuln --severity HIGH,CRITICAL --ignore-unfixed $(AUDIT_IMAGE)
+
+audit-build:
+	# Audit a build of the working tree instead of the published image, as the workflow does.
+	docker build --build-arg PYTHON_DEPENDENCY_CACHE_BUST=$$(date +%s) -t geonode-audit:local .
+	$(MAKE) audit AUDIT_IMAGE=geonode-audit:local
+	$(MAKE) audit-image AUDIT_IMAGE=geonode-audit:local
+
+base-digest:
+	# Compare the digest pinned in the Dockerfile against what the base image tag resolves to now.
+	@docker buildx imagetools inspect $$(grep -oP '(?<=^FROM )[^@ ]+' Dockerfile) \
+		--format 'Live digest:   {{.Manifest.Digest}}'
+	@grep -oP '(?<=@)sha256:\S+' Dockerfile | sed 's/^/Pinned digest: /'
