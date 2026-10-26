@@ -69,14 +69,16 @@ audit:
 	# tree and fails on GDAL, and the git-pinned pycsw has no release to match.
 	docker run --rm --entrypoint bash $(AUDIT_IMAGE) -c \
 		'pip install -q --no-cache-dir pip-audit && pip-audit --progress-spinner=off -f json' \
-		> /tmp/pip-audit.json
+		> /tmp/pip-audit.json || true
+	@python3 -c "import json; json.load(open('/tmp/pip-audit.json'))"
 	python3 security/pip_audit_gate.py /tmp/pip-audit.json
 
 audit-baseline:
 	# Run after a dependency upgrade, then commit security/pip-audit-known.txt with the upgrade.
 	docker run --rm --entrypoint bash $(AUDIT_IMAGE) -c \
 		'pip install -q --no-cache-dir pip-audit && pip-audit --progress-spinner=off -f json' \
-		> /tmp/pip-audit.json
+		> /tmp/pip-audit.json || true
+	@python3 -c "import json; json.load(open('/tmp/pip-audit.json'))"
 	python3 security/pip_audit_gate.py /tmp/pip-audit.json --write-baseline
 
 audit-image:

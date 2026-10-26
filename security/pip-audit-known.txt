@@ -1,5 +1,6 @@
 # Advisories already known for the dependency set this repository pins in pyproject.toml.
-# Taken from geonode/geonode:5.0.3, which carries the same pins as the image CI builds.
+# Taken from geonode/geonode:5.0.3 and confirmed unchanged against a CI build of this
+# Dockerfile (run 40308821986): same 15 packages, same 125 advisories.
 # The Security Audit workflow fails only on advisories that are NOT listed here, so a new
 # CVE against a dependency is visible without 125 standing findings turning every run red.
 #

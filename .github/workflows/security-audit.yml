@@ -61,9 +61,14 @@ jobs:
       # importer-datapackage have no release to resolve against.
       - name: Run pip-audit inside the image
         run: |
+          # pip-audit exits non-zero whenever it finds anything at all, and the baseline gate below
+          # is what decides pass/fail -- so a finding must not fail this step. The json.load keeps
+          # `|| true` from masking a real breakage (failed pip install, truncated or empty report),
+          # which would otherwise sail through as a pass.
           docker run --rm --entrypoint bash geonode-audit:local -c \
             'pip install -q --no-cache-dir pip-audit && pip-audit --progress-spinner=off -f json' \
-            > pip-audit.json
+            > pip-audit.json || true
+          python3 -c "import json; json.load(open('pip-audit.json'))"
 
       - name: Compare against the known-advisory baseline
         run: python3 security/pip_audit_gate.py pip-audit.json --summary "$GITHUB_STEP_SUMMARY"
