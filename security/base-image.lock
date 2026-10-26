@@ -1,0 +1,16 @@
+# Base image refresh state, written by .github/workflows/base-image-refresh.yml.
+#
+# This file exists to give a rebuild something to review. The base image is digest-pinned, so a week
+# in which Ubuntu published updates but upstream did not republish the base changes no file here --
+# yet a rebuild would still install those updates. The Saturday job records what it found, which
+# produces a diff, which produces the pull request that ships the rebuild. last_refresh_run is what
+# makes that true even on a week when nothing moved at all. Merging the pull request publishes a new
+# image; rolling that image out stays a separate, manual decision.
+#
+# Fields are informational: nothing reads them at build time.
+
+base_image: geonode/geonode-base:latest-ubuntu-24.04
+pinned_digest: sha256:75c237132941ef14a3fd0baf5f5509c557e6c4f2ce7f824754c38acbdb6b43b9
+last_checked: 2026-10-26
+pending_apt_upgrades_at_check: 60
+last_refresh_run: 0

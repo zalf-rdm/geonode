@@ -1,0 +1,193 @@
+name: Base Image Refresh
+
+# The weekend half of the patch cycle, run unconditionally.
+#
+# The base image is digest-pinned, which makes builds reproducible but also means that neither an
+# upstream rebuild of geonode/geonode-base nor a new Ubuntu security update reaches the image on its
+# own. Every Saturday this job records the state of both and opens a pull request for the rebuild.
+# The suites run on that branch, so Monday's review is of a tested change; merging it publishes a
+# new image, and rolling that image out stays a manual decision.
+#
+# A failed run is reported as an issue: the only other sign would be a red run nobody is watching
+# on a Saturday, and a silent week looks exactly like a week with no pull request.
+#
+# The pull request is opened every week whether or not anything upstream moved. A rebuild always
+# re-resolves apt and PyPI (see APT_CACHE_BUST in the Dockerfile), so there is always something to
+# ship, and a review item that arrives on a predictable day is the point. security/base-image.lock
+# records the run that wrote it, which is what guarantees the commit has a diff on a quiet week.
+
+on:
+  schedule:
+    # Saturdays, 03:17 UTC: the runs finish over the weekend and are waiting on Monday.
+    - cron: "17 3 * * 6"
+  workflow_dispatch:
+
+concurrency:
+  group: base-image-refresh
+  cancel-in-progress: false
+
+permissions:
+  contents: write        # push the refresh branch
+  pull-requests: write   # open the refresh pull request
+  actions: write         # dispatch the suites on that branch (see the note below)
+  issues: write          # report a failed run, which otherwise goes unnoticed
+
+jobs:
+  refresh:
+    name: Open the weekly rebuild PR
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Record the base image state
+        id: probe
+        run: |
+          set -euo pipefail
+          base_ref=$(grep -oP '(?<=^FROM )[^@ ]+' Dockerfile)
+          pinned=$(grep -oP '(?<=@)sha256:[0-9a-f]+' Dockerfile | head -1)
+          live=$(docker buildx imagetools inspect "$base_ref" --format '{{.Manifest.Digest}}')
+
+          # Ubuntu updates published since the base was built -- what this rebuild will install.
+          # Simulated inside the pinned base itself, so the number describes the image we ship from.
+          pending=$(docker run --rm --entrypoint bash "${base_ref}@${pinned}" -c \
+            'apt-get update >/dev/null 2>&1; apt-get -s upgrade 2>/dev/null | grep -oE "^[0-9]+ upgraded" | cut -d" " -f1')
+          pending=${pending:-0}
+
+          {
+            echo "base_ref=$base_ref"
+            echo "pinned=$pinned"
+            echo "live=$live"
+            echo "pending=$pending"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "## Base image"
+            echo
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| Base | \`$base_ref\` |"
+            echo "| Pinned digest | \`$pinned\` |"
+            echo "| Live digest | \`$live\` |"
+            echo "| Pending apt updates | $pending |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Open the refresh pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_REF: ${{ steps.probe.outputs.base_ref }}
+          PINNED: ${{ steps.probe.outputs.pinned }}
+          LIVE: ${{ steps.probe.outputs.live }}
+          PENDING: ${{ steps.probe.outputs.pending }}
+        run: |
+          set -euo pipefail
+          today=$(date -u +%Y-%m-%d)
+          branch="base-image-refresh/$today"
+
+          if [ "$LIVE" != "$PINNED" ]; then
+            sed -i "s|@$PINNED|@$LIVE|" Dockerfile
+          fi
+
+          python3 - "$BASE_REF" "$LIVE" "$today" "$PENDING" "${GITHUB_RUN_ID}" <<'PY'
+          import pathlib, sys
+          base_ref, live, today, pending, run_id = sys.argv[1:6]
+          path = pathlib.Path("security/base-image.lock")
+          fields = {
+              "base_image": base_ref,
+              "pinned_digest": live,
+              "last_checked": today,
+              "pending_apt_upgrades_at_check": pending,
+              "last_refresh_run": run_id,
+          }
+          lines, seen = [], set()
+          for line in path.read_text().splitlines():
+              key = line.split(":", 1)[0]
+              if key in fields:
+                  line = f"{key}: {fields[key]}"
+                  seen.add(key)
+              lines.append(line)
+          # A field added after this file was first written still has to land.
+          lines += [f"{k}: {v}" for k, v in fields.items() if k not in seen]
+          path.write_text("\n".join(lines) + "\n")
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add Dockerfile security/base-image.lock
+          git commit -m "Refresh the base image ($today)" \
+            -m "Weekly rebuild: $PENDING Ubuntu package update(s) pending in the pinned base."
+          git push --force origin "$branch"
+
+          digest_note="unchanged"
+          if [ "$LIVE" != "$PINNED" ]; then
+            digest_note="moved, and the pin in the Dockerfile was updated"
+          fi
+
+          body=$(cat <<EOF
+          Automated weekly rebuild. The base image digest $digest_note.
+
+          | | |
+          | --- | --- |
+          | Base image | \`$BASE_REF\` |
+          | Digest before | \`$PINNED\` |
+          | Digest after | \`$LIVE\` |
+          | Pending apt updates | $PENDING |
+
+          Merging this publishes a new \`zalf/geonode\` image, which re-resolves apt and PyPI during
+          the build. **Rolling that image out is a separate, manual step** -- nothing deploys on merge.
+
+          The suites were dispatched on this branch rather than triggered by the pull request itself:
+          GitHub does not start workflows for pull requests opened with \`GITHUB_TOKEN\`. See the runs
+          filtered by this branch in the Actions tab. Adding a PAT to this workflow would make them
+          appear as checks here instead.
+          EOF
+          )
+
+          if [ -z "$(gh pr list --head "$branch" --json number --jq '.[].number')" ]; then
+            gh pr create --base main --head "$branch" \
+              --title "Refresh the base image ($today)" --body "$body"
+          else
+            gh pr edit "$branch" --body "$body"
+          fi
+
+          # Loop protection means the pull request fires no workflows of its own, so ask for them.
+          for wf in tests.yml checks.yml security-audit.yml; do
+            gh workflow run "$wf" --ref "$branch" || echo "could not dispatch $wf"
+          done
+
+      # A scheduled run has no author watching it, so a failure anywhere above -- Docker Hub
+      # unreachable while resolving the digest, a push rejected, the base image failing to start --
+      # would simply mean no pull request appeared that week, which is indistinguishable from a
+      # quiet week. One issue is reused for repeat failures rather than filing a fresh one weekly.
+      - name: Report a failed run
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          title="Base image refresh failed"
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          body=$(cat <<EOF
+          The weekly base image refresh failed before it could open a rebuild pull request, so no
+          rebuild is waiting for review this week.
+
+          Run: $run_url
+          Triggered by: \`${GITHUB_EVENT_NAME}\`
+
+          The usual causes are a registry that could not be reached while resolving the base digest,
+          or the pinned base failing to start for the \`apt-get -s upgrade\` probe. Re-run the
+          workflow once the cause is cleared; nothing is left half-applied, since the branch is only
+          pushed after both steps succeed.
+          EOF
+          )
+
+          existing=$(gh issue list --state open --search "\"$title\" in:title" \
+            --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "$title" --body "$body"
+          fi

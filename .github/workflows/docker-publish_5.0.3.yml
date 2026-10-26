@@ -50,7 +50,11 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Both cache busts are unique per run, so a published image always re-resolves apt and
+          # PyPI instead of restoring those layers. Publishing happens on merge to main, so a new
+          # image is only ever produced by a reviewed change -- never on a timer.
           build-args: |
+            APT_CACHE_BUST=${{ github.run_id }}
             PYTHON_DEPENDENCY_CACHE_BUST=${{ github.run_id }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
