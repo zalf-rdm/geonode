@@ -72,7 +72,7 @@ jobs:
       # a "rebuild and roll out" task rather than something this pull request can fix. The apt
       # upgrade layer in the Dockerfile is what clears those once a distro fix exists.
       - name: Scan the image for OS package CVEs
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: geonode-audit:local
           scanners: vuln
