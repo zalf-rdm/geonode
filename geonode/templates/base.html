@@ -22,8 +22,12 @@
 {% load base_tags %}
 {% load client_lib_tags %}
 {% load client_version %}
+{# The document language has to follow the active locale, not a fixed "en": a #}
+{# German page served with lang="en" is read out by screen readers in an      #}
+{# English voice (WCAG 3.1.1 / BITV 2.0).                                     #}
+{% get_current_language as LANGUAGE_CODE %}
 <!DOCTYPE html>
-<html lang="en" class="{% block html_class %}msgapi{% endblock %}">
+<html lang="{{ LANGUAGE_CODE }}" class="{% block html_class %}msgapi{% endblock %}">
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
