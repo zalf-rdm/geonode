@@ -10507,3 +10507,545 @@ msgstr "Unser Team meldet sich bei Ihnen, um die nächsten Schritte zu bespreche
 #: geonode/templates/geonode-mapstore-client/snippets/header.html
 msgid "Help & Information"
 msgstr "Hilfe & Information"
+
+#
+# ZALF institutional pages (About, FAQ, Data Policy, How to Cite, Imprint,
+# Privacy, Publications, ORCID, section nav and footer). These strings were
+# marked up for translation in the templates but never carried a German
+# message, so the pages rendered English body text in German mode.
+#
+# The Impressum and Datenschutzerklaerung wordings below still need sign-off
+# from ZALF legal / the Datenschutzbeauftragte(r) before launch.
+#
+
+#: geonode/templates/about.html:10
+msgid "An open repository for soil and agricultural research data."
+msgstr "Ein offenes Repositorium für Boden- und Agrarforschungsdaten."
+
+#: geonode/templates/about.html:18 geonode/templates/about.html:53 geonode/templates/zalf/institutional_nav.html:145
+msgid "About the BonaRes Repository"
+msgstr "Über das BonaRes Repository"
+
+#: geonode/templates/about.html:56
+msgid "The BonaRes Repository is a research data repository for soil and agricultural research data. It enables researchers to publish, discover, access, and reuse research datasets."
+msgstr "Das BonaRes Repository ist ein Forschungsdatenrepositorium für Boden- und Agrarforschungsdaten. Es ermöglicht Forschenden, Forschungsdatensätze zu veröffentlichen, zu finden, abzurufen und nachzunutzen."
+
+#: geonode/templates/about.html:59
+msgid "The repository is open to researchers from ZALF and other research institutions, supporting the long-term availability and reuse of research data in accordance with the FAIR principles."
+msgstr "Das Repositorium steht Forschenden des ZALF und anderer Forschungseinrichtungen offen und unterstützt die langfristige Verfügbarkeit und Nachnutzung von Forschungsdaten gemäß den FAIR-Prinzipien."
+
+#: geonode/templates/about.html:64 geonode/templates/zalf/institutional_nav.html:146
+msgid "Our History"
+msgstr "Unsere Geschichte"
+
+#: geonode/templates/about.html:68
+msgid "Originally"
+msgstr "Ursprünglich"
+
+#: geonode/templates/about.html:69
+msgid "Established as part of the BonaRes research initiative to manage and publish research data generated within the project."
+msgstr "Eingerichtet im Rahmen der BonaRes-Forschungsinitiative, um die im Projekt erzeugten Forschungsdaten zu verwalten und zu veröffentlichen."
+
+#: geonode/templates/about.html:73
+msgid "Opened to researchers beyond the BonaRes initiative, allowing the publication of external research datasets."
+msgstr "Geöffnet für Forschende über die BonaRes-Initiative hinaus, wodurch die Veröffentlichung externer Forschungsdatensätze möglich wurde."
+
+#: geonode/templates/about.html:77
+msgid "ZALF committed to the long-term operation of the BonaRes Repository."
+msgstr "Das ZALF hat sich zum langfristigen Betrieb des BonaRes Repository verpflichtet."
+
+#: geonode/templates/about.html:80
+msgid "Today"
+msgstr "Heute"
+
+#: geonode/templates/about.html:81
+msgid "An open research data repository for soil and agricultural research in Germany and beyond."
+msgstr "Ein offenes Forschungsdatenrepositorium für die Boden- und Agrarforschung in Deutschland und darüber hinaus."
+
+#: geonode/templates/about.html:87 geonode/templates/zalf/institutional_nav.html:147
+msgid "Operation and Infrastructure"
+msgstr "Betrieb und Infrastruktur"
+
+#: geonode/templates/about.html:109
+msgid "Have questions about the BonaRes Repository, data publication, or need technical support? Please contact the repository team at ZALF."
+msgstr "Haben Sie Fragen zum BonaRes Repository oder zur Datenveröffentlichung, oder benötigen Sie technische Unterstützung? Wenden Sie sich bitte an das Repositoriumsteam am ZALF."
+
+#: geonode/templates/about.html:112
+msgid "Contact:"
+msgstr "Kontakt:"
+
+#: geonode/templates/about.html:90
+msgid "The BonaRes Repository is operated and maintained by the <a href=\"https://www.zalf.de\" target=\"_blank\" rel=\"noopener noreferrer\">Leibniz Centre for Agricultural Landscape Research (ZALF)</a> in Müncheberg, Germany."
+msgstr "Das BonaRes Repository wird vom <a href=\"https://www.zalf.de\" target=\"_blank\" rel=\"noopener noreferrer\">Leibniz-Zentrum für Agrarlandschaftsforschung (ZALF)</a> in Müncheberg, Deutschland, betrieben und gepflegt."
+
+#: geonode/templates/about.html:97
+msgid "It is based on <a href=\"https://geonode.org/\" target=\"_blank\" rel=\"noopener noreferrer\">GeoNode</a>, an open-source platform for managing, publishing, and sharing geospatial data. ZALF is responsible for the technical operation and continued development of the repository."
+msgstr "Es basiert auf <a href=\"https://geonode.org/\" target=\"_blank\" rel=\"noopener noreferrer\">GeoNode</a>, einer Open-Source-Plattform zum Verwalten, Veröffentlichen und Teilen von Geodaten. Das ZALF verantwortet den technischen Betrieb und die Weiterentwicklung des Repositoriums."
+
+#: geonode/templates/data_policy.html:8 geonode/templates/data_policy.html:12 geonode/templates/data_policy.html:21
+msgid "Data Policies"
+msgstr "Datenrichtlinien"
+
+#: geonode/templates/data_policy.html:13
+msgid "Principles for the submission, publication, and reuse of repository data."
+msgstr "Grundsätze für die Einreichung, Veröffentlichung und Nachnutzung von Daten des Repositoriums."
+
+#: geonode/templates/data_policy.html:25
+msgid "The BonaRes Repository follows established principles for research data management, publication, and reuse. Two data policies provide the relevant framework."
+msgstr "Das BonaRes Repository folgt etablierten Grundsätzen für das Management, die Veröffentlichung und die Nachnutzung von Forschungsdaten. Zwei Datenrichtlinien bilden den maßgeblichen Rahmen."
+
+#: geonode/templates/data_policy.html:30
+msgid "BonaRes Data Policy"
+msgstr "BonaRes-Datenrichtlinie"
+
+#: geonode/templates/data_policy.html:32
+msgid "The BonaRes Data Policy defines the conditions for submitting, publishing, preserving, and reusing research data in the repository. It applies to all researchers and data owners who wish to publish their datasets through the BonaRes Repository. It covers data ownership, licensing, metadata requirements, quality assurance, DOI assignment, long-term preservation, and data reuse."
+msgstr "Die BonaRes-Datenrichtlinie legt die Bedingungen für das Einreichen, Veröffentlichen, Archivieren und Nachnutzen von Forschungsdaten im Repositorium fest. Sie gilt für alle Forschenden und Dateneigentümer, die ihre Datensätze über das BonaRes Repository veröffentlichen möchten. Sie umfasst Dateneigentum, Lizenzierung, Metadatenanforderungen, Qualitätssicherung, DOI-Vergabe, Langzeitarchivierung und Datennachnutzung."
+
+#: geonode/templates/data_policy.html:35
+msgid "BonaRes Data Policy:"
+msgstr "BonaRes-Datenrichtlinie:"
+
+#: geonode/templates/data_policy.html:42
+msgid "ZALF Data Policy"
+msgstr "ZALF-Datenrichtlinie"
+
+#: geonode/templates/data_policy.html:44
+msgid "The ZALF Data Policy defines the institutional principles and responsibilities for managing research data generated at ZALF. It applies to ZALF researchers and research projects and covers data management planning, data quality, licensing, legal compliance, and data publication. ZALF researchers must also follow this institutional policy when publishing their data in the BonaRes Repository."
+msgstr "Die ZALF-Datenrichtlinie legt die institutionellen Grundsätze und Verantwortlichkeiten für den Umgang mit am ZALF erzeugten Forschungsdaten fest. Sie gilt für Forschende und Forschungsprojekte des ZALF und umfasst Datenmanagementplanung, Datenqualität, Lizenzierung, rechtliche Konformität und Datenveröffentlichung. Forschende des ZALF müssen diese institutionelle Richtlinie auch dann beachten, wenn sie ihre Daten im BonaRes Repository veröffentlichen."
+
+#: geonode/templates/data_policy.html:48
+msgid "ZALF Data Policy:"
+msgstr "ZALF-Datenrichtlinie:"
+
+#: geonode/templates/how_to_cite.html:13
+msgid "Guidance on citing research datasets published in the BonaRes Repository."
+msgstr "Hinweise zum Zitieren von Forschungsdatensätzen, die im BonaRes Repository veröffentlicht wurden."
+
+#: geonode/templates/how_to_cite.html:64
+msgid "Why Cite Research Data?"
+msgstr "Warum Forschungsdaten zitieren?"
+
+#: geonode/templates/how_to_cite.html:67
+msgid "Research data are valuable scientific outputs and should be acknowledged when reused. Proper data citation gives credit to data creators, makes research more transparent, and allows others to identify and access the original datasets."
+msgstr "Forschungsdaten sind wertvolle wissenschaftliche Ergebnisse und sollten bei einer Nachnutzung angemessen gewürdigt werden. Eine korrekte Datenzitation erkennt die Leistung der Datenerzeugenden an, macht Forschung transparenter und ermöglicht es anderen, die ursprünglichen Datensätze zu identifizieren und abzurufen."
+
+#: geonode/templates/how_to_cite.html:72
+msgid "How to Cite a Dataset"
+msgstr "Wie ein Datensatz zitiert wird"
+
+#: geonode/templates/how_to_cite.html:75
+msgid "When using data from the BonaRes Repository, cite the dataset using the citation information provided on its landing page."
+msgstr "Wenn Sie Daten aus dem BonaRes Repository verwenden, zitieren Sie den Datensatz anhand der Zitationsangaben auf seiner Landingpage."
+
+#: geonode/templates/how_to_cite.html:78
+msgid "A dataset citation should generally include:"
+msgstr "Eine Datensatzzitation sollte in der Regel enthalten:"
+
+#: geonode/templates/how_to_cite.html:81
+msgid "Author(s)"
+msgstr "Autor(en)"
+
+#: geonode/templates/how_to_cite.html:81
+msgid "or data creator(s)"
+msgstr "oder Datenerzeuger(in)"
+
+#: geonode/templates/how_to_cite.html:82
+msgid "Year"
+msgstr "Jahr"
+
+#: geonode/templates/how_to_cite.html:82
+msgid "of publication"
+msgstr "der Veröffentlichung"
+
+#: geonode/templates/how_to_cite.html:84
+msgid "(BonaRes Repository)"
+msgstr "(BonaRes Repository)"
+
+#: geonode/templates/how_to_cite.html:85
+msgid "Digital Object Identifier (DOI)"
+msgstr "Digital Object Identifier (DOI)"
+
+#: geonode/templates/how_to_cite.html:89
+msgid "Always use the DOI to link to the dataset and follow the citation information provided in its metadata."
+msgstr "Verlinken Sie den Datensatz stets über den DOI und folgen Sie den Zitationsangaben in seinen Metadaten."
+
+#: geonode/templates/how_to_cite.html:94
+msgid "Detailed Citation Guidelines"
+msgstr "Ausführlicher Zitationsleitfaden"
+
+#: geonode/templates/how_to_cite.html:104
+msgid "Citing Soil and Agricultural Research Data"
+msgstr "Zitieren von Boden- und Agrarforschungsdaten"
+
+#: geonode/templates/how_to_cite.html:107
+msgid "Read the Citation Guidelines"
+msgstr "Zum Zitationsleitfaden"
+
+#: geonode/templates/how_to_cite.html:97
+msgid "Our publication <em>Citing Soil and Agricultural Research Data</em> provides detailed recommendations on dataset citation, DOI assignment, data collections, updates, and versioning."
+msgstr "Unsere Publikation <em>Citing Soil and Agricultural Research Data</em> enthält ausführliche Empfehlungen zur Datensatzzitation, DOI-Vergabe, zu Datensammlungen, Aktualisierungen und zur Versionierung."
+
+#: geonode/templates/imprint.html:10
+msgid "Legal information about the BonaRes Repository and its operator."
+msgstr "Rechtliche Informationen zum BonaRes Repository und seinem Betreiber."
+
+#: geonode/templates/imprint.html:21
+msgid "This Imprint provides legally required information about the operator of the ZALF Repository (repository.zalf.de)."
+msgstr "Dieses Impressum enthält die gesetzlich vorgeschriebenen Angaben zum Betreiber des ZALF Repository (repository.zalf.de)."
+
+#: geonode/templates/imprint.html:26
+msgid "Provider"
+msgstr "Anbieter"
+
+#: geonode/templates/imprint.html:37
+msgid "Legal Form"
+msgstr "Rechtsform"
+
+#: geonode/templates/imprint.html:40
+msgid "ZALF is a registered association (eingetragener Verein) and a member of the Leibniz Association."
+msgstr "Das ZALF ist ein eingetragener Verein und Mitglied der Leibniz-Gemeinschaft."
+
+#: geonode/templates/imprint.html:45
+msgid "Represented by"
+msgstr "Vertreten durch"
+
+#: geonode/templates/imprint.html:48
+msgid "ZALF is legally represented by its Board of Directors:"
+msgstr "Das ZALF wird gesetzlich durch seinen Vorstand vertreten:"
+
+#: geonode/templates/imprint.html:65
+msgid "Registration"
+msgstr "Registereintrag"
+
+#: geonode/templates/imprint.html:68
+msgid "Registered in the register of associations:"
+msgstr "Eingetragen im Vereinsregister:"
+
+#: geonode/templates/imprint.html:70
+msgid "Registration number:"
+msgstr "Registernummer:"
+
+#: geonode/templates/imprint.html:79
+msgid "Editorial Responsibility (§ 18 MStV)"
+msgstr "Verantwortlich für den Inhalt (§ 18 MStV)"
+
+#: geonode/templates/imprint.html:82
+msgid "The person responsible for editorial content of this website is:"
+msgstr "Verantwortlich für die redaktionellen Inhalte dieser Website ist:"
+
+#: geonode/templates/imprint.html:89
+msgid "Liability for Contents"
+msgstr "Haftung für Inhalte"
+
+#: geonode/templates/imprint.html:92
+msgid "As a service provider, ZALF is responsible for its own content on these pages in accordance with general legislation. However, we are not obligated to monitor transmitted or stored third-party information or to investigate circumstances indicating illegal activity. Obligations to remove or block the use of information under general law remain unaffected."
+msgstr "Als Diensteanbieter ist das ZALF gemäß den allgemeinen Gesetzen für eigene Inhalte auf diesen Seiten verantwortlich. Wir sind jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen. Verpflichtungen zur Entfernung oder Sperrung der Nutzung von Informationen nach den allgemeinen Gesetzen bleiben hiervon unberührt."
+
+#: geonode/templates/imprint.html:97
+msgid "Liability for Links"
+msgstr "Haftung für Links"
+
+#: geonode/templates/imprint.html:100
+msgid "Our website may contain links to external websites of third parties over whose content we have no influence. Therefore, we cannot assume any liability for these external contents. The respective provider or operator of the linked sites is always responsible for their content."
+msgstr "Unsere Website kann Links zu externen Websites Dritter enthalten, auf deren Inhalte wir keinen Einfluss haben. Deshalb können wir für diese fremden Inhalte keine Gewähr übernehmen. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich."
+
+#: geonode/templates/imprint.html:105
+msgid "Copyright"
+msgstr "Urheberrecht"
+
+#: geonode/templates/imprint.html:108
+msgid "All content and materials published on this website are subject to German copyright law. Reproduction, editing, distribution, or any use outside the limits of copyright law requires prior written consent from ZALF or the respective rights holder."
+msgstr "Alle auf dieser Website veröffentlichten Inhalte und Materialien unterliegen dem deutschen Urheberrecht. Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der Grenzen des Urheberrechts bedürfen der vorherigen schriftlichen Zustimmung des ZALF oder des jeweiligen Rechteinhabers."
+
+#: geonode/templates/imprint.html:113
+msgid "Technical Operation"
+msgstr "Technischer Betrieb"
+
+#: geonode/templates/imprint.html:116
+msgid "This website is operated by the ZALF Research Data Infrastructure team. The platform is based on GeoNode and MapStore, extended by ZALF-specific components and data workflows."
+msgstr "Diese Website wird vom Team Forschungsdateninfrastruktur des ZALF betrieben. Die Plattform basiert auf GeoNode und MapStore und wurde um ZALF-spezifische Komponenten und Daten-Workflows erweitert."
+
+#: geonode/templates/privacy.html:10
+msgid "How the BonaRes Repository processes and protects personal data."
+msgstr "Wie das BonaRes Repository personenbezogene Daten verarbeitet und schützt."
+
+#: geonode/templates/privacy.html:17
+msgid "Privacy Policy of the ZALF Repository"
+msgstr "Datenschutzerklärung des ZALF Repository"
+
+#: geonode/templates/privacy.html:21
+msgid "This Privacy Policy explains how personal data is collected, processed, and protected when using the ZALF Repository (repository.zalf.de). We comply with the European General Data Protection Regulation (GDPR/DSGVO) and applicable German data protection laws."
+msgstr "Diese Datenschutzerklärung erläutert, wie personenbezogene Daten bei der Nutzung des ZALF Repository (repository.zalf.de) erhoben, verarbeitet und geschützt werden. Wir halten die europäische Datenschutz-Grundverordnung (DSGVO) sowie die geltenden deutschen Datenschutzgesetze ein."
+
+#: geonode/templates/privacy.html:26
+msgid "1. Data Controller"
+msgstr "1. Verantwortlicher"
+
+#: geonode/templates/privacy.html:35
+msgid "2. Personal Data We Process"
+msgstr "2. Von uns verarbeitete personenbezogene Daten"
+
+#: geonode/templates/privacy.html:36
+msgid "We only collect personal data that is technically necessary or voluntarily provided by users."
+msgstr "Wir erheben nur personenbezogene Daten, die technisch erforderlich sind oder von Nutzerinnen und Nutzern freiwillig bereitgestellt werden."
+
+#: geonode/templates/privacy.html:39
+msgid "Account information (name, email, username)"
+msgstr "Kontoinformationen (Name, E-Mail-Adresse, Benutzername)"
+
+#: geonode/templates/privacy.html:40
+msgid "Login credentials and authentication metadata"
+msgstr "Anmeldedaten und Authentifizierungs-Metadaten"
+
+#: geonode/templates/privacy.html:41
+msgid "Uploaded content associated with your user profile"
+msgstr "Hochgeladene Inhalte, die Ihrem Benutzerprofil zugeordnet sind"
+
+#: geonode/templates/privacy.html:42
+msgid "Server log files (IP address, browser type, timestamp)"
+msgstr "Server-Logdateien (IP-Adresse, Browsertyp, Zeitstempel)"
+
+#: geonode/templates/privacy.html:43
+msgid "Cookies required for login sessions and platform functionality"
+msgstr "Cookies, die für Anmeldesitzungen und die Funktionsfähigkeit der Plattform erforderlich sind"
+
+#: geonode/templates/privacy.html:47
+msgid "No personal data is sold, transferred, or used for profiling."
+msgstr "Personenbezogene Daten werden weder verkauft noch weitergegeben oder für Profiling verwendet."
+
+#: geonode/templates/privacy.html:52
+msgid "3. Purpose of Processing"
+msgstr "3. Zweck der Verarbeitung"
+
+#: geonode/templates/privacy.html:53
+msgid "We process personal data for the following purposes:"
+msgstr "Wir verarbeiten personenbezogene Daten zu den folgenden Zwecken:"
+
+#: geonode/templates/privacy.html:56
+msgid "Providing access to the repository and its services"
+msgstr "Bereitstellung des Zugangs zum Repositorium und zu seinen Diensten"
+
+#: geonode/templates/privacy.html:57
+msgid "Managing user accounts and authentication"
+msgstr "Verwaltung von Benutzerkonten und Authentifizierung"
+
+#: geonode/templates/privacy.html:58
+msgid "Ensuring the security and stability of the platform"
+msgstr "Gewährleistung der Sicherheit und Stabilität der Plattform"
+
+#: geonode/templates/privacy.html:59
+msgid "Complying with legal and research data management obligations"
+msgstr "Erfüllung rechtlicher Pflichten und von Pflichten des Forschungsdatenmanagements"
+
+#: geonode/templates/privacy.html:64
+msgid "4. Legal Basis (GDPR Art. 6)"
+msgstr "4. Rechtsgrundlage (Art. 6 DSGVO)"
+
+#: geonode/templates/privacy.html:67
+msgid "Art. 6(1)(b) – Contract"
+msgstr "Art. 6 Abs. 1 lit. b – Vertrag"
+
+#: geonode/templates/privacy.html:67
+msgid "Processing is necessary for providing the repository service."
+msgstr "Die Verarbeitung ist für die Bereitstellung des Repositoriumsdienstes erforderlich."
+
+#: geonode/templates/privacy.html:68
+msgid "Art. 6(1)(c) – Legal obligation"
+msgstr "Art. 6 Abs. 1 lit. c – Rechtliche Verpflichtung"
+
+#: geonode/templates/privacy.html:68
+msgid "For compliance with archival, research, or documentation requirements."
+msgstr "Zur Erfüllung von Archivierungs-, Forschungs- oder Dokumentationspflichten."
+
+#: geonode/templates/privacy.html:69
+msgid "Art. 6(1)(f) – Legitimate interest"
+msgstr "Art. 6 Abs. 1 lit. f – Berechtigtes Interesse"
+
+#: geonode/templates/privacy.html:69
+msgid "For IT security, abuse prevention, and service maintenance."
+msgstr "Für IT-Sicherheit, Missbrauchsprävention und die Wartung des Dienstes."
+
+#: geonode/templates/privacy.html:74
+msgid "5. Use of Cookies"
+msgstr "5. Einsatz von Cookies"
+
+#: geonode/templates/privacy.html:76
+msgid "The ZALF Repository uses only essential cookies required for authentication, session management, and secure platform operation. No tracking or advertising cookies are used."
+msgstr "Das ZALF Repository verwendet ausschließlich technisch notwendige Cookies, die für Authentifizierung, Sitzungsverwaltung und den sicheren Betrieb der Plattform erforderlich sind. Tracking- oder Werbe-Cookies werden nicht eingesetzt."
+
+#: geonode/templates/privacy.html:81
+msgid "6. Server Logs"
+msgstr "6. Server-Logdateien"
+
+#: geonode/templates/privacy.html:83
+msgid "When accessing the platform, the following technical data are automatically collected and stored in log files:"
+msgstr "Beim Zugriff auf die Plattform werden die folgenden technischen Daten automatisch erhoben und in Logdateien gespeichert:"
+
+#: geonode/templates/privacy.html:87
+msgid "IP address (anonymized where possible)"
+msgstr "IP-Adresse (soweit möglich anonymisiert)"
+
+#: geonode/templates/privacy.html:88
+msgid "Browser type and operating system"
+msgstr "Browsertyp und Betriebssystem"
+
+#: geonode/templates/privacy.html:89
+msgid "Visited pages and access time"
+msgstr "Aufgerufene Seiten und Zugriffszeit"
+
+#: geonode/templates/privacy.html:90
+msgid "Referrer URL"
+msgstr "Referrer-URL"
+
+#: geonode/templates/privacy.html:94
+msgid "This data is used exclusively for technical monitoring and security purposes and is deleted automatically after a limited retention period."
+msgstr "Diese Daten werden ausschließlich zu Zwecken der technischen Überwachung und der Sicherheit verwendet und nach einer begrenzten Speicherfrist automatisch gelöscht."
+
+#: geonode/templates/privacy.html:99
+msgid "7. User Accounts and Uploaded Data"
+msgstr "7. Benutzerkonten und hochgeladene Daten"
+
+#: geonode/templates/privacy.html:101
+msgid "When you create an account or upload data, personal information (name, email, affiliation) is stored to allow attribution, communication, and citation. This information is required for research integrity and FAIR data principles."
+msgstr "Wenn Sie ein Konto anlegen oder Daten hochladen, werden personenbezogene Angaben (Name, E-Mail-Adresse, Zugehörigkeit) gespeichert, um Zuordnung, Kommunikation und Zitation zu ermöglichen. Diese Angaben sind für die wissenschaftliche Integrität und die FAIR-Datenprinzipien erforderlich."
+
+#: geonode/templates/privacy.html:105
+msgid "Uploaded datasets may become publicly accessible depending on the chosen permission settings."
+msgstr "Hochgeladene Datensätze können je nach gewählten Berechtigungseinstellungen öffentlich zugänglich werden."
+
+#: geonode/templates/privacy.html:110
+msgid "8. Data Sharing and Third Parties"
+msgstr "8. Datenweitergabe und Dritte"
+
+#: geonode/templates/privacy.html:112
+msgid "We do not transfer personal data to third parties except when required by law or when necessary for secure hosting and system maintenance."
+msgstr "Wir geben personenbezogene Daten nicht an Dritte weiter, es sei denn, dies ist gesetzlich vorgeschrieben oder für sicheres Hosting und die Systemwartung erforderlich."
+
+#: geonode/templates/privacy.html:116
+msgid "The platform infrastructure may be hosted on institutional servers or certified providers in the EU."
+msgstr "Die Plattforminfrastruktur kann auf institutionellen Servern oder bei zertifizierten Anbietern in der EU betrieben werden."
+
+#: geonode/templates/privacy.html:121
+msgid "9. Data Retention"
+msgstr "9. Speicherdauer"
+
+#: geonode/templates/privacy.html:123
+msgid "Account data is stored as long as your user account is active."
+msgstr "Kontodaten werden gespeichert, solange Ihr Benutzerkonto aktiv ist."
+
+#: geonode/templates/privacy.html:124
+msgid "Server logs are automatically deleted after the standard retention period."
+msgstr "Server-Logdateien werden nach der regulären Speicherfrist automatisch gelöscht."
+
+#: geonode/templates/privacy.html:125
+msgid "Published datasets are preserved long-term to ensure scientific reproducibility."
+msgstr "Veröffentlichte Datensätze werden langfristig archiviert, um die wissenschaftliche Reproduzierbarkeit sicherzustellen."
+
+#: geonode/templates/privacy.html:130
+msgid "10. Your Rights Under GDPR"
+msgstr "10. Ihre Rechte nach der DSGVO"
+
+#: geonode/templates/privacy.html:132
+msgid "You may exercise the following rights at any time:"
+msgstr "Sie können die folgenden Rechte jederzeit geltend machen:"
+
+#: geonode/templates/privacy.html:135
+msgid "Right of access"
+msgstr "Recht auf Auskunft"
+
+#: geonode/templates/privacy.html:136
+msgid "Right to rectification"
+msgstr "Recht auf Berichtigung"
+
+#: geonode/templates/privacy.html:137
+msgid "Right to erasure"
+msgstr "Recht auf Löschung"
+
+#: geonode/templates/privacy.html:138
+msgid "Right to restrict processing"
+msgstr "Recht auf Einschränkung der Verarbeitung"
+
+#: geonode/templates/privacy.html:139
+msgid "Right to data portability"
+msgstr "Recht auf Datenübertragbarkeit"
+
+#: geonode/templates/privacy.html:140
+msgid "Right to object"
+msgstr "Widerspruchsrecht"
+
+#: geonode/templates/privacy.html:144
+msgid "Please note that published datasets may not be deletable due to scientific integrity, documentation requirements, or legal obligations."
+msgstr "Bitte beachten Sie, dass veröffentlichte Datensätze aufgrund wissenschaftlicher Integrität, Dokumentationspflichten oder gesetzlicher Vorgaben möglicherweise nicht gelöscht werden können."
+
+#: geonode/templates/privacy.html:149
+msgid "11. Contact for Data Protection"
+msgstr "11. Kontakt zum Datenschutz"
+
+#: geonode/templates/privacy.html:151
+msgid "Data Protection Officer (DPO)"
+msgstr "Datenschutzbeauftragter"
+
+#: geonode/templates/privacy.html:158
+msgid "12. Updates to this Privacy Policy"
+msgstr "12. Änderungen dieser Datenschutzerklärung"
+
+#: geonode/templates/privacy.html:160
+msgid "We may update this Privacy Policy to comply with new legal requirements or improvements to the platform. The current version is always available on this page."
+msgstr "Wir können diese Datenschutzerklärung anpassen, um neuen rechtlichen Anforderungen oder Verbesserungen der Plattform Rechnung zu tragen. Die jeweils aktuelle Fassung ist stets auf dieser Seite verfügbar."
+
+#: geonode/templates/publications.html:13
+msgid "Scientific publications, guidelines, and technical documentation related to the BonaRes Repository and its services."
+msgstr "Wissenschaftliche Publikationen, Leitfäden und technische Dokumentation zum BonaRes Repository und seinen Diensten."
+
+#: geonode/templates/publications.html:22
+msgid "Publications about the BonaRes Repository and its Services"
+msgstr "Publikationen über das BonaRes Repository und seine Dienste"
+
+#: geonode/templates/publications.html:25
+msgid "Scientific Publications"
+msgstr "Wissenschaftliche Publikationen"
+
+#: geonode/templates/publications.html:32
+msgid "Presents the LTE Overview Map, which supports the discovery of long-term field experiments and access to their metadata."
+msgstr "Stellt die LTE-Übersichtskarte vor, die das Auffinden von Dauerfeldversuchen und den Zugang zu ihren Metadaten unterstützt."
+
+#: geonode/templates/publications.html:43
+msgid "Introduces the BonaRes Repository, its infrastructure and specialized services, and examines how published datasets are reused in soil and agricultural research."
+msgstr "Stellt das BonaRes Repository, seine Infrastruktur und seine spezialisierten Dienste vor und untersucht, wie veröffentlichte Datensätze in der Boden- und Agrarforschung nachgenutzt werden."
+
+#: geonode/templates/publications.html:54
+msgid "Describes the development of the BonaRes Metadata Schema, combining INSPIRE and DataCite standards to improve interoperability and data publication."
+msgstr "Beschreibt die Entwicklung des BonaRes-Metadatenschemas, das INSPIRE- und DataCite-Standards kombiniert, um Interoperabilität und Datenveröffentlichung zu verbessern."
+
+#: geonode/templates/publications.html:58
+msgid "Guidelines"
+msgstr "Leitfäden"
+
+#: geonode/templates/publications.html:65
+msgid "Provides guidance on data citation, DOI assignment, dataset versioning, and updates to published research data."
+msgstr "Bietet Hinweise zur Datenzitation, DOI-Vergabe, Versionierung von Datensätzen und zu Aktualisierungen veröffentlichter Forschungsdaten."
+
+#: geonode/templates/publications.html:69
+msgid "Technical Publications & Documentation"
+msgstr "Technische Publikationen und Dokumentation"
+
+#: geonode/templates/publications.html:76
+msgid "Provides detailed definitions and specifications of the BonaRes metadata elements, integrating INSPIRE and DataCite standards."
+msgstr "Bietet detaillierte Definitionen und Spezifikationen der BonaRes-Metadatenelemente unter Einbindung der INSPIRE- und DataCite-Standards."
+
+#: geonode/templates/zalf/what_is_orcid.html:19
+msgid "Why this repository asks you to sign in with an ORCID iD."
+msgstr "Warum dieses Repositorium Sie bittet, sich mit einer ORCID iD anzumelden."
+
+#: geonode/templates/zalf/institutional_footer.html:6
+msgid "BonaRes Repository"
+msgstr "BonaRes Repository"
+
+#: geonode/templates/zalf/institutional_footer.html:43
+msgid "© BonaRes Repository. All rights reserved"
+msgstr "© BonaRes Repository. Alle Rechte vorbehalten"
+
+#: geonode/templates/zalf/institutional_nav.html:126
+msgid "Section navigation"
+msgstr "Bereichsnavigation"
