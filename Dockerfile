@@ -1,5 +1,22 @@
-FROM geonode/geonode-base:latest-ubuntu-22.04
+# Digest-pinned, so builds are reproducible and an OS-layer change cannot arrive silently on
+# whichever day upstream republishes the tag. Check by hand with `make base-digest`.
+FROM geonode/geonode-base:latest-ubuntu-22.04@sha256:0728153a2a39471d5979e75f2904474e1d9380e04e1ce2db65934314bdbe4d9c
 LABEL GeoNode development team
+
+# GeoNode republishes the base on its own cadence, so an Ubuntu security update can sit unapplied in
+# it for weeks. Upgrading explicitly is what makes a rebuild deliver distro patches while the base
+# stays digest-pinned; without it, rebuilding a pinned base just reproduces the same packages.
+# Placed directly after FROM so everything below still caches normally.
+#
+# The cache bust matters as much as the upgrade: a build whose Dockerfile has not changed would
+# restore this layer from cache and install nothing. CI passes a unique value per build.
+ARG APT_CACHE_BUST=local
+RUN echo "Refreshing OS packages (${APT_CACHE_BUST})" \
+    && apt-get update \
+    && apt-get upgrade -y \
+    && apt-get autoremove --purge -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # copy local geonode src inside container
 COPY . /usr/src/geonode/
@@ -29,11 +46,6 @@ RUN chmod +x /usr/bin/celery-cmd
 
 RUN yes w | pip install --src /usr/src -r requirements.txt &&\
     yes w | pip install -e .
-
-# Cleanup apt update lists
-RUN apt-get autoremove --purge &&\
-    apt-get clean &&\
-    rm -rf /var/lib/apt/lists/*
 
 # Export ports
 EXPOSE 8000

@@ -58,3 +58,50 @@ reset: down up wait sync
 hardreset: pull build reset
 
 develop: pull build up sync
+
+# Security auditing. Scope: the image this branch builds. Mirrors
+# .github/workflows/security-audit.yml so a finding can be reproduced locally.
+# This line publishes no `latest` tag, so AUDIT_IMAGE names the newest published image; override it
+# to audit another tag, or use audit-build for the working tree.
+AUDIT_IMAGE ?= zalf/geonode:v4.4.3-zalf002.59
+# This image mixes pip's dist-packages with Ubuntu's, and a system package versioned
+# `2.22.1ubuntu1` is not PEP 440, which makes pip-audit fail to enumerate anything. Scoping it to
+# pip's directory avoids that.
+AUDIT_SITE_PACKAGES ?= /usr/local/lib/python3.10/dist-packages
+
+audit:
+	docker run --rm --entrypoint bash $(AUDIT_IMAGE) -c \
+		'pip install -q --no-cache-dir pip-audit && pip-audit --path $(AUDIT_SITE_PACKAGES) --progress-spinner=off -f json' \
+		> /tmp/pip-audit.json || true
+	@python3 -c "import json; json.load(open('/tmp/pip-audit.json'))"
+	python3 security/pip_audit_gate.py /tmp/pip-audit.json
+
+audit-baseline:
+	# Run after a dependency upgrade, then commit security/pip-audit-known.txt with the upgrade.
+	docker run --rm --entrypoint bash $(AUDIT_IMAGE) -c \
+		'pip install -q --no-cache-dir pip-audit && pip-audit --path $(AUDIT_SITE_PACKAGES) --progress-spinner=off -f json' \
+		> /tmp/pip-audit.json || true
+	@python3 -c "import json; json.load(open('/tmp/pip-audit.json'))"
+	python3 security/pip_audit_gate.py /tmp/pip-audit.json --write-baseline
+
+audit-image:
+	# OS packages (apt) -- the layer pip-audit cannot see.
+	docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image \
+		--scanners vuln --severity HIGH,CRITICAL --ignore-unfixed $(AUDIT_IMAGE)
+
+audit-bundled:
+	# C libraries vendored inside wheels -- the gap between the two scanners above.
+	docker run --rm --entrypoint python -v $(PWD)/security/scan_bundled_libs.py:/scan.py:ro \
+		$(AUDIT_IMAGE) -I /scan.py
+
+audit-build:
+	docker build --build-arg APT_CACHE_BUST=$$(date +%s) -t geonode-audit:local .
+	$(MAKE) audit AUDIT_IMAGE=geonode-audit:local
+	$(MAKE) audit-image AUDIT_IMAGE=geonode-audit:local
+
+base-digest:
+	# Compare the digest pinned in the Dockerfile against what the base image tag resolves to now.
+	@docker buildx imagetools inspect $$(grep -oP '(?<=^FROM )[^@ ]+' Dockerfile) \
+		--format 'Live digest:   {{.Manifest.Digest}}'
+	@grep -oP '(?<=@)sha256:\S+' Dockerfile | sed 's/^/Pinned digest: /'
+
