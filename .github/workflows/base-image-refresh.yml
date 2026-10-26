@@ -1,12 +1,17 @@
 name: Base Image Refresh
 
-# The weekend half of the patch cycle.
+# The weekend half of the patch cycle, run unconditionally.
 #
 # The base image is digest-pinned, which makes builds reproducible but also means that neither an
 # upstream rebuild of geonode/geonode-base nor a new Ubuntu security update reaches the image on its
-# own. This job looks for both every Saturday and, when a rebuild would actually change something,
-# opens a pull request. The test suites run on that branch, so Monday's review is of a tested
-# change; merging it publishes a new image, and rolling that image out stays a manual decision.
+# own. Every Saturday this job records the state of both and opens a pull request for the rebuild.
+# The suites run on that branch, so Monday's review is of a tested change; merging it publishes a
+# new image, and rolling that image out stays a manual decision.
+#
+# The pull request is opened every week whether or not anything upstream moved. A rebuild always
+# re-resolves apt and PyPI (see APT_CACHE_BUST in the Dockerfile), so there is always something to
+# ship, and a review item that arrives on a predictable day is the point. security/base-image.lock
+# records the run that wrote it, which is what guarantees the commit has a diff on a quiet week.
 
 on:
   schedule:
@@ -25,7 +30,7 @@ permissions:
 
 jobs:
   refresh:
-    name: Check the base image
+    name: Open the weekly rebuild PR
     runs-on: ubuntu-24.04
     timeout-minutes: 45
 
@@ -33,7 +38,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Compare the pinned base against the live tag
+      - name: Record the base image state
         id: probe
         run: |
           set -euo pipefail
@@ -41,27 +46,17 @@ jobs:
           pinned=$(grep -oP '(?<=@)sha256:[0-9a-f]+' Dockerfile | head -1)
           live=$(docker buildx imagetools inspect "$base_ref" --format '{{.Manifest.Digest}}')
 
-          # Ubuntu updates published since the base was built -- what a rebuild would install today.
+          # Ubuntu updates published since the base was built -- what this rebuild will install.
           # Simulated inside the pinned base itself, so the number describes the image we ship from.
           pending=$(docker run --rm --entrypoint bash "${base_ref}@${pinned}" -c \
             'apt-get update >/dev/null 2>&1; apt-get -s upgrade 2>/dev/null | grep -oE "^[0-9]+ upgraded" | cut -d" " -f1')
           pending=${pending:-0}
-
-          reason=""
-          if [ "$live" != "$pinned" ]; then
-            reason="the base image tag now resolves to a new digest"
-          fi
-          if [ "$pending" -gt 0 ]; then
-            [ -n "$reason" ] && reason="$reason, and "
-            reason="${reason}${pending} Ubuntu package update(s) are pending in the pinned base"
-          fi
 
           {
             echo "base_ref=$base_ref"
             echo "pinned=$pinned"
             echo "live=$live"
             echo "pending=$pending"
-            echo "reason=$reason"
           } >> "$GITHUB_OUTPUT"
 
           {
@@ -75,21 +70,13 @@ jobs:
             echo "| Pending apt updates | $pending |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Nothing to refresh
-        if: steps.probe.outputs.reason == ''
-        run: |
-          echo "Base digest unchanged and no pending Ubuntu updates: a rebuild would be identical." \
-            | tee -a "$GITHUB_STEP_SUMMARY"
-
       - name: Open the refresh pull request
-        if: steps.probe.outputs.reason != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BASE_REF: ${{ steps.probe.outputs.base_ref }}
           PINNED: ${{ steps.probe.outputs.pinned }}
           LIVE: ${{ steps.probe.outputs.live }}
           PENDING: ${{ steps.probe.outputs.pending }}
-          REASON: ${{ steps.probe.outputs.reason }}
         run: |
           set -euo pipefail
           today=$(date -u +%Y-%m-%d)
@@ -99,22 +86,26 @@ jobs:
             sed -i "s|@$PINNED|@$LIVE|" Dockerfile
           fi
 
-          python3 - "$BASE_REF" "$LIVE" "$today" "$PENDING" <<'PY'
+          python3 - "$BASE_REF" "$LIVE" "$today" "$PENDING" "${GITHUB_RUN_ID}" <<'PY'
           import pathlib, sys
-          base_ref, live, today, pending = sys.argv[1:5]
+          base_ref, live, today, pending, run_id = sys.argv[1:6]
           path = pathlib.Path("security/base-image.lock")
-          lines = []
+          fields = {
+              "base_image": base_ref,
+              "pinned_digest": live,
+              "last_checked": today,
+              "pending_apt_upgrades_at_check": pending,
+              "last_refresh_run": run_id,
+          }
+          lines, seen = [], set()
           for line in path.read_text().splitlines():
               key = line.split(":", 1)[0]
-              if key == "base_image":
-                  line = f"base_image: {base_ref}"
-              elif key == "pinned_digest":
-                  line = f"pinned_digest: {live}"
-              elif key == "last_checked":
-                  line = f"last_checked: {today}"
-              elif key == "pending_apt_upgrades_at_check":
-                  line = f"pending_apt_upgrades_at_check: {pending}"
+              if key in fields:
+                  line = f"{key}: {fields[key]}"
+                  seen.add(key)
               lines.append(line)
+          # A field added after this file was first written still has to land.
+          lines += [f"{k}: {v}" for k, v in fields.items() if k not in seen]
           path.write_text("\n".join(lines) + "\n")
           PY
 
@@ -122,11 +113,17 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$branch"
           git add Dockerfile security/base-image.lock
-          git commit -m "Refresh the base image ($today)" -m "$REASON."
+          git commit -m "Refresh the base image ($today)" \
+            -m "Weekly rebuild: $PENDING Ubuntu package update(s) pending in the pinned base."
           git push --force origin "$branch"
 
+          digest_note="unchanged"
+          if [ "$LIVE" != "$PINNED" ]; then
+            digest_note="moved, and the pin in the Dockerfile was updated"
+          fi
+
           body=$(cat <<EOF
-          Automated weekend refresh: $REASON.
+          Automated weekly rebuild. The base image digest $digest_note.
 
           | | |
           | --- | --- |
