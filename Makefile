@@ -58,3 +58,30 @@ reset: down up wait sync
 hardreset: pull build reset
 
 develop: pull build up sync
+
+# Security auditing. Mirrors .github/workflows/security-audit.yml so a finding can be reproduced
+# locally before the weekly run reports it.
+GEONODE_IMAGE := $(shell grep -oE '^[[:space:]]+image: geonode/geonode:[^[:space:]]+' docker-compose.yml | head -1 | awk '{print $$2}')
+
+audit:
+	# Audits the packages installed in the image, not pyproject.toml: pip-audit -r re-resolves the
+	# tree and fails on GDAL, and the git-pinned pycsw has no release to match.
+	docker run --rm --entrypoint bash $(GEONODE_IMAGE) -c \
+		'pip install -q --no-cache-dir pip-audit && pip-audit --progress-spinner=off -f json' \
+		> /tmp/pip-audit.json
+	python3 security/pip_audit_gate.py /tmp/pip-audit.json
+
+audit-baseline:
+	# Run after a dependency upgrade, then commit security/pip-audit-known.txt with the upgrade.
+	docker run --rm --entrypoint bash $(GEONODE_IMAGE) -c \
+		'pip install -q --no-cache-dir pip-audit && pip-audit --progress-spinner=off -f json' \
+		> /tmp/pip-audit.json
+	python3 security/pip_audit_gate.py /tmp/pip-audit.json --write-baseline
+
+audit-images:
+	# OS packages (apt/apk) of every image docker-compose.yml pins -- the layer pip-audit cannot see.
+	for image in $$(grep -oE '^[[:space:]]+image: [^[:space:]]+' docker-compose.yml | awk '{print $$2}' | sort -u); do \
+		echo "== $$image"; \
+		docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image \
+			--scanners vuln --severity HIGH,CRITICAL --ignore-unfixed "$$image"; \
+	done

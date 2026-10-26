@@ -12,3 +12,22 @@ updates:
   - dependency-name: django
     versions:
     - "<= 5.0"
+
+# The image tags in docker-compose.yml and the base image in the Dockerfile were never watched by
+# anything: an OS-level CVE in nginx or the GeoNode base image only ever arrived with a manual pull.
+- package-ecosystem: docker
+  directories:
+  - "/"
+  schedule:
+    interval: weekly
+    time: "00:00"
+  labels:
+  - dependencies
+  - security
+
+- package-ecosystem: github-actions
+  directory: "/"
+  schedule:
+    interval: monthly
+  labels:
+  - dependencies
