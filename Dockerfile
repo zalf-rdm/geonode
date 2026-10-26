@@ -1,5 +1,7 @@
-# Digest-pinned so an OS-layer change arrives as a reviewable Dependabot PR instead of silently,
-# on whichever day upstream happens to republish the tag. Refresh with `make base-digest`.
+# Digest-pinned, so builds are reproducible and an OS-layer change cannot arrive silently on
+# whichever day upstream republishes the tag. The pin is what makes the change detectable:
+# .github/workflows/base-image-refresh.yml compares it against the live tag every Saturday.
+# Check by hand with `make base-digest`.
 FROM geonode/geonode-base:latest-ubuntu-24.04@sha256:75c237132941ef14a3fd0baf5f5509c557e6c4f2ce7f824754c38acbdb6b43b9
 LABEL GeoNode development team
 
@@ -8,7 +10,13 @@ LABEL GeoNode development team
 # yet. Upgrading explicitly is what makes a rebuild deliver distro patches while the base stays
 # digest-pinned; without it, rebuilding a pinned base just reproduces the same packages. Placed
 # directly after FROM so everything below still caches normally.
-RUN apt-get update \
+#
+# The cache bust matters as much as the upgrade: a build whose Dockerfile has not changed would
+# restore this layer from cache and install nothing. CI passes a unique value per build, exactly as
+# it does for the Python layer below, so every published image re-resolves apt.
+ARG APT_CACHE_BUST=local
+RUN echo "Refreshing OS packages (${APT_CACHE_BUST})" \
+    && apt-get update \
     && apt-get upgrade -y \
     && apt-get autoremove --purge -y \
     && apt-get clean \

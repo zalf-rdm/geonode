@@ -20,6 +20,8 @@ updates:
   - "/"
   schedule:
     interval: weekly
+    # Saturday, so anything it finds is reviewable on Monday alongside the refresh PR.
+    day: saturday
     time: "00:00"
   labels:
   - dependencies
