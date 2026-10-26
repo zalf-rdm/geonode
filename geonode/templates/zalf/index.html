@@ -1,7 +1,11 @@
 {% load static %}
 {% load client_version %}
+{% load i18n %}
+{# The homepage does not extend base.html, so it needs the same locale-aware #}
+{# lang attribute: it carried no lang at all before.                         #}
+{% get_current_language as LANGUAGE_CODE %}
 <!DOCTYPE html>
-<html class="msgapi">
+<html lang="{{ LANGUAGE_CODE }}" class="msgapi">
     <head>
         {% include 'geonode-mapstore-client/snippets/head.html' %}
         {% include 'geonode-mapstore-client/snippets/loader_style.html' %}
