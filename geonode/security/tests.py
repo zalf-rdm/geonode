@@ -308,7 +308,11 @@ class SecurityTests(ResourceTestCaseMixin, GeoNodeBaseTestSupport):
                     path,
                     data={
                         "username": "user1withapyley",
-                        "password": "user1withapyley",
+                        # Must satisfy AUTH_PASSWORD_VALIDATORS: the old value repeated
+                        # the username and had no digit, uppercase or symbol, so the
+                        # serializer rejected it with 400 and the assertion below could
+                        # no longer tell a middleware failure from a weak password.
+                        "password": "Ch4ngeMe@ApiKeyTest",
                         "email": "user1withapyley@email.com",
                     },
                 )
