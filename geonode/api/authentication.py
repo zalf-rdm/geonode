@@ -48,7 +48,7 @@ class OAuthAuthentication(Authentication):
         if "HTTP_AUTHORIZATION" in request.META:
             auth_header = self.extract_auth_header(request)
             if auth_header:
-                access_token = get_token_from_auth_header(auth_header)
+                access_token = get_token_from_auth_header(auth_header, request=request)
                 if self.token_is_valid(access_token):
                     obj = AccessToken.objects.get(token=access_token)
                     user = obj.user

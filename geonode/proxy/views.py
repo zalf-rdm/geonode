@@ -187,7 +187,7 @@ def proxy(
         elif "HTTP_AUTHORIZATION" in request.META:
             auth_header = request.META.get("HTTP_AUTHORIZATION", request.META.get("HTTP_AUTHORIZATION2"))
         if auth_header:
-            access_token = get_token_from_auth_header(auth_header, create_if_not_exists=True)
+            access_token = get_token_from_auth_header(auth_header, create_if_not_exists=True, request=request)
     user = get_auth_user(access_token)
 
     # Inject access_token if necessary

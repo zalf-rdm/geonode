@@ -48,7 +48,7 @@ def ajax_login(request):
     if form.is_valid():
         username = form.cleaned_data["username"]
         password = form.cleaned_data["password"]
-        user = authenticate(username=username, password=password)
+        user = authenticate(request=request, username=username, password=password)
         if user is None or not user.is_active:
             return HttpResponse(content="bad credentials or disabled user", status=400, content_type="text/plain")
         else:
