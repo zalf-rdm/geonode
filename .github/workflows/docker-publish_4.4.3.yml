@@ -49,5 +49,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Unique per run, so a published image re-resolves apt instead of restoring that layer
+          # from cache. Without it the digest-pinned base would ship the same OS packages forever.
+          build-args: |
+            APT_CACHE_BUST=${{ github.run_id }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

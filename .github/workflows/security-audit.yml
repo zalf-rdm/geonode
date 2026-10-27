@@ -1,0 +1,116 @@
+name: Security Audit
+
+# Scope: the image this branch builds -- the one production runs. Three layers, because none of them
+# sees the others' packages:
+#   * pip-audit                 -- Python distributions installed in the image.
+#   * Trivy                     -- the image's OS packages (apt).
+#   * scan_bundled_libs.py      -- C libraries vendored inside wheels, which neither of the above
+#                                  reports. CVE-2026-111497 (HTTP2Shell) sat in that gap twice over:
+#                                  in the Brotli wheel and in Pillow's own bundled libbrotlidec.
+#
+# There is deliberately no `schedule:` here. GitHub runs scheduled workflows only from the
+# repository's default branch, so a cron in this file would never fire. The weekly run for this
+# branch is driven from the audit workflow on main, which checks this branch out by name.
+
+on:
+  pull_request:
+    branches: [ GeoNode-v4.4.3-zalf00X ]
+    types: [ opened, synchronize, reopened, ready_for_review ]
+  workflow_dispatch:
+
+concurrency:
+  group: security-audit-443-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # This image mixes pip's dist-packages with Ubuntu's, and a system package versioned
+  # `2.22.1ubuntu1` is not PEP 440 -- pip-audit then fails to enumerate anything at all. Scoping it
+  # to pip's directory avoids that.
+  SITE_PACKAGES: /usr/local/lib/python3.10/dist-packages
+
+jobs:
+  image:
+    name: Audit the image built from the Dockerfile
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    if: ${{ !github.event.pull_request.draft }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build the image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true
+          tags: geonode-audit:local
+          build-args: |
+            APT_CACHE_BUST=${{ github.run_id }}
+          cache-from: type=gha
+
+      # pip-audit exits non-zero whenever it reports anything, and the baseline gate below is what
+      # decides pass/fail -- so a finding must not fail this step. The json.load keeps `|| true`
+      # from masking a real breakage (failed pip install, truncated or empty report).
+      - name: Run pip-audit inside the image
+        run: |
+          docker run --rm --entrypoint bash geonode-audit:local -c \
+            "pip install -q --no-cache-dir pip-audit && pip-audit --path $SITE_PACKAGES --progress-spinner=off -f json" \
+            > pip-audit.json || true
+          python3 -c "import json; json.load(open('pip-audit.json'))"
+
+      - name: Compare against the known-advisory baseline
+        run: python3 security/pip_audit_gate.py pip-audit.json --summary "$GITHUB_STEP_SUMMARY"
+
+      # Report-only: a finding here is usually upstream's (geonode-base, or Ubuntu itself), so it is
+      # a "rebuild and roll out" task rather than something this pull request can fix.
+      - name: Scan the image for OS package CVEs
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: geonode-audit:local
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: table
+          output: trivy.txt
+          exit-code: '0'
+
+      - name: Scan for C libraries vendored inside wheels
+        run: |
+          docker run --rm --entrypoint python \
+            -v "$PWD/security/scan_bundled_libs.py:/scan.py:ro" geonode-audit:local \
+            -I /scan.py | tee bundled-libs.txt
+
+      - name: Add the scanner output to the job summary
+        if: always()
+        run: |
+          {
+            echo "## Trivy: OS packages"
+            echo
+            echo '```'
+            if [ -s trivy.txt ]; then cat trivy.txt; else echo "No fixable HIGH/CRITICAL findings."; fi
+            echo '```'
+            echo
+            echo "## Bundled C libraries (invisible to both scanners above)"
+            echo
+            echo '```'
+            if [ -s bundled-libs.txt ]; then cat bundled-libs.txt; else echo "scan produced no output"; fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the raw reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-reports
+          path: |
+            pip-audit.json
+            trivy.txt
+            bundled-libs.txt
+          retention-days: 90
