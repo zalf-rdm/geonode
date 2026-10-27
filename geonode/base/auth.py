@@ -36,7 +36,7 @@ def extract_user_from_headers(request):
     user = AnonymousUser()
     if "HTTP_AUTHORIZATION" in request.META:
         auth_header = request.META.get("HTTP_AUTHORIZATION", request.META.get("HTTP_AUTHORIZATION2"))
-        user = token_header_authenticate_user(auth_header, request=request)
+        user = token_header_authenticate_user(auth_header)
 
     if settings.ENABLE_APIKEY_LOGIN and "apikey" in request.GET:
         user = get_auth_user_from_token(request.GET.get("apikey"))
@@ -163,9 +163,9 @@ def delete_old_tokens(user, client=settings.OAUTH2_DEFAULT_BACKEND_CLIENT_NAME):
             logger.debug(tb)
 
 
-def get_token_from_auth_header(auth_header, create_if_not_exists=False, request=None):
+def get_token_from_auth_header(auth_header, create_if_not_exists=False):
     if re.search("Basic", auth_header, re.IGNORECASE):
-        user = basic_auth_authenticate_user(auth_header, request=request)
+        user = basic_auth_authenticate_user(auth_header)
         if user and user.is_active:
             return get_auth_token(user) if not create_if_not_exists else get_or_create_token(user)
     elif re.search("Bearer", auth_header, re.IGNORECASE):
@@ -200,21 +200,18 @@ def remove_session_token(session):
         del session["access_token"]
 
 
-def basic_auth_authenticate_user(auth_header: str, request=None):
+def basic_auth_authenticate_user(auth_header: str):
     """
     Function performing user authentication based on BasicAuth Authorization header
 
     :param auth_header: Authorization header of the request
-    :param request: the current request, required by the django-axes backend so a
-        failed attempt can be attributed and rate limited. Callers that cannot supply
-        it get an error from axes rather than silent, unthrottled authentication.
     """
     encoded_credentials = auth_header.split(" ")[1]  # Removes "Basic " to isolate credentials
     decoded_credentials = base64.b64decode(encoded_credentials).decode("utf-8").split(":")
     username = decoded_credentials[0]
     password = decoded_credentials[1]
 
-    return authenticate(request=request, username=username, password=password)
+    return authenticate(username=username, password=password)
 
 
 def get_token_object(token):
@@ -235,8 +232,8 @@ def get_auth_user_from_token(token):
         return access_token.user
 
 
-def token_header_authenticate_user(auth_header: str, request=None):
-    token = get_token_from_auth_header(auth_header, create_if_not_exists=True, request=request)
+def token_header_authenticate_user(auth_header: str):
+    token = get_token_from_auth_header(auth_header, create_if_not_exists=True)
     return get_auth_user_from_token(token)
 
 

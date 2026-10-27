@@ -376,7 +376,7 @@ def get_headers(request, url, raw_url, allowed_hosts=[]):
             auth_header = request.META.get("HTTP_AUTHORIZATION", request.META.get("HTTP_AUTHORIZATION2"))
             if auth_header:
                 headers["Authorization"] = auth_header
-                access_token = get_token_from_auth_header(auth_header, create_if_not_exists=True, request=request)
+                access_token = get_token_from_auth_header(auth_header, create_if_not_exists=True)
         # otherwise we check if a session is active
         elif request and request.user.is_authenticated:
             access_token = get_token_object_from_session(request.session)

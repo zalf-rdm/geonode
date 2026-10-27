@@ -359,7 +359,7 @@ def resolve_user(request):
     acl_user = request.user
     if "HTTP_AUTHORIZATION" in request.META:
         username, password = _get_basic_auth_info(request)
-        acl_user = authenticate(request=request, username=username, password=password)
+        acl_user = authenticate(username=username, password=password)
         if acl_user:
             user = acl_user.username
             superuser = acl_user.is_superuser
@@ -399,7 +399,7 @@ def dataset_acls(request):
     if "HTTP_AUTHORIZATION" in request.META:
         try:
             username, password = _get_basic_auth_info(request)
-            acl_user = authenticate(request=request, username=username, password=password)
+            acl_user = authenticate(username=username, password=password)
 
             # Nope, is it the special geoserver user?
             if acl_user is None and username == ogc_server_settings.USER and password == ogc_server_settings.PASSWORD:

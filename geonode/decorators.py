@@ -79,7 +79,7 @@ def view_or_basicauth(view, request, test_func, realm="", *args, **kwargs):
             #
             if basic_auth[0].lower() == "basic":
                 uname, passwd = base64.b64decode(basic_auth[1]).decode("utf-8").split(":", 1)
-                user = authenticate(request=request, username=uname, password=passwd)
+                user = authenticate(username=uname, password=passwd)
                 if user and user.is_active:
                     login(request, user)
                     request.user = user

@@ -88,6 +88,14 @@ class HarvestableResourceViewSet(
 
 
 class AsynchronousHarvestingSessionViewSet(WithDynamicViewSetMixin, viewsets.ReadOnlyModelViewSet):
+    # Harvesting is administrative: creating a harvester is superuser-only, and these
+    # session records describe those runs -- which remote endpoint was contacted, when,
+    # and how it went. The viewset set no permission class, so it was readable by
+    # anyone; being read-only, the project-wide IsAuthenticatedOrReadOnly default would
+    # not have changed that. Nothing in the frontend consumes /api/v2/harvesting-sessions.
+    permission_classes = [
+        rest_framework.permissions.IsAdminUser,
+    ]
     queryset = models.AsynchronousHarvestingSession.objects.all()
     serializer_class = serializers.BriefAsynchronousHarvestingSessionSerializer
     pagination_class = GeoNodeApiPagination

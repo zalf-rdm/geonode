@@ -22,7 +22,6 @@ import json as _json
 import os
 import re
 import ast
-import datetime
 import sys
 import subprocess
 import dj_database_url
@@ -518,8 +517,6 @@ INSTALLED_APPS = (
     "django.contrib.sitemaps",
     "whitenoise.runserver_nostatic",
     "django.contrib.staticfiles",
-    # Login throttling and lockout; see the AXES_* block further down.
-    "axes",
     "django.contrib.messages",
     "django.contrib.humanize",
     "django.contrib.gis",
@@ -934,9 +931,6 @@ if RECAPTCHA_ENABLED:
 # Replacement of the default authentication backend in order to support
 # permissions per object.
 AUTHENTICATION_BACKENDS = (
-    # Must stay first: it is what blocks an already locked-out credential before any
-    # other backend gets to check the password.
-    "axes.backends.AxesStandaloneBackend",
     # 'oauth2_provider.backends.OAuth2Backend',
     "django.contrib.auth.backends.ModelBackend",
     "guardian.backends.ObjectPermissionBackend",
@@ -1047,30 +1041,6 @@ LOCKDOWN_GEONODE = ast.literal_eval(os.getenv("LOCKDOWN_GEONODE", "False"))
 # Require users to authenticate before using Geonode
 if LOCKDOWN_GEONODE:
     MIDDLEWARE += ("geonode.security.middleware.LoginRequiredMiddleware",)
-
-# Login throttling (django-axes). Nothing previously limited password guessing: the
-# allauth rate limit only covers its own login view, which the SSO middleware routes
-# away, and AuthenticateBasicAuthOrApiKeyMiddleware accepts HTTP Basic credentials on
-# every URL. The Django admin is also reachable with a local password and is
-# deliberately exempt from Keycloak SSO.
-#
-# Lockout is keyed on the (IP, username) pair rather than on either alone: keying on
-# IP would let one attacker lock out everyone behind a shared address or the ingress,
-# and keying on username alone would let anyone lock a known account out at will.
-AXES_ENABLED = ast.literal_eval(os.getenv("AXES_ENABLED", "True"))
-AXES_FAILURE_LIMIT = int(os.getenv("AXES_FAILURE_LIMIT", "10"))
-AXES_COOLOFF_TIME = datetime.timedelta(minutes=int(os.getenv("AXES_COOLOFF_MINUTES", "30")))
-AXES_LOCKOUT_PARAMETERS = [["ip_address", "username"]]
-AXES_RESET_ON_SUCCESS = True
-AXES_LOCKOUT_TEMPLATE = None
-# Behind the ingress every request carries the proxy address unless the real client is
-# read from X-Forwarded-For. Set AXES_IPWARE_PROXY_COUNT to the number of proxies in
-# front of GeoNode to make the IP half of the key meaningful.
-_axes_proxy_count = os.getenv("AXES_IPWARE_PROXY_COUNT")
-if _axes_proxy_count:
-    AXES_IPWARE_PROXY_COUNT = int(_axes_proxy_count)
-# Must be last, so it sees the PermissionDenied the backend raises.
-MIDDLEWARE += ("axes.middleware.AxesMiddleware",)
 
 # A tuple of hosts the proxy can send requests to.
 try:
