@@ -166,7 +166,10 @@ class UserSerializer(base_serializers.DynamicModelSerializer):
         data = super().to_representation(instance)
         user = getattr(request, "user", None)
         is_privileged = bool(user and user.is_authenticated and (user.is_superuser or user.is_staff))
-        is_self = bool(user and user.is_authenticated and data.get("username") == user.username)
+        # Compare the instance rather than the serialized dict: dynamic-rest lets the
+        # caller choose fields, so `username` is not guaranteed to be in `data` -- and
+        # keying off it would hide a user's own address from them on ?fields=email.
+        is_self = bool(user and user.is_authenticated and getattr(instance, "pk", None) == user.pk)
 
         if not is_privileged and not is_self:
             if "perms" in data:

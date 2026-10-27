@@ -71,7 +71,9 @@ class AssetViewSet(DynamicModelViewSet):
         than on the Asset itself.
         """
         queryset = super().get_queryset()
-        user = self.request.user
+        # self.request is absent while drf-spectacular generates the schema, and
+        # UserViewSet.get_queryset guards the same way.
+        user = getattr(self.request, "user", None) if self.request else None
         if not (user and user.is_authenticated):
             return queryset.none()
         if user.is_superuser:
