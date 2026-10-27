@@ -9,8 +9,9 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied, BadRequest, ValidationError
 
 from rest_framework import status
-from rest_framework.decorators import api_view, authentication_classes
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from oauth2_provider.contrib.rest_framework import OAuth2Authentication
 
@@ -299,7 +300,12 @@ def sync_metadata_view(request, mapid):
            - "field_names" (list[str]) — sync only specific fields
          Requires change_resourcebase permission on the map.
     """
+    # The GET branch below returns metadata, so the map has to be readable before
+    # anything else happens. Http404 rather than 403, so a map the caller may not see
+    # is indistinguishable from one that does not exist.
     map_obj = get_object_or_404(Map, id=mapid)
+    if not request.user.has_perm("base.view_resourcebase", map_obj.get_self_resource()):
+        raise Http404("Map does not exist")
 
     # Resolve target resource(s)
     resource_pk = (
@@ -310,7 +316,15 @@ def sync_metadata_view(request, mapid):
         try:
             from geonode.base.models import ResourceBase
 
-            resources = [ResourceBase.objects.get(pk=int(resource_pk)).get_real_instance()]
+            # resource_pk is caller-supplied and is not restricted to this map's
+            # resources, so it needs its own permission check -- without it any
+            # primary key would be readable.
+            resource = ResourceBase.objects.get(pk=int(resource_pk))
+            if not request.user.has_perm("base.view_resourcebase", resource.get_self_resource()):
+                raise Http404("Resource does not exist")
+            resources = [resource.get_real_instance()]
+        except Http404:
+            raise
         except Exception:
             return Response({"error": f"Resource {resource_pk} not found."}, status=status.HTTP_404_NOT_FOUND)
     else:
@@ -363,6 +377,11 @@ VIEWED_SESSION_KEY = "zalf_viewed_resources"
 
 @api_view(["POST"])
 @authentication_classes(allowed_authentication_classes)
+# Anonymous visitors must be counted, so this POST stays open on purpose. It is now
+# explicit because REST_FRAMEWORK sets a DEFAULT_PERMISSION_CLASSES of
+# IsAuthenticatedOrReadOnly, which would otherwise reject the anonymous call. The
+# per-resource read permission is enforced in the body.
+@permission_classes([AllowAny])
 def count_resource_view(request, pk):
     """
     POST /api/v2/resources/<pk>/view/
@@ -401,7 +420,11 @@ def count_resource_view(request, pk):
 @api_view(["GET"])
 @authentication_classes(allowed_authentication_classes)
 def datacite_metadata_view(request, pk):
+    # The record carries the full descriptive metadata, so it follows the resource's
+    # own read permission -- same pattern as count_resource_view above.
     resource = get_object_or_404(ResourceBase, pk=pk)
+    if not request.user.has_perm("base.view_resourcebase", resource.get_self_resource()):
+        raise Http404("Resource does not exist")
     xml = get_datacite_xml(resource)
     if not xml:
         return Response({"detail": "DataCite XML not available."}, status=status.HTTP_404_NOT_FOUND)

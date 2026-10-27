@@ -23,7 +23,6 @@ from django.shortcuts import get_object_or_404
 from dynamic_rest.viewsets import DynamicModelViewSet
 from dynamic_rest.filters import DynamicFilterBackend, DynamicSortingFilter
 
-from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
@@ -51,35 +50,33 @@ class AssetViewSet(DynamicModelViewSet):
         DynamicFilterBackend,
         DynamicSortingFilter,
         DynamicSearchFilter,
-        # TODO: add filtering by owner / admin
     ]
     queryset = Asset.objects.all().order_by("-created")
     serializer_class = AssetSerializer  # TODO: appropriate Serializer should be switched for each Asset instance
     pagination_class = GeoNodeApiPagination
 
-    def list(self, request, *args, **kwargs):
+    def get_queryset(self):
         """
-        Only for lists, allows access to Assets only to owned ones, or to all of them if the user is an admin
+        Restrict Assets to the ones owned by the caller, or to all of them for an admin.
+
+        This used to be applied inside ``list()`` only, which left ``retrieve``,
+        ``update``, ``partial_update`` and ``destroy`` -- all provided by
+        ``DynamicModelViewSet`` via ``ModelViewSet`` -- operating on the unfiltered
+        class-level queryset with no object-level check. Filtering here covers every
+        action, including any added later.
+
+        The ``download``/``link`` actions deliberately bypass this: they resolve the
+        Asset directly in ``_get_file`` and authorize through ``get_perms_response``,
+        which also admits users holding permissions on the *linked resource* rather
+        than on the Asset itself.
         """
-        queryset = self.filter_queryset(self.get_queryset())
-
-        user = request.user
-        is_admin = user and user.is_authenticated and user.is_superuser
-
-        if is_admin:
-            pass
-        elif user and user.is_authenticated:
-            queryset = queryset.filter(owner=user)
-        else:
-            queryset = queryset.none()
-
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        queryset = super().get_queryset()
+        user = self.request.user
+        if not (user and user.is_authenticated):
+            return queryset.none()
+        if user.is_superuser:
+            return queryset
+        return queryset.filter(owner=user)
 
     def _get_file(self, request, pk, attachment: bool = False, path=None):
         asset = get_object_or_404(Asset, pk=pk)

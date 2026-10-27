@@ -154,14 +154,24 @@
 						<dt>{% trans "Attributes" %}</dt>
 							<dd>
 								<table id="attr_table" class="table table-striped table-bordered table-condensed" style="margin-top:10px;font-size:14px;">
+									<thead>
+										<tr>
+											<th style="width:25%">{% trans "Attribute name" %}</th>
+											<th>{% trans "Label" %}</th>
+											<th>{% trans "Description" %}</th>
+										</tr>
+									</thead>
+									<tbody>
+										{% for attr in extra_res_md.attributes %}
+										<tr>
+											<td>{{ attr.name }}</td>
+											<td>{{ attr.label }}</td>
+											<td>{{ attr.description }}</td>
+										</tr>
+										{% endfor %}
+									</tbody>
 								</table>
 							</dd>
-							<script  type="text/javascript">
-								var content="{{extra_res_md.atrributes}}";
-								content = content.replace(/\&lt;/gi,"<").replace(/\&gt;/gi,">");
-								var headertab="<thead><tr><th style='width:25%'>{% trans "Attribute name" %}</th><th>Label</th><th>{% trans "Description" %}</th></tr></thead>";
-								document.getElementById("attr_table").innerHTML=headertab+content;
-							</script>
 						{% endif %}
 				  </div>
 				 </div>

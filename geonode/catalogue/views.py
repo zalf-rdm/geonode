@@ -263,7 +263,10 @@ def get_keywords(resource):
 @csrf_exempt
 def csw_render_extra_format_txt(request, layeruuid, resname):
     """pycsw wrapper"""
-    resource = ResourceBase.objects.get(uuid=layeruuid)
+    # The record includes the contact roles, so it follows the resource's own read
+    # permission. resolve_object() is the same helper resolve_uuid() below uses and
+    # defaults to checking base.view_resourcebase.
+    resource = resolve_object(request, ResourceBase, {"uuid": layeruuid})
     chrs = get_CSV_spec_char()
     s = chrs["separator"]
     c = chrs["carriage_return"]
@@ -335,14 +338,15 @@ def csw_render_extra_format_txt(request, layeruuid, resname):
     for role in set(Roles).difference([Roles.OWNER]):
         content = __append_contact_role__(content, role.name, role.label)
 
-    logger = logging.getLogger(__name__)
-    logger.error(content)
+    # The CSV carries every contact role's name and email address, so it is not
+    # written to the log.
 
     return HttpResponse(content, content_type="text/csv")
 
 
 def csw_render_extra_format_html(request, layeruuid, resname):
-    resource = ResourceBase.objects.get(uuid=layeruuid)
+    # Same read permission as the .txt variant above.
+    resource = resolve_object(request, ResourceBase, {"uuid": layeruuid})
     extra_res_md = {}
     try:
         sprt = SpatialRepresentationType.objects.get(id=resource.spatial_representation_type_id)
@@ -357,10 +361,18 @@ def csw_render_extra_format_html(request, layeruuid, resname):
 
     if resource.detail_url.find("/datasets/") > -1:
         layer = Dataset.objects.get(resourcebase_ptr_id=resource.id)
-        extra_res_md["atrributes"] = ""
-        for attr in layer.attribute_set.all():
-            s = f"<tr><td>{attr.attribute}</td><td>{attr.attribute_label}</td><td>{attr.description}</td></tr>"
-            extra_res_md["atrributes"] += s
+        # Pass the attributes as data, not as pre-built markup: the template renders
+        # the rows itself and lets Django escape them. Building HTML here is what
+        # forced the template to un-escape its own input before assigning it to
+        # innerHTML, which made any attribute name or description executable.
+        extra_res_md["attributes"] = [
+            {
+                "name": attr.attribute,
+                "label": attr.attribute_label,
+                "description": attr.description,
+            }
+            for attr in layer.attribute_set.all()
+        ]
 
     extra_res_md["roles"] = []
     for role in Roles:
