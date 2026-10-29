@@ -164,13 +164,24 @@ class UserSerializer(base_serializers.DynamicModelSerializer):
         # Dehydrate users private fields
         request = self.context.get("request")
         data = super().to_representation(instance)
-        if not request or not request.user or not request.user.is_authenticated:
+        user = getattr(request, "user", None)
+        is_privileged = bool(user and user.is_authenticated and (user.is_superuser or user.is_staff))
+        # Compare the instance rather than the serialized dict: dynamic-rest lets the
+        # caller choose fields, so `username` is not guaranteed to be in `data` -- and
+        # keying off it would hide a user's own address from them on ?fields=email.
+        is_self = bool(user and user.is_authenticated and getattr(instance, "pk", None) == user.pk)
+
+        if not is_privileged and not is_self:
             if "perms" in data:
                 del data["perms"]
-        elif not request.user.is_superuser and not request.user.is_staff:
-            if data["username"] != request.user.username:
-                if "perms" in data:
-                    del data["perms"]
+            # get_available_users() resolves to effectively the whole user table for
+            # any authenticated caller, because every account is a member of
+            # registered-members. Without this, one new account could read every
+            # user's address and see exactly which accounts are staff or superusers.
+            # The profile page already hides the address behind SHOW_PROFILE_EMAIL;
+            # this makes the API agree with it.
+            for field in ("email", "is_staff", "is_superuser"):
+                data.pop(field, None)
         return data
 
     avatar = base_serializers.AvatarUrlField(240, read_only=True)

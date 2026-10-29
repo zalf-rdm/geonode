@@ -84,6 +84,10 @@ class HarvesterViewSetTestCase(GeoNodeBaseTestSupport):
             self.assertEqual(response.data["harvestable_resources"][0]["title"], self.resources[harvester.id].title)
 
     def test_get_harvester_sessions(self):
+        # Harvesting sessions are admin-only, like the harvester detail route above:
+        # this used to pass unauthenticated because the viewset declared no permission
+        # class and fell back to DRF's AllowAny default.
+        self.client.login(username="admin", password="admin")
         response = self.client.get("/api/v2/harvesting-sessions/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["total"], len(self.sessions))

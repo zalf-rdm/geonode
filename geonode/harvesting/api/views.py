@@ -67,6 +67,13 @@ class HarvestableResourceViewSet(
     mixins.ListModelMixin,
     viewsets.GenericViewSet,
 ):
+    # Same gate as HarvesterViewSet above. This viewset carries UpdateListModelMixin,
+    # so without an explicit permission class it relied on DRF's AllowAny default and
+    # accepted unauthenticated bulk updates of should_be_harvested -- while creating
+    # the harvester it belongs to is superuser-only.
+    permission_classes = [
+        IsAdminOrListOnly,
+    ]
     queryset = models.HarvestableResource.objects.all()
     pagination_class = GeoNodeApiPagination
     serializer_class = serializers.HarvestableResourceSerializer
@@ -81,6 +88,14 @@ class HarvestableResourceViewSet(
 
 
 class AsynchronousHarvestingSessionViewSet(WithDynamicViewSetMixin, viewsets.ReadOnlyModelViewSet):
+    # Harvesting is administrative: creating a harvester is superuser-only, and these
+    # session records describe those runs -- which remote endpoint was contacted, when,
+    # and how it went. The viewset set no permission class, so it was readable by
+    # anyone; being read-only, the project-wide IsAuthenticatedOrReadOnly default would
+    # not have changed that. Nothing in the frontend consumes /api/v2/harvesting-sessions.
+    permission_classes = [
+        rest_framework.permissions.IsAdminUser,
+    ]
     queryset = models.AsynchronousHarvestingSession.objects.all()
     serializer_class = serializers.BriefAsynchronousHarvestingSessionSerializer
     pagination_class = GeoNodeApiPagination

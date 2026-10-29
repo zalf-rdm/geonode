@@ -271,6 +271,39 @@ PASSWORD_HASHERS = [
     # 'django.contrib.auth.hashers.BCryptPasswordHasher',
 ]
 
+# Upstream ships the four validators below in geonode.people.password_validators but
+# never sets AUTH_PASSWORD_VALIDATORS, which leaves the list empty -- so
+# validate_password(), called when a password is set through the users API
+# (geonode/people/api/serializers.py), silently accepts anything. The set and the
+# 14-character minimum mirror geonode/people/tests.py, which already asserts against
+# exactly this configuration.
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {
+            "min_length": int(os.getenv("PASSWORD_MIN_LENGTH", "14")),
+        },
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+    },
+    {
+        "NAME": "geonode.people.password_validators.UppercaseValidator",
+    },
+    {
+        "NAME": "geonode.people.password_validators.LowercaseValidator",
+    },
+    {
+        "NAME": "geonode.people.password_validators.NumberValidator",
+    },
+    {
+        "NAME": "geonode.people.password_validators.SpecialCharsValidator",
+    },
+]
+
 MODELTRANSLATION_LANGUAGES = [
     "en",
 ]
@@ -556,6 +589,16 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.BasicAuthentication",
         "oauth2_provider.contrib.rest_framework.OAuth2Authentication",
         "rest_framework.authentication.SessionAuthentication",
+    ],
+    # Without this, DRF's own default applies -- AllowAny -- so any viewset or
+    # @api_view that omits permission_classes is reachable anonymously, including for
+    # writes. Making the default explicit means an omission fails closed instead.
+    # IsAuthenticatedOrReadOnly rather than IsAuthenticated because the catalogue is
+    # intentionally browsable without an account: it closes anonymous writes while
+    # leaving anonymous reads working. Endpoints that genuinely need an anonymous
+    # write now say so explicitly (see geonode/zalf/api/views.py count_resource_view).
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
     ],
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
