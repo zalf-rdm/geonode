@@ -10,7 +10,7 @@
 # Fields are informational: nothing reads them at build time.
 
 base_image: geonode/geonode-base:latest-ubuntu-24.04
-pinned_digest: sha256:75c237132941ef14a3fd0baf5f5509c557e6c4f2ce7f824754c38acbdb6b43b9
-last_checked: 2026-10-26
-pending_apt_upgrades_at_check: 60
-last_refresh_run: 0
+pinned_digest: sha256:11d2602da6120dc764149ae74063755587960107fa407b0e1bbb77c8eac1767f
+last_checked: 2026-10-31
+pending_apt_upgrades_at_check: 61
+last_refresh_run: 41163885246
