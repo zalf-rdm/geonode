@@ -2,7 +2,7 @@
 # whichever day upstream republishes the tag. The pin is what makes the change detectable:
 # .github/workflows/base-image-refresh.yml compares it against the live tag every Saturday.
 # Check by hand with `make base-digest`.
-FROM geonode/geonode-base:latest-ubuntu-24.04@sha256:75c237132941ef14a3fd0baf5f5509c557e6c4f2ce7f824754c38acbdb6b43b9
+FROM geonode/geonode-base:latest-ubuntu-24.04@sha256:11d2602da6120dc764149ae74063755587960107fa407b0e1bbb77c8eac1767f
 LABEL GeoNode development team
 
 # GeoNode republishes the base on its own cadence, so an Ubuntu security update can sit unapplied in
