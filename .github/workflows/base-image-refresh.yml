@@ -2,9 +2,13 @@ name: Base Image Refresh
 
 # The weekend half of the patch cycle, run unconditionally.
 #
-# The base image is digest-pinned, which makes builds reproducible but also means that neither an
-# upstream rebuild of geonode/geonode-base nor a new Ubuntu security update reaches the image on its
-# own. Every Saturday this job records the state of both and opens a pull request for the rebuild.
+# The base image follows its tag rather than a digest (see the note at the top of the Dockerfile),
+# so a rebuild is all it takes to deliver OS updates: it re-resolves the tag and runs `apt-get
+# upgrade` against it, with nothing pinned or held anywhere in the path. What is missing without
+# this job is not permission but a *trigger* -- a week in which no file changes produces no build,
+# so an Ubuntu update published on Tuesday reaches no image until something else happens to ship.
+#
+# Every Saturday this job records what the tag resolves to and opens a pull request for the rebuild.
 # The suites run on that branch, so Monday's review is of a tested change; merging it publishes a
 # new image, and rolling that image out stays a manual decision.
 #
@@ -47,18 +51,27 @@ jobs:
         run: |
           set -euo pipefail
           base_ref=$(grep -oP '(?<=^FROM )[^@ ]+' Dockerfile)
-          pinned=$(grep -oP '(?<=@)sha256:[0-9a-f]+' Dockerfile | head -1)
-          live=$(docker buildx imagetools inspect "$base_ref" --format '{{.Manifest.Digest}}')
+          # Recorded, not enforced. The Dockerfile names only the tag, so this is the digest the tag
+          # happens to resolve to now -- which is the base the rebuild starts from, and worth having
+          # written down afterwards to tell two weeks' images apart.
+          # `--format '{{.Manifest.Digest}}'` does *not* give a bare digest: with a bare field
+          # reference buildx falls back to its own descriptor block (Name/MediaType/Digest), and the
+          # multi-line result was silently substituted into the pin by this job's earlier version.
+          # `print` forces the template to be evaluated as a template.
+          live=$(docker buildx imagetools inspect "$base_ref" --format '{{print .Manifest.Digest}}')
+          if ! [[ "$live" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "::error::could not resolve $base_ref to a digest; got: $live" >&2
+            exit 1
+          fi
 
-          # Ubuntu updates published since the base was built -- what this rebuild will install.
-          # Simulated inside the pinned base itself, so the number describes the image we ship from.
-          pending=$(docker run --rm --entrypoint bash "${base_ref}@${pinned}" -c \
+          # Ubuntu updates published since that base was built -- what this rebuild will install.
+          # Simulated inside the image just resolved, so the number describes what we ship from.
+          pending=$(docker run --rm --entrypoint bash "${base_ref}@${live}" -c \
             'apt-get update >/dev/null 2>&1; apt-get -s upgrade 2>/dev/null | grep -oE "^[0-9]+ upgraded" | cut -d" " -f1')
           pending=${pending:-0}
 
           {
             echo "base_ref=$base_ref"
-            echo "pinned=$pinned"
             echo "live=$live"
             echo "pending=$pending"
           } >> "$GITHUB_OUTPUT"
@@ -69,8 +82,7 @@ jobs:
             echo "| | |"
             echo "| --- | --- |"
             echo "| Base | \`$base_ref\` |"
-            echo "| Pinned digest | \`$pinned\` |"
-            echo "| Live digest | \`$live\` |"
+            echo "| Resolves to | \`$live\` |"
             echo "| Pending apt updates | $pending |"
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -78,7 +90,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BASE_REF: ${{ steps.probe.outputs.base_ref }}
-          PINNED: ${{ steps.probe.outputs.pinned }}
           LIVE: ${{ steps.probe.outputs.live }}
           PENDING: ${{ steps.probe.outputs.pending }}
         run: |
@@ -86,17 +97,16 @@ jobs:
           today=$(date -u +%Y-%m-%d)
           branch="base-image-refresh/$today"
 
-          if [ "$LIVE" != "$PINNED" ]; then
-            sed -i "s|@$PINNED|@$LIVE|" Dockerfile
-          fi
-
+          # The Dockerfile is deliberately left alone: it names a tag, and the rebuild re-resolves
+          # it. The lock file is the whole diff, and the whole point -- it is what turns "rebuild
+          # this week" into a commit the suites can run against and a person can merge.
           python3 - "$BASE_REF" "$LIVE" "$today" "$PENDING" "${GITHUB_RUN_ID}" <<'PY'
           import pathlib, sys
           base_ref, live, today, pending, run_id = sys.argv[1:6]
           path = pathlib.Path("security/base-image.lock")
           fields = {
               "base_image": base_ref,
-              "pinned_digest": live,
+              "digest_at_check": live,
               "last_checked": today,
               "pending_apt_upgrades_at_check": pending,
               "last_refresh_run": run_id,
@@ -116,25 +126,24 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$branch"
-          git add Dockerfile security/base-image.lock
+          git add security/base-image.lock
           git commit -m "Refresh the base image ($today)" \
-            -m "Weekly rebuild: $PENDING Ubuntu package update(s) pending in the pinned base."
+            -m "Weekly rebuild: $PENDING Ubuntu package update(s) pending in the current base."
           git push --force origin "$branch"
 
-          digest_note="unchanged"
-          if [ "$LIVE" != "$PINNED" ]; then
-            digest_note="moved, and the pin in the Dockerfile was updated"
-          fi
-
           body=$(cat <<EOF
-          Automated weekly rebuild. The base image digest $digest_note.
+          Automated weekly rebuild.
 
           | | |
           | --- | --- |
           | Base image | \`$BASE_REF\` |
-          | Digest before | \`$PINNED\` |
-          | Digest after | \`$LIVE\` |
+          | Resolved to | \`$LIVE\` |
           | Pending apt updates | $PENDING |
+
+          The base image is not digest-pinned, so this pull request changes no build input: it exists
+          to be *merged*, because merging is what triggers the rebuild that re-resolves the tag and
+          applies the $PENDING pending Ubuntu update(s). Nothing here restricts which OS packages are
+          installed -- \`apt-get upgrade\` takes everything available.
 
           Merging this publishes a new \`zalf/geonode\` image, which re-resolves apt and PyPI during
           the build. **Rolling that image out is a separate, manual step** -- nothing deploys on merge.
@@ -178,7 +187,7 @@ jobs:
           Triggered by: \`${GITHUB_EVENT_NAME}\`
 
           The usual causes are a registry that could not be reached while resolving the base digest,
-          or the pinned base failing to start for the \`apt-get -s upgrade\` probe. Re-run the
+          or the resolved base failing to start for the \`apt-get -s upgrade\` probe. Re-run the
           workflow once the cause is cleared; nothing is left half-applied, since the branch is only
           pushed after both steps succeed.
           EOF

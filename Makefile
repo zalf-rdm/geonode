@@ -93,7 +93,7 @@ audit-build:
 	$(MAKE) audit-image AUDIT_IMAGE=geonode-audit:local
 
 base-digest:
-	# Compare the digest pinned in the Dockerfile against what the base image tag resolves to now.
+	# The base image is not digest-pinned, so there is nothing to compare against: this reports what
+	# the tag resolves to now, which is the base the next build will start from.
 	@docker buildx imagetools inspect $$(grep -oP '(?<=^FROM )[^@ ]+' Dockerfile) \
-		--format 'Live digest:   {{.Manifest.Digest}}'
-	@grep -oP '(?<=@)sha256:\S+' Dockerfile | sed 's/^/Pinned digest: /'
+		--format 'Live digest: {{.Manifest.Digest}}'

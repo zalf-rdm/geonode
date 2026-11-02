@@ -1,15 +1,21 @@
-# Digest-pinned, so builds are reproducible and an OS-layer change cannot arrive silently on
-# whichever day upstream republishes the tag. The pin is what makes the change detectable:
-# .github/workflows/base-image-refresh.yml compares it against the live tag every Saturday.
-# Check by hand with `make base-digest`.
-FROM geonode/geonode-base:latest-ubuntu-24.04@sha256:75c237132941ef14a3fd0baf5f5509c557e6c4f2ce7f824754c38acbdb6b43b9
+# Deliberately not digest-pinned: the OS layer must never be held back. Every build re-resolves
+# this tag, so it starts from whatever upstream published most recently, and the `apt-get upgrade`
+# below then installs everything Ubuntu has released since -- nothing pinned, held or excluded
+# anywhere in between.
+#
+# The tradeoff is accepted knowingly: two builds of the same commit can start from different bases,
+# so an image is reproducible only to the day it was built, and an OS-layer change can arrive on
+# whichever day upstream republishes the tag. Getting security updates in unimpeded is worth more
+# here than byte-identical rebuilds. `make base-digest` shows what the tag resolves to right now,
+# and .github/workflows/base-image-refresh.yml records it weekly so the rollout is still traceable.
+FROM geonode/geonode-base:latest-ubuntu-24.04
 LABEL GeoNode development team
 
 # GeoNode republishes the base on its own cadence, so an Ubuntu security update can sit unapplied in
 # it for weeks -- CVE-2026-111497 found libbrotli1 1.1.0-2build2 here, with no distro fix released
-# yet. Upgrading explicitly is what makes a rebuild deliver distro patches while the base stays
-# digest-pinned; without it, rebuilding a pinned base just reproduces the same packages. Placed
-# directly after FROM so everything below still caches normally.
+# yet. Following the tag is not enough on its own: upstream's republish cadence decides how fresh
+# the base is, and upgrading explicitly is what closes the gap between that and what Ubuntu has
+# actually released. Placed directly after FROM so everything below still caches normally.
 #
 # The cache bust matters as much as the upgrade: a build whose Dockerfile has not changed would
 # restore this layer from cache and install nothing. CI passes a unique value per build, exactly as
