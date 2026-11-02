@@ -1,0 +1,12 @@
+# Pins that security/pip_minor_updates.py must not report, with the reason each one cannot move.
+#
+# This file exists because the check fails the build when an update is available. A pin that is
+# genuinely unable to follow PyPI would therefore make it red permanently, with no change anyone
+# could merge to clear it -- so each entry here is a pin whose version is decided somewhere other
+# than PyPI, not merely one that is inconvenient to raise.
+#
+# Format: one `name: reason` per line. Names are matched PEP 503-normalised, so case and -/_/.
+# spelling do not matter. Keep the reason specific enough that the next person can tell whether it
+# still holds.
+
+GDAL: built from sdist against the system libgdal, which is 3.8.4 in the base image (Ubuntu 24.04). The binding has to match the distro's library, so this version is set by the base image and not chosen here -- raising it needs a new base, not a new pin.
