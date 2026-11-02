@@ -79,14 +79,69 @@ def classify_fixes(installed, advisories):
     )
 
 
-def markdown_summary(report, findings, new):
+def classify_new(findings, versions, new):
+    """Split the new advisories by whether the pip policy can act on them at all.
+
+    Failing on every new advisory id made sense while any fix was fair game. Against the
+    minor/patch-only pip policy it does not: an advisory whose only fix is a major leaves the audit
+    red with nothing anyone is allowed to merge to clear it, so the gate ends up demanding an action
+    the policy forbids, every run, forever. Red then stops meaning anything.
+
+    Failing only on the actionable group restores the signal -- a red audit means "there is a patch
+    waiting". The rest are still reported on every run, in the table and in the summary below it, so
+    nothing drops out of sight; they are a scheduling decision, not a build failure.
+
+    "Actionable" means a same-major fix exists, not that it installs unaided: another pinned
+    package may cap the one being fixed, as djangorestframework-gis and geonode-dynamic-rest both
+    capped djangorestframework below its fix. Clearing it then means bumping the capping package
+    too, which stays inside the policy as long as that bump is itself minor or patch.
+
+    -> (actionable, needs_major, unfixed), each a sorted list of "package:advisory" keys.
+    """
+    actionable, needs_major, unfixed = [], [], []
+    for key in new:
+        name, _, advisory = key.partition(":")
+        fixes = findings.get(name, {}).get(advisory, [])
+        installed = versions.get(name, "")
+        major = version_key(installed)[:1] if installed else None
+        if not fixes:
+            unfixed.append(key)
+        elif major and any(version_key(f)[:1] == major for f in fixes):
+            actionable.append(key)
+        else:
+            needs_major.append(key)
+    return sorted(actionable), sorted(needs_major), sorted(unfixed)
+
+
+def markdown_summary(report, findings, groups):
+    actionable, needs_major, unfixed_new = groups
     versions = {p["name"]: p.get("version", "?") for p in report.get("dependencies", [])}
     lines = ["## pip-audit", ""]
-    if new:
-        lines += [f"**{len(new)} advisory/advisories not in the baseline:**", ""]
-        lines += [f"- `{entry}`" for entry in sorted(new)] + [""]
+    if actionable:
+        lines += [f"**{len(actionable)} new advisory/advisories with a fix inside the pip policy:**", ""]
+        lines += [f"- `{entry}`" for entry in actionable] + [""]
+    elif needs_major or unfixed_new:
+        lines += ["No new advisory has an in-policy fix, so the gate passes.", ""]
     else:
         lines += ["No advisories outside the committed baseline.", ""]
+
+    if needs_major:
+        lines += [
+            f"<details><summary>{len(needs_major)} new advisory/advisories needing a major "
+            "(reported, not gated)</summary>",
+            "",
+        ]
+        lines += [f"- `{entry}`" for entry in needs_major]
+        lines += ["", "</details>", ""]
+
+    if unfixed_new:
+        lines += [
+            f"<details><summary>{len(unfixed_new)} new advisory/advisories with no fix published"
+            "</summary>",
+            "",
+        ]
+        lines += [f"- `{entry}`" for entry in unfixed_new]
+        lines += ["", "</details>", ""]
 
     # Capped to the installed major on purpose: see classify_fixes. The major column is kept
     # visible rather than dropped -- those advisories are real, and hiding them would turn a
@@ -140,17 +195,31 @@ def main():
 
     known = {line.strip() for line in BASELINE.read_text().splitlines() if line.strip() and not line.startswith("#")}
     new = current - known
+    versions = {p["name"]: p.get("version", "?") for p in report.get("dependencies", [])}
+    actionable, needs_major, unfixed_new = classify_new(findings, versions, new)
 
-    summary = markdown_summary(report, findings, new)
+    summary = markdown_summary(report, findings, (actionable, needs_major, unfixed_new))
     print(summary)
     if args.summary:
         with args.summary.open("a") as handle:
             handle.write(summary)
 
-    if new:
-        print(f"FAIL: {len(new)} advisory/advisories are new since the baseline was taken.", file=sys.stderr)
+    if actionable:
+        print(
+            f"FAIL: {len(actionable)} new advisory/advisories have a fix within the installed major.",
+            file=sys.stderr,
+        )
         return 1
-    print(f"OK: {len(current)} advisories, all present in the baseline.")
+
+    parked = len(needs_major) + len(unfixed_new)
+    if parked:
+        print(
+            f"OK: {len(current)} advisories, none newly actionable. "
+            f"{len(needs_major)} new need a major and {len(unfixed_new)} have no fix published -- "
+            "listed above, and not gated on."
+        )
+    else:
+        print(f"OK: {len(current)} advisories, all present in the baseline.")
     return 0
 
 
