@@ -102,15 +102,26 @@
         flex: 0 0 auto;
         width: 14px;
         height: 14px;
+        /* Held in a custom property so the data URI is written once, not once
+           per prefix. */
+        --zalf-icon-external-link: url(data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2024%2024%27%3E%3Cpath%20d=%27M19%2019H5V5h7V3H5c-1.11%200-2%20.9-2%202v14c0%201.1.89%202%202%202h14c1.1%200%202-.9%202-2v-7h-2v7zM14%203v2h3.59l-9.83%209.83%201.41%201.41L19%206.41V10h2V3h-7z%27/%3E%3C/svg%3E);
         background-color: currentColor;
-        -webkit-mask-image: url(data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2024%2024%27%3E%3Cpath%20d=%27M19%2019H5V5h7V3H5c-1.11%200-2%20.9-2%202v14c0%201.1.89%202%202%202h14c1.1%200%202-.9%202-2v-7h-2v7zM14%203v2h3.59l-9.83%209.83%201.41%201.41L19%206.41V10h2V3h-7z%27/%3E%3C/svg%3E);
-        mask-image: url(data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2024%2024%27%3E%3Cpath%20d=%27M19%2019H5V5h7V3H5c-1.11%200-2%20.9-2%202v14c0%201.1.89%202%202%202h14c1.1%200%202-.9%202-2v-7h-2v7zM14%203v2h3.59l-9.83%209.83%201.41%201.41L19%206.41V10h2V3h-7z%27/%3E%3C/svg%3E);
+        -webkit-mask-image: var(--zalf-icon-external-link);
+        mask-image: var(--zalf-icon-external-link);
         -webkit-mask-repeat: no-repeat;
         mask-repeat: no-repeat;
         -webkit-mask-position: center;
         mask-position: center;
         -webkit-mask-size: contain;
         mask-size: contain;
+    }
+    /* Forced colours (Windows high contrast) override background-color, which
+       is what paints a masked icon, so the marker would disappear for the
+       readers most likely to need it. CanvasText is the forced text colour. */
+    @media (forced-colors: active) {
+        .zalf-navigation__dropdown-link.zalf-navigation__dropdown-link--external::after {
+            background-color: CanvasText;
+        }
     }
     /* The spoken half of the marker. position:absolute also keeps it out of the
        flex row above, so it does not compete for space with label and icon. */
