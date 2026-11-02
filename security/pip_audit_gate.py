@@ -14,6 +14,7 @@ Usage:
 import argparse
 import json
 import pathlib
+import re
 import sys
 
 BASELINE = pathlib.Path(__file__).with_name("pip-audit-known.txt")
@@ -33,6 +34,51 @@ def flatten(findings):
     return {f"{name}:{advisory}" for name, advisories in findings.items() for advisory in advisories}
 
 
+def version_key(version):
+    """PEP 440-lite ordering: the leading numeric release components.
+
+    Sorting fix versions as plain strings puts "9.0.3" after "13.0.0", which is how this report
+    used to end up naming a major as the fix for a package whose own branch had a backport.
+    """
+    parts = []
+    for chunk in re.split(r"[.+-]", version.strip()):
+        match = re.match(r"^(\d+)", chunk)
+        if not match:
+            break
+        parts.append(int(match.group(1)))
+    return tuple(parts) or (0,)
+
+
+def classify_fixes(installed, advisories):
+    """Split a package's advisories by whether a same-major upgrade can clear them.
+
+    .github/dependabot.yml restricts pip to minor and patch updates, so the version this report
+    puts forward has to stay inside the installed major -- otherwise it reads as an instruction
+    nothing in the pipeline will carry out. pip-audit often lists a backport alongside the next
+    major (pillow: 12.2.0, 12.3.0, 13.0.0), and the backport is the one that is actionable here.
+
+    -> (in_policy_target, cleared, major_target, needs_major, unfixed)
+    """
+    major = version_key(installed)[:1]
+    in_policy, crossing, unfixed = [], [], 0
+    for fix_versions in advisories.values():
+        if not fix_versions:
+            unfixed += 1
+            continue
+        same_major = [f for f in fix_versions if version_key(f)[:1] == major]
+        if same_major:
+            in_policy.append(min(same_major, key=version_key))
+        else:
+            crossing.append(min(fix_versions, key=version_key))
+    return (
+        max(in_policy, key=version_key) if in_policy else None,
+        len(in_policy),
+        max(crossing, key=version_key) if crossing else None,
+        len(crossing),
+        unfixed,
+    )
+
+
 def markdown_summary(report, findings, new):
     versions = {p["name"]: p.get("version", "?") for p in report.get("dependencies", [])}
     lines = ["## pip-audit", ""]
@@ -42,11 +88,29 @@ def markdown_summary(report, findings, new):
     else:
         lines += ["No advisories outside the committed baseline.", ""]
 
-    lines += ["| Package | Installed | Advisories | Fixed in |", "| --- | --- | --- | --- |"]
+    # Capped to the installed major on purpose: see classify_fixes. The major column is kept
+    # visible rather than dropped -- those advisories are real, and hiding them would turn a
+    # policy about *how* upgrades land into a gap in what the audit reports.
+    lines += [
+        "Fix versions are capped to the installed major, matching the pip policy in "
+        "`.github/dependabot.yml`. **In-policy fix** is what a minor/patch upgrade can take now; "
+        "**needs major** is a migration to schedule, and nothing opens it automatically.",
+        "",
+        "| Package | Installed | Advisories | In-policy fix | Clears | Needs major |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
     for name in sorted(findings, key=lambda n: (-len(findings[n]), n)):
-        fixes = sorted({f for fix_versions in findings[name].values() for f in fix_versions})
+        installed = versions.get(name, "?")
+        total = len(findings[name])
+        target, cleared, major_target, needs_major, unfixed = classify_fixes(installed, findings[name])
+        notes = []
+        if needs_major:
+            notes.append(f"{major_target} (for {needs_major})")
+        if unfixed:
+            notes.append(f"{unfixed} with no fix listed")
         lines.append(
-            f"| {name} | {versions.get(name, '?')} | {len(findings[name])} | {fixes[-1] if fixes else 'no fix listed'} |"
+            f"| {name} | {installed} | {total} "
+            f"| {target or '--'} | {cleared}/{total} | {', '.join(notes) or '--'} |"
         )
 
     # Packages pip-audit could not match to a PyPI release -- the git-pinned ones, above all.
