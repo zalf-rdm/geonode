@@ -12,6 +12,18 @@ updates:
   - dependency-name: django
     versions:
     - "<= 5.0"
+  # Minor and patch only. The weekly batch exists to ship security patches, and a major Python
+  # dependency bump is not one: it carries breaking changes, needs a migration plan, and cannot be
+  # merged on the strength of a green suite the way a patch can. Left unfiltered it lands on the same
+  # cadence and in the same review queue as the fixes that do need to ship, where it either blocks
+  # the batch or gets waved through on the same reflex. Majors stay available -- they just have to be
+  # taken on deliberately instead of being opened automatically.
+  #
+  # Python distributions only. Nothing about the OS layer is restricted: Ubuntu's deb packages come
+  # from the unconditional `apt-get upgrade` in the Dockerfile, not from here.
+  - dependency-name: "*"
+    update-types:
+    - version-update:semver-major
 
 # The image tags in docker-compose.yml and the base image in the Dockerfile were never watched by
 # anything: an OS-level CVE in nginx or the GeoNode base image only ever arrived with a manual pull.
