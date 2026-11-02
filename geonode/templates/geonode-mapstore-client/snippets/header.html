@@ -55,12 +55,15 @@
     }
     /* Group labels inside the merged Help & Information menu (#866). Kept here
        rather than in the theme stylesheet so they ship with this template
-       instead of waiting on a geonode-mapstore-client package rebuild. */
+       instead of waiting on a geonode-mapstore-client package rebuild.
+       The fallbacks follow #883: the dropdown is a white panel now, so these
+       are the dark green counterparts of the white-on-dark values the bar
+       itself uses. */
     .zalf-navigation__dropdown-heading {
         display: block;
         margin: 2px 0 6px;
         padding: 0 18px;
-        color: var(--zalf-nav-text-muted, rgba(244, 244, 244, 0.78));
+        color: var(--zalf-nav-panel-text-muted, #4d6f65);
         font-size: 11px;
         font-weight: 700;
         letter-spacing: 0.1em;
@@ -72,7 +75,7 @@
     .zalf-navigation__dropdown-link + .zalf-navigation__dropdown-heading {
         margin-top: 10px;
         padding-top: 10px;
-        border-top: 1px solid var(--zalf-nav-divider-soft, rgba(255, 255, 255, 0.18));
+        border-top: 1px solid var(--zalf-nav-panel-divider-soft, rgba(36, 78, 67, 0.12));
     }
     .zalf-cookie-notice p {
         flex: 1 1 320px;
