@@ -70,7 +70,16 @@ class OwnerFacetProvider(FacetProvider):
     ) -> (int, list):
         logger.debug("Retrieving facets for OWNER")
 
-        queryset = queryset or get_user_model().objects.none()
+        # zalf-rdm/geonode#863: NOT `queryset or <fallback>`. A Django queryset is
+        # falsy when it is *empty*, so on a catalogue with no visible resources the
+        # `or` substituted a User queryset and the `.values("owner"|"contacts")`
+        # below then raised FieldError -> HTTP 500 on /api/v2/facets/{owner,author}.
+        # Guard on None explicitly, and fall back to an empty ResourceBase queryset
+        # (the model every other provider is handed) rather than a User one.
+        if queryset is None:
+            from geonode.base.models import ResourceBase
+
+            queryset = ResourceBase.objects.none()
         q = queryset
 
         if topic_contains:
@@ -155,7 +164,16 @@ class AuthorFacetProvider(FacetProvider):
     ) -> (int, list):
         logger.debug("Retrieving facets for AUTHOR")
 
-        queryset = queryset or get_user_model().objects.none()
+        # zalf-rdm/geonode#863: NOT `queryset or <fallback>`. A Django queryset is
+        # falsy when it is *empty*, so on a catalogue with no visible resources the
+        # `or` substituted a User queryset and the `.values("owner"|"contacts")`
+        # below then raised FieldError -> HTTP 500 on /api/v2/facets/{owner,author}.
+        # Guard on None explicitly, and fall back to an empty ResourceBase queryset
+        # (the model every other provider is handed) rather than a User one.
+        if queryset is None:
+            from geonode.base.models import ResourceBase
+
+            queryset = ResourceBase.objects.none()
         q = queryset.filter(contacts__contactrole__role=Roles.METADATA_AUTHOR.role_value)
 
         if topic_contains:

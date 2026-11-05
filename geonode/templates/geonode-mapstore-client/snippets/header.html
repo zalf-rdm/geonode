@@ -1,5 +1,6 @@
 {% load i18n %}
 {% load static %}
+{% load zalf_cms %}
 
 {% trans "Skip to main content" as skip_label %}
 {# Appended, visually hidden, to every link that leaves the repository (#863), #}
@@ -192,29 +193,30 @@
                 <nav class="zalf-navigation__primary" aria-label="{% trans 'Primary navigation' %}">
                     <a class="zalf-navigation__link" href="/catalogue/">{% trans "All Data" %}</a>
 
+                    {# Topics are CMS content (zalf-rdm/geonode#863): editable at /cms/, no #}
+                    {# longer hardcoded here and in the homepage grid. The tag pre-splits the  #}
+                    {# list into balanced columns (one column up to five topics, two beyond)   #}
+                    {# because templates cannot do ceil division.                              #}
+                    {% zalf_navbar_topic_columns as zalf_topic_columns %}
+                    {% if zalf_topic_columns %}
                     <div class="zalf-navigation__dropdown" data-zalf-dropdown>
                         <button type="button" class="zalf-navigation__link zalf-navigation__dropdown-toggle" aria-expanded="false">
                             {% trans "Topics" %}
                             <span class="zalf-navigation__dropdown-caret">▾</span>
                         </button>
-                        <div class="zalf-navigation__dropdown-menu is-wide">
+                        {# is-wide is a 520px two-track grid, so apply it only when there #}
+                        {# really are two columns — otherwise the right half renders empty. #}
+                        <div class="zalf-navigation__dropdown-menu{% if zalf_topic_columns|length > 1 %} is-wide{% endif %}">
+                            {% for column in zalf_topic_columns %}
                             <div class="zalf-navigation__dropdown-column">
-                                <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Animals">{% trans "Animals" %}</a>
-                                <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Atmosphere">{% trans "Atmosphere" %}</a>
-                                <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Climate">{% trans "Climate" %}</a>
-                                <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Forest">{% trans "Forest" %}</a>
-                                <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Hydrology">{% trans "Hydrology" %}</a>
+                                {% for topic in column %}
+                                <a class="zalf-navigation__dropdown-link" href="{{ topic.href }}">{{ topic.name }}</a>
+                                {% endfor %}
                             </div>
-                            <div class="zalf-navigation__dropdown-column">
-                                <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Landscape">{% trans "Landscape" %}</a>
-                                {# The query stays "Long Term Field Experiment" — that is what the catalogue matches. #}
-                                <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Long%20Term%20Field%20Experiment">{% trans "Long Term Experiments (LTE)" %}</a>
-                                <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Plants">{% trans "Plants" %}</a>
-                                <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Soil%20Profiles">{% trans "Soil Profiles" %}</a>
-                                <a class="zalf-navigation__dropdown-link" href="/catalogue/#/?q=Water">{% trans "Water" %}</a>
-                            </div>
+                            {% endfor %}
                         </div>
                     </div>
+                    {% endif %}
 
                     <div class="zalf-navigation__dropdown" data-zalf-dropdown>
                         <button type="button" class="zalf-navigation__link zalf-navigation__dropdown-toggle" aria-expanded="false">

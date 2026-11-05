@@ -8,13 +8,16 @@ from rest_framework.views import APIView
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from oauth2_provider.contrib.rest_framework import OAuth2Authentication
 
-from geonode.zalf.models import HighlightedCase, SpotlightBanner, TrainingResource
+from geonode.zalf.models import HighlightedCase, HomepageSection, SpotlightBanner, Topic, TrainingResource
 from geonode.zalf.api.cms_serializers import (
     HighlightedCaseListSerializer,
     HighlightedCaseDetailSerializer,
     HighlightedCaseWriteSerializer,
     SpotlightBannerSerializer,
     SpotlightBannerWriteSerializer,
+    HomepageSectionSerializer,
+    TopicSerializer,
+    TopicWriteSerializer,
     TrainingResourceListSerializer,
     TrainingResourceDetailSerializer,
     TrainingResourceWriteSerializer,
@@ -241,3 +244,124 @@ def preview_markdown(request):
     if not isinstance(text, str):
         return Response({"detail": "text must be a string."}, status=status.HTTP_400_BAD_REQUEST)
     return Response({"html": render_markdown(text)})
+
+
+# ---------------------------------------------------------------------------
+# Topics
+# ---------------------------------------------------------------------------
+
+
+class TopicListCreateView(APIView):
+    authentication_classes = AUTH_CLASSES
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [AllowAny()]
+        return [IsAuthenticated(), IsAdminUser()]
+
+    def get(self, request):
+        qs = Topic.objects.all() if request.user.is_staff else Topic.objects.filter(is_active=True)
+        return Response(TopicSerializer(qs, many=True, context={"request": request}).data)
+
+    def post(self, request):
+        serializer = TopicWriteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        obj = serializer.save()
+        return Response(
+            TopicSerializer(obj, context={"request": request}).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class TopicDetailView(APIView):
+    authentication_classes = AUTH_CLASSES
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [AllowAny()]
+        return [IsAuthenticated(), IsAdminUser()]
+
+    def _get_object(self, pk_or_slug):
+        try:
+            return Topic.objects.get(pk=int(pk_or_slug))
+        except (ValueError, Topic.DoesNotExist):
+            return get_object_or_404(Topic, slug=pk_or_slug)
+
+    def get(self, request, pk_or_slug):
+        obj = self._get_object(pk_or_slug)
+        return Response(TopicSerializer(obj, context={"request": request}).data)
+
+    def put(self, request, pk_or_slug):
+        obj = self._get_object(pk_or_slug)
+        serializer = TopicWriteSerializer(obj, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        obj = serializer.save()
+        return Response(TopicSerializer(obj, context={"request": request}).data)
+
+    def patch(self, request, pk_or_slug):
+        obj = self._get_object(pk_or_slug)
+        serializer = TopicWriteSerializer(obj, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        obj = serializer.save()
+        return Response(TopicSerializer(obj, context={"request": request}).data)
+
+    def delete(self, request, pk_or_slug):
+        obj = self._get_object(pk_or_slug)
+        obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ---------------------------------------------------------------------------
+# Homepage section order
+# ---------------------------------------------------------------------------
+
+
+class HomepageSectionListView(APIView):
+    """Read-only list; the rows are a fixed set seeded by migration."""
+
+    authentication_classes = AUTH_CLASSES
+
+    def get_permissions(self):
+        return [AllowAny()]
+
+    def get(self, request):
+        qs = (
+            HomepageSection.objects.all()
+            if request.user.is_staff
+            else HomepageSection.objects.filter(is_active=True)
+        )
+        return Response(HomepageSectionSerializer(qs, many=True).data)
+
+
+class HomepageSectionDetailView(APIView):
+    """Reorder or hide one section. No create or delete: the set is fixed."""
+
+    authentication_classes = AUTH_CLASSES
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [AllowAny()]
+        return [IsAuthenticated(), IsAdminUser()]
+
+    def _get_object(self, pk_or_key):
+        try:
+            return HomepageSection.objects.get(pk=int(pk_or_key))
+        except (ValueError, HomepageSection.DoesNotExist):
+            return get_object_or_404(HomepageSection, key=pk_or_key)
+
+    def get(self, request, pk_or_key):
+        return Response(HomepageSectionSerializer(self._get_object(pk_or_key)).data)
+
+    def patch(self, request, pk_or_key):
+        obj = self._get_object(pk_or_key)
+        serializer = HomepageSectionSerializer(obj, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def put(self, request, pk_or_key):
+        obj = self._get_object(pk_or_key)
+        serializer = HomepageSectionSerializer(obj, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
