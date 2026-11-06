@@ -325,11 +325,7 @@ class HomepageSectionListView(APIView):
         return [AllowAny()]
 
     def get(self, request):
-        qs = (
-            HomepageSection.objects.all()
-            if request.user.is_staff
-            else HomepageSection.objects.filter(is_active=True)
-        )
+        qs = HomepageSection.objects.all() if request.user.is_staff else HomepageSection.objects.filter(is_active=True)
         return Response(HomepageSectionSerializer(qs, many=True).data)
 
 

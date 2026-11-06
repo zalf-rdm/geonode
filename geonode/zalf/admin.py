@@ -47,7 +47,7 @@ class TopicAdmin(admin.ModelAdmin):
         (None, {"fields": ("name", "slug", "order", "is_active")}),
         ("Translations", {"fields": ("name_de", "name_fr", "name_es", "name_it")}),
         ("Catalogue link", {"fields": ("search_term", "filters")}),
-        ("Presentation", {"fields": ("image", "show_in_navbar", "show_on_homepage")}),
+        ("Presentation", {"fields": ("image", "icon", "show_in_navbar", "show_on_homepage")}),
     )
 
 
