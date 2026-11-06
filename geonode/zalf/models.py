@@ -136,11 +136,7 @@ def topic_catalogue_href(search_term="", filters=None):
     matches encodeURIComponent, which is what the sibling client-side helper
     ZalfLandingPageUtils.getCategoryFilterHref produces for the same filters.
     """
-    pairs = [
-        (row["key"], value)
-        for row in (filters or [])
-        for value in (row.get("values") or [])
-    ]
+    pairs = [(row["key"], value) for row in (filters or []) for value in (row.get("values") or [])]
     if search_term:
         pairs.append(("q", search_term))
     if not pairs:

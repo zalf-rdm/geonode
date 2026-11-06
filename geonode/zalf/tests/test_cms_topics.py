@@ -34,6 +34,7 @@ from geonode.zalf.api.topic_filters import (
 )
 from geonode.zalf.templatetags.zalf_cms import zalf_navbar_topic_columns
 
+
 def basic_auth(username, password="pw"):
     """
     Basic-auth headers for the write tests.
@@ -67,8 +68,7 @@ class TestTopicCatalogueHref(TestCase):
         # Repeated params are how the `.in` lookup expresses OR.
         self.assertEqual(
             topic_catalogue_href("", [category_row("farming", "soil")]),
-            "/catalogue/#/?filter%7Bcategory.identifier.in%7D=farming"
-            "&filter%7Bcategory.identifier.in%7D=soil",
+            "/catalogue/#/?filter%7Bcategory.identifier.in%7D=farming" "&filter%7Bcategory.identifier.in%7D=soil",
         )
 
     def test_multiple_filters_and_across_keys(self):
@@ -147,9 +147,7 @@ class TestTopicFilterSpecValidation(TestCase):
             self.assertRejects([{"key": CATEGORY_KEY, "values": [bad]}])
 
     def test_normalises_values(self):
-        cleaned = validate_filter_spec(
-            [{"key": CATEGORY_KEY, "values": [" soil ", "soil", 42], "labels": ["Soil"]}]
-        )
+        cleaned = validate_filter_spec([{"key": CATEGORY_KEY, "values": [" soil ", "soil", 42], "labels": ["Soil"]}])
         self.assertEqual(
             cleaned,
             [{"field": "category", "key": CATEGORY_KEY, "values": ["soil", "42"], "labels": ["Soil"]}],
@@ -209,8 +207,8 @@ class TestTopicModel(TestCase):
 
     def test_localized_name_falls_back_to_name(self):
         topic = Topic(name="Soil", name_de="   ")
-        self.assertEqual(topic.localized_name("de"), "Soil")   # blank translation
-        self.assertEqual(topic.localized_name("pl"), "Soil")   # locale with no field
+        self.assertEqual(topic.localized_name("de"), "Soil")  # blank translation
+        self.assertEqual(topic.localized_name("pl"), "Soil")  # locale with no field
         self.assertEqual(topic.localized_name("en"), "Soil")
 
     def test_slug_is_generated_and_deduplicated(self):
@@ -314,9 +312,23 @@ class TestTopicApi(TestCase):
     def test_payload_shape(self):
         topic = self.client.get(self.url).json()[0]
         for field in (
-            "id", "slug", "name", "name_localized", "name_de", "name_fr", "name_es", "name_it",
-            "search_term", "filters", "catalogue_href", "image_url", "icon",
-            "show_in_navbar", "show_on_homepage", "order", "is_active",
+            "id",
+            "slug",
+            "name",
+            "name_localized",
+            "name_de",
+            "name_fr",
+            "name_es",
+            "name_it",
+            "search_term",
+            "filters",
+            "catalogue_href",
+            "image_url",
+            "icon",
+            "show_in_navbar",
+            "show_on_homepage",
+            "order",
+            "is_active",
         ):
             self.assertIn(field, topic)
 
@@ -456,15 +468,11 @@ class TestHomepageSections(TestCase):
 
     def test_reordering_changes_the_rendered_order(self):
         url = reverse("cms_homepage_section_detail", kwargs={"pk_or_key": "trainings"})
-        response = self.client.patch(
-            url, json.dumps({"order": -1}), content_type="application/json", **self.staff_auth
-        )
+        response = self.client.patch(url, json.dumps({"order": -1}), content_type="application/json", **self.staff_auth)
         # order is a PositiveSmallIntegerField, so a negative value is rejected.
         self.assertEqual(response.status_code, 400)
 
-        response = self.client.patch(
-            url, json.dumps({"order": 0}), content_type="application/json", **self.staff_auth
-        )
+        response = self.client.patch(url, json.dumps({"order": 0}), content_type="application/json", **self.staff_auth)
         self.assertEqual(response.status_code, 200)
         # "trainings" now ties with "cases" at 0 and wins on insertion order only
         # if its pk is lower, so assert on the stored value rather than position.

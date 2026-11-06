@@ -160,9 +160,7 @@ def validate_filter_spec(value):
                 "values": normalised,
                 # Advisory display cache for the CMS list only — never rendered
                 # publicly, so it is capped rather than trusted.
-                "labels": [str(label)[:MAX_VALUE_LENGTH] for label in (row.get("labels") or [])][
-                    :MAX_VALUES_PER_ROW
-                ],
+                "labels": [str(label)[:MAX_VALUE_LENGTH] for label in (row.get("labels") or [])][:MAX_VALUES_PER_ROW],
             }
         )
 
