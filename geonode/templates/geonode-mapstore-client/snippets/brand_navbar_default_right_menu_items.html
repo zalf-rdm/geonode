@@ -57,9 +57,41 @@
                     <li role="separator" class="divider"></li>
                 {% endif %}
                 <li>
+                    {# Log out is a <button> because it posts a CSRF-protected form, so     #}
+                    {# the theme's `.dropdown-menu > li > a` rules cannot reach it (#894).  #}
+                    {# It used to carry an inline `color: #fff`, correct while the dropdown #}
+                    {# was dark but invisible once #883 made the panel white -- white on    #}
+                    {# white, a contrast ratio of 1:1. These rules give it the same colour  #}
+                    {# and hover as its sibling links, from the same custom properties, so  #}
+                    {# a future recolour of the panel carries it along instead of stranding #}
+                    {# it again. Inline here rather than in the client theme so the fix     #}
+                    {# ships with the template that needs it, as the header snippet does.   #}
+                    <style>
+                        .repository-global-logout {
+                            display: block;
+                            width: 100%;
+                            min-height: 44px;
+                            padding: 10px 16px;
+                            text-align: left;
+                            border: 0;
+                            background: transparent;
+                            color: var(--zalf-nav-panel-text, inherit);
+                            /* A button takes the UA's own font, not the menu's, so without
+                               this it renders a couple of pixels smaller than the links it
+                               sits among. */
+                            font: inherit;
+                            cursor: pointer;
+                        }
+
+                        .repository-global-logout:hover,
+                        .repository-global-logout:focus {
+                            background: var(--zalf-nav-panel-hover-bg, transparent);
+                            color: var(--zalf-nav-panel-text, inherit);
+                        }
+                    </style>
                     <form method="post" action="{% url 'account_logout' %}" style="margin: 0;">
                         {% csrf_token %}
-                        <button type="submit" class="repository-global-logout" style="display: block; width: 100%; min-height: 44px; padding: 3px 20px; text-align: left; border: 0; background: transparent; color: #fff;">{% trans "Log out" %}</button>
+                        <button type="submit" class="repository-global-logout">{% trans "Log out" %}</button>
                     </form>
                 </li>
             </ul>
