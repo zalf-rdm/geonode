@@ -1,6 +1,7 @@
 from urllib.parse import quote, urlencode
 
 from django.core.cache import cache
+from django.core.validators import RegexValidator
 from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
@@ -168,6 +169,21 @@ class Topic(models.Model):
 
     # Homepage card illustration. The navbar dropdown stays text-only.
     image = models.ImageField(upload_to="cms/topics/", blank=True, null=True)
+
+    # Name of an outline icon drawn on the homepage card, in the card's own
+    # colour. Deliberately NOT a `choices` enum: the icons are SVG paths that
+    # live in the client (themes/zalf/utils/TopicIcons.js), which also renders
+    # the picker, so the client is the single source of the vocabulary. A
+    # `choices` list here would be a second list to keep in step across two
+    # repos -- exactly the drift this model was added to remove. An unknown name
+    # simply renders no icon.
+    icon = models.CharField(
+        max_length=40,
+        blank=True,
+        default="",
+        validators=[RegexValidator(r"^[a-z0-9-]*$", "Use lowercase letters, digits and hyphens.")],
+        help_text="Outline icon for the homepage card. Pick one in the CMS Topics editor, which lists the icons the site can draw.",
+    )
 
     # The navbar and the homepage have always shown different subsets. Modelling
     # that keeps the difference an editable choice instead of an invisible

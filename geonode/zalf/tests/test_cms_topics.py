@@ -315,7 +315,7 @@ class TestTopicApi(TestCase):
         topic = self.client.get(self.url).json()[0]
         for field in (
             "id", "slug", "name", "name_localized", "name_de", "name_fr", "name_es", "name_it",
-            "search_term", "filters", "catalogue_href", "image_url",
+            "search_term", "filters", "catalogue_href", "image_url", "icon",
             "show_in_navbar", "show_on_homepage", "order", "is_active",
         ):
             self.assertIn(field, topic)
@@ -355,6 +355,43 @@ class TestTopicApi(TestCase):
         body = response.json()
         self.assertEqual(body["filters"][0]["values"], ["farming"])
         self.assertEqual(body["catalogue_href"], "/catalogue/#/?filter%7Bcategory.identifier.in%7D=farming")
+
+    def test_create_accepts_an_icon_name(self):
+        """
+        The icon vocabulary lives in the client (themes/zalf/utils/TopicIcons.js),
+        so the server stores whatever slug it is given rather than keeping a
+        second copy of the list that could drift from it.
+        """
+        response = self.client.post(
+            self.url,
+            {"name": "Water", "search_term": "Water", "icon": "droplet"},
+            **self.staff_auth,
+        )
+        self.assertEqual(response.status_code, 201, response.content)
+        self.assertEqual(response.json()["icon"], "droplet")
+
+    def test_icon_is_optional(self):
+        response = self.client.post(
+            self.url,
+            {"name": "Plain", "search_term": "Plain"},
+            **self.staff_auth,
+        )
+        self.assertEqual(response.status_code, 201, response.content)
+        self.assertEqual(response.json()["icon"], "")
+
+    def test_create_rejects_an_icon_name_that_is_not_a_slug(self):
+        """
+        The name is interpolated into markup by the client, and anything outside
+        [a-z0-9-] is neither an icon this build ships nor safe to echo back.
+        """
+        for bad in ("Droplet", "drop let", "<script>", "drop/let"):
+            with self.subTest(icon=bad):
+                response = self.client.post(
+                    self.url,
+                    {"name": "Bad", "search_term": "Bad", "icon": bad},
+                    **self.staff_auth,
+                )
+                self.assertEqual(response.status_code, 400, response.content)
 
     def test_create_rejects_an_invalid_filter_spec(self):
         response = self.client.post(
