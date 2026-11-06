@@ -9996,8 +9996,11 @@ msgstr "Formazione"
 msgid "LTE Maps"
 msgstr "Mappe LTE"
 
-msgid "DQ Kit"
-msgstr "DQ Kit"
+msgid "DQ-Kit"
+msgstr "DQ-Kit"
+
+msgid "(opens in a new tab)"
+msgstr "(si apre in una nuova scheda)"
 
 msgid "Search Datasets"
 msgstr "Cerca dataset"

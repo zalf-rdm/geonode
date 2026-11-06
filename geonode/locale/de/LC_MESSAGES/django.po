@@ -10172,8 +10172,11 @@ msgstr "Schulungen"
 msgid "LTE Maps"
 msgstr "LTE-Karten"
 
-msgid "DQ Kit"
-msgstr "DQ Kit"
+msgid "DQ-Kit"
+msgstr "DQ-Kit"
+
+msgid "(opens in a new tab)"
+msgstr "(öffnet in einem neuen Tab)"
 
 msgid "Search Datasets"
 msgstr "Datensätze suchen"
