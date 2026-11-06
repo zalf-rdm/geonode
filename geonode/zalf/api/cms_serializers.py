@@ -1,9 +1,14 @@
+import json
 from urllib.parse import urlparse
+
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils import translation
 
 from rest_framework import serializers
 
-from geonode.zalf.models import HighlightedCase, SpotlightBanner, TrainingResource
+from geonode.zalf.models import HighlightedCase, HomepageSection, SpotlightBanner, Topic, TrainingResource
 from geonode.zalf.api.cms_utils import render_markdown
+from geonode.zalf.api.topic_filters import validate_filter_spec
 
 MAX_IMAGE_BYTES = 5 * 1024 * 1024  # 5 MB
 
@@ -196,3 +201,123 @@ class TrainingResourceWriteSerializer(serializers.ModelSerializer):
 
     def validate_thumbnail(self, value):
         return _validate_image(value)
+
+
+class TopicFilterSpecField(serializers.JSONField):
+    """
+    Accepts a JSON list, or a JSON *string*.
+
+    The string branch is required, not defensive: the CMS editor posts multipart
+    (topics carry an image) and cmsApi.buildFormData does String(v) on every
+    value, so an array would arrive as "[object Object]". The editor sends
+    JSON.stringify(filters) and this field parses it back.
+    """
+
+    def to_internal_value(self, data):
+        if isinstance(data, str):
+            try:
+                data = json.loads(data or "[]")
+            except ValueError:
+                raise serializers.ValidationError("filters must be valid JSON.")
+        try:
+            return validate_filter_spec(data)
+        except DjangoValidationError as error:
+            raise serializers.ValidationError(error.messages)
+
+
+class TopicSerializer(serializers.ModelSerializer):
+    """
+    Read serializer.
+
+    Carries both the resolved label (`name_localized`, for non-React consumers)
+    and the raw per-locale fields. The homepage resolves the label client-side
+    from the raw fields, because MapStore's locale is switched without a page
+    reload and can diverge from Django's Accept-Language-derived language.
+    """
+
+    image_url = serializers.SerializerMethodField()
+    name_localized = serializers.SerializerMethodField()
+    catalogue_href = serializers.ReadOnlyField()
+
+    class Meta:
+        model = Topic
+        fields = [
+            "id",
+            "slug",
+            "name",
+            "name_localized",
+            "name_de",
+            "name_fr",
+            "name_es",
+            "name_it",
+            "search_term",
+            "filters",
+            "catalogue_href",
+            "image_url",
+            "show_in_navbar",
+            "show_on_homepage",
+            "order",
+            "is_active",
+        ]
+
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get("request")
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+
+    def get_name_localized(self, obj):
+        request = self.context.get("request")
+        # `?lang=` for parity with the facets API; otherwise the active language.
+        lang = (request.GET.get("lang") if request else None) or translation.get_language()
+        return obj.localized_name(lang)
+
+
+class TopicWriteSerializer(serializers.ModelSerializer):
+    filters = TopicFilterSpecField(required=False)
+
+    class Meta:
+        model = Topic
+        fields = [
+            "id",
+            "name",
+            "name_de",
+            "name_fr",
+            "name_es",
+            "name_it",
+            "slug",
+            "search_term",
+            "filters",
+            "image",
+            "show_in_navbar",
+            "show_on_homepage",
+            "order",
+            "is_active",
+        ]
+        extra_kwargs = {"slug": {"required": False}}
+
+    def validate_image(self, value):
+        return _validate_image(value)
+
+    def validate(self, attrs):
+        # A topic with neither a search term nor a filter links to the bare
+        # catalogue, which is never what the admin meant.
+        instance = self.instance
+        term = attrs.get("search_term", getattr(instance, "search_term", "") or "")
+        rows = attrs.get("filters", getattr(instance, "filters", []) or [])
+        if not term and not rows:
+            raise serializers.ValidationError("A topic needs at least one filter or a search term.")
+        return attrs
+
+
+class HomepageSectionSerializer(serializers.ModelSerializer):
+    label = serializers.ReadOnlyField()
+
+    class Meta:
+        model = HomepageSection
+        fields = ["id", "key", "label", "order", "is_active"]
+        # The row set is fixed and seeded by migration, so `key` identifies a
+        # section rather than being something the CMS may change.
+        read_only_fields = ["key"]

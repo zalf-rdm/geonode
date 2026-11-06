@@ -1,5 +1,9 @@
 from django.contrib import admin
-from .models import HighlightedCase, SpotlightBanner, TrainingResource
+from django.db import models as django_models
+
+from geonode.assets.admin import PrettyJSONWidget
+
+from .models import HighlightedCase, HomepageSection, SpotlightBanner, Topic, TrainingResource
 
 
 @admin.register(HighlightedCase)
@@ -26,3 +30,37 @@ class TrainingResourceAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("title",)}
     search_fields = ("title", "organizer")
     ordering = ("order",)
+
+
+@admin.register(Topic)
+class TopicAdmin(admin.ModelAdmin):
+    list_display = ("name", "order", "is_active", "show_in_navbar", "show_on_homepage", "catalogue_href")
+    list_editable = ("order", "is_active", "show_in_navbar", "show_on_homepage")
+    prepopulated_fields = {"slug": ("name",)}
+    search_fields = ("name", "name_de", "name_fr", "name_es", "name_it", "search_term")
+    ordering = ("order",)
+    # The real editing surface is the React CMS; this is the escape hatch, so the
+    # filter spec is edited as pretty-printed JSON. Topic.clean() validates it,
+    # and ModelAdmin calls full_clean(), so a bad spec shows as a form error.
+    formfield_overrides = {django_models.JSONField: {"widget": PrettyJSONWidget}}
+    fieldsets = (
+        (None, {"fields": ("name", "slug", "order", "is_active")}),
+        ("Translations", {"fields": ("name_de", "name_fr", "name_es", "name_it")}),
+        ("Catalogue link", {"fields": ("search_term", "filters")}),
+        ("Presentation", {"fields": ("image", "show_in_navbar", "show_on_homepage")}),
+    )
+
+
+@admin.register(HomepageSection)
+class HomepageSectionAdmin(admin.ModelAdmin):
+    list_display = ("key", "order", "is_active")
+    list_editable = ("order", "is_active")
+    ordering = ("order",)
+    # Fixed, migration-seeded row set: reorder and hide only.
+    readonly_fields = ("key",)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

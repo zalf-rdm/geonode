@@ -11,6 +11,10 @@ from geonode.zalf.api.views import (
 from geonode.zalf.api.cms_views import (
     HighlightedCaseListCreateView,
     HighlightedCaseDetailView,
+    TopicListCreateView,
+    TopicDetailView,
+    HomepageSectionListView,
+    HomepageSectionDetailView,
     SpotlightBannerListCreateView,
     SpotlightBannerDetailView,
     TrainingResourceListCreateView,
@@ -30,6 +34,16 @@ urlpatterns = [
     # CMS — Spotlight Banners
     re_path(r"^cms/banners/$", SpotlightBannerListCreateView.as_view(), name="cms_banners"),
     re_path(r"^cms/banners/(?P<pk>\d+)/$", SpotlightBannerDetailView.as_view(), name="cms_banner_detail"),
+    # CMS — Topics
+    re_path(r"^cms/topics/$", TopicListCreateView.as_view(), name="cms_topics"),
+    re_path(r"^cms/topics/(?P<pk_or_slug>[\w-]+)/$", TopicDetailView.as_view(), name="cms_topic_detail"),
+    # CMS — Homepage section order
+    re_path(r"^cms/homepage-sections/$", HomepageSectionListView.as_view(), name="cms_homepage_sections"),
+    re_path(
+        r"^cms/homepage-sections/(?P<pk_or_key>[\w-]+)/$",
+        HomepageSectionDetailView.as_view(),
+        name="cms_homepage_section_detail",
+    ),
     # CMS — Training Resources
     re_path(r"^cms/trainings/$", TrainingResourceListCreateView.as_view(), name="cms_trainings"),
     re_path(
