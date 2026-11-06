@@ -2444,6 +2444,23 @@ SOCIALACCOUNT_GROUPNAME_PREFIX = os.environ.get("SOCIALACCOUNT_GROUPNAME_PREFIX"
 INSTALLED_APPS += ("geonode.zalf",)
 
 
+# ---------------------------------------------------------------------------
+# Imprint — /imprint/ forwards here rather than serving a copy maintained in
+# this repository (#731: the local copy named the wrong Board of Directors,
+# which is the harm a separately maintained second copy invites).
+#
+# One setting per language because the two pages are not parallel: the German
+# one lives under "Seiten" and the English one under "Pages", so neither URL
+# can be derived from the other by swapping the language code. A deployment
+# that is not ZALF's points these at its own operator's imprint.
+#
+# ZALF publishes in German and English only, so the site's other languages
+# (fr, es, it) fall back to the English setting. The German page remains the
+# legally authoritative text.
+# ---------------------------------------------------------------------------
+ZALF_IMPRINT_URL_DE = os.getenv("ZALF_IMPRINT_URL_DE", "https://www.zalf.de/de/ueber_uns/Seiten/impressum.aspx")
+ZALF_IMPRINT_URL_EN = os.getenv("ZALF_IMPRINT_URL_EN", "https://www.zalf.de/en/ueber_uns/Pages/impressum.aspx")
+
 ZALF_DATACITE_BASE_URL = os.getenv("ZALF_DATACITE_BASE_URL", "https://api.datacite.org/")
 ZALF_DATACITE_AGENT = os.getenv(
     "ZALF_DATACITE_AGENT", "BonaRes Repository (https://repository.zalf.de; mailto:dataservice@zalf.de)"

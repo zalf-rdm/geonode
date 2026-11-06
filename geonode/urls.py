@@ -42,6 +42,7 @@ from geonode.api.views import verify_token, user_info, roles, users, admin_role
 from geonode import geoserver
 from geonode.utils import check_ogc_backend
 from geonode.base import register_url_event
+from geonode.zalf.views import imprint as zalf_imprint
 from .people.views import CustomSignupView, CustomLoginView
 from oauth2_provider.urls import app_name as oauth2_app_name, base_urlpatterns, oidc_urlpatterns
 
@@ -78,7 +79,14 @@ urlpatterns = [
     re_path(r"^publications/$", TemplateView.as_view(template_name="publications.html"), name="publications"),
     re_path(r"^data_policy/$", TemplateView.as_view(template_name="data_policy.html"), name="data_policy"),
     re_path(r"^how_to_cite/$", TemplateView.as_view(template_name="how_to_cite.html"), name="how_to_cite"),
-    re_path(r"^imprint/$", TemplateView.as_view(template_name="imprint.html"), name="imprint"),
+    # The imprint is not maintained here: it forwards to ZALF's, which is the
+    # authoritative one for the operating institution and is kept current by
+    # them (#731). Redirecting at the URL rather than repointing each link means
+    # every existing reference -- both footers, the cookie notice, bookmarks,
+    # anything already published -- ends up in the right place from this one
+    # definition. The view lives in geonode.zalf so this upstream file keeps
+    # only the route.
+    re_path(r"^imprint/$", zalf_imprint, name="imprint"),
     re_path(r"^privacy/$", TemplateView.as_view(template_name="privacy.html"), name="privacy"),
     re_path(r"^privacy_cookies/$", TemplateView.as_view(template_name="privacy-cookies.html"), name="privacy-cookies"),
     # Meta
