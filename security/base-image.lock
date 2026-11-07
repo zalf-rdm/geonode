@@ -12,7 +12,7 @@
 # to on that Saturday, not a pin -- it is what lets two weeks' images be told apart after the fact.
 
 base_image: geonode/geonode-base:latest-ubuntu-24.04
-digest_at_check: sha256:75c237132941ef14a3fd0baf5f5509c557e6c4f2ce7f824754c38acbdb6b43b9
-last_checked: 2026-10-26
-pending_apt_upgrades_at_check: 60
-last_refresh_run: 0
+digest_at_check: sha256:11d2602da6120dc764149ae74063755587960107fa407b0e1bbb77c8eac1767f
+last_checked: 2026-11-07
+pending_apt_upgrades_at_check: 12
+last_refresh_run: 42333476242
