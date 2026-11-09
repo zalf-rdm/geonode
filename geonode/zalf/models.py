@@ -8,15 +8,59 @@ from django.dispatch import receiver
 from django.utils import translation
 from django.utils.text import slugify
 
+# Locales the CMS content is authored in. The base field carries the English /
+# default value; these mirror the five locales the client ships translations
+# for. A blank translation falls back to the base field.
+TRANSLATED_LANGUAGES = ("de", "fr", "es", "it")
 
-class HighlightedCase(models.Model):
+
+def translated_field_names(*fields):
+    """`("title",)` -> `["title_de", "title_fr", "title_es", "title_it"]`, for serializers and admin."""
+    return [f"{field}_{code}" for field in fields for code in TRANSLATED_LANGUAGES]
+
+
+class LocalizedFieldsMixin:
+    """`localized(field)` for models carrying `<field>_<lang>` variants of `TRANSLATED_FIELDS`."""
+
+    TRANSLATED_FIELDS = ()
+
+    def localized(self, field, lang=None):
+        """The value of `field` for `lang` (default: the active language), falling back to the base field."""
+        code = (lang or translation.get_language() or "en").split("-")[0].lower()
+        translated = getattr(self, f"{field}_{code}", "") if code in TRANSLATED_LANGUAGES else ""
+        return (translated or "").strip() or getattr(self, field)
+
+
+class HighlightedCase(LocalizedFieldsMixin, models.Model):
+    TRANSLATED_FIELDS = ("tab_label", "eyebrow", "title", "button_text", "body_markdown")
+
     tab_label = models.CharField(max_length=40)
+    tab_label_de = models.CharField(max_length=40, blank=True, default="")
+    tab_label_fr = models.CharField(max_length=40, blank=True, default="")
+    tab_label_es = models.CharField(max_length=40, blank=True, default="")
+    tab_label_it = models.CharField(max_length=40, blank=True, default="")
     eyebrow = models.CharField(max_length=60, default="HIGHLIGHTED CASE")
+    eyebrow_de = models.CharField(max_length=60, blank=True, default="")
+    eyebrow_fr = models.CharField(max_length=60, blank=True, default="")
+    eyebrow_es = models.CharField(max_length=60, blank=True, default="")
+    eyebrow_it = models.CharField(max_length=60, blank=True, default="")
     title = models.CharField(max_length=160)
+    title_de = models.CharField(max_length=160, blank=True, default="")
+    title_fr = models.CharField(max_length=160, blank=True, default="")
+    title_es = models.CharField(max_length=160, blank=True, default="")
+    title_it = models.CharField(max_length=160, blank=True, default="")
     button_text = models.CharField(max_length=40, default="View case")
+    button_text_de = models.CharField(max_length=40, blank=True, default="")
+    button_text_fr = models.CharField(max_length=40, blank=True, default="")
+    button_text_es = models.CharField(max_length=40, blank=True, default="")
+    button_text_it = models.CharField(max_length=40, blank=True, default="")
     href = models.CharField(max_length=500)
     image = models.ImageField(upload_to="cms/cases/", blank=True, null=True)
     body_markdown = models.TextField(blank=True)
+    body_markdown_de = models.TextField(blank=True, default="")
+    body_markdown_fr = models.TextField(blank=True, default="")
+    body_markdown_es = models.TextField(blank=True, default="")
+    body_markdown_it = models.TextField(blank=True, default="")
     slug = models.SlugField(unique=True, blank=True)
     order = models.PositiveSmallIntegerField(default=0)
     is_active = models.BooleanField(default=True)
@@ -41,11 +85,29 @@ class HighlightedCase(models.Model):
         return self.tab_label
 
 
-class SpotlightBanner(models.Model):
+class SpotlightBanner(LocalizedFieldsMixin, models.Model):
+    TRANSLATED_FIELDS = ("kicker", "title", "description", "button_text")
+
     kicker = models.CharField(max_length=80)
+    kicker_de = models.CharField(max_length=80, blank=True, default="")
+    kicker_fr = models.CharField(max_length=80, blank=True, default="")
+    kicker_es = models.CharField(max_length=80, blank=True, default="")
+    kicker_it = models.CharField(max_length=80, blank=True, default="")
     title = models.CharField(max_length=120)
+    title_de = models.CharField(max_length=120, blank=True, default="")
+    title_fr = models.CharField(max_length=120, blank=True, default="")
+    title_es = models.CharField(max_length=120, blank=True, default="")
+    title_it = models.CharField(max_length=120, blank=True, default="")
     description = models.CharField(max_length=240, blank=True)
+    description_de = models.CharField(max_length=240, blank=True, default="")
+    description_fr = models.CharField(max_length=240, blank=True, default="")
+    description_es = models.CharField(max_length=240, blank=True, default="")
+    description_it = models.CharField(max_length=240, blank=True, default="")
     button_text = models.CharField(max_length=40)
+    button_text_de = models.CharField(max_length=40, blank=True, default="")
+    button_text_fr = models.CharField(max_length=40, blank=True, default="")
+    button_text_es = models.CharField(max_length=40, blank=True, default="")
+    button_text_it = models.CharField(max_length=40, blank=True, default="")
     href = models.CharField(max_length=500)
     image = models.ImageField(upload_to="cms/banners/", blank=True, null=True)
     order = models.PositiveSmallIntegerField(default=0)
@@ -66,17 +128,36 @@ FORMAT_CHOICES = [
 ]
 
 
-class TrainingResource(models.Model):
+class TrainingResource(LocalizedFieldsMixin, models.Model):
+    # `organizer` is a proper name and stays single-language.
+    TRANSLATED_FIELDS = ("title", "category", "duration", "body_markdown")
+
     title = models.CharField(max_length=160)
+    title_de = models.CharField(max_length=160, blank=True, default="")
+    title_fr = models.CharField(max_length=160, blank=True, default="")
+    title_es = models.CharField(max_length=160, blank=True, default="")
+    title_it = models.CharField(max_length=160, blank=True, default="")
     organizer = models.CharField(max_length=120)
     category = models.CharField(max_length=80, blank=True, default="")
+    category_de = models.CharField(max_length=80, blank=True, default="")
+    category_fr = models.CharField(max_length=80, blank=True, default="")
+    category_es = models.CharField(max_length=80, blank=True, default="")
+    category_it = models.CharField(max_length=80, blank=True, default="")
     format = models.CharField(max_length=20, choices=FORMAT_CHOICES, blank=True, default="")
     duration = models.CharField(max_length=60, blank=True, default="")
+    duration_de = models.CharField(max_length=60, blank=True, default="")
+    duration_fr = models.CharField(max_length=60, blank=True, default="")
+    duration_es = models.CharField(max_length=60, blank=True, default="")
+    duration_it = models.CharField(max_length=60, blank=True, default="")
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     course_url = models.CharField(max_length=500, blank=True, default="")
     thumbnail = models.ImageField(upload_to="cms/training/", blank=True, null=True)
     body_markdown = models.TextField(blank=True)
+    body_markdown_de = models.TextField(blank=True, default="")
+    body_markdown_fr = models.TextField(blank=True, default="")
+    body_markdown_es = models.TextField(blank=True, default="")
+    body_markdown_it = models.TextField(blank=True, default="")
     slug = models.SlugField(unique=True, blank=True)
     order = models.PositiveSmallIntegerField(default=0)
     is_active = models.BooleanField(default=True)
@@ -109,9 +190,8 @@ class TrainingResource(models.Model):
 # instead of only ever being a free-text `?q=` term.
 # ---------------------------------------------------------------------------
 
-# Locales the Topic labels are authored in. `name` carries the English/default
-# value; these mirror the five locales the client ships translations for.
-TOPIC_TRANSLATED_LANGUAGES = ("de", "fr", "es", "it")
+# Locales the Topic labels are authored in; the same set as the CMS content above.
+TOPIC_TRANSLATED_LANGUAGES = TRANSLATED_LANGUAGES
 
 NAVBAR_TOPICS_CACHE_KEY = "zalf_navbar_topics_v1"
 # Short on purpose: CACHES["default"] is LocMemCache unless MEMCACHED_ENABLED,
@@ -144,8 +224,10 @@ def topic_catalogue_href(search_term="", filters=None):
     return "/catalogue/#/?" + urlencode(pairs, quote_via=quote)
 
 
-class Topic(models.Model):
+class Topic(LocalizedFieldsMixin, models.Model):
     """A curated catalogue entry point, shown in the navbar and on the homepage."""
+
+    TRANSLATED_FIELDS = ("name",)
 
     name = models.CharField(max_length=120, help_text="English / default label.")
     name_de = models.CharField(max_length=120, blank=True, default="")
@@ -221,8 +303,7 @@ class Topic(models.Model):
 
     def localized_name(self, lang=None):
         """The label for `lang`, falling back to `name` when the translation is blank."""
-        code = (lang or translation.get_language() or "en").split("-")[0].lower()
-        return (getattr(self, f"name_{code}", "") or "").strip() or self.name
+        return self.localized("name", lang)
 
     @property
     def catalogue_href(self):
