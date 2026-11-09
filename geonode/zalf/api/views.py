@@ -248,6 +248,13 @@ def _publish_data_collection(map: Map, payload, user):
         "message": "Data Collection published",
     }
 
+    if payload.get("build_download_package", True):
+        from geonode.zalf.download_packages import request_build
+
+        # Queued on commit, so the build sees the public permissions set above.
+        request_build(map, user=user)
+        response_data["download_package"] = "queued"
+
     if collection_doi:
         response_data["doi"] = collection_doi
 

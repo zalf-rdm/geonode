@@ -34,8 +34,24 @@ Every data collection goes through two review steps:
 | **Approve Data Collection** (thumbs-up) | User may approve, resource is a map, and it is not yet approved |
 | **Publish Data Collection** (bookmark) | User may publish, map is approved but not yet published |
 | **DataCite Metadata** (download) | DataCite integration is enabled and the map is published |
+| **Build / Rebuild download package** (archive) | User may publish and the map is published; shows the package state |
 
-The publish dialog lets the steward select which linked resources to include and which DOI prefix to use.
+The publish dialog lets the steward select which linked resources to include and which DOI prefix to use. Its **Build download package after publication** checkbox, **checked by default**, queues the download package once the publication has committed.
+
+### Download package
+
+After publication, a map's landing page offers **Download all (ZIP, size)**: one archive with every file of the collection that anonymous visitors may download, which after publication is exactly what the publication made public. The button appears only once the package exists.
+
+- **Contents.** Each resource's own files as GeoNode keeps them: the original upload of a dataset, the file of a document. For a dataset without an original (for example, one harvested or created before 5.x), the file comes from GeoNode's GeoServer export (WPS `gs:Download`). `MANIFEST.txt` lists every file, its resource, whether it is an original or an export, and its SHA-256.
+- **Storage.** The archive is an Asset linked to the map. With `ZALF_DOWNLOAD_S3_BUCKET` set, it lives in S3-compatible object storage (Hetzner first) and downloads redirect straight to the object, so they do not cross the institute's uplink. Without it, it is a local asset.
+- **Authorization.** Whoever may **view** the map may download its package. The publication grants maps view only (not download), and the package holds nothing that is not already publicly downloadable.
+- **Snapshot.** The package reflects the collection when it was built. After changing a published collection, rebuild it.
+- **Existing maps.** Use the steward button in the map viewer, `POST /api/v2/maps/{mapid}/download_package/`, the *Download packages* admin action, or the management command:
+
+  ```
+  python manage.py build_download_packages --all-published --missing-only   # backfill
+  python manage.py build_download_packages --map 12 34 [--sync]            # selected maps
+  ```
 
 ---
 
@@ -108,6 +124,26 @@ ZALF_DATACITE_BASE_URL=https://api.test.datacite.org/      # test environment
 ZALF_DATACITE_ACCOUNTS=[{"username": "ORG.PREFIX", "password": "...", "groups": ["group-slug"]}]
 ```
 
+Download packages (optional; without a bucket, packages are stored locally):
+
+```
+ZALF_DOWNLOAD_S3_ENDPOINT_URL=https://fsn1.your-objectstorage.com   # Hetzner; location = region
+ZALF_DOWNLOAD_S3_REGION=fsn1
+ZALF_DOWNLOAD_S3_BUCKET=bonares-download-packages
+ZALF_DOWNLOAD_S3_ACCESS_KEY_ID=...                                  # SOPS-encrypted
+ZALF_DOWNLOAD_S3_SECRET_ACCESS_KEY=...                              # SOPS-encrypted
+ZALF_DOWNLOAD_S3_PREFIX=download-packages
+ZALF_DOWNLOAD_S3_ADDRESSING_STYLE=virtual     # or path
+ZALF_DOWNLOAD_S3_URL_EXPIRY=3600              # presigned URL lifetime, seconds
+ZALF_DOWNLOAD_S3_PUBLIC=False                 # True: redirect to the public URL (needs a public-read bucket policy)
+ZALF_DOWNLOAD_PACKAGE_BUILD_ROOT=/mnt/volumes/statics/download_packages   # scratch on a PVC, not /tmp (emptyDir)
+ZALF_DOWNLOAD_PACKAGE_MAX_BYTES=53687091200   # 50 GiB
+ZALF_DOWNLOAD_PACKAGE_TIME_LIMIT=21600        # Celery time limit, seconds
+ZALF_DOWNLOAD_PACKAGE_EXPORT_TIMEOUT=3600     # read timeout of one GeoServer export
+```
+
+Builds run on the Celery queue `zalf.download_package`, which the default worker consumes (it only excludes `harvesting`). Datasets that need a GeoServer export are subject to GeoServer's `download.properties` limits (`maxFeatures`, `hardOutputLimit`, raster limits); raise them for large layers.
+
 `PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS` is derived automatically from all `groups` entries across `ZALF_DATACITE_ACCOUNTS` at Django startup.
 
 ### Permission model (backend)
@@ -127,6 +163,8 @@ Approve and publish are authorized **solely by the group-role gate** — data st
 | Approve | `can_approve_data_collection()` (member of an allowed group) |
 | Publish | `can_publish_data_collection()` (manager of an allowed group) |
 | Sync metadata (POST) | `base.change_resourcebase` on the map |
+| Build download package (POST) | `can_publish_data_collection()`; the map must be published |
+| Download package state (GET) / file | `base.view_resourcebase` on the map |
 
 ### Frontend flags
 
@@ -190,6 +228,18 @@ Publish a data collection with DOI registration.
 | 422 | Resource not approved, DOI prefix invalid/inaccessible, or DataCite API error |
 | 404 | Map or owner does not exist |
 
+#### GET / POST `/api/v2/maps/{mapid}/download_package/`
+
+GET returns `{state, ready, asset_id, download_url, size, sha256, built_at}`, where `state` is `null` before the first build, then `pending`, `building`, `ready` or `failed`. Data stewards also see `error`, `task_id`, `requested_by` and `updated_at`. The previous package stays downloadable while a rebuild runs.
+
+POST queues a (re)build and returns 202. The response has `started: false` while a build is pending or running. It returns 409 for an unpublished map and 403 for anyone but data-steward managers and superusers. Both methods answer 404 if the map is not visible to the caller.
+
+The publish endpoint accepts `"build_download_package": false` to skip the automatic build; the default is `true`.
+
+#### GET `/api/v2/maps/{mapid}/download_package/download/`
+
+The package itself: a redirect to the S3 object (presigned unless `ZALF_DOWNLOAD_S3_PUBLIC`), or the local file. It counts as a download of the map, and returns 404 until a package exists.
+
 #### GET / POST `/api/v2/maps/{mapid}/sync_metadata/`
 
 GET returns a metadata diff between the map and each linked resource (`?resource_pk=` to limit). POST syncs metadata from the map to linked resources (optional body: `resource_pk`, `field_names`); requires `base.change_resourcebase` on the map.
@@ -215,7 +265,8 @@ Returns `{"prefixes": [...]}` — DOI prefixes available to the authenticated us
 ```
 geonode-mapstore-client/client/js/plugins/
   ApproveDataCollection.jsx   — Approve button + confirm dialog (gated on can_approve)
-  PublishDataCollection.jsx   — Publish button + resource checklist + DOI prefix selector (gated on can_publish)
+  PublishDataCollection.jsx   — Publish button + resource checklist + DOI prefix selector + "build download package"
+                                checkbox (gated on can_publish); on a published map: the download package button
   downloads/DataCiteDownload.jsx — Download DataCite XML button
 client/js/hooks/useDatacitePrefixes.js — reads the datacite flags from the page config
 ```

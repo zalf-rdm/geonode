@@ -2491,6 +2491,42 @@ ZALF_DATACITE_ACCOUNTS = _json.loads(os.getenv("ZALF_DATACITE_ACCOUNTS", "[]"))
 # Admins can always publish regardless of group membership.
 PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS = sorted({g for acct in ZALF_DATACITE_ACCOUNTS for g in acct.get("groups", [])})
 
+# ---------------------------------------------------------------------------
+# Download packages (zalf-rdm/geonode#659): one ZIP per published data
+# collection, built by a Celery task and served from S3-compatible storage.
+#
+# Without ZALF_DOWNLOAD_S3_BUCKET the package is stored as a local asset
+# instead. For Hetzner Object Storage:
+#   ZALF_DOWNLOAD_S3_ENDPOINT_URL=https://fsn1.your-objectstorage.com
+#   ZALF_DOWNLOAD_S3_REGION=fsn1
+# ---------------------------------------------------------------------------
+ZALF_DOWNLOAD_S3_ENDPOINT_URL = os.getenv("ZALF_DOWNLOAD_S3_ENDPOINT_URL", "")
+ZALF_DOWNLOAD_S3_REGION = os.getenv("ZALF_DOWNLOAD_S3_REGION", "")
+ZALF_DOWNLOAD_S3_BUCKET = os.getenv("ZALF_DOWNLOAD_S3_BUCKET", "")
+ZALF_DOWNLOAD_S3_ACCESS_KEY_ID = os.getenv("ZALF_DOWNLOAD_S3_ACCESS_KEY_ID", "")
+ZALF_DOWNLOAD_S3_SECRET_ACCESS_KEY = os.getenv("ZALF_DOWNLOAD_S3_SECRET_ACCESS_KEY", "")
+ZALF_DOWNLOAD_S3_PREFIX = os.getenv("ZALF_DOWNLOAD_S3_PREFIX", "download-packages")
+# "virtual" (bucket.endpoint/key) or "path" (endpoint/bucket/key).
+ZALF_DOWNLOAD_S3_ADDRESSING_STYLE = os.getenv("ZALF_DOWNLOAD_S3_ADDRESSING_STYLE", "virtual")
+# Lifetime of a presigned download URL, in seconds; it only has to outlive the redirect.
+ZALF_DOWNLOAD_S3_URL_EXPIRY = int(os.getenv("ZALF_DOWNLOAD_S3_URL_EXPIRY", "3600"))
+# Serve the public object URL instead of a presigned one (needs a public-read bucket policy).
+ZALF_DOWNLOAD_S3_PUBLIC = os.getenv("ZALF_DOWNLOAD_S3_PUBLIC", "False").lower() == "true"
+# Scratch space for builds. On a PVC on purpose: /tmp is an emptyDir in the
+# geonode-k8s chart, and a multi-GB build there risks evicting the pod.
+ZALF_DOWNLOAD_PACKAGE_BUILD_ROOT = os.getenv(
+    "ZALF_DOWNLOAD_PACKAGE_BUILD_ROOT", os.path.join(os.path.dirname(MEDIA_ROOT.rstrip("/")), "download_packages")
+)
+ZALF_DOWNLOAD_PACKAGE_MAX_BYTES = int(os.getenv("ZALF_DOWNLOAD_PACKAGE_MAX_BYTES", str(50 * 1024**3)))
+ZALF_DOWNLOAD_PACKAGE_TIME_LIMIT = int(os.getenv("ZALF_DOWNLOAD_PACKAGE_TIME_LIMIT", str(6 * 3600)))
+# Read timeout for one GeoServer export of a dataset without an original file.
+ZALF_DOWNLOAD_PACKAGE_EXPORT_TIMEOUT = int(os.getenv("ZALF_DOWNLOAD_PACKAGE_EXPORT_TIMEOUT", "3600"))
+
+ASSET_HANDLERS += ["geonode.zalf.s3_assets.S3AssetHandler"]
+# Its own queue, so a long build can be moved to a dedicated worker; the default
+# worker consumes it as long as it only excludes "harvesting" (celery-cmd).
+CELERY_TASK_QUEUES += (Queue("zalf.download_package", GEONODE_EXCHANGE, routing_key="zalf.download_package"),)
+
 # Keycloak is the authority for browser authentication and application sessions.
 KEYCLOAK_SSO_ENABLED = os.environ.get("KEYCLOAK_SSO_ENABLED", "true").lower() == "true"
 KEYCLOAK_SSO_ISSUER = SOCIALACCOUNT_PROVIDER_ROOT.rstrip("/")

@@ -1,5 +1,6 @@
 from urllib.parse import quote, urlencode
 
+from django.conf import settings
 from django.core.cache import cache
 from django.core.validators import RegexValidator
 from django.db import models
@@ -7,6 +8,8 @@ from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from django.utils import translation
 from django.utils.text import slugify
+
+from geonode.assets.models import Asset, cleanup_asset_data
 
 # Locales the CMS content is authored in. The base field carries the English /
 # default value; these mirror the five locales the client ships translations
@@ -400,3 +403,70 @@ def homepage_section_order():
 @receiver(post_delete, sender=HomepageSection)
 def invalidate_homepage_sections_cache(sender, instance, **kwargs):
     cache.delete(HOMEPAGE_SECTIONS_CACHE_KEY)
+
+
+# ---------------------------------------------------------------------------
+# Download packages (zalf-rdm/geonode#659)
+#
+# One ZIP per published data collection (map), holding every resource the
+# publication made publicly downloadable. The ZIP is an Asset linked to the map,
+# so GeoNode's asset endpoint, permission check and delete cleanup apply to it;
+# `S3Asset` keeps its bytes in S3-compatible object storage (Hetzner first) so
+# downloads do not cross the institute's uplink.
+# ---------------------------------------------------------------------------
+
+
+class S3Asset(Asset):
+    """An Asset whose single file is an object in S3-compatible storage."""
+
+    bucket = models.CharField(max_length=255)
+    key = models.CharField(max_length=1024)
+    size = models.BigIntegerField(null=True, blank=True)
+    sha256 = models.CharField(max_length=64, blank=True, default="")
+
+    class Meta:
+        verbose_name_plural = "S3 assets"
+
+    def __str__(self):
+        return f"{self.__class__.__name__}: {self.type}|{self.bucket}/{self.key}"
+
+
+# Same cleanup as LocalAsset: deleting the asset removes the stored object.
+post_delete.connect(cleanup_asset_data, sender=S3Asset)
+
+
+class DownloadPackage(models.Model):
+    """Build state of a map's download package; the file itself is `asset`."""
+
+    STATE_PENDING = "pending"
+    STATE_BUILDING = "building"
+    STATE_READY = "ready"
+    STATE_FAILED = "failed"
+    STATE_CHOICES = [
+        (STATE_PENDING, "Pending"),
+        (STATE_BUILDING, "Building"),
+        (STATE_READY, "Ready"),
+        (STATE_FAILED, "Failed"),
+    ]
+
+    map = models.OneToOneField("maps.Map", on_delete=models.CASCADE, related_name="zalf_download_package")
+    state = models.CharField(max_length=16, choices=STATE_CHOICES, default=STATE_PENDING)
+    # SET_NULL: the asset goes with the map's links when the map is deleted, and a
+    # rebuild deletes the previous one; neither may take this row with it.
+    asset = models.ForeignKey("assets.Asset", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    task_id = models.CharField(max_length=255, blank=True, default="")
+    error = models.TextField(blank=True, default="")
+    size = models.BigIntegerField(null=True, blank=True)
+    sha256 = models.CharField(max_length=64, blank=True, default="")
+    built_at = models.DateTimeField(null=True, blank=True)
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Download package for map {self.map_id} ({self.state})"
+
+    @property
+    def is_ready(self):
+        return self.state == self.STATE_READY and self.asset_id is not None
