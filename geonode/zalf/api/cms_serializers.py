@@ -6,7 +6,14 @@ from django.utils import translation
 
 from rest_framework import serializers
 
-from geonode.zalf.models import HighlightedCase, HomepageSection, SpotlightBanner, Topic, TrainingResource
+from geonode.zalf.models import (
+    HighlightedCase,
+    HomepageSection,
+    SpotlightBanner,
+    Topic,
+    TrainingResource,
+    translated_field_names,
+)
 from geonode.zalf.api.cms_utils import render_markdown
 from geonode.zalf.api.topic_filters import validate_filter_spec
 
@@ -44,6 +51,9 @@ class HighlightedCaseListSerializer(serializers.ModelSerializer):
             "slug",
             "order",
             "is_active",
+            # Raw per-locale variants: the client resolves them against MapStore's
+            # live locale, as it does for Topic names (see TopicSerializer).
+            *translated_field_names("tab_label", "eyebrow", "title", "button_text"),
         ]
 
     def get_image_url(self, obj):
@@ -59,10 +69,15 @@ class HighlightedCaseDetailSerializer(HighlightedCaseListSerializer):
     body_html = serializers.SerializerMethodField()
 
     class Meta(HighlightedCaseListSerializer.Meta):
-        fields = HighlightedCaseListSerializer.Meta.fields + ["body_markdown", "body_html"]
+        fields = HighlightedCaseListSerializer.Meta.fields + [
+            "body_markdown",
+            *translated_field_names("body_markdown"),
+            "body_html",
+        ]
 
     def get_body_html(self, obj):
-        return render_markdown(obj.body_markdown)
+        # Rendered for Django's active language.
+        return render_markdown(obj.localized("body_markdown"))
 
 
 class HighlightedCaseWriteSerializer(serializers.ModelSerializer):
@@ -80,6 +95,7 @@ class HighlightedCaseWriteSerializer(serializers.ModelSerializer):
             "slug",
             "order",
             "is_active",
+            *translated_field_names(*HighlightedCase.TRANSLATED_FIELDS),
         ]
         extra_kwargs = {"slug": {"required": False}}
 
@@ -105,6 +121,7 @@ class SpotlightBannerSerializer(serializers.ModelSerializer):
             "image_url",
             "order",
             "is_active",
+            *translated_field_names(*SpotlightBanner.TRANSLATED_FIELDS),
         ]
 
     def get_image_url(self, obj):
@@ -129,6 +146,7 @@ class SpotlightBannerWriteSerializer(serializers.ModelSerializer):
             "image",
             "order",
             "is_active",
+            *translated_field_names(*SpotlightBanner.TRANSLATED_FIELDS),
         ]
 
     def validate_href(self, value):
@@ -157,6 +175,7 @@ class TrainingResourceListSerializer(serializers.ModelSerializer):
             "slug",
             "order",
             "is_active",
+            *translated_field_names("title", "category", "duration"),
         ]
 
     def get_thumbnail_url(self, obj):
@@ -172,10 +191,15 @@ class TrainingResourceDetailSerializer(TrainingResourceListSerializer):
     body_html = serializers.SerializerMethodField()
 
     class Meta(TrainingResourceListSerializer.Meta):
-        fields = TrainingResourceListSerializer.Meta.fields + ["body_markdown", "body_html"]
+        fields = TrainingResourceListSerializer.Meta.fields + [
+            "body_markdown",
+            *translated_field_names("body_markdown"),
+            "body_html",
+        ]
 
     def get_body_html(self, obj):
-        return render_markdown(obj.body_markdown)
+        # Rendered for Django's active language.
+        return render_markdown(obj.localized("body_markdown"))
 
 
 class TrainingResourceWriteSerializer(serializers.ModelSerializer):
@@ -196,6 +220,7 @@ class TrainingResourceWriteSerializer(serializers.ModelSerializer):
             "slug",
             "order",
             "is_active",
+            *translated_field_names(*TrainingResource.TRANSLATED_FIELDS),
         ]
         extra_kwargs = {"slug": {"required": False}}
 

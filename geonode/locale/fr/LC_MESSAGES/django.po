@@ -2573,10 +2573,8 @@ msgid "Dataset name"
 msgstr "ensemble de données"
 
 #: geonode/geoserver/createlayer/forms.py:36
-#, fuzzy
-#| msgid "Dataset Attributes"
 msgid "Dataset title"
-msgstr "Attributs d'ensemble de données"
+msgstr "Titre du jeu de données"
 
 #: geonode/geoserver/createlayer/forms.py:37
 msgid "Geometry type"
@@ -7383,10 +7381,8 @@ msgid "Processor"
 msgstr "Traitement en cours…"
 
 #: geonode/templates/metadata_detail.html:734
-#, fuzzy
-#| msgid "Published"
 msgid "Publisher"
-msgstr "Publié"
+msgstr "Éditeur"
 
 #: geonode/templates/metadata_detail.html:809
 #, fuzzy
@@ -10236,129 +10232,363 @@ msgstr "Connexion"
 
 # FAQ (zalf-rdm/geonode#848)
 msgid "Frequently Asked Questions"
-msgstr ""
+msgstr "Foire aux questions"
 
 msgid "Find answers to common questions about finding, publishing, and reusing research data in the BonaRes Repository."
-msgstr ""
+msgstr "Trouvez des réponses aux questions fréquentes sur la recherche, la publication et la réutilisation des données de recherche dans le BonaRes Repository."
 
 msgid "Finding Data"
-msgstr ""
+msgstr "Trouver des données"
 
 msgid "Publishing Data"
-msgstr ""
+msgstr "Publier des données"
 
 msgid "Using & Citing Data"
-msgstr ""
+msgstr "Utiliser et citer des données"
 
 msgid "About & Support"
-msgstr ""
+msgstr "À propos et assistance"
 
 msgid "What kind of data can I find in the BonaRes Repository?"
-msgstr ""
+msgstr "Quels types de données puis-je trouver dans le BonaRes Repository ?"
 
 msgid "The BonaRes Repository provides research datasets from soil science and agricultural research, with a particular focus on data from long-term field experiments (LTEs). The repository also includes soil measurements, field observations, and other research data relevant to soil and agricultural systems."
-msgstr ""
+msgstr "Le BonaRes Repository met à disposition des jeux de données de recherche en science du sol et en recherche agronomique, en particulier des données issues d’essais de longue durée au champ (LTE). L’entrepôt contient également des mesures de sol, des observations de terrain et d’autres données de recherche relatives aux sols et aux systèmes agricoles."
 
 msgid "Can I find data from long-term field experiments (LTEs)?"
-msgstr ""
+msgstr "Puis-je trouver des données issues d’essais de longue durée au champ (LTE) ?"
 
 msgid "Yes. The BonaRes Repository provides datasets from long-term field experiments, including soil, crop, and management data. The LTE Map tool can help you discover long-term field experiments and explore related information."
-msgstr ""
+msgstr "Oui. Le BonaRes Repository met à disposition des jeux de données issus d’essais de longue durée au champ, notamment des données sur les sols, les cultures et les pratiques de gestion. L’outil Carte LTE vous aide à découvrir les essais de longue durée et à explorer les informations associées."
 
 msgid "How can I find datasets?"
-msgstr ""
+msgstr "Comment trouver des jeux de données ?"
 
 msgid "Use the dataset search or browse by topic. You can refine your search using available filters and explore the metadata to identify relevant datasets."
-msgstr ""
+msgstr "Utilisez la recherche de jeux de données ou parcourez les thèmes. Vous pouvez affiner votre recherche à l’aide des filtres disponibles et consulter les métadonnées pour identifier les jeux de données pertinents."
 
 msgid "Can I access datasets without registering?"
-msgstr ""
+msgstr "Puis-je accéder aux jeux de données sans m’inscrire ?"
 
 msgid "Published, openly accessible datasets can be discovered and downloaded without an account. Access to any restricted resources depends on their specific access conditions."
-msgstr ""
+msgstr "Les jeux de données publiés et librement accessibles peuvent être consultés et téléchargés sans compte. L’accès aux ressources restreintes dépend de leurs conditions d’accès spécifiques."
 
 msgid "Who can publish data in the BonaRes Repository?"
-msgstr ""
+msgstr "Qui peut publier des données dans le BonaRes Repository ?"
 
 msgid "The repository is open to researchers from ZALF and other research institutions. You do not need to be part of the original BonaRes research initiative."
-msgstr ""
+msgstr "L’entrepôt est ouvert aux chercheurs et chercheuses du ZALF et d’autres institutions de recherche. Il n’est pas nécessaire d’avoir fait partie de l’initiative de recherche BonaRes d’origine."
 
 msgid "What types of data can I publish?"
-msgstr ""
+msgstr "Quels types de données puis-je publier ?"
 
 msgid "The repository accepts quality-controlled research data from soil, agricultural, and related environmental sciences. Datasets should be sufficiently documented to support scientific reuse."
-msgstr ""
+msgstr "L’entrepôt accepte des données de recherche contrôlées en qualité issues des sciences du sol, des sciences agronomiques et des sciences de l’environnement associées. Les jeux de données doivent être suffisamment documentés pour permettre leur réutilisation scientifique."
 
 msgid "How do I submit a dataset?"
-msgstr ""
+msgstr "Comment soumettre un jeu de données ?"
 
 msgid "Select \"Submit Data\" in the main navigation. You will need to sign in and provide your data files together with the required metadata."
-msgstr ""
+msgstr "Sélectionnez « Soumettre des données » dans la navigation principale. Vous devrez vous connecter et fournir vos fichiers de données ainsi que les métadonnées requises."
 
 msgid "Will my dataset receive a DOI?"
-msgstr ""
+msgstr "Mon jeu de données recevra-t-il un DOI ?"
 
 msgid "Yes. Published datasets receive a Digital Object Identifier (DOI), making them permanently identifiable and citable."
-msgstr ""
+msgstr "Oui. Les jeux de données publiés reçoivent un identifiant d’objet numérique (DOI), qui les rend identifiables de manière pérenne et citables."
 
 msgid "Can I update a dataset after publication?"
-msgstr ""
+msgstr "Puis-je mettre à jour un jeu de données après sa publication ?"
 
 msgid "Published datasets should remain stable and citable. If corrections or updates are necessary, please contact the repository team to discuss the appropriate procedure."
-msgstr ""
+msgstr "Les jeux de données publiés doivent rester stables et citables. Si des corrections ou des mises à jour sont nécessaires, veuillez contacter l’équipe de l’entrepôt pour convenir de la procédure appropriée."
 
 msgid "Can I freely reuse data from the repository?"
-msgstr ""
+msgstr "Puis-je réutiliser librement les données de l’entrepôt ?"
 
 msgid "Published datasets are generally available for reuse. Please check the license and access conditions provided with each dataset."
-msgstr ""
+msgstr "Les jeux de données publiés sont en général disponibles pour être réutilisés. Veuillez vérifier la licence et les conditions d’accès indiquées pour chaque jeu de données."
 
 msgid "How should I cite a dataset?"
-msgstr ""
+msgstr "Comment citer un jeu de données ?"
 
 msgid "Use the citation information and DOI provided on the dataset's landing page. Additional guidance is available under Resources → How to Cite Data."
-msgstr ""
+msgstr "Utilisez les informations de citation et le DOI indiqués sur la page d’accueil du jeu de données. Des conseils supplémentaires sont disponibles sous Ressources → Comment citer les données."
 
 msgid "Which licenses are used?"
-msgstr ""
+msgstr "Quelles licences sont utilisées ?"
 
 msgid "The standard license specified in the BonaRes Data Policy is Creative Commons Attribution (CC BY). Always check the license assigned to the individual dataset."
-msgstr ""
+msgstr "La licence standard prévue par la politique des données BonaRes est Creative Commons Attribution (CC BY). Vérifiez toujours la licence attribuée à chaque jeu de données."
 
 msgid "Who operates the BonaRes Repository?"
-msgstr ""
+msgstr "Qui exploite le BonaRes Repository ?"
 
 msgid "The repository is operated and maintained by the Leibniz Centre for Agricultural Landscape Research (ZALF) in Müncheberg, Germany."
-msgstr ""
+msgstr "L’entrepôt est exploité et maintenu par le Centre Leibniz de recherche sur les paysages agricoles (ZALF) à Müncheberg, en Allemagne."
 
 msgid "Which data policies apply?"
-msgstr ""
+msgstr "Quelles politiques des données s’appliquent ?"
 
 msgid "The BonaRes Data Policy governs dataset submission, publication, and reuse. Research data generated at ZALF is also subject to the institutional ZALF Data Policy. Both documents are available under Resources → Data Policy."
-msgstr ""
+msgstr "La politique des données BonaRes régit la soumission, la publication et la réutilisation des jeux de données. Les données de recherche produites au ZALF sont en outre soumises à la politique institutionnelle des données du ZALF. Les deux documents sont disponibles sous Ressources → Politique des données."
 
 msgid "Who can I contact for support?"
-msgstr ""
+msgstr "Qui puis-je contacter pour obtenir de l’aide ?"
 
 msgid "For questions about publishing, accessing, or reusing datasets, please contact the BonaRes Repository support team at ZALF."
-msgstr ""
+msgstr "Pour toute question sur la publication, l’accès ou la réutilisation de jeux de données, veuillez contacter l’équipe d’assistance du BonaRes Repository au ZALF."
 
 # Submit Data page (zalf-rdm/geonode#867)
 msgid "Publish your research data in our repository"
-msgstr ""
+msgstr "Publiez vos données de recherche dans notre entrepôt"
 
 msgid "Publish your research data in our repository."
-msgstr ""
+msgstr "Publiez vos données de recherche dans notre entrepôt."
 
 msgid "We are currently working on improving the data submission process in our repository."
-msgstr ""
+msgstr "Nous travaillons actuellement à l’amélioration du processus de soumission des données dans notre entrepôt."
 
 msgid "In the meantime, if you would like to publish your research data, please contact our Data Stewards."
-msgstr ""
+msgstr "En attendant, si vous souhaitez publier vos données de recherche, veuillez contacter nos Data Stewards."
 
 msgid "Our team will get in touch with you to discuss the next steps and support you throughout the publication process."
-msgstr ""
+msgstr "Notre équipe prendra contact avec vous pour discuter des prochaines étapes et vous accompagner tout au long du processus de publication."
 
 #: geonode/templates/geonode-mapstore-client/snippets/header.html
 msgid "Help & Information"
 msgstr "Aide et information"
+
+# ZALF i18n completion (zalf-rdm/geonode#901)
+msgid "BonaRes Repository"
+msgstr "BonaRes Repository"
+
+msgid "© BonaRes Repository. All rights reserved"
+msgstr "© BonaRes Repository. Tous droits réservés"
+
+msgid "Training Resources"
+msgstr "Ressources de formation"
+
+msgid "About the BonaRes Repository"
+msgstr "À propos du BonaRes Repository"
+
+msgid "Our History"
+msgstr "Notre histoire"
+
+msgid "Operation and Infrastructure"
+msgstr "Exploitation et infrastructure"
+
+msgid "Section navigation"
+msgstr "Navigation de la section"
+
+msgid "Why this repository asks you to sign in with an ORCID iD."
+msgstr "Pourquoi cet entrepôt vous demande de vous connecter avec un identifiant ORCID."
+
+msgid "Your ORCID iD distinguishes you from every other researcher — even those sharing your name."
+msgstr "Votre identifiant ORCID vous distingue de tous les autres chercheurs et chercheuses — même de celles et ceux qui portent le même nom."
+
+msgid "The research data you publish here is unambiguously linked to you and your ORCID record."
+msgstr "Les données de recherche que vous publiez ici sont associées sans ambiguïté à vous et à votre profil ORCID."
+
+msgid "Your account is created automatically; your name and affiliation stay up to date."
+msgstr "Votre compte est créé automatiquement ; votre nom et votre affiliation restent à jour."
+
+msgid "Your iD stays with you throughout your career, across employers and institutions."
+msgstr "Votre identifiant vous accompagne tout au long de votre carrière, quels que soient vos employeurs et vos institutions."
+
+msgid "Sign in with your ORCID iD"
+msgstr "Connectez-vous avec votre identifiant ORCID"
+
+msgid "This repository uses your ORCID iD to reliably attribute published research data to you."
+msgstr "Cet entrepôt utilise votre identifiant ORCID pour vous attribuer de manière fiable les données de recherche publiées."
+
+msgid "One account for your research — no extra registration, no extra password."
+msgstr "Un seul compte pour vos recherches — sans inscription supplémentaire, sans mot de passe supplémentaire."
+
+msgid "Don't have an ORCID iD yet? You can register one for free during sign-in. Learn more at <a href=\"https://info.orcid.org/researchers/\" target=\"_blank\" rel=\"noopener\">orcid.org</a>."
+msgstr "Vous n’avez pas encore d’identifiant ORCID ? Vous pouvez en créer un gratuitement lors de la connexion. Pour en savoir plus, rendez-vous sur <a href=\"https://info.orcid.org/researchers/\" target=\"_blank\" rel=\"noopener\">orcid.org</a>."
+
+msgid "CMS"
+msgstr "CMS"
+
+msgid "Metadata Record"
+msgstr "Fiche de métadonnées"
+
+msgid "Structured descriptive information for this resource, organized by thematic sections for easier navigation and review."
+msgstr "Informations descriptives structurées sur cette ressource, organisées en sections thématiques pour faciliter la navigation et la relecture."
+
+msgid "Back to Resource"
+msgstr "Retour à la ressource"
+
+msgid "Jump to Sections"
+msgstr "Aller aux sections"
+
+msgid "fields"
+msgstr "champs"
+
+msgid "Favorites"
+msgstr "Favoris"
+
+msgid "Invite users"
+msgstr "Inviter des utilisateurs"
+
+msgid "Add user"
+msgstr "Ajouter un utilisateur"
+
+msgid "Create group"
+msgstr "Créer un groupe"
+
+msgid "Scientific publications, guidelines, and technical documentation related to the BonaRes Repository and its services."
+msgstr "Publications scientifiques, lignes directrices et documentation technique relatives au BonaRes Repository et à ses services."
+
+msgid "Publications about the BonaRes Repository and its Services"
+msgstr "Publications sur le BonaRes Repository et ses services"
+
+msgid "Scientific Publications"
+msgstr "Publications scientifiques"
+
+msgid "Presents the LTE Overview Map, which supports the discovery of long-term field experiments and access to their metadata."
+msgstr "Présente la carte de synthèse LTE, qui facilite la découverte des essais de longue durée au champ et l’accès à leurs métadonnées."
+
+msgid "Introduces the BonaRes Repository, its infrastructure and specialized services, and examines how published datasets are reused in soil and agricultural research."
+msgstr "Présente le BonaRes Repository, son infrastructure et ses services spécialisés, et examine comment les jeux de données publiés sont réutilisés en recherche sur les sols et en recherche agronomique."
+
+msgid "Describes the development of the BonaRes Metadata Schema, combining INSPIRE and DataCite standards to improve interoperability and data publication."
+msgstr "Décrit l’élaboration du schéma de métadonnées BonaRes, qui combine les normes INSPIRE et DataCite pour améliorer l’interopérabilité et la publication des données."
+
+msgid "Guidelines"
+msgstr "Lignes directrices"
+
+msgid "Provides guidance on data citation, DOI assignment, dataset versioning, and updates to published research data."
+msgstr "Donne des recommandations sur la citation des données, l’attribution de DOI, le versionnage des jeux de données et la mise à jour des données de recherche publiées."
+
+msgid "Technical Publications & Documentation"
+msgstr "Publications techniques et documentation"
+
+msgid "Provides detailed definitions and specifications of the BonaRes metadata elements, integrating INSPIRE and DataCite standards."
+msgstr "Fournit les définitions et spécifications détaillées des éléments de métadonnées BonaRes, qui intègrent les normes INSPIRE et DataCite."
+
+msgid "Data Policies"
+msgstr "Politiques des données"
+
+msgid "Principles for the submission, publication, and reuse of repository data."
+msgstr "Principes pour la soumission, la publication et la réutilisation des données de l’entrepôt."
+
+msgid "The BonaRes Repository follows established principles for research data management, publication, and reuse. Two data policies provide the relevant framework."
+msgstr "Le BonaRes Repository suit des principes établis de gestion, de publication et de réutilisation des données de recherche. Deux politiques des données en constituent le cadre."
+
+msgid "BonaRes Data Policy"
+msgstr "Politique des données BonaRes"
+
+msgid "The BonaRes Data Policy defines the conditions for submitting, publishing, preserving, and reusing research data in the repository. It applies to all researchers and data owners who wish to publish their datasets through the BonaRes Repository. It covers data ownership, licensing, metadata requirements, quality assurance, DOI assignment, long-term preservation, and data reuse."
+msgstr "La politique des données BonaRes définit les conditions de soumission, de publication, de conservation et de réutilisation des données de recherche dans l’entrepôt. Elle s’applique à tous les chercheurs, chercheuses et propriétaires de données qui souhaitent publier leurs jeux de données via le BonaRes Repository. Elle couvre la propriété des données, les licences, les exigences en matière de métadonnées, l’assurance qualité, l’attribution de DOI, la conservation à long terme et la réutilisation des données."
+
+msgid "BonaRes Data Policy:"
+msgstr "Politique des données BonaRes :"
+
+msgid "ZALF Data Policy"
+msgstr "Politique des données du ZALF"
+
+msgid "The ZALF Data Policy defines the institutional principles and responsibilities for managing research data generated at ZALF. It applies to ZALF researchers and research projects and covers data management planning, data quality, licensing, legal compliance, and data publication. ZALF researchers must also follow this institutional policy when publishing their data in the BonaRes Repository."
+msgstr "La politique des données du ZALF définit les principes et responsabilités institutionnels pour la gestion des données de recherche produites au ZALF. Elle s’applique aux chercheurs, chercheuses et projets de recherche du ZALF et couvre la planification de la gestion des données, la qualité des données, les licences, la conformité juridique et la publication des données. Les chercheurs et chercheuses du ZALF doivent également respecter cette politique institutionnelle lorsqu’ils publient leurs données dans le BonaRes Repository."
+
+msgid "ZALF Data Policy:"
+msgstr "Politique des données du ZALF :"
+
+msgid "An open repository for soil and agricultural research data."
+msgstr "Un entrepôt ouvert pour les données de recherche sur les sols et en agronomie."
+
+msgid "The BonaRes Repository is a research data repository for soil and agricultural research data. It enables researchers to publish, discover, access, and reuse research datasets."
+msgstr "Le BonaRes Repository est un entrepôt de données de recherche sur les sols et en agronomie. Il permet aux chercheurs et chercheuses de publier, découvrir, consulter et réutiliser des jeux de données de recherche."
+
+msgid "The repository is open to researchers from ZALF and other research institutions, supporting the long-term availability and reuse of research data in accordance with the FAIR principles."
+msgstr "L’entrepôt est ouvert aux chercheurs et chercheuses du ZALF et d’autres institutions de recherche ; il favorise la disponibilité à long terme et la réutilisation des données de recherche conformément aux principes FAIR."
+
+msgid "Originally"
+msgstr "À l’origine"
+
+msgid "Established as part of the BonaRes research initiative to manage and publish research data generated within the project."
+msgstr "Créé dans le cadre de l’initiative de recherche BonaRes pour gérer et publier les données de recherche produites au sein du projet."
+
+msgid "Opened to researchers beyond the BonaRes initiative, allowing the publication of external research datasets."
+msgstr "Ouvert aux chercheurs et chercheuses au-delà de l’initiative BonaRes, permettant la publication de jeux de données de recherche externes."
+
+msgid "ZALF committed to the long-term operation of the BonaRes Repository."
+msgstr "Le ZALF s’est engagé à exploiter le BonaRes Repository sur le long terme."
+
+msgid "Today"
+msgstr "Aujourd’hui"
+
+msgid "An open research data repository for soil and agricultural research in Germany and beyond."
+msgstr "Un entrepôt ouvert de données de recherche sur les sols et en agronomie, en Allemagne et au-delà."
+
+msgid "Have questions about the BonaRes Repository, data publication, or need technical support? Please contact the repository team at ZALF."
+msgstr "Vous avez des questions sur le BonaRes Repository ou sur la publication de données, ou vous avez besoin d’une assistance technique ? Veuillez contacter l’équipe de l’entrepôt au ZALF."
+
+msgid "Contact:"
+msgstr "Contact :"
+
+msgid "The BonaRes Repository is operated and maintained by the <a href=\"https://www.zalf.de\" target=\"_blank\" rel=\"noopener noreferrer\">Leibniz Centre for Agricultural Landscape Research (ZALF)</a> in Müncheberg, Germany."
+msgstr "Le BonaRes Repository est exploité et maintenu par le <a href=\"https://www.zalf.de\" target=\"_blank\" rel=\"noopener noreferrer\">Centre Leibniz de recherche sur les paysages agricoles (ZALF)</a> à Müncheberg, en Allemagne."
+
+msgid "It is based on <a href=\"https://geonode.org/\" target=\"_blank\" rel=\"noopener noreferrer\">GeoNode</a>, an open-source platform for managing, publishing, and sharing geospatial data. ZALF is responsible for the technical operation and continued development of the repository."
+msgstr "Il repose sur <a href=\"https://geonode.org/\" target=\"_blank\" rel=\"noopener noreferrer\">GeoNode</a>, une plateforme open source de gestion, de publication et de partage de données géospatiales. Le ZALF est responsable de l’exploitation technique et du développement continu de l’entrepôt."
+
+msgid "Guidance on citing research datasets published in the BonaRes Repository."
+msgstr "Conseils pour citer les jeux de données de recherche publiés dans le BonaRes Repository."
+
+msgid "Why Cite Research Data?"
+msgstr "Pourquoi citer des données de recherche ?"
+
+msgid "Research data are valuable scientific outputs and should be acknowledged when reused. Proper data citation gives credit to data creators, makes research more transparent, and allows others to identify and access the original datasets."
+msgstr "Les données de recherche sont des productions scientifiques précieuses et doivent être reconnues lorsqu’elles sont réutilisées. Une citation correcte des données reconnaît le travail de leurs créateurs, rend la recherche plus transparente et permet à d’autres d’identifier et de consulter les jeux de données d’origine."
+
+msgid "How to Cite a Dataset"
+msgstr "Comment citer un jeu de données"
+
+msgid "When using data from the BonaRes Repository, cite the dataset using the citation information provided on its landing page."
+msgstr "Lorsque vous utilisez des données du BonaRes Repository, citez le jeu de données à l’aide des informations de citation indiquées sur sa page d’accueil."
+
+msgid "A dataset citation should generally include:"
+msgstr "Une citation de jeu de données comprend en général :"
+
+msgid "Author(s)"
+msgstr "Auteur(s)"
+
+msgid "or data creator(s)"
+msgstr "ou créateur(s) des données"
+
+msgid "Year"
+msgstr "Année"
+
+msgid "of publication"
+msgstr "de publication"
+
+msgid "(BonaRes Repository)"
+msgstr "(BonaRes Repository)"
+
+msgid "Digital Object Identifier (DOI)"
+msgstr "Identifiant d’objet numérique (DOI)"
+
+msgid "Always use the DOI to link to the dataset and follow the citation information provided in its metadata."
+msgstr "Utilisez toujours le DOI pour renvoyer au jeu de données et suivez les informations de citation indiquées dans ses métadonnées."
+
+msgid "Detailed Citation Guidelines"
+msgstr "Lignes directrices détaillées pour la citation"
+
+msgid "Citing Soil and Agricultural Research Data"
+msgstr "Citing Soil and Agricultural Research Data"
+
+msgid "Read the Citation Guidelines"
+msgstr "Lire les lignes directrices de citation"
+
+msgid "Our publication <em>Citing Soil and Agricultural Research Data</em> provides detailed recommendations on dataset citation, DOI assignment, data collections, updates, and versioning."
+msgstr "Notre publication <em>Citing Soil and Agricultural Research Data</em> fournit des recommandations détaillées sur la citation des jeux de données, l’attribution de DOI, les collections de données, les mises à jour et le versionnage."
+
+#: geonode/zalf/views.py
+msgid "Back to home"
+msgstr "Retour à l’accueil"
+
+#: geonode/zalf/views.py
+msgid "Back to trainings"
+msgstr "Retour aux ressources de formation"

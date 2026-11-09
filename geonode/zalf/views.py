@@ -2,6 +2,7 @@ from django.conf import settings
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import translation
+from django.utils.translation import gettext as _
 
 from geonode.base.models import ResourceBase
 from geonode.utils import resolve_object
@@ -82,11 +83,11 @@ def case_detail(request, slug):
         request,
         "zalf/cms_detail.html",
         {
-            "page_title": obj.title,
+            "page_title": obj.localized("title"),
             "image_url": obj.image.url if obj.image else None,
-            "body_html": render_markdown(obj.body_markdown),
+            "body_html": render_markdown(obj.localized("body_markdown")),
             "back_href": "/",
-            "back_label": "Back to home",
+            "back_label": _("Back to home"),
         },
     )
 
@@ -97,12 +98,12 @@ def training_detail(request, slug):
         request,
         "zalf/cms_detail.html",
         {
-            "page_title": obj.title,
+            "page_title": obj.localized("title"),
             "page_subtitle": obj.organizer,
             "image_url": obj.thumbnail.url if obj.thumbnail else None,
-            "body_html": render_markdown(obj.body_markdown),
+            "body_html": render_markdown(obj.localized("body_markdown")),
             "back_href": "/trainings/",
-            "back_label": "Back to trainings",
+            "back_label": _("Back to trainings"),
         },
     )
 

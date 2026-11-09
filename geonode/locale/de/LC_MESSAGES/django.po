@@ -2495,10 +2495,8 @@ msgid "Dataset name"
 msgstr "Datensatz"
 
 #: geonode/geoserver/createlayer/forms.py:36
-#, fuzzy
-#| msgid "Dataset Attributes"
 msgid "Dataset title"
-msgstr "Datensatz Attribute"
+msgstr "Titel des Datensatzes"
 
 #: geonode/geoserver/createlayer/forms.py:37
 msgid "Geometry type"
@@ -7285,10 +7283,8 @@ msgid "Processor"
 msgstr "Verarbeite ..."
 
 #: geonode/templates/metadata_detail.html:734
-#, fuzzy
-#| msgid "Published"
 msgid "Publisher"
-msgstr "Publiziert"
+msgstr "Herausgeber"
 
 #: geonode/templates/metadata_detail.html:809
 #, fuzzy
@@ -11052,3 +11048,45 @@ msgstr "© BonaRes Repository. Alle Rechte vorbehalten"
 #: geonode/templates/zalf/institutional_nav.html:126
 msgid "Section navigation"
 msgstr "Bereichsnavigation"
+
+# ZALF i18n completion (zalf-rdm/geonode#901)
+msgid "Training Resources"
+msgstr "Schulungsmaterialien"
+
+msgid "CMS"
+msgstr "CMS"
+
+msgid "Metadata Record"
+msgstr "Metadatensatz"
+
+msgid "Structured descriptive information for this resource, organized by thematic sections for easier navigation and review."
+msgstr "Strukturierte beschreibende Informationen zu dieser Ressource, nach thematischen Abschnitten gegliedert, um Navigation und Durchsicht zu erleichtern."
+
+msgid "Back to Resource"
+msgstr "Zurück zur Ressource"
+
+msgid "Jump to Sections"
+msgstr "Zu den Abschnitten"
+
+msgid "fields"
+msgstr "Felder"
+
+msgid "Favorites"
+msgstr "Favoriten"
+
+msgid "Invite users"
+msgstr "Benutzer einladen"
+
+msgid "Add user"
+msgstr "Benutzer hinzufügen"
+
+msgid "Create group"
+msgstr "Gruppe erstellen"
+
+#: geonode/zalf/views.py
+msgid "Back to home"
+msgstr "Zurück zur Startseite"
+
+#: geonode/zalf/views.py
+msgid "Back to trainings"
+msgstr "Zurück zu den Schulungsmaterialien"
