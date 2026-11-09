@@ -434,3 +434,40 @@ class TestBuildCommand(PackageTestBase):
 
         with self.assertRaises(CommandError):
             call_command("build_download_packages")
+
+
+class TestStatusCommand(PackageTestBase):
+    def test_lists_published_maps_with_their_package_state(self):
+        from django.core.management import call_command
+
+        publish(self.map)
+        failed = Map.objects.create(owner=self.owner, title="Broken Collection")
+        publish(failed)
+        DownloadPackage.objects.create(map=failed, state=DownloadPackage.STATE_FAILED, error="Traceback\nboom")
+        draft = Map.objects.create(owner=self.owner, title="Draft")
+        ResourceBase.objects.filter(pk=draft.pk).update(is_published=False)
+        out = io.StringIO()
+
+        call_command("download_package_status", "--errors", stdout=out)
+
+        output = out.getvalue()
+        self.assertRegex(output, rf"{self.map.pk}\s+missing .*Soil Collection")
+        self.assertRegex(output, rf"{failed.pk}\s+failed .*Broken Collection")
+        self.assertIn("error: boom", output)
+        self.assertNotIn("Draft", output)
+        self.assertIn("2 published maps: 1 missing, 1 failed", output)
+
+    def test_missing_hides_ready_packages(self):
+        from django.core.management import call_command
+
+        dataset = self.dataset("ds", [self.file("a.shp")])
+        publish(self.map)
+        publish(dataset)
+        DownloadPackage.objects.create(map=self.map)
+        download_packages.run_build(self.map.pk)
+        out = io.StringIO()
+
+        call_command("download_package_status", "--missing", stdout=out)
+
+        self.assertNotIn("Soil Collection", out.getvalue())
+        self.assertIn("1 published maps: 1 ready", out.getvalue())
