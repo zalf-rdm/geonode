@@ -411,7 +411,7 @@ class TestActivationSwitch(PackageTestBase):
         publish(self.map)
         out = io.StringIO()
         call_command("download_package_status", stdout=out)
-        self.assertIn("1 published maps: 1 missing", out.getvalue())
+        self.assertIn("1 published data collections: 1 missing", out.getvalue())
         self.assertIn("switched off", out.getvalue())
 
     def test_the_admin_action_queues_nothing(self):
@@ -564,6 +564,12 @@ class TestStatusCommand(PackageTestBase):
         call_command("download_package_status", *args, stdout=out)
         return out.getvalue()
 
+    def build_one(self):
+        DownloadPackage.objects.get_or_create(map=self.map)
+        package = download_packages.run_build(self.map.pk)
+        self.assertEqual(package.state, DownloadPackage.STATE_READY, package.error)
+        return package
+
     def test_lists_published_maps_with_their_package_state(self):
         failed = self.two_collections()
 
@@ -572,56 +578,77 @@ class TestStatusCommand(PackageTestBase):
         self.assertRegex(output, rf"{self.map.pk}\s+missing .*Soil Collection")
         self.assertRegex(output, rf"{failed.pk}\s+failed .*Broken Collection")
         self.assertNotIn("Draft", output)
-        self.assertIn("2 published maps: 1 missing, 1 failed", output)
+        self.assertIn("2 published data collections: 1 missing, 1 failed", output)
 
-    def test_errors_lists_only_the_failed_builds(self):
-        """
-        --errors narrows as well as adds detail. It used to only append error
-        lines, so on a healthy repository it printed every ready package and
-        looked as though the flag did nothing.
-        """
+    def test_broken_only_lists_just_the_rows_needing_attention(self):
         failed = self.two_collections()
 
-        output = self.status("--errors")
+        output = self.status("--broken-only")
 
         self.assertRegex(output, rf"{failed.pk}\s+failed .*Broken Collection")
-        self.assertIn("error: boom", output)
-        # A map with no package has not failed, so it is not an error.
+        self.assertIn("boom", output)
+        # A map with no package has not failed, so it does not need attention.
         self.assertNotIn("Soil Collection", output)
-        # The summary still describes the whole repository, not the printed rows.
-        self.assertIn("2 published maps: 1 missing, 1 failed", output)
+        # The summary still describes every collection, not the printed rows.
+        self.assertIn("2 published data collections: 1 missing, 1 failed", output)
 
-    def test_errors_says_so_when_nothing_failed(self):
+    def test_broken_only_says_so_when_nothing_is_broken(self):
         publish(self.map)
 
-        output = self.status("--errors")
+        output = self.status("--broken-only")
 
-        self.assertIn("No failed builds", output)
-        self.assertIn("1 published maps: 1 missing", output)
+        self.assertIn("No packages need attention", output)
+        self.assertIn("1 published data collections: 1 missing", output)
 
-    def test_errors_reports_a_failure_that_recorded_no_message(self):
+    def test_a_failure_that_recorded_no_message_still_reports(self):
         failed = Map.objects.create(owner=self.owner, title="Quietly Broken")
         publish(failed)
         DownloadPackage.objects.create(map=failed, state=DownloadPackage.STATE_FAILED, error="")
 
-        output = self.status("--errors")
+        output = self.status("--broken-only")
 
-        self.assertIn("error: none recorded", output)
+        self.assertIn("no error recorded", output)
 
-    def test_missing_hides_ready_packages(self):
-        from django.core.management import call_command
-
-        dataset = self.dataset("ds", [self.file("a.shp")])
+    def test_state_filters_to_one_status(self):
+        dataset = self.dataset("ds", [self.file("a.shp", b"shape")])
         publish(self.map)
         publish(dataset)
         DownloadPackage.objects.create(map=self.map)
         download_packages.run_build(self.map.pk)
-        out = io.StringIO()
+        other = Map.objects.create(owner=self.owner, title="No Package Here")
+        publish(other)
 
-        call_command("download_package_status", "--missing", stdout=out)
+        output = self.status("--state", "missing")
 
-        self.assertNotIn("Soil Collection", out.getvalue())
-        self.assertIn("1 published maps: 1 ready", out.getvalue())
+        self.assertIn("No Package Here", output)
+        self.assertNotIn("Soil Collection", output)
+        self.assertIn("2 published data collections: 1 ok, 1 missing", output)
+
+    def test_db_only_skips_the_storage_and_says_so(self):
+        """The cheap listing: the row's own view, with no request to the bucket."""
+        dataset = self.dataset("ds", [self.file("a.shp", b"shape")])
+        publish(self.map)
+        publish(dataset)
+        package = self.build_one()
+        # The file is gone, but --db-only cannot know that and must not claim to.
+        os.remove(package.asset.get_real_instance().location[0])
+
+        output = self.status("--db-only")
+
+        self.assertIn("ready", output)
+        self.assertNotIn("gone", output)
+        self.assertIn("storage was not asked", output)
+
+        # Without --db-only the same repository reports the truth.
+        self.assertIn("gone", self.status())
+
+    def test_db_only_refuses_the_flags_that_need_the_storage(self):
+        from django.core.management.base import CommandError
+
+        publish(self.map)
+        for flag in ("--deep", "--orphans"):
+            with self.assertRaisesMessage(CommandError, "both need the storage"):
+                self.status("--db-only", flag)
 
 
 class TestValidation(PackageTestBase):
@@ -764,53 +791,51 @@ class TestValidation(PackageTestBase):
         self.assertEqual(statuses, [checks.FAILED, checks.OK])
         self.assertEqual(checks.summarize(checks.check_packages()), {checks.OK: 1, checks.FAILED: 1})
 
-    def test_the_command_reports_every_package(self):
-        self.ready_package()
+    def status(self, *args):
         out = io.StringIO()
-        call_command("validate_download_packages", stdout=out)
-        output = out.getvalue()
+        call_command("download_package_status", *args, stdout=out)
+        return out.getvalue()
+
+    def test_the_command_checks_the_storage_by_default(self):
+        self.ready_package()
+        output = self.status()
         self.assertIn(f"{self.map.pk}", output)
         self.assertIn("ok", output)
-        self.assertIn("1 packages checked: 1 ok", output)
+        self.assertIn("1 published data collections: 1 ok", output)
         self.assertIn("every package is available", output)
 
     def test_the_command_can_fail_on_broken_for_cron(self):
         package = self.ready_package()
         os.remove(self.path_of(package))
-        out = io.StringIO()
         # Without the flag it reports and still exits cleanly.
-        call_command("validate_download_packages", stdout=out)
-        self.assertIn("need attention", out.getvalue())
+        self.assertIn("need attention", self.status())
         with self.assertRaises(SystemExit):
-            call_command("validate_download_packages", "--fail-on-broken", stdout=io.StringIO())
+            self.status("--fail-on-broken")
 
     def test_the_command_can_show_only_what_needs_attention(self):
         self.ready_package()
         other = Map.objects.create(owner=self.owner, title="Second")
+        publish(other)
         DownloadPackage.objects.create(map=other, state=DownloadPackage.STATE_FAILED, error="boom")
-        out = io.StringIO()
-        call_command("validate_download_packages", "--broken-only", stdout=out)
-        output = out.getvalue()
+        output = self.status("--broken-only")
         self.assertIn("Second", output)
         self.assertNotIn("Soil Collection", output)
         # The summary still counts everything that was checked.
-        self.assertIn("2 packages checked", output)
+        self.assertIn("2 published data collections", output)
 
     def test_the_command_checks_one_map_only(self):
         self.ready_package()
         other = Map.objects.create(owner=self.owner, title="Second")
+        publish(other)
         DownloadPackage.objects.create(map=other, state=DownloadPackage.STATE_FAILED)
-        out = io.StringIO()
-        call_command("validate_download_packages", "--map", str(other.pk), stdout=out)
-        self.assertIn("1 packages checked: 1 failed", out.getvalue())
+        self.assertIn("1 published data collections: 1 failed", self.status("--map", str(other.pk)))
 
-    def test_the_command_still_validates_while_the_feature_is_off(self):
+    def test_the_command_still_reports_while_the_feature_is_off(self):
         self.ready_package()
-        out = io.StringIO()
         with override_settings(ZALF_DOWNLOAD_PACKAGE_ENABLED=False):
-            call_command("validate_download_packages", stdout=out)
-        self.assertIn("switched off", out.getvalue())
-        self.assertIn("1 ok", out.getvalue())
+            output = self.status()
+        self.assertIn("switched off", output)
+        self.assertIn("1 ok", output)
 
     def test_the_admin_page_lists_every_package(self):
         self.ready_package()
@@ -982,7 +1007,7 @@ class TestValidationWithS3(PackageTestBase):
             {"Contents": [{"Key": "download-packages/stale/old.zip", "Size": 99, "LastModified": NOW}]}
         ]
         out = io.StringIO()
-        call_command("validate_download_packages", "--orphans", stdout=out)
+        call_command("download_package_status", "--orphans", stdout=out)
         output = out.getvalue()
         self.assertIn("download-packages/stale/old.zip", output)
         self.assertIn("no asset references", output)

@@ -8,7 +8,7 @@ preferable to a failed delete) or a restored database all leave the row saying
 `ready` while the download is 404 or, worse, truncated.
 
 This module asks the storage itself. It is the single implementation behind
-both front ends -- `manage.py validate_download_packages` and the *Validate
+both front ends -- `manage.py download_package_status` and the *Validate
 storage* page in the Download packages admin -- so the two can never disagree.
 
 Checks are read-only: nothing here builds, deletes or rewrites anything.
@@ -30,6 +30,9 @@ logger = logging.getLogger(__name__)
 
 # Statuses, worst last. `rank()` orders a report by how much attention a row needs.
 OK = "ok"
+# --db-only: the build recorded a package and nothing asked the storage. Kept
+# distinct from OK, which asserts the object is really there.
+READY = "ready"
 PENDING = "pending"
 MISSING = "missing"
 STALE = "stale"
@@ -40,7 +43,7 @@ CORRUPT = "corrupt"
 GONE = "gone"
 UNREACHABLE = "unreachable"
 
-SEVERITY = [OK, PENDING, MISSING, STALE, FAILED, NO_ASSET, MISMATCH, CORRUPT, GONE, UNREACHABLE]
+SEVERITY = [OK, READY, PENDING, MISSING, STALE, FAILED, NO_ASSET, MISMATCH, CORRUPT, GONE, UNREACHABLE]
 
 # What `--fail-on-broken` and the admin page's warning count react to.
 #
@@ -72,6 +75,7 @@ class CheckResult:
         # package.size is what the build believed it had written.
         self.stored_size = stored_size
         self.package = package
+        self.built_at = package.built_at if package else None
 
     @property
     def is_broken(self):
@@ -177,7 +181,12 @@ def _check_s3_asset(package, asset, deep, max_deep_bytes):
                 return CheckResult(**row, status=status, detail=detail)
             notes.append(detail)
 
-    return CheckResult(**row, status=OK, detail="; ".join(notes) or "in the bucket, size as built")
+    return CheckResult(**row, status=OK, detail="; ".join(notes))
+
+
+def _local_path(asset):
+    paths = [str(p) for p in (getattr(asset, "location", None) or [])]
+    return paths[0] if paths else ""
 
 
 def _check_local_asset(package, asset, deep, max_deep_bytes):
@@ -209,14 +218,20 @@ def _check_local_asset(package, asset, deep, max_deep_bytes):
                 return CheckResult(**row, status=status, detail=detail)
         return CheckResult(**row, status=OK, detail=detail)
 
-    return CheckResult(**row, status=OK, detail="on disk, size as built")
+    return CheckResult(**row, status=OK, detail="")
 
 
-def check_package(package, deep=False, max_deep_bytes=DEFAULT_MAX_DEEP_BYTES):
+def check_package(package, deep=False, max_deep_bytes=DEFAULT_MAX_DEEP_BYTES, storage=True):
     """
     Validates one package against its storage. Never raises: a storage that
     cannot be reached is reported as UNREACHABLE, since a check that explodes
     tells an operator less than one that says why.
+
+    With `storage=False` nothing is asked of the bucket or the disk and a
+    package the build recorded comes back as READY rather than OK -- the cheap
+    listing, for when the storage is slow, unreachable or simply not the
+    question. The faults that live in the row itself (pending, stale, failed,
+    no-asset) are reported either way.
     """
     row = dict(map_id=package.map_id, map_title=package.map.title, package=package)
 
@@ -246,6 +261,17 @@ def check_package(package, deep=False, max_deep_bytes=DEFAULT_MAX_DEEP_BYTES):
     except Exception as error:  # pragma: no cover - a broken polymorphic row
         return CheckResult(**row, status=NO_ASSET, detail=f"the asset row cannot be resolved: {error}")
 
+    if not storage:
+        # bucket and key are columns, so the location costs nothing to report.
+        location = f"s3://{asset.bucket}/{asset.key}" if isinstance(asset, S3Asset) else _local_path(asset)
+        return CheckResult(
+            **row,
+            status=READY,
+            detail="the build recorded it; the storage was not asked",
+            location=location,
+            stored_size=package.size,
+        )
+
     try:
         if isinstance(asset, S3Asset):
             return _check_s3_asset(package, asset, deep, max_deep_bytes)
@@ -255,7 +281,7 @@ def check_package(package, deep=False, max_deep_bytes=DEFAULT_MAX_DEEP_BYTES):
         return CheckResult(**row, status=UNREACHABLE, detail=f"{type(error).__name__}: {error}")
 
 
-def check_packages(packages=None, map_ids=None, include_missing=False, deep=False, max_deep_bytes=None):
+def check_packages(packages=None, map_ids=None, include_missing=False, deep=False, max_deep_bytes=None, storage=True):
     """
     Validates many packages and returns the report, worst rows first.
 
@@ -270,7 +296,9 @@ def check_packages(packages=None, map_ids=None, include_missing=False, deep=Fals
     if map_ids:
         packages = packages.filter(map_id__in=map_ids)
 
-    results = [check_package(package, deep=deep, max_deep_bytes=max_deep_bytes) for package in packages]
+    results = [
+        check_package(package, deep=deep, max_deep_bytes=max_deep_bytes, storage=storage) for package in packages
+    ]
 
     if include_missing:
         have = {result.map_id for result in results}

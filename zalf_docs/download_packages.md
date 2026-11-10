@@ -187,7 +187,6 @@ With it off, which is the default, every entry point declines:
 | the admin rebuild action | a warning; nothing queued |
 | `build_download_packages` | `CommandError` |
 | `download_package_status` | still reports, with a note that the feature is off |
-| `validate_download_packages` | still validates, with the same note |
 | the client | hides the publish checkbox, the steward button and the ZIP link |
 
 Packages already built are **kept, not deleted**, so switching it back on makes
@@ -242,13 +241,12 @@ Notes that have bitten us:
 
 ## Management commands
 
-Three commands, answering three different questions.
+Two commands: one makes packages, one tells you about them.
 
-| command | question | asks |
-|---|---|---|
-| [`build_download_packages`](#build_download_packages) | make them exist | builds |
-| [`download_package_status`](#download_package_status) | what did the builds conclude? | the database |
-| [`validate_download_packages`](#validate_download_packages) | what can visitors actually download? | the storage |
+| command | question |
+|---|---|
+| [`build_download_packages`](#build_download_packages) | build or rebuild them |
+| [`download_package_status`](#download_package_status) | what can visitors actually download? |
 
 All three run as `python manage.py <command>`; in a container, that is
 `docker exec <django container> python manage.py <command>`.
@@ -285,53 +283,47 @@ with `--sync` the resulting state and error.
 
 ### `download_package_status`
 
-Lists every published map with the build state recorded in the database:
-`missing` (no package row), `pending`, `building`, `ready` or `failed`. Keeps
-working while the feature is switched off, and says so.
-
-| option | meaning |
-|---|---|
-| `--missing` | only maps without a ready package — the set `--missing-only` would build |
-| `--state STATE [STATE …]` | only maps in these states (`missing`, `pending`, `building`, `ready`, `failed`) |
-| `--errors` | only failed builds, each with the last line of its error. Narrows to `--state failed`, so on a healthy repository it prints `No failed builds` rather than every ready package |
-
-```bash
-manage.py download_package_status                  # every published map
-manage.py download_package_status --errors         # only what failed, and why
-manage.py download_package_status --state missing  # only maps with no package row
-```
-
-The summary line always counts the whole repository, not the rows that were
-printed, so a filtered listing still tells you the totals.
-
-A `ready` row here means *the last build said it succeeded*. It does **not**
-mean the file is still there — that is what the next command is for.
-
-### `validate_download_packages`
-
-Checks each package against its storage. See [Validation](#validation) for what
-each status means.
+The state of every published data collection's package, **checked against the
+storage**. A `DownloadPackage` row only records what its last build concluded,
+so by default this asks the bucket (or the disk) whether the file is really
+there. See [Validation](#validation) for what each status means.
 
 | option | meaning |
 |---|---|
 | `--map ID [ID …]` | these maps only |
-| `--broken-only` | print only the rows needing attention; the summary still counts everything |
-| `--missing` | also list published collections with no package at all |
+| `--state STATUS [STATUS …]` | only packages in these states (`ok`, `ready`, `pending`, `missing`, `stale`, `failed`, `no-asset`, `mismatch`, `corrupt`, `gone`, `unreachable`) |
+| `--broken-only` | only the rows needing attention |
+| `--db-only` | do not ask the storage: the recorded build state alone. Fast, and works with no credentials |
 | `--deep` | download each package, read its ZIP and compare its sha256 with the build's |
 | `--max-deep-bytes N` | with `--deep`, skip packages larger than N bytes (default 2 GiB) |
 | `--orphans` | also list objects under the prefix that no asset references, and package assets no row references |
 | `--fail-on-broken` | exit 1 if anything is broken, for cron and monitoring |
 
 ```bash
-manage.py validate_download_packages                        # the report
-manage.py validate_download_packages --broken-only --missing
-manage.py validate_download_packages --deep                 # verify checksums
-manage.py validate_download_packages --orphans              # leaked objects
-manage.py validate_download_packages --fail-on-broken       # cron
+manage.py download_package_status                   # every collection, storage checked
+manage.py download_package_status --broken-only     # only what needs attention
+manage.py download_package_status --db-only         # fast; no bucket requests
+manage.py download_package_status --deep            # verify checksums
+manage.py download_package_status --orphans         # leaked objects
+manage.py download_package_status --fail-on-broken  # cron
+manage.py download_package_status --state missing   # collections with no package
 ```
 
-Checks are read-only: nothing here builds, deletes or rewrites. Rebuild whatever
-it flags with `build_download_packages --map <ID>`.
+Published collections with no package are listed too, as `missing` — "what is
+the state of the packages" includes the ones that do not exist yet. Build them
+with `build_download_packages --all-published --missing-only`.
+
+The summary line always counts every collection, not the rows that were
+printed, so a filtered listing still gives you the totals. Checks are
+read-only: nothing here builds, deletes or rewrites. Rebuild whatever it flags
+with `build_download_packages --map <ID>`.
+
+**`--db-only` reports `ready`, never `ok`.** The distinction is deliberate:
+`ok` means the object was found and its size matches what the build wrote,
+while `ready` means only that the row says so and nothing checked. Use it when
+the bucket is slow or unreachable, or when the question really is "what did the
+builds conclude". It cannot be combined with `--deep` or `--orphans`, which
+both need the storage.
 
 ## API endpoints
 
@@ -403,14 +395,15 @@ delete) or a restored database all leave a row saying `ready` while the download
 is 404 — or, worse, truncated.
 
 `geonode/zalf/download_package_checks.py` asks the storage instead, and is the
-single implementation behind both the command and the admin page, so the two
-cannot disagree.
+single implementation behind both `download_package_status` and the admin's
+**Validate storage** page, so the two cannot disagree.
 
 Statuses, least to most urgent:
 
 | status | means |
 |---|---|
 | `ok` | the object is there and its size matches the build. With `--deep`, its ZIP reads and its sha256 matches too. A note is added, without failing the check, if the content type is not `application/zip` or the attachment disposition is missing |
+| `ready` | `--db-only` only: the build recorded a package and nothing checked the storage. Not the same claim as `ok` |
 | `pending` | a build is queued or running. Not a fault |
 | `missing` | a published collection that never had a package (`--missing` only). Build it with `build_download_packages --missing-only` |
 | `stale` | still `pending`/`building` past `ZALF_DOWNLOAD_PACKAGE_TIME_LIMIT`: the worker died. A rebuild may be requested |
@@ -488,11 +481,11 @@ the UUID is the asset's.
 > **Deleting with `s3cmd` leaves the database behind.** The `DownloadPackage`
 > row and the `Asset` still point at the gone object, and the API keeps
 > reporting the package as `ready` until something tries to serve it —
-> `validate_download_packages` reports it as `gone`. Remove packages through the
+> `download_package_status` reports it as `gone`. Remove packages through the
 > Django admin (S3 assets, which deletes the object too) or rebuild them with
 > `build_download_packages --map <ID>`, and reach for `s3cmd del` only for
 > orphans that no asset references any more.
-> `validate_download_packages --orphans` is what lists those.
+> `download_package_status --orphans` is what lists those.
 
 ## Operations and troubleshooting
 
@@ -528,15 +521,15 @@ manage.py download_package_status 2>/dev/null | grep -v fitz
 | symptom | likely cause |
 |---|---|
 | build fails with *no publicly downloadable files* | the linked resources are not published, only the map is. The package holds what the publication made public |
-| the row sits in `building` forever | the worker died. After `ZALF_DOWNLOAD_PACKAGE_TIME_LIMIT` it may be rebuilt; `validate_download_packages` reports it as `stale` |
+| the row sits in `building` forever | the worker died. After `ZALF_DOWNLOAD_PACKAGE_TIME_LIMIT` it may be rebuilt; `download_package_status` reports it as `stale` |
 | the state endpoint answers `enabled: false` | `ZALF_DOWNLOAD_PACKAGE_ENABLED` is off in that environment |
-| the download 404s although the state is `ready` | the object is gone. `validate_download_packages` says `gone`; rebuild it |
+| the download 404s although the state is `ready` | the object is gone. `download_package_status` says `gone`; rebuild it |
 | the browser saves the ZIP under a random name | the object has no `attachment` content disposition — it was not uploaded by this handler. Rebuild it |
 | the build fails on upload against a non-AWS provider | boto3 ≥ 1.36 sends CRC checksums by default and some providers reject them. The handler sets `when_required`; check it has not been overridden |
 | `unreachable` for everything | credentials or endpoint. `s3cmd info` with the same values will say which |
 | the pod is evicted mid-build | `ZALF_DOWNLOAD_PACKAGE_BUILD_ROOT` points at `/tmp`, which is an `emptyDir` |
 
-**Monitoring.** `validate_download_packages --fail-on-broken` is meant for
+**Monitoring.** `download_package_status --fail-on-broken` is meant for
 cron: it exits 1 when anything is broken, and `unreachable` counts as broken
 because visitors' downloads are failing too.
 
@@ -554,7 +547,7 @@ because visitors' downloads are failing too.
 | `geonode/zalf/api/download_package_views.py` | the two endpoints |
 | `geonode/zalf/admin.py` | the changelist, both actions, the validation page |
 | `geonode/templates/zalf/admin/` | the changelist override and the validation page |
-| `geonode/zalf/tests/test_download_packages.py` | the whole feature, 73 tests |
+| `geonode/zalf/tests/test_download_packages.py` | the whole feature, 75 tests |
 
 Client side (`geonode-mapstore-client`):
 `js/plugins/PublishDataCollection.jsx` (the dialog checkbox and the steward

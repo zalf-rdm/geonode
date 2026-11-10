@@ -107,7 +107,7 @@ class DownloadPackageAdmin(admin.ModelAdmin):
     #
     # A row says what the last build concluded; only the storage can say whether
     # the file is still there. The checks live in download_package_checks, shared
-    # with `manage.py validate_download_packages`, so the two cannot disagree.
+    # with `manage.py download_package_status`, so the two cannot disagree.
     #
     # Nothing here runs on the changelist itself: one HEAD request per row would
     # make the list as slow as the bucket is far away, and unusable when the
