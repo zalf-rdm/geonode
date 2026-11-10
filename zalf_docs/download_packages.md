@@ -279,12 +279,16 @@ working while the feature is switched off, and says so.
 |---|---|
 | `--missing` | only maps without a ready package — the set `--missing-only` would build |
 | `--state STATE [STATE …]` | only maps in these states (`missing`, `pending`, `building`, `ready`, `failed`) |
-| `--errors` | print the last line of each failed build's error |
+| `--errors` | only failed builds, each with the last line of its error. Narrows to `--state failed`, so on a healthy repository it prints `No failed builds` rather than every ready package |
 
 ```bash
-manage.py download_package_status
-manage.py download_package_status --state failed --errors
+manage.py download_package_status                  # every published map
+manage.py download_package_status --errors         # only what failed, and why
+manage.py download_package_status --state missing  # only maps with no package row
 ```
+
+The summary line always counts the whole repository, not the rows that were
+printed, so a filtered listing still tells you the totals.
 
 A `ready` row here means *the last build said it succeeded*. It does **not**
 mean the file is still there — that is what the next command is for.
@@ -487,6 +491,26 @@ out of the box.
 `download.properties` limits (`maxFeatures`, `hardOutputLimit`, raster limits).
 Raise them for large layers, or the export fails and the build fails with it.
 
+**Startup noise.** Every `manage.py` command, not just these, prints GeoNode's
+own start-up lines first — *Metadata handlers from config*, *FileValidation
+registry installed*, *Registered Asset handlers*, *Loaded N DataCite
+account(s)* — plus two warnings from upstream code:
+
+- `RuntimeWarning: Accessing the database during app initialization` comes from
+  `geonode/proxy/apps.py` → `geonode/proxy/utils.py`, which queries in its
+  `AppConfig.ready()`. Upstream, unmodified in this fork, and harmless.
+- `warning: The 'fitz' API is deprecated` comes from PyMuPDF's compatibility
+  shim.
+
+All of it is noise, none of it is these commands. The logging and the
+`RuntimeWarning` go to **stderr** while the report goes to **stdout**, so
+redirecting separates them; the `fitz` line is a bare `print` to stdout and has
+to be filtered:
+
+```bash
+manage.py download_package_status 2>/dev/null | grep -v fitz
+```
+
 | symptom | likely cause |
 |---|---|
 | build fails with *no publicly downloadable files* | the linked resources are not published, only the map is. The package holds what the publication made public |
@@ -516,7 +540,7 @@ because visitors' downloads are failing too.
 | `geonode/zalf/api/download_package_views.py` | the two endpoints |
 | `geonode/zalf/admin.py` | the changelist, both actions, the validation page |
 | `geonode/templates/zalf/admin/` | the changelist override and the validation page |
-| `geonode/zalf/tests/test_download_packages.py` | the whole feature, 70 tests |
+| `geonode/zalf/tests/test_download_packages.py` | the whole feature, 73 tests |
 
 Client side (`geonode-mapstore-client`):
 `js/plugins/PublishDataCollection.jsx` (the dialog checkbox and the steward

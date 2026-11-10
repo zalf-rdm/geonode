@@ -549,25 +549,64 @@ class TestBuildCommand(PackageTestBase):
 
 
 class TestStatusCommand(PackageTestBase):
-    def test_lists_published_maps_with_their_package_state(self):
-        from django.core.management import call_command
-
+    def two_collections(self):
+        """One published map with no package, one with a failed build, one unpublished."""
         publish(self.map)
         failed = Map.objects.create(owner=self.owner, title="Broken Collection")
         publish(failed)
         DownloadPackage.objects.create(map=failed, state=DownloadPackage.STATE_FAILED, error="Traceback\nboom")
         draft = Map.objects.create(owner=self.owner, title="Draft")
         ResourceBase.objects.filter(pk=draft.pk).update(is_published=False)
+        return failed
+
+    def status(self, *args):
         out = io.StringIO()
+        call_command("download_package_status", *args, stdout=out)
+        return out.getvalue()
 
-        call_command("download_package_status", "--errors", stdout=out)
+    def test_lists_published_maps_with_their_package_state(self):
+        failed = self.two_collections()
 
-        output = out.getvalue()
+        output = self.status()
+
         self.assertRegex(output, rf"{self.map.pk}\s+missing .*Soil Collection")
         self.assertRegex(output, rf"{failed.pk}\s+failed .*Broken Collection")
-        self.assertIn("error: boom", output)
         self.assertNotIn("Draft", output)
         self.assertIn("2 published maps: 1 missing, 1 failed", output)
+
+    def test_errors_lists_only_the_failed_builds(self):
+        """
+        --errors narrows as well as adds detail. It used to only append error
+        lines, so on a healthy repository it printed every ready package and
+        looked as though the flag did nothing.
+        """
+        failed = self.two_collections()
+
+        output = self.status("--errors")
+
+        self.assertRegex(output, rf"{failed.pk}\s+failed .*Broken Collection")
+        self.assertIn("error: boom", output)
+        # A map with no package has not failed, so it is not an error.
+        self.assertNotIn("Soil Collection", output)
+        # The summary still describes the whole repository, not the printed rows.
+        self.assertIn("2 published maps: 1 missing, 1 failed", output)
+
+    def test_errors_says_so_when_nothing_failed(self):
+        publish(self.map)
+
+        output = self.status("--errors")
+
+        self.assertIn("No failed builds", output)
+        self.assertIn("1 published maps: 1 missing", output)
+
+    def test_errors_reports_a_failure_that_recorded_no_message(self):
+        failed = Map.objects.create(owner=self.owner, title="Quietly Broken")
+        publish(failed)
+        DownloadPackage.objects.create(map=failed, state=DownloadPackage.STATE_FAILED, error="")
+
+        output = self.status("--errors")
+
+        self.assertIn("error: none recorded", output)
 
     def test_missing_hides_ready_packages(self):
         from django.core.management import call_command
