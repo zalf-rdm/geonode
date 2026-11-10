@@ -54,19 +54,21 @@ Follow these steps to give users approve/publish rights:
 
 ### Step 1 — Create a data-steward group in GeoNode
 
-Create a **GeoNode Group** via the web UI (*People → Groups → Create Group*), for example titled *ZALF Data Stewards*.
+Create a **GeoNode Group** via the web UI (*People → Groups → Create Group*). The dev and test stacks use *BonaRes Data Stewards*, whose slug is `bonares_data_stewards`; the rest of this walkthrough uses that name.
 
-> ⚠️ **The slug is what counts.** GeoNode derives a URL slug from the title (e.g. `zalf_data_stewards` or `zalf-data-stewards`) and the underlying permission group is named after that slug. Check the group's page URL to see the exact slug — you will need it in step 2.
+> ⚠️ **The slug is what counts.** GeoNode derives a URL slug from the title (e.g. *BonaRes Data Stewards* → `bonares_data_stewards` or `bonares-data-stewards`) and the underlying permission group is named after that slug. Check the group's page URL to see the exact slug — you will need it in step 2.
 >
 > Creating a plain Django group in the Django admin is **not enough**: such groups have no member/manager roles, so nobody in them could publish.
 
 ### Step 2 — Reference the group in the DataCite accounts setting
 
-Add the group slug to the `groups` list of a DataCite account in the environment (e.g. `.devcontainer/.env` in development):
+Add the group slug to the `groups` list of a DataCite account in the environment (e.g. `.devcontainer/.env` in development; the dev stacks use `bonares_data_stewards`):
 
 ```
-ZALF_DATACITE_ACCOUNTS=[{"username": "TIB.EXAMPLE", "password": "...", "groups": ["zalf_data_stewards"]}]
+ZALF_DATACITE_ACCOUNTS=[{"username": "TIB.EXAMPLE", "password": "...", "groups": ["bonares_data_stewards"]}]
 ```
+
+There is no separate setting for the allowed groups: `PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS` is every `groups` entry across all accounts, deduplicated and sorted, so a group that may publish always has credentials to publish with. The block in `geonode/settings.py` works the derivation through with an example.
 
 Then **restart the Django service** — the list of allowed groups is computed once at startup.
 
@@ -119,7 +121,7 @@ ZALF_DATACITE_ACCOUNTS=[{"username": "ORG.PREFIX", "password": "...", "groups": 
 
 Download packages have their own block of settings, documented in [`download_packages.md`](download_packages.md#configuration): `ZALF_DOWNLOAD_PACKAGE_ENABLED` switches the feature on or off, and `ZALF_DOWNLOAD_S3_*` plus `ZALF_DOWNLOAD_PACKAGE_*` configure storage and building. They are optional — without a bucket, packages are stored locally.
 
-`PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS` is derived automatically from all `groups` entries across `ZALF_DATACITE_ACCOUNTS` at Django startup.
+`PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS` is not set directly: it is derived at Django startup from all `groups` entries across `ZALF_DATACITE_ACCOUNTS`, deduplicated and sorted. The block in `geonode/settings.py` works through an example.
 
 ### Permission model (backend)
 
