@@ -1011,3 +1011,73 @@ class TestValidationWithS3(PackageTestBase):
         output = out.getvalue()
         self.assertIn("download-packages/stale/old.zip", output)
         self.assertIn("no asset references", output)
+
+
+class TestMapDeletion(PackageTestBase):
+    """
+    What becomes of a package when its map goes away (zalf-rdm/geonode#659).
+
+    `ResourceBase.delete()` deletes every asset reachable through a `Link` on
+    the resource, and `store_package` creates that link, so the normal path
+    cleans up after itself. A queryset delete skips that override.
+    """
+
+    def built(self):
+        dataset = self.dataset("ds", [self.file("a.shp", b"shape")])
+        publish(self.map)
+        publish(dataset)
+        DownloadPackage.objects.get_or_create(map=self.map)
+        package = download_packages.run_build(self.map.pk)
+        self.assertEqual(package.state, DownloadPackage.STATE_READY, package.error)
+        return package
+
+    def test_deleting_a_map_takes_its_package_and_the_file_with_it(self):
+        from geonode.assets.models import Asset
+
+        package = self.built()
+        asset_pk = package.asset_id
+        path = package.asset.get_real_instance().location[0]
+        map_pk = self.map.pk
+
+        self.map.delete()
+
+        self.assertFalse(DownloadPackage.objects.filter(map_id=map_pk).exists())
+        self.assertFalse(Asset.objects.filter(pk=asset_pk).exists())
+        self.assertFalse(os.path.isfile(path))
+        self.assertEqual(checks.find_dangling_assets(), [])
+
+    def test_a_queryset_delete_orphans_the_asset_and_the_check_finds_it(self):
+        """
+        Django's admin "delete selected" deletes through a queryset, which never
+        calls ResourceBase.delete() and so never runs its asset cleanup. The
+        package row goes (database cascade) but the file stays, which is the
+        realistic way a bucket accumulates packages nothing references.
+        """
+        from geonode.assets.models import Asset
+
+        package = self.built()
+        asset_pk = package.asset_id
+        path = package.asset.get_real_instance().location[0]
+        map_pk = self.map.pk
+
+        Map.objects.filter(pk=map_pk).delete()
+
+        self.assertFalse(DownloadPackage.objects.filter(map_id=map_pk).exists())
+        self.assertTrue(Asset.objects.filter(pk=asset_pk).exists())
+        self.assertTrue(os.path.isfile(path))
+
+        dangling = checks.find_dangling_assets()
+        self.assertEqual([asset.pk for asset in dangling], [asset_pk])
+        self.assertEqual(dangling[0].report_location, path)
+
+    def test_the_report_names_the_orphaned_asset(self):
+        package = self.built()
+        asset_pk = package.asset_id
+        Map.objects.filter(pk=self.map.pk).delete()
+
+        out = io.StringIO()
+        call_command("download_package_status", "--orphans", stdout=out)
+
+        output = out.getvalue()
+        self.assertIn(f"asset {asset_pk}", output)
+        self.assertIn("no DownloadPackage row references", output)

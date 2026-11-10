@@ -21,6 +21,7 @@ public. See also the change-log row in
 - [What goes into a package](#what-goes-into-a-package)
 - [How a package comes to exist](#how-a-package-comes-to-exist)
 - [Storage](#storage)
+- [Sharing a bucket, and what happens when a map is deleted](#sharing-a-bucket-and-what-happens-when-a-map-is-deleted)
 - [Authorization](#authorization) — and why GeoNode is not an access barrier
 - [The activation switch](#the-activation-switch)
 - [Configuration](#configuration)
@@ -112,6 +113,55 @@ rebuild never overwrites the object still being served. Objects are stored with
 `Content-Type: application/zip` and an `attachment` content disposition, which
 is what makes the browser save the file under its proper name after the
 redirect.
+
+### Sharing a bucket, and what happens when a map is deleted
+
+**Sharing a bucket is safe, as long as the prefix is set.** Everything is keyed
+`<ZALF_DOWNLOAD_S3_PREFIX>/<uuid>/<map-slug>-<map-pk>.zip`, with a fresh UUID
+per upload, so packages cannot collide with each other or with anything else in
+the bucket. Reads and deletes address one exact key. Two GeoNode instances can
+share one bucket under different prefixes — the dev stack uses
+`dev/download-packages` beside production's `download-packages` — and neither
+sees the other, because the orphan scan lists only `<prefix>/` (with the
+trailing slash, so `download-packages/` does not match `download-packages-old/`
+either).
+
+Two ways to break that isolation:
+
+- **An empty `ZALF_DOWNLOAD_S3_PREFIX`** makes the orphan scan list the *whole
+  bucket*, so everything else stored in it is reported as an orphan — next to
+  advice about deleting orphans. The command warns when the prefix is empty.
+  Only leave it empty for a bucket of its own.
+- **Two instances sharing one prefix** would each report the other's packages as
+  orphans, for the same reason: an object is an orphan when no asset *in this
+  database* references it. Give each instance its own prefix.
+
+**Deleting a map deletes its package**, including the stored object.
+`ResourceBase.delete()` deletes every asset reachable through a `Link` on the
+resource, `store_package` creates exactly that link, and the asset's
+`post_delete` hands off to the storage handler, which removes the object from
+the bucket (or the file from disk). Nothing is left behind.
+
+> **Except through a queryset delete.** `Map.objects.filter(...).delete()` never
+> calls `ResourceBase.delete()`, so the asset cleanup inside it never runs —
+> and that is what Django's admin **"delete selected"** does. The database
+> cascades the `DownloadPackage` row away, but the asset and the stored object
+> stay. This is the realistic way a bucket accumulates packages nothing
+> references. Deleting one map at a time from its own page runs the override and
+> cleans up properly.
+
+**To find packages no longer connected to any map:**
+
+```bash
+manage.py download_package_status --orphans
+```
+
+It reports two kinds, and they are different problems:
+
+| | what it means |
+|---|---|
+| *assets that no `DownloadPackage` row references* | the database still knows about the file but nothing points at it — a map deleted through a queryset, or a rebuild whose cleanup did not finish. Remove it under **Zalf → S3 assets** (or Local assets), which deletes the stored object too |
+| *objects under the prefix that no asset references* | the database has forgotten the file entirely — a restored database, or a delete that failed and was only logged. Nothing in GeoNode can remove these; confirm what they are and use `s3cmd del` |
 
 ## Authorization
 
@@ -418,9 +468,11 @@ Everything from `stale` down counts as broken for `--fail-on-broken` and for the
 admin page's warning.
 
 `--orphans` covers the other direction: objects under the configured prefix that
-no asset references, and package assets that no `DownloadPackage` row
-references. Both are bytes the bucket is charging for that nothing will ever
-serve.
+no asset references, and package assets — local as well as S3 — that no
+`DownloadPackage` row references. Both are bytes being paid for that nothing
+will ever serve. See [what happens when a map is
+deleted](#sharing-a-bucket-and-what-happens-when-a-map-is-deleted) for how they
+come about.
 
 Checks use a client with a 5 s connect and 15 s read timeout and two attempts
 (`s3_client(for_check=True)`), so a wrong endpoint fails in seconds rather than
@@ -547,7 +599,7 @@ because visitors' downloads are failing too.
 | `geonode/zalf/api/download_package_views.py` | the two endpoints |
 | `geonode/zalf/admin.py` | the changelist, both actions, the validation page |
 | `geonode/templates/zalf/admin/` | the changelist override and the validation page |
-| `geonode/zalf/tests/test_download_packages.py` | the whole feature, 75 tests |
+| `geonode/zalf/tests/test_download_packages.py` | the whole feature, 78 tests |
 
 Client side (`geonode-mapstore-client`):
 `js/plugins/PublishDataCollection.jsx` (the dialog checkbox and the steward

@@ -22,6 +22,7 @@ import zipfile
 
 from django.conf import settings
 
+from geonode.assets.models import Asset
 from geonode.maps.models import Map
 from geonode.zalf.download_packages import CHUNK, PACKAGE_ASSET_TYPE
 from geonode.zalf.models import DownloadPackage, S3Asset
@@ -187,6 +188,12 @@ def _check_s3_asset(package, asset, deep, max_deep_bytes):
 def _local_path(asset):
     paths = [str(p) for p in (getattr(asset, "location", None) or [])]
     return paths[0] if paths else ""
+
+
+def asset_location(asset):
+    """Where an asset's bytes live, as one line for a report."""
+    asset = asset.get_real_instance() if hasattr(asset, "get_real_instance") else asset
+    return f"s3://{asset.bucket}/{asset.key}" if isinstance(asset, S3Asset) else _local_path(asset)
 
 
 def _check_local_asset(package, asset, deep, max_deep_bytes):
@@ -365,11 +372,23 @@ def find_orphans(limit=5000):
 
 def find_dangling_assets():
     """
-    Package assets that no DownloadPackage row points at.
+    Package assets that no DownloadPackage row points at, local ones included.
 
-    `_delete_asset` removes the previous asset on every rebuild, so a leftover
-    here means a delete did not complete -- the object is still being paid for
-    and nothing will ever serve it.
+    Two ways to get one. A rebuild deletes the previous asset, so a leftover
+    means that delete did not complete. More commonly, a map was removed with a
+    **queryset** delete -- `Map.objects.filter(...).delete()`, which is what
+    Django's admin "delete selected" does: the database cascades the
+    DownloadPackage row away, but `ResourceBase.delete()` never runs, so the
+    asset cleanup inside it does not either. Deleting one map at a time through
+    its own page does run it and leaves nothing behind.
+
+    Each returned asset carries `report_location`, since a template cannot call
+    `asset_location` itself.
     """
     referenced = set(DownloadPackage.objects.exclude(asset_id=None).values_list("asset_id", flat=True))
-    return list(S3Asset.objects.filter(type=PACKAGE_ASSET_TYPE).exclude(pk__in=referenced))
+    dangling = []
+    for asset in Asset.objects.filter(type=PACKAGE_ASSET_TYPE).exclude(pk__in=referenced):
+        asset = asset.get_real_instance()
+        asset.report_location = asset_location(asset)
+        dangling.append(asset)
+    return dangling

@@ -139,7 +139,7 @@
         Removing the asset under <em>Zalf &rarr; S3 assets</em> also removes its object.</p>
         <ul>
           {% for asset in dangling %}
-            <li class="where">asset {{ asset.pk }}: s3://{{ asset.bucket }}/{{ asset.key }}</li>
+            <li class="where">asset {{ asset.pk }}: {{ asset.report_location }}</li>
           {% endfor %}
         </ul>
       {% endif %}

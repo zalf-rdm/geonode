@@ -91,7 +91,11 @@ class Command(BaseCommand):
             storage=not db_only,
         )
         if not results:
+            # Not a reason to stop: orphans are exactly what is left once the
+            # collections are gone, so --orphans still has something to say.
             self.stdout.write("No published data collections")
+            if orphans:
+                self._report_orphans()
             return
 
         shown = results
@@ -144,12 +148,24 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("every package is available"))
 
     def _report_orphans(self):
+        from django.conf import settings
+
         try:
             orphans, truncated = checks.find_orphans()
         except RuntimeError as error:
             raise CommandError(str(error))
 
         self.stdout.write("")
+        if not settings.ZALF_DOWNLOAD_S3_PREFIX.strip("/"):
+            # With no prefix the listing is the whole bucket. Fine for a bucket
+            # of its own, dangerous in a shared one -- everything else in it
+            # looks like an orphan, and the advice below is to delete orphans.
+            self.stdout.write(
+                self.style.WARNING(
+                    "ZALF_DOWNLOAD_S3_PREFIX is empty, so this lists the whole bucket. If the bucket holds "
+                    "anything besides download packages, what follows includes it. Check before deleting."
+                )
+            )
         if orphans:
             total = sum(orphan["size"] for orphan in orphans)
             self.stdout.write(
@@ -173,7 +189,7 @@ class Command(BaseCommand):
                 self.style.WARNING(f"{len(dangling)} package asset(s) that no DownloadPackage row references:")
             )
             for asset in dangling:
-                self.stdout.write(f"{'':>8}asset {asset.pk}: s3://{asset.bucket}/{asset.key}")
+                self.stdout.write(f"{'':>8}asset {asset.pk}: {asset.report_location}")
             self.stdout.write(f"{'':>8}Delete them under Zalf > S3 assets, which removes the object too.")
         else:
             self.stdout.write("No dangling package assets")
