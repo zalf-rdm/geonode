@@ -2500,13 +2500,18 @@ PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS = sorted({g for acct in ZALF_DATACITE_ACC
 # Download packages (zalf-rdm/geonode#659): one ZIP per published data
 # collection, built by a Celery task and served from S3-compatible storage.
 #
-# ZALF_DOWNLOAD_PACKAGE_ENABLED is the switch for the whole feature. With it
-# off, nothing builds a package (publication, the map endpoint, the admin
-# action and the management command all decline) and the download endpoints
-# answer 404, so the client hides the buttons. Packages already built are kept
-# and become available again when it is switched back on.
+# ZALF_DOWNLOAD_PACKAGE_ENABLED is the switch for the whole feature, and it is
+# **off unless a deployment asks for it**. The feature writes multi-GB archives
+# to a volume and uploads them to a bucket, so a deployment that has not been
+# set up for it (no bucket, no scratch space on a PVC) should do nothing rather
+# than fill its disk on the first publication.
+#
+# With it off, nothing builds a package (publication, the map endpoint, the
+# admin action and the management command all decline) and the download
+# endpoints answer 404, so the client hides the buttons. Packages already built
+# are kept and become available again when it is switched back on.
 # ---------------------------------------------------------------------------
-ZALF_DOWNLOAD_PACKAGE_ENABLED = os.getenv("ZALF_DOWNLOAD_PACKAGE_ENABLED", "True").lower() in ("true", "1", "yes")
+ZALF_DOWNLOAD_PACKAGE_ENABLED = os.getenv("ZALF_DOWNLOAD_PACKAGE_ENABLED", "False").lower() in ("true", "1", "yes")
 
 # --- Object storage for the packages ---------------------------------------
 # Without ZALF_DOWNLOAD_S3_BUCKET a package is stored as a GeoNode LocalAsset

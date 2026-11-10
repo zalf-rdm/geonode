@@ -117,7 +117,7 @@ ZALF_DATACITE_BASE_URL=https://api.test.datacite.org/      # test environment
 ZALF_DATACITE_ACCOUNTS=[{"username": "ORG.PREFIX", "password": "...", "groups": ["group-slug"]}]
 ```
 
-Download packages have their own block of settings, documented in [`download_packages.md`](download_packages.md#configuration): `ZALF_DOWNLOAD_PACKAGE_ENABLED` switches the feature on or off, and `ZALF_DOWNLOAD_S3_*` plus `ZALF_DOWNLOAD_PACKAGE_*` configure storage and building. They are optional — without a bucket, packages are stored locally.
+Download packages have their own block of settings, documented in [`download_packages.md`](download_packages.md#configuration): `ZALF_DOWNLOAD_PACKAGE_ENABLED` switches the feature on and is **off unless set**, and `ZALF_DOWNLOAD_S3_*` plus `ZALF_DOWNLOAD_PACKAGE_*` configure storage and building. They are optional — without a bucket, packages are stored locally.
 
 `PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS` is derived automatically from all `groups` entries across `ZALF_DATACITE_ACCOUNTS` at Django startup.
 

@@ -166,8 +166,17 @@ in a multi-gigabyte download into a failure.
 
 ## The activation switch
 
-`ZALF_DOWNLOAD_PACKAGE_ENABLED` (default `True`) takes the whole feature out of
-use. Every entry point checks it:
+`ZALF_DOWNLOAD_PACKAGE_ENABLED` is **off unless a deployment sets it**. The
+feature writes multi-gigabyte archives to a volume and uploads them to a bucket,
+so a deployment that has not been set up for it — no bucket, no scratch space on
+a PVC — does nothing rather than fill its disk on the first publication. Turning
+it on is one line in the environment:
+
+```
+ZALF_DOWNLOAD_PACKAGE_ENABLED=True
+```
+
+With it off, which is the default, every entry point declines:
 
 | entry point | with the switch off |
 |---|---|
@@ -193,7 +202,7 @@ would block the next request until the task's time limit.
 Optional as a whole: without a bucket, packages are stored locally.
 
 ```
-ZALF_DOWNLOAD_PACKAGE_ENABLED=True            # the switch for the whole feature
+ZALF_DOWNLOAD_PACKAGE_ENABLED=True            # the switch for the whole feature; off unless set
 
 # --- Object storage ---
 ZALF_DOWNLOAD_S3_ENDPOINT_URL=https://fsn1.your-objectstorage.com   # Hetzner; location = region
@@ -218,6 +227,11 @@ Notes that have bitten us:
 - **`ZALF_DOWNLOAD_PACKAGE_BUILD_ROOT` must be on a PVC.** `/tmp` is an
   `emptyDir` in the geonode-k8s chart, and a multi-GB build there risks evicting
   the pod.
+- **Nothing works until `ZALF_DOWNLOAD_PACKAGE_ENABLED=True` is in the
+  environment.** It is the one variable with no useful default: every other one
+  has a sane fallback, this one is deliberately off so an unprepared deployment
+  stays inert. A stack that looks configured but reports `enabled: false` is
+  missing this line.
 - **Empty `ZALF_DOWNLOAD_S3_ENDPOINT_URL` means AWS S3 itself**, not "no S3"; it
   is `ZALF_DOWNLOAD_S3_BUCKET` that decides local versus object storage.
 - **`ZALF_DOWNLOAD_S3_PUBLIC=True` needs a bucket policy**, not a canned ACL:
