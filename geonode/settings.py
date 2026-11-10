@@ -2487,43 +2487,14 @@ ZALF_DATACITE_AGENT = os.getenv(
 # ---------------------------------------------------------------------------
 ZALF_DATACITE_ACCOUNTS = _json.loads(os.getenv("ZALF_DATACITE_ACCOUNTS", "[]"))
 
-# ---------------------------------------------------------------------------
-# Allowed groups for publishing data collections.
+# Allowed groups for publishing data collections (derived from accounts).
+# Admins can always publish regardless of group membership.
 #
-# This is NOT configured on its own: it is every group named by any account in
-# ZALF_DATACITE_ACCOUNTS above, deduplicated and sorted. Setting an env var of
-# this name has no effect -- add the group to the account instead, so a group
-# that may publish always has credentials to publish *with*.
-#
-# Worked example. Given two accounts:
-#
-#   ZALF_DATACITE_ACCOUNTS='[
-#     {"username": "TIB.BONARES", "password": "...", "groups": ["bonares_data_stewards"]},
-#     {"username": "TIB.OTHER",   "password": "...", "groups": ["other_project", "bonares_data_stewards"]}
-#   ]'
-#
-# collecting the "groups" of each account gives
-#
-#   ["bonares_data_stewards"] + ["other_project", "bonares_data_stewards"]
-#
-# and the set drops the duplicate, so the result is sorted and unique:
-#
-#   PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS == ["bonares_data_stewards", "other_project"]
-#
-# The dev stack has one account (.devcontainer/.env_orcid, .devcontainer/.env),
-# so there it is just ["bonares_data_stewards"]. With no accounts configured it
-# is [], which leaves publishing to superusers only.
-#
-# An account may name several groups (one DataCite repository shared by two
-# projects) and several accounts may name the same group (one team publishing
-# under more than one prefix) -- hence a set, rather than one list per account.
-#
-# Membership of a listed group lets a user *approve*; being a **manager** of one
-# lets them *publish*. Superusers may always do both, whatever their groups.
-# See zalf_docs/data_publication_workflow.md.
-# ---------------------------------------------------------------------------
-_datacite_groups = {group for account in ZALF_DATACITE_ACCOUNTS for group in account.get("groups", [])}
-PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS = sorted(_datacite_groups)
+# It also gates the download packages below, through can_publish_data_collection():
+# only a manager of one of these groups (or a superuser) may build or rebuild a
+# package, or see a package's internal state (error, task_id, requested_by).
+# Downloading a finished package is not affected -- that needs only view on the map.
+PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS = sorted({g for acct in ZALF_DATACITE_ACCOUNTS for g in acct.get("groups", [])})
 
 # ---------------------------------------------------------------------------
 # Download packages (zalf-rdm/geonode#659): one ZIP per published data
