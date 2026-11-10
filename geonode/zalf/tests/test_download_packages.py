@@ -7,6 +7,7 @@ not a dependency and real providers (Hetzner) are smoke-tested by hand.
 """
 
 import base64
+import datetime
 import hashlib
 import io
 import os
@@ -15,13 +16,17 @@ import tempfile
 import zipfile
 from unittest import mock
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from django.test import TestCase, override_settings
+from django.urls import reverse
 
 from geonode.assets.utils import create_asset_and_link, get_default_asset
 from geonode.base.models import LinkedResource, ResourceBase
 from geonode.base.populate_test_data import create_single_dataset, create_single_doc
 from geonode.maps.models import Map, MapLayer
+from geonode.zalf import download_package_checks as checks
 from geonode.zalf import download_packages
 from geonode.zalf.api.serializer import PublishSerializer
 from geonode.zalf.api.views import _build_public_perm_spec
@@ -40,6 +45,9 @@ ENV = {
     "ZALF_DOWNLOAD_S3_BUCKET": "",
     "ZALF_DOWNLOAD_PACKAGE_ENABLED": True,
 }
+
+# A fixed timestamp for mocked S3 listings, which the report formats as a date.
+NOW = datetime.datetime(2026, 11, 10, 12, 0, tzinfo=datetime.timezone.utc)
 
 
 def basic_auth(username, password="pw"):
@@ -575,3 +583,367 @@ class TestStatusCommand(PackageTestBase):
 
         self.assertNotIn("Soil Collection", out.getvalue())
         self.assertIn("1 published maps: 1 ready", out.getvalue())
+
+
+class TestValidation(PackageTestBase):
+    """
+    `download_package_checks`: the storage, not the row, decides whether a
+    package is available (zalf-rdm/geonode#659). Local assets here; the S3 path
+    has its own class below.
+    """
+
+    def ready_package(self):
+        dataset = self.dataset("ds", [self.file("a.shp", b"shape")])
+        publish(self.map)
+        # The package holds what the publication made public, so the dataset has
+        # to be published too or the build has nothing to put in it.
+        publish(dataset)
+        package = self.build()
+        self.assertEqual(package.state, DownloadPackage.STATE_READY, package.error)
+        return package
+
+    def path_of(self, package):
+        return package.asset.get_real_instance().location[0]
+
+    def check(self, package=None, **kwargs):
+        return checks.check_package(package or DownloadPackage.objects.get(map=self.map), **kwargs)
+
+    def test_a_built_package_is_available(self):
+        package = self.ready_package()
+        result = self.check(package)
+        self.assertEqual(result.status, checks.OK)
+        self.assertTrue(result.is_ok)
+        self.assertFalse(result.is_broken)
+        self.assertEqual(result.stored_size, package.size)
+        self.assertEqual(result.location, self.path_of(package))
+
+    def test_a_file_that_is_gone_is_reported_gone(self):
+        package = self.ready_package()
+        os.remove(self.path_of(package))
+        result = self.check(package)
+        self.assertEqual(result.status, checks.GONE)
+        self.assertTrue(result.is_broken)
+        self.assertIn("not on disk", result.detail)
+
+    def test_a_size_that_disagrees_with_the_build_is_a_mismatch(self):
+        package = self.ready_package()
+        with open(self.path_of(package), "ab") as target:
+            target.write(b"appended")
+        result = self.check(package)
+        self.assertEqual(result.status, checks.MISMATCH)
+        self.assertIn(str(package.size), result.detail)
+
+    def test_an_empty_file_is_a_mismatch(self):
+        package = self.ready_package()
+        open(self.path_of(package), "wb").close()
+        DownloadPackage.objects.filter(pk=package.pk).update(size=None)
+        result = self.check()
+        self.assertEqual(result.status, checks.MISMATCH)
+        self.assertIn("empty", result.detail)
+
+    def test_a_deep_check_verifies_the_zip_and_the_checksum(self):
+        package = self.ready_package()
+        result = self.check(package, deep=True)
+        self.assertEqual(result.status, checks.OK)
+        self.assertIn("sha256 matches", result.detail)
+
+    def test_a_rewritten_package_fails_the_deep_check_only(self):
+        package = self.ready_package()
+        path = self.path_of(package)
+        with zipfile.ZipFile(path, "w") as archive:
+            archive.writestr("other.txt", "not what was built")
+        # Same bookkeeping, different bytes: only reading it notices.
+        DownloadPackage.objects.filter(pk=package.pk).update(size=os.path.getsize(path))
+        self.assertEqual(self.check().status, checks.OK)
+        result = self.check(deep=True)
+        self.assertEqual(result.status, checks.MISMATCH)
+        self.assertIn("sha256", result.detail)
+
+    def test_a_file_that_is_not_a_zip_is_corrupt(self):
+        package = self.ready_package()
+        path = self.path_of(package)
+        with open(path, "wb") as target:
+            target.write(b"not a zip at all")
+        DownloadPackage.objects.filter(pk=package.pk).update(size=os.path.getsize(path), sha256="")
+        result = self.check(deep=True)
+        self.assertEqual(result.status, checks.CORRUPT)
+        self.assertIn("not a readable ZIP", result.detail)
+
+    def test_a_deep_check_skips_a_package_over_the_size_limit(self):
+        package = self.ready_package()
+        result = self.check(package, deep=True, max_deep_bytes=1)
+        self.assertEqual(result.status, checks.OK)
+        self.assertIn("deep check skipped", result.detail)
+
+    def test_ready_without_an_asset_is_broken(self):
+        package = self.ready_package()
+        asset = package.asset.get_real_instance()
+        DownloadPackage.objects.filter(pk=package.pk).update(asset=None)
+        asset.delete()
+        result = self.check()
+        self.assertEqual(result.status, checks.NO_ASSET)
+        self.assertIn("no asset is linked", result.detail)
+
+    def test_a_failed_build_is_reported_with_its_error(self):
+        DownloadPackage.objects.create(
+            map=self.map, state=DownloadPackage.STATE_FAILED, error="Traceback…\nboom: it broke"
+        )
+        result = self.check()
+        self.assertEqual(result.status, checks.FAILED)
+        self.assertEqual(result.detail, "boom: it broke")
+
+    def test_a_running_build_is_pending_not_broken(self):
+        DownloadPackage.objects.create(map=self.map, state=DownloadPackage.STATE_BUILDING)
+        result = self.check()
+        self.assertEqual(result.status, checks.PENDING)
+        self.assertFalse(result.is_broken)
+
+    def test_a_build_whose_worker_died_is_stale(self):
+        package = DownloadPackage.objects.create(map=self.map, state=DownloadPackage.STATE_BUILDING)
+        dead = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
+            seconds=settings.ZALF_DOWNLOAD_PACKAGE_TIME_LIMIT + 60
+        )
+        DownloadPackage.objects.filter(pk=package.pk).update(updated_at=dead)
+        result = self.check()
+        self.assertEqual(result.status, checks.STALE)
+        self.assertTrue(result.is_broken)
+        self.assertIn("the worker died", result.detail)
+
+    def test_a_published_collection_without_a_package_is_missing(self):
+        publish(self.map)
+        results = checks.check_packages(include_missing=True)
+        self.assertEqual([(r.map_id, r.status) for r in results], [(self.map.pk, checks.MISSING)])
+        # Without include_missing there is simply nothing to report.
+        self.assertEqual(checks.check_packages(), [])
+
+    def test_the_report_puts_the_worst_rows_first(self):
+        other = Map.objects.create(owner=self.owner, title="Second")
+        other.set_default_permissions()
+        self.ready_package()
+        DownloadPackage.objects.create(map=other, state=DownloadPackage.STATE_FAILED, error="boom")
+        statuses = [result.status for result in checks.check_packages()]
+        self.assertEqual(statuses, [checks.FAILED, checks.OK])
+        self.assertEqual(checks.summarize(checks.check_packages()), {checks.OK: 1, checks.FAILED: 1})
+
+    def test_the_command_reports_every_package(self):
+        self.ready_package()
+        out = io.StringIO()
+        call_command("validate_download_packages", stdout=out)
+        output = out.getvalue()
+        self.assertIn(f"{self.map.pk}", output)
+        self.assertIn("ok", output)
+        self.assertIn("1 packages checked: 1 ok", output)
+        self.assertIn("every package is available", output)
+
+    def test_the_command_can_fail_on_broken_for_cron(self):
+        package = self.ready_package()
+        os.remove(self.path_of(package))
+        out = io.StringIO()
+        # Without the flag it reports and still exits cleanly.
+        call_command("validate_download_packages", stdout=out)
+        self.assertIn("need attention", out.getvalue())
+        with self.assertRaises(SystemExit):
+            call_command("validate_download_packages", "--fail-on-broken", stdout=io.StringIO())
+
+    def test_the_command_can_show_only_what_needs_attention(self):
+        self.ready_package()
+        other = Map.objects.create(owner=self.owner, title="Second")
+        DownloadPackage.objects.create(map=other, state=DownloadPackage.STATE_FAILED, error="boom")
+        out = io.StringIO()
+        call_command("validate_download_packages", "--broken-only", stdout=out)
+        output = out.getvalue()
+        self.assertIn("Second", output)
+        self.assertNotIn("Soil Collection", output)
+        # The summary still counts everything that was checked.
+        self.assertIn("2 packages checked", output)
+
+    def test_the_command_checks_one_map_only(self):
+        self.ready_package()
+        other = Map.objects.create(owner=self.owner, title="Second")
+        DownloadPackage.objects.create(map=other, state=DownloadPackage.STATE_FAILED)
+        out = io.StringIO()
+        call_command("validate_download_packages", "--map", str(other.pk), stdout=out)
+        self.assertIn("1 packages checked: 1 failed", out.getvalue())
+
+    def test_the_command_still_validates_while_the_feature_is_off(self):
+        self.ready_package()
+        out = io.StringIO()
+        with override_settings(ZALF_DOWNLOAD_PACKAGE_ENABLED=False):
+            call_command("validate_download_packages", stdout=out)
+        self.assertIn("switched off", out.getvalue())
+        self.assertIn("1 ok", out.getvalue())
+
+    def test_the_admin_page_lists_every_package(self):
+        self.ready_package()
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("admin:zalf_downloadpackage_validation"))
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+        self.assertIn("Download package validation", body)
+        self.assertIn("Soil Collection", body)
+        self.assertIn("status-ok", body)
+
+    def test_the_admin_page_marks_a_broken_package(self):
+        package = self.ready_package()
+        os.remove(self.path_of(package))
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("admin:zalf_downloadpackage_validation"))
+        body = response.content.decode()
+        self.assertIn("status-broken", body)
+        self.assertIn("need attention", body)
+
+    def test_the_admin_page_is_staff_only(self):
+        """
+        A user who may not use the admin gets no report. This deployment answers
+        404 rather than redirecting to the admin login the way the changelist
+        does; what matters is that no row reaches them either way.
+        """
+        self.client.force_login(self.owner)
+        response = self.client.get(reverse("admin:zalf_downloadpackage_validation"))
+        self.assertNotEqual(response.status_code, 200)
+        self.assertNotIn(b"Download package validation", response.content)
+
+    def test_the_admin_action_reports_each_package(self):
+        from django.contrib.admin.sites import AdminSite
+        from django.contrib.messages.storage.fallback import FallbackStorage
+        from django.test import RequestFactory
+
+        from geonode.zalf.admin import DownloadPackageAdmin
+
+        package = self.ready_package()
+        os.remove(self.path_of(package))
+        request = RequestFactory().post("/admin/")
+        request.user = self.admin
+        request.session = self.client.session
+        request._messages = FallbackStorage(request)
+        DownloadPackageAdmin(DownloadPackage, AdminSite()).validate(
+            request, DownloadPackage.objects.filter(pk=package.pk)
+        )
+        reported = [str(message) for message in request._messages]
+        self.assertEqual(len(reported), 1)
+        self.assertIn("gone", reported[0])
+
+
+class TestValidationWithS3(PackageTestBase):
+    """The S3 side of validation, against a mocked client (as TestS3AssetHandler does)."""
+
+    def setUp(self):
+        super().setUp()
+        self.client_mock = mock.MagicMock()
+        patcher = mock.patch("geonode.zalf.s3_assets.s3_client", return_value=self.client_mock)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.bucket_override = override_settings(ZALF_DOWNLOAD_S3_BUCKET="packages")
+        self.bucket_override.enable()
+        self.addCleanup(self.bucket_override.disable)
+
+        self.asset = S3Asset.objects.create(
+            title="Download package",
+            type=download_packages.PACKAGE_ASSET_TYPE,
+            owner=self.owner,
+            bucket="packages",
+            key="download-packages/abc/soil-collection-1.zip",
+            size=1024,
+            sha256="a" * 64,
+        )
+        self.package = DownloadPackage.objects.create(
+            map=self.map, state=DownloadPackage.STATE_READY, asset=self.asset, size=1024, sha256="a" * 64
+        )
+
+    def client_error(self, code):
+        from botocore.exceptions import ClientError
+
+        return ClientError({"Error": {"Code": code, "Message": code}}, "HeadObject")
+
+    def check(self, **kwargs):
+        return checks.check_package(DownloadPackage.objects.get(pk=self.package.pk), **kwargs)
+
+    def test_an_object_in_the_bucket_is_available(self):
+        self.client_mock.head_object.return_value = {
+            "ContentLength": 1024,
+            "ContentType": "application/zip",
+            "ContentDisposition": 'attachment; filename="soil-collection-1.zip"',
+        }
+        result = self.check()
+        self.assertEqual(result.status, checks.OK)
+        self.assertEqual(result.location, "s3://packages/download-packages/abc/soil-collection-1.zip")
+        self.assertEqual(result.stored_size, 1024)
+        self.client_mock.head_object.assert_called_once_with(
+            Bucket="packages", Key="download-packages/abc/soil-collection-1.zip"
+        )
+
+    def test_a_check_uses_the_short_timeout_client(self):
+        self.client_mock.head_object.return_value = {"ContentLength": 1024, "ContentType": "application/zip"}
+        self.check()
+        from geonode.zalf.s3_assets import s3_client
+
+        s3_client.assert_called_with(for_check=True)
+
+    def test_an_object_that_is_gone_is_reported_gone(self):
+        self.client_mock.head_object.side_effect = self.client_error("404")
+        result = self.check()
+        self.assertEqual(result.status, checks.GONE)
+        self.assertIn("not in the bucket", result.detail)
+
+    def test_wrong_credentials_are_unreachable_not_gone(self):
+        self.client_mock.head_object.side_effect = self.client_error("AccessDenied")
+        result = self.check()
+        self.assertEqual(result.status, checks.UNREACHABLE)
+        self.assertIn("credentials", result.detail)
+
+    def test_a_bucket_that_cannot_be_reached_is_unreachable(self):
+        from botocore.exceptions import EndpointConnectionError
+
+        self.client_mock.head_object.side_effect = EndpointConnectionError(endpoint_url="https://nope.example")
+        result = self.check()
+        self.assertEqual(result.status, checks.UNREACHABLE)
+        self.assertTrue(result.is_broken)
+
+    def test_a_truncated_object_is_a_mismatch(self):
+        self.client_mock.head_object.return_value = {"ContentLength": 10, "ContentType": "application/zip"}
+        result = self.check()
+        self.assertEqual(result.status, checks.MISMATCH)
+        self.assertIn("10 bytes", result.detail)
+
+    def test_the_wrong_content_type_is_noted_but_not_broken(self):
+        self.client_mock.head_object.return_value = {"ContentLength": 1024, "ContentType": "binary/octet-stream"}
+        result = self.check()
+        self.assertEqual(result.status, checks.OK)
+        self.assertIn("content-type", result.detail)
+        self.assertIn("content-disposition", result.detail)
+
+    def test_orphans_are_the_keys_no_asset_references(self):
+        self.client_mock.get_paginator.return_value.paginate.return_value = [
+            {
+                "Contents": [
+                    {"Key": self.asset.key, "Size": 1024, "LastModified": "now"},
+                    {"Key": "download-packages/stale/old.zip", "Size": 99, "LastModified": "then"},
+                    {"Key": "download-packages/", "Size": 0, "LastModified": "then"},
+                ]
+            }
+        ]
+        orphans, truncated = checks.find_orphans()
+        self.assertFalse(truncated)
+        self.assertEqual([orphan["key"] for orphan in orphans], ["download-packages/stale/old.zip"])
+
+    def test_dangling_assets_are_those_no_package_references(self):
+        self.assertEqual(checks.find_dangling_assets(), [])
+        orphan_asset = S3Asset.objects.create(
+            title="Download package",
+            type=download_packages.PACKAGE_ASSET_TYPE,
+            owner=self.owner,
+            bucket="packages",
+            key="download-packages/left/behind.zip",
+        )
+        self.assertEqual([asset.pk for asset in checks.find_dangling_assets()], [orphan_asset.pk])
+
+    def test_the_command_lists_orphans(self):
+        self.client_mock.head_object.return_value = {"ContentLength": 1024, "ContentType": "application/zip"}
+        self.client_mock.get_paginator.return_value.paginate.return_value = [
+            {"Contents": [{"Key": "download-packages/stale/old.zip", "Size": 99, "LastModified": NOW}]}
+        ]
+        out = io.StringIO()
+        call_command("validate_download_packages", "--orphans", stdout=out)
+        output = out.getvalue()
+        self.assertIn("download-packages/stale/old.zip", output)
+        self.assertIn("no asset references", output)

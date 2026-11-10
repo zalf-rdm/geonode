@@ -148,6 +148,51 @@ Builds run on the Celery queue `zalf.download_package`, which the default worker
 
 `PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS` is derived automatically from all `groups` entries across `ZALF_DATACITE_ACCOUNTS` at Django startup.
 
+### Checking which packages are available
+
+A `DownloadPackage` row records what its last build *concluded*. It cannot say whether the file is still there: a bucket lifecycle rule, a manual `s3cmd del`, a failed delete (which is only logged, since an orphan beats a failed delete) or a restored database all leave a row saying `ready` while the download is 404 — or, worse, truncated. Two commands, two questions:
+
+| | question | asks |
+|---|---|---|
+| `download_package_status` | what did the builds conclude? | the database |
+| `validate_download_packages` | what can visitors actually download? | the storage |
+
+```bash
+# every package, checked against its storage
+manage.py validate_download_packages
+
+# only what needs attention, plus collections that have no package at all
+manage.py validate_download_packages --broken-only --missing
+
+# download each one, read its ZIP and compare its sha256 with the build's
+manage.py validate_download_packages --deep [--max-deep-bytes N]
+
+# objects in the bucket that no asset references, and assets no row references
+manage.py validate_download_packages --orphans
+
+# for cron: exit 1 if anything is broken
+manage.py validate_download_packages --fail-on-broken
+```
+
+The same checks back the **Validate storage** page in the Django admin, under *Zalf → Download packages*, with buttons for the deep and orphan variants and a link from each row to its package. There is also a *Validate the stored package* action for selected rows. Validation never runs on the changelist itself: one request per row to the bucket would make the list as slow as the bucket is far away, and unusable when it cannot be reached.
+
+Statuses, least to most urgent:
+
+| status | means |
+|---|---|
+| `ok` | the object is there and its size matches the build. With `--deep`, its ZIP reads and its sha256 matches too. A note is added, without failing the check, if the content type is not `application/zip` or the attachment disposition is missing. |
+| `pending` | a build is queued or running. Not a fault. |
+| `missing` | a published collection that never had a package (`--missing` only). Build it with `build_download_packages --missing-only`. |
+| `stale` | still `pending`/`building` past `ZALF_DOWNLOAD_PACKAGE_TIME_LIMIT`: the worker died. A rebuild may be requested. |
+| `failed` | the build itself failed; the last line of its error is shown. |
+| `no-asset` | the row says `ready` but no asset is linked — the asset was deleted under it. |
+| `mismatch` | the stored size differs from what the build recorded, the object is empty, or (`--deep`) the sha256 differs. |
+| `corrupt` | `--deep`: not a readable ZIP, or a member fails its CRC — which is what catches a truncated upload that still has a valid central directory. |
+| `gone` | the object or file is not there at all. |
+| `unreachable` | the storage could not be asked: wrong credentials, wrong endpoint, network. Counted as broken, because downloads are failing for visitors too. |
+
+Everything from `stale` down counts as broken for `--fail-on-broken` and for the admin page's warning. Checks are read-only — nothing here builds, deletes or rewrites. Validation also stays available while the feature is switched off, which is exactly when you want to know what is still in the bucket before switching it back on. Rebuild anything broken with `build_download_packages --map <ID>`; a rebuild links the new file before deleting the old one, so a working download is never interrupted.
+
 ### Inspecting the package bucket with s3cmd
 
 GeoNode never serves the ZIPs itself — it answers with a 302 to a presigned URL — so `s3cmd` is the way to see what is actually stored.
@@ -191,7 +236,7 @@ s3p signurl "$B/<uuid>/<slug>.zip" +3600    # presigned URL, as the API hands ou
 
 One object per package, keyed `<prefix>/<uuid>/<map-slug>-<map-pk>.zip`, where the UUID is the asset's. `info` should report `application/zip` and a `Content-Disposition: attachment` header — that is what makes the browser save the file under its proper name after the redirect.
 
-> **Deleting with `s3cmd` leaves the database behind.** The `DownloadPackage` row and the `Asset` still point at the gone object, and the API keeps reporting the package as `ready` until something tries to serve it. Remove packages through the Django admin (Assets, or the *Download packages* rebuild action) or `manage.py build_download_packages --rebuild`, and reach for `s3cmd del` only for orphans that no asset references any more.
+> **Deleting with `s3cmd` leaves the database behind.** The `DownloadPackage` row and the `Asset` still point at the gone object, and the API keeps reporting the package as `ready` until something tries to serve it. Remove packages through the Django admin (Assets, or the *Download packages* rebuild action) or `manage.py build_download_packages --rebuild`, and reach for `s3cmd del` only for orphans that no asset references any more — `validate_download_packages --orphans` is what lists those.
 
 ### Permission model (backend)
 

@@ -30,7 +30,18 @@ def s3_configured():
     return bool(getattr(settings, "ZALF_DOWNLOAD_S3_BUCKET", ""))
 
 
-def s3_client():
+# Timeouts for validation (download_package_checks): a check must come back with
+# an answer. The defaults are 60 s with 5 retries, which would hang an admin page
+# for minutes on a wrong endpoint. Uploads keep the generous defaults.
+CHECK_CONNECT_TIMEOUT = 5
+CHECK_READ_TIMEOUT = 15
+
+
+def s3_client(for_check=False):
+    """
+    The configured client. `for_check` trades patience for a prompt answer, so a
+    misconfigured or unreachable endpoint fails in seconds instead of minutes.
+    """
     import boto3
     from botocore.config import Config
 
@@ -41,6 +52,15 @@ def s3_client():
         # which S3-compatible providers have rejected; only send them when required.
         request_checksum_calculation="when_required",
         response_checksum_validation="when_required",
+        **(
+            {
+                "connect_timeout": CHECK_CONNECT_TIMEOUT,
+                "read_timeout": CHECK_READ_TIMEOUT,
+                "retries": {"max_attempts": 2, "mode": "standard"},
+            }
+            if for_check
+            else {}
+        ),
     )
     return boto3.client(
         "s3",

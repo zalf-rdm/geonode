@@ -1,0 +1,150 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+{% comment %}
+  Download package validation (zalf-rdm/geonode#659): every package checked
+  against its storage, not just against its own database row. The same checks
+  back `manage.py validate_download_packages`.
+{% endcomment %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+  .pkgcheck-summary { margin: 0 0 1em; }
+  .pkgcheck-summary .count { display: inline-block; margin-right: 1em; }
+  .pkgcheck table { width: 100%; }
+  .pkgcheck td, .pkgcheck th { vertical-align: top; }
+  .pkgcheck .status { font-weight: bold; white-space: nowrap; }
+  .pkgcheck .status-ok { color: #2e7d32; }
+  .pkgcheck .status-pending, .pkgcheck .status-missing { color: #8a6d00; }
+  .pkgcheck .status-broken { color: #b71c1c; }
+  .pkgcheck .where { font-family: monospace; font-size: 11px; word-break: break-all; color: #555; }
+  .pkgcheck .why { font-size: 12px; }
+  .pkgcheck .actions-row { margin: 1em 0; }
+  .pkgcheck .note { font-size: 12px; color: #555; max-width: 60em; }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+  &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+  &rsaquo; <a href="{% url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+  &rsaquo; Validation
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="pkgcheck">
+
+  {% if not feature_enabled %}
+    <p class="warning">Download packages are switched off (<code>ZALF_DOWNLOAD_PACKAGE_ENABLED</code>). Packages
+    already built are listed below and become available again when it is switched back on.</p>
+  {% endif %}
+
+  <p class="note">
+    Each row was checked against its storage just now: {% if s3_configured %}the configured S3 bucket{% else %}the
+    local media volume, since no <code>ZALF_DOWNLOAD_S3_BUCKET</code> is set{% endif %}. A package's database row only
+    records what its last build concluded, so this page is the only place that notices an object that has since been
+    removed, truncated or never uploaded.
+  </p>
+
+  <p class="pkgcheck-summary">
+    {% for status, count in counts.items %}
+      <span class="count"><strong>{{ count }}</strong> {{ status }}</span>
+    {% endfor %}
+    {% if broken %}
+      <span class="count status status-broken">{{ broken }} need attention</span>
+    {% else %}
+      <span class="count status status-ok">everything available</span>
+    {% endif %}
+  </p>
+
+  <p class="actions-row">
+    <a class="button" href="?{% if show_orphans %}orphans=1{% endif %}">Re-check</a>
+    <a class="button" href="?deep=1{% if show_orphans %}&amp;orphans=1{% endif %}">Deep check (verify checksums)</a>
+    <a class="button" href="?{% if deep %}deep=1&amp;{% endif %}orphans=1">Include orphaned objects</a>
+  </p>
+  {% if deep %}
+    <p class="note">Deep check: each package was downloaded, its ZIP read and its sha256 compared with the one the
+    build recorded. Packages over the size limit are reported as skipped.</p>
+  {% endif %}
+
+  <table>
+    <thead>
+      <tr><th>Map</th><th>Status</th><th>Stored size</th><th>Collection</th><th>Where / why</th></tr>
+    </thead>
+    <tbody>
+      {% for result in results %}
+        <tr>
+          <td>
+            {% if result.package %}
+              <a href="{% url opts|admin_urlname:'change' result.package.pk %}">{{ result.map_id }}</a>
+            {% else %}
+              {{ result.map_id }}
+            {% endif %}
+          </td>
+          <td class="status {% if result.is_ok %}status-ok{% elif result.is_broken %}status-broken{% else %}status-{{ result.status }}{% endif %}">
+            {{ result.status }}
+          </td>
+          <td>{% if result.stored_size %}{{ result.stored_size|filesizeformat }}{% else %}-{% endif %}</td>
+          <td>{{ result.map_title }}</td>
+          <td>
+            {% if result.location %}<div class="where">{{ result.location }}</div>{% endif %}
+            <div class="why">{{ result.detail }}</div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">No published collections and no packages to check.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if broken %}
+    <p class="note">Rebuild a broken package from the changelist's <em>Rebuild the download package</em> action, or
+    with <code>manage.py build_download_packages --map &lt;ID&gt;</code>. A rebuild links the new file before deleting
+    the old one, so a working download is never interrupted.</p>
+  {% endif %}
+
+  {% if show_orphans %}
+    <h2>Orphaned objects</h2>
+    {% if orphan_error %}
+      <p class="errornote">{{ orphan_error }}</p>
+    {% elif not s3_configured %}
+      <p class="note">No bucket is configured, so there is nothing to list.</p>
+    {% else %}
+      {% if orphans %}
+        <p class="note">Objects under the configured prefix that no asset references. Deleting a package's asset
+        removes its object, but a failed delete is only logged, and a restored database forgets keys entirely &mdash;
+        so these are paid for and will never be served. Confirm what they are before removing them with
+        <code>s3cmd</code>.</p>
+        <table>
+          <thead><tr><th>Key</th><th>Size</th><th>Last modified</th></tr></thead>
+          <tbody>
+            {% for orphan in orphans %}
+              <tr>
+                <td class="where">{{ orphan.key }}</td>
+                <td>{{ orphan.size|filesizeformat }}</td>
+                <td>{{ orphan.last_modified }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% if orphans_truncated %}<p class="note">The listing was cut off; there are more.</p>{% endif %}
+      {% else %}
+        <p class="note">No orphaned objects under the prefix.</p>
+      {% endif %}
+
+      {% if dangling %}
+        <h3>Package assets no row references</h3>
+        <p class="note">A rebuild deletes the previous asset; a leftover here means that delete did not complete.
+        Removing the asset in the asset admin also removes its object.</p>
+        <ul>
+          {% for asset in dangling %}
+            <li class="where">asset {{ asset.pk }}: s3://{{ asset.bucket }}/{{ asset.key }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endif %}
+  {% endif %}
+
+</div>
+{% endblock %}
