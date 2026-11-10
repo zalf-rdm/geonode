@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 from django.template.defaultfilters import filesizeformat
 
 from geonode.maps.models import Map
+from geonode.zalf.download_packages import is_enabled
 from geonode.zalf.models import DownloadPackage
 
 STATE_MISSING = "missing"
@@ -47,3 +48,7 @@ class Command(BaseCommand):
         total = sum(counts.values())
         summary = ", ".join(f"{count} {name}" for name, count in counts.items() if count)
         self.stdout.write(f"\n{total} published maps: {summary or 'none'}")
+        # Reporting stays available while the feature is off, so the state of
+        # what was built earlier can still be inspected.
+        if not is_enabled():
+            self.stdout.write("Download packages are switched off (ZALF_DOWNLOAD_PACKAGE_ENABLED)")

@@ -38,6 +38,18 @@ from geonode.zalf.models import DownloadPackage
 
 logger = logging.getLogger(__name__)
 
+
+def is_enabled():
+    """
+    Whether the download package feature is switched on (ZALF_DOWNLOAD_PACKAGE_ENABLED).
+
+    Every entry point checks this: publication, the map endpoint, the admin
+    action and the management command. Packages built earlier are kept, so
+    switching the feature back on makes them available again.
+    """
+    return bool(getattr(settings, "ZALF_DOWNLOAD_PACKAGE_ENABLED", False))
+
+
 PACKAGE_ASSET_TYPE = "download_package"
 CHUNK = 1024 * 1024
 
@@ -285,6 +297,15 @@ def _delete_asset(asset):
 def run_build(map_id, task_id=""):
     """The task body: build, store, swap the package's asset. Raises nothing; records failures."""
     package = DownloadPackage.objects.select_related("map").get(map_id=map_id)
+    if not is_enabled():
+        # The switch was turned off after this build was queued. Record it as a
+        # failure rather than leaving the row pending, which would block the
+        # next request until the task time limit has passed.
+        logger.info(f"Download packages are switched off; dropping the queued build of map {map_id}")
+        package.state = DownloadPackage.STATE_FAILED
+        package.error = "Download packages are switched off (ZALF_DOWNLOAD_PACKAGE_ENABLED)"
+        package.save(update_fields=["state", "error", "updated_at"])
+        return package
     package.state, package.task_id, package.error = DownloadPackage.STATE_BUILDING, task_id, ""
     package.save(update_fields=["state", "task_id", "error", "updated_at"])
 
@@ -327,11 +348,19 @@ def _is_running(package):
 
 def request_build(map_obj, user=None):
     """
-    Queues a (re)build of the map's package, unless one is pending or running.
-    Returns (package, started). The task is sent on commit, so it sees the
-    caller's writes -- after publication, the public permissions.
+    Queues a (re)build of the map's package, unless one is pending or running,
+    or the feature is switched off. Returns (package, started); package is None
+    when the feature is off and the map never had one. The task is sent on
+    commit, so it sees the caller's writes -- after publication, the public
+    permissions.
     """
     from geonode.zalf.tasks import build_download_package
+
+    if not is_enabled():
+        # Belt and braces: every caller checks first, and gets to say so in its
+        # own words. Nothing is queued and no row is created here.
+        logger.info(f"Download packages are switched off; not building one for map {map_obj.pk}")
+        return DownloadPackage.objects.filter(map=map_obj).first(), False
 
     with transaction.atomic():
         package, created = DownloadPackage.objects.select_for_update().get_or_create(map=map_obj)

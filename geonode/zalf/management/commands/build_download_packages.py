@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 
 from geonode.maps.models import Map
-from geonode.zalf.download_packages import request_build, run_build
+from geonode.zalf.download_packages import is_enabled, request_build, run_build
 from geonode.zalf.models import DownloadPackage
 
 
@@ -20,6 +20,10 @@ class Command(BaseCommand):
         parser.add_argument("--sync", action="store_true", help="Build in this process instead of queuing a task")
 
     def handle(self, *args, map_ids=None, all_published=False, missing_only=False, sync=False, **options):
+        if not is_enabled():
+            raise CommandError(
+                "Download packages are switched off; set ZALF_DOWNLOAD_PACKAGE_ENABLED=True to build them"
+            )
         if not map_ids and not all_published:
             raise CommandError("Give --map ID [ID ...] or --all-published")
         maps = Map.objects.filter(is_published=True)

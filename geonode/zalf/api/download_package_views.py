@@ -12,7 +12,7 @@ from geonode.base.utils import increment_download_count
 from geonode.maps.models import Map
 from geonode.utils import build_absolute_uri
 from geonode.zalf.api.views import allowed_authentication_classes
-from geonode.zalf.download_packages import request_build
+from geonode.zalf.download_packages import is_enabled, request_build
 from geonode.zalf.models import DownloadPackage, S3Asset
 from geonode.zalf.s3_assets import S3AssetDownloadHandler
 
@@ -31,10 +31,21 @@ def _visible_map(request, mapid):
 
 
 def _payload(package, include_internal):
+    # "enabled" is how the client learns the feature is switched off: it then
+    # hides the publish-dialog checkbox and the build button.
+    enabled = is_enabled()
     if package is None:
-        return {"state": None, "asset_id": None, "download_url": None, "size": None, "built_at": None}
+        return {
+            "enabled": enabled,
+            "state": None,
+            "asset_id": None,
+            "download_url": None,
+            "size": None,
+            "built_at": None,
+        }
     ready = package.is_ready
     data = {
+        "enabled": enabled,
         "state": package.state,
         # The previous package keeps being served while a rebuild runs.
         "asset_id": package.asset_id,
@@ -65,12 +76,24 @@ def download_package_view(request, mapid):
     """
     GET  /api/v2/maps/<mapid>/download_package/
          The map's download package: state, and the asset download URL once one exists.
+         `enabled: false` and an empty state while the feature is switched off
+         (ZALF_DOWNLOAD_PACKAGE_ENABLED), which is how the client hides its buttons.
     POST /api/v2/maps/<mapid>/download_package/
          Queues a (re)build. Data stewards (can_publish_data_collection) and
          superusers only, and only for a published map: the package holds what the
-         publication made public. 202 with `started: false` while a build is running.
+         publication made public. 202 with `started: false` while a build is running,
+         409 while the feature is switched off.
     """
     map_obj = _visible_map(request, mapid)
+    if not is_enabled():
+        if request.method == "GET":
+            # No state either, so a package built before the switch was flipped
+            # is not offered while the download endpoint answers 404.
+            return Response(_payload(None, include_internal=False))
+        return Response(
+            {"detail": "Download packages are switched off (ZALF_DOWNLOAD_PACKAGE_ENABLED)."},
+            status=status.HTTP_409_CONFLICT,
+        )
     manager = _can_manage(request.user)
     if request.method == "GET":
         package = DownloadPackage.objects.filter(map=map_obj).select_related("requested_by").first()
@@ -101,8 +124,13 @@ def download_package_file_view(request, mapid):
     publication workflow grants maps view only (`_build_public_perm_spec`). That
     is safe because the package is built from the files anonymous users may
     already download, and nothing else (`download_packages.package_resources`).
+
+    404 while the feature is switched off (ZALF_DOWNLOAD_PACKAGE_ENABLED), even
+    for a package built before: the switch takes the whole feature out of use.
     """
     map_obj = _visible_map(request, mapid)
+    if not is_enabled():
+        raise Http404("Download packages are switched off")
     package = DownloadPackage.objects.filter(map=map_obj).select_related("asset").first()
     if package is None or package.asset_id is None:
         raise Http404("No download package")

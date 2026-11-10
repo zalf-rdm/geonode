@@ -1,4 +1,4 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.db import models as django_models
 
 from geonode.assets.admin import PrettyJSONWidget
@@ -92,7 +92,14 @@ class DownloadPackageAdmin(admin.ModelAdmin):
 
     @admin.action(description="Rebuild the download package")
     def rebuild(self, request, queryset):
-        from geonode.zalf.download_packages import request_build
+        from geonode.zalf.download_packages import is_enabled, request_build
 
+        if not is_enabled():
+            self.message_user(
+                request,
+                "Download packages are switched off (ZALF_DOWNLOAD_PACKAGE_ENABLED); nothing was queued.",
+                level=messages.WARNING,
+            )
+            return
         started = sum(request_build(package.map, user=request.user)[1] for package in queryset.select_related("map"))
         self.message_user(request, f"Queued {started} of {queryset.count()} builds; the others are already running.")

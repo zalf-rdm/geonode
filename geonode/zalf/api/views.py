@@ -248,9 +248,11 @@ def _publish_data_collection(map: Map, payload, user):
         "message": "Data Collection published",
     }
 
-    if payload.get("build_download_package", True):
-        from geonode.zalf.download_packages import request_build
+    from geonode.zalf.download_packages import is_enabled, request_build
 
+    # is_enabled() is the feature switch (ZALF_DOWNLOAD_PACKAGE_ENABLED): with it
+    # off, publication must not queue a build that nothing would run.
+    if payload.get("build_download_package", True) and is_enabled():
         # Queued on commit, so the build sees the public permissions set above.
         request_build(map, user=user)
         response_data["download_package"] = "queued"

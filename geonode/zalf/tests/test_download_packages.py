@@ -38,6 +38,7 @@ ENV = {
     "DEFAULT_ANONYMOUS_DOWNLOAD_PERMISSION": False,
     "KEYCLOAK_SSO_ENABLED": False,
     "ZALF_DOWNLOAD_S3_BUCKET": "",
+    "ZALF_DOWNLOAD_PACKAGE_ENABLED": True,
 }
 
 
@@ -270,6 +271,7 @@ class TestDownloadPackageApi(PackageTestBase):
         response = self.client.get(self.url())
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.json()["state"])
+        self.assertTrue(response.json()["enabled"])
 
     def test_invisible_map_is_404(self):
         self.assertEqual(self.client.get(self.url()).status_code, 404)
@@ -316,6 +318,108 @@ class TestDownloadPackageApi(PackageTestBase):
     def test_download_without_package_is_404(self):
         publish(self.map)
         self.assertEqual(self.client.get(self.url("download/")).status_code, 404)
+
+
+class TestActivationSwitch(PackageTestBase):
+    """ZALF_DOWNLOAD_PACKAGE_ENABLED=False takes the whole feature out of use."""
+
+    def setUp(self):
+        # After super(), which enables ENV with the feature on.
+        super().setUp()
+        self.switch_off = override_settings(ZALF_DOWNLOAD_PACKAGE_ENABLED=False)
+        self.switch_off.enable()
+
+    def tearDown(self):
+        self.switch_off.disable()
+        super().tearDown()
+
+    def url(self, suffix=""):
+        return f"/api/v2/maps/{self.map.pk}/download_package/{suffix}"
+
+    def test_request_build_queues_nothing(self):
+        with mock.patch("geonode.zalf.tasks.build_download_package.apply_async") as apply_async:
+            with self.captureOnCommitCallbacks(execute=True):
+                package, started = download_packages.request_build(self.map, user=self.admin)
+        self.assertFalse(started)
+        self.assertIsNone(package)
+        self.assertFalse(DownloadPackage.objects.exists())
+        apply_async.assert_not_called()
+
+    def test_a_build_queued_before_the_switch_was_flipped_is_dropped(self):
+        DownloadPackage.objects.create(map=self.map, state=DownloadPackage.STATE_PENDING)
+        package = download_packages.run_build(self.map.pk, task_id="test")
+        self.assertEqual(package.state, DownloadPackage.STATE_FAILED)
+        self.assertIn("ZALF_DOWNLOAD_PACKAGE_ENABLED", package.error)
+        self.assertIsNone(package.asset_id)
+
+    def test_publication_does_not_queue_a_build(self):
+        from geonode.zalf.api import views
+
+        dataset = self.dataset("pub", [self.file("a.shp")])
+        ResourceBase.objects.filter(pk=dataset.pk).update(is_approved=True)
+        dataset.refresh_from_db()
+        serializer = PublishSerializer(
+            data={"owner": self.owner.pk, "resources": [dataset.pk], "doi_prefix": "10.1234"}
+        )
+        serializer.is_valid(raise_exception=True)
+        with (
+            mock.patch.object(views, "validate_doi_prefix"),
+            mock.patch.object(views, "get_datacite_account_for_prefix"),
+            mock.patch.object(views, "register_doi", return_value="10.1234/x"),
+            mock.patch.object(download_packages, "request_build") as request_build,
+        ):
+            response = views._publish_data_collection(self.map, serializer.validated_data, user=self.admin)
+        request_build.assert_not_called()
+        self.assertNotIn("download_package", response)
+
+    def test_the_api_reports_the_feature_as_off(self):
+        publish(self.map)
+        response = self.client.get(self.url())
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json()["enabled"])
+        self.assertIsNone(response.json()["state"])
+        self.assertEqual(self.client.post(self.url(), **basic_auth("pkg-admin")).status_code, 409)
+
+    def test_a_package_built_before_is_not_served(self):
+        dataset = self.dataset("ds", [self.file("a.shp", b"shape")])
+        publish(self.map)
+        publish(dataset)
+        with override_settings(ZALF_DOWNLOAD_PACKAGE_ENABLED=True):
+            package = self.build()
+        self.assertEqual(package.state, DownloadPackage.STATE_READY)
+        self.assertEqual(self.client.get(self.url("download/")).status_code, 404)
+        self.assertIsNone(self.client.get(self.url()).json()["state"])
+
+    def test_the_build_command_declines(self):
+        from django.core.management import call_command
+        from django.core.management.base import CommandError
+
+        with self.assertRaisesMessage(CommandError, "ZALF_DOWNLOAD_PACKAGE_ENABLED"):
+            call_command("build_download_packages", "--all-published")
+
+    def test_the_status_command_still_reports(self):
+        from django.core.management import call_command
+
+        publish(self.map)
+        out = io.StringIO()
+        call_command("download_package_status", stdout=out)
+        self.assertIn("1 published maps: 1 missing", out.getvalue())
+        self.assertIn("switched off", out.getvalue())
+
+    def test_the_admin_action_queues_nothing(self):
+        from django.contrib.admin.sites import AdminSite
+        from django.test import RequestFactory
+
+        from geonode.zalf.admin import DownloadPackageAdmin
+
+        DownloadPackage.objects.create(map=self.map)
+        request = RequestFactory().post("/admin/")
+        request.user = self.admin
+        request._messages = mock.MagicMock()
+        with mock.patch("geonode.zalf.tasks.build_download_package.apply_async") as apply_async:
+            DownloadPackageAdmin(DownloadPackage, AdminSite()).rebuild(request, DownloadPackage.objects.all())
+        apply_async.assert_not_called()
+        self.assertIn("switched off", str(request._messages.add.call_args))
 
 
 @override_settings(
