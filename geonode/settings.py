@@ -2526,7 +2526,14 @@ ZALF_DOWNLOAD_S3_SECRET_ACCESS_KEY = os.getenv("ZALF_DOWNLOAD_S3_SECRET_ACCESS_K
 ZALF_DOWNLOAD_S3_PREFIX = os.getenv("ZALF_DOWNLOAD_S3_PREFIX", "download-packages")
 # How the bucket is addressed: "virtual" (bucket.endpoint/key) or "path" (endpoint/bucket/key).
 ZALF_DOWNLOAD_S3_ADDRESSING_STYLE = os.getenv("ZALF_DOWNLOAD_S3_ADDRESSING_STYLE", "virtual")
-# Lifetime of a presigned download URL, in seconds; it only has to outlive the redirect.
+# Lifetime of a presigned download URL, in seconds. Not just long enough for the
+# redirect: SigV4 checks expiry when a request is accepted, so a long transfer
+# that starts in time finishes regardless, but a client resuming after a dropped
+# connection sends a new request with the same query string, and a short lifetime
+# would fail the resume of a multi-GB package. The URL is a forwardable
+# capability while it lasts -- deliberately, since a package holds only publicly
+# downloadable files; see "GeoNode is not an access barrier" in
+# zalf_docs/download_packages.md.
 ZALF_DOWNLOAD_S3_URL_EXPIRY = int(os.getenv("ZALF_DOWNLOAD_S3_URL_EXPIRY", "3600"))
 # Serve the public object URL instead of a presigned one (needs a public-read bucket policy).
 ZALF_DOWNLOAD_S3_PUBLIC = os.getenv("ZALF_DOWNLOAD_S3_PUBLIC", "False").lower() == "true"

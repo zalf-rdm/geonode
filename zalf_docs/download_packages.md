@@ -21,7 +21,7 @@ public. See also the change-log row in
 - [What goes into a package](#what-goes-into-a-package)
 - [How a package comes to exist](#how-a-package-comes-to-exist)
 - [Storage](#storage)
-- [Authorization](#authorization)
+- [Authorization](#authorization) — and why GeoNode is not an access barrier
 - [The activation switch](#the-activation-switch)
 - [Configuration](#configuration)
 - [Management commands](#management-commands)
@@ -127,6 +127,42 @@ package only ever contains files that are already publicly downloadable.
 |---|---|
 | build / rebuild (POST) | `can_publish_data_collection()`; the map must be published |
 | state (GET) and the file | `base.view_resourcebase` on the map |
+
+### GeoNode is not an access barrier for the bytes
+
+Worth being blunt about, because the download endpoint looks like access control
+and is not. GeoNode checks the map's visibility when it **issues** the redirect,
+not per byte. What the visitor then holds is a presigned URL: a forwardable
+capability, valid for `ZALF_DOWNLOAD_S3_URL_EXPIRY`, that anyone can use without
+authenticating. It is plainly visible in the browser's network log, or in
+`curl -D -` against the endpoint.
+
+That is **by design**, and acceptable because of what a package contains: only
+files anonymous visitors may already download, which `package_resources`
+enforces by selecting nothing else. The repository publishes free and open data;
+the endpoint exists for discovery and for counting downloads
+(`increment_download_count`), not to gate anything.
+
+Two things follow:
+
+- **Never put non-public data in a package.** There is no mechanism here that
+  would keep it private. If a collection must stay restricted, it must not have
+  a package — `POST` already refuses unpublished maps, and the switch exists to
+  take the feature out of use entirely.
+- **S3 cannot enforce GeoNode's permissions**, and no configuration will make it.
+  The S3 API has no authorizer hook: it knows identities (keys plus bucket
+  policy), capabilities (presigned URLs) and public objects, none of which can
+  see a GeoNode user. Per-request enforcement would require a reverse proxy in
+  the byte path doing an `auth_request` against GeoNode and streaming from the
+  bucket with its own credentials — which would also have to sit in the bucket's
+  own datacentre to keep the bytes off the institute's uplink. Not built, and not
+  needed for open data.
+
+`ZALF_DOWNLOAD_S3_URL_EXPIRY` stays at an hour deliberately. SigV4 checks expiry
+when a request is *accepted*, so a long transfer that starts in time finishes
+regardless — but a client resuming after a network blip sends a **new** request
+with the same query string, and a short lifetime would turn a recoverable hiccup
+in a multi-gigabyte download into a failure.
 
 ## The activation switch
 
