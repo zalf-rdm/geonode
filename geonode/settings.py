@@ -2489,7 +2489,81 @@ ZALF_DATACITE_ACCOUNTS = _json.loads(os.getenv("ZALF_DATACITE_ACCOUNTS", "[]"))
 
 # Allowed groups for publishing data collections (derived from accounts).
 # Admins can always publish regardless of group membership.
+#
+# It also gates the download packages below, through can_publish_data_collection():
+# only a manager of one of these groups (or a superuser) may build or rebuild a
+# package, or see a package's internal state (error, task_id, requested_by).
+# Downloading a finished package is not affected -- that needs only view on the map.
 PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS = sorted({g for acct in ZALF_DATACITE_ACCOUNTS for g in acct.get("groups", [])})
+
+# ---------------------------------------------------------------------------
+# Download packages (zalf-rdm/geonode#659): one ZIP per published data
+# collection, built by a Celery task and served from S3-compatible storage.
+#
+# ZALF_DOWNLOAD_PACKAGE_ENABLED is the switch for the whole feature, and it is
+# **off unless a deployment asks for it**. The feature writes multi-GB archives
+# to a volume and uploads them to a bucket, so a deployment that has not been
+# set up for it (no bucket, no scratch space on a PVC) should do nothing rather
+# than fill its disk on the first publication.
+#
+# With it off, nothing builds a package (publication, the map endpoint, the
+# admin action and the management command all decline) and the download
+# endpoints answer 404, so the client hides the buttons. Packages already built
+# are kept and become available again when it is switched back on.
+# ---------------------------------------------------------------------------
+ZALF_DOWNLOAD_PACKAGE_ENABLED = os.getenv("ZALF_DOWNLOAD_PACKAGE_ENABLED", "False").lower() in ("true", "1", "yes")
+
+# --- Object storage for the packages ---------------------------------------
+# Without ZALF_DOWNLOAD_S3_BUCKET a package is stored as a GeoNode LocalAsset
+# (on the media volume) instead, which is the dev default.
+#
+# S3 endpoint of the provider, e.g. https://fsn1.your-objectstorage.com for
+# Hetzner Object Storage. Empty means AWS S3 itself.
+ZALF_DOWNLOAD_S3_ENDPOINT_URL = os.getenv("ZALF_DOWNLOAD_S3_ENDPOINT_URL", "")
+# Region the bucket lives in, e.g. "fsn1" (Hetzner Falkenstein) or "eu-central-1".
+ZALF_DOWNLOAD_S3_REGION = os.getenv("ZALF_DOWNLOAD_S3_REGION", "")
+# Bucket that holds the packages. Empty switches storage to a LocalAsset.
+ZALF_DOWNLOAD_S3_BUCKET = os.getenv("ZALF_DOWNLOAD_S3_BUCKET", "")
+# Credentials of the bucket, kept in the SOPS-encrypted env, never the global AWS_* ones.
+ZALF_DOWNLOAD_S3_ACCESS_KEY_ID = os.getenv("ZALF_DOWNLOAD_S3_ACCESS_KEY_ID", "")
+ZALF_DOWNLOAD_S3_SECRET_ACCESS_KEY = os.getenv("ZALF_DOWNLOAD_S3_SECRET_ACCESS_KEY", "")
+# Key prefix ("folder") inside the bucket, so it can be shared with other data.
+ZALF_DOWNLOAD_S3_PREFIX = os.getenv("ZALF_DOWNLOAD_S3_PREFIX", "download-packages")
+# How the bucket is addressed: "virtual" (bucket.endpoint/key) or "path" (endpoint/bucket/key).
+ZALF_DOWNLOAD_S3_ADDRESSING_STYLE = os.getenv("ZALF_DOWNLOAD_S3_ADDRESSING_STYLE", "virtual")
+# Lifetime of a presigned download URL, in seconds. Not just long enough for the
+# redirect: SigV4 checks expiry when a request is accepted, so a long transfer
+# that starts in time finishes regardless, but a client resuming after a dropped
+# connection sends a new request with the same query string, and a short lifetime
+# would fail the resume of a multi-GB package. The URL is a forwardable
+# capability while it lasts -- deliberately, since a package holds only publicly
+# downloadable files; see "GeoNode is not an access barrier" in
+# zalf_docs/download_packages.md.
+ZALF_DOWNLOAD_S3_URL_EXPIRY = int(os.getenv("ZALF_DOWNLOAD_S3_URL_EXPIRY", "3600"))
+# Serve the public object URL instead of a presigned one (needs a public-read bucket policy).
+ZALF_DOWNLOAD_S3_PUBLIC = os.getenv("ZALF_DOWNLOAD_S3_PUBLIC", "False").lower() == "true"
+
+# --- Building ---------------------------------------------------------------
+# Scratch space for builds. On a PVC on purpose: /tmp is an emptyDir in the
+# geonode-k8s chart, and a multi-GB build there risks evicting the pod.
+ZALF_DOWNLOAD_PACKAGE_BUILD_ROOT = os.getenv(
+    "ZALF_DOWNLOAD_PACKAGE_BUILD_ROOT", os.path.join(os.path.dirname(MEDIA_ROOT.rstrip("/")), "download_packages")
+)
+# Upper bound for one package, in bytes (default 50 GiB). A build that would
+# exceed it fails instead of filling the volume or the bucket.
+ZALF_DOWNLOAD_PACKAGE_MAX_BYTES = int(os.getenv("ZALF_DOWNLOAD_PACKAGE_MAX_BYTES", str(50 * 1024**3)))
+# Celery time limit for one build, in seconds (default 6 h). It also decides
+# when a "building" row left behind by a dead worker may be rebuilt.
+ZALF_DOWNLOAD_PACKAGE_TIME_LIMIT = int(os.getenv("ZALF_DOWNLOAD_PACKAGE_TIME_LIMIT", str(6 * 3600)))
+# Read timeout for one GeoServer export of a dataset without an original file.
+ZALF_DOWNLOAD_PACKAGE_EXPORT_TIMEOUT = int(os.getenv("ZALF_DOWNLOAD_PACKAGE_EXPORT_TIMEOUT", "3600"))
+
+# Registered even when the feature is off, so packages built earlier stay
+# resolvable (asset admin, deleting a map) and in-flight tasks can drain.
+ASSET_HANDLERS += ["geonode.zalf.s3_assets.S3AssetHandler"]
+# Its own queue, so a long build can be moved to a dedicated worker; the default
+# worker consumes it as long as it only excludes "harvesting" (celery-cmd).
+CELERY_TASK_QUEUES += (Queue("zalf.download_package", GEONODE_EXCHANGE, routing_key="zalf.download_package"),)
 
 # Keycloak is the authority for browser authentication and application sessions.
 KEYCLOAK_SSO_ENABLED = os.environ.get("KEYCLOAK_SSO_ENABLED", "true").lower() == "true"

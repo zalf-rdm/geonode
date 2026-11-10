@@ -130,6 +130,8 @@ dependencies = [
     "dropbox==11.36.2",
     "google-cloud-storage==2.16.0",
     "boto3==1.39.3",
+    # Imported directly by geonode/zalf/s3_assets.py (botocore.config.Config); the range boto3 1.39.3 requires.
+    "botocore>=1.39.3,<1.40.0",
     # Django Caches
     "whitenoise==6.6.0",
     # Contribs

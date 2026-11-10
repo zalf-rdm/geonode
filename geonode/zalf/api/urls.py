@@ -8,6 +8,7 @@ from geonode.zalf.api.views import (
     datacite_metadata_view,
     datacite_prefixes_view,
 )
+from geonode.zalf.api.download_package_views import download_package_file_view, download_package_view
 from geonode.zalf.api.cms_views import (
     HighlightedCaseListCreateView,
     HighlightedCaseDetailView,
@@ -27,6 +28,12 @@ urlpatterns = [
     re_path(r"^approve/(?P<mapid>\d+)/$", approve_data_collection_post, name="approve_data_collection"),
     re_path(r"^publish/(?P<mapid>\d+)/$", publish_data_collection, name="publish_data_collection"),
     re_path(r"^maps/(?P<mapid>\d+)/sync_metadata/$", sync_metadata_view, name="sync_metadata"),
+    re_path(r"^maps/(?P<mapid>\d+)/download_package/$", download_package_view, name="download_package"),
+    re_path(
+        r"^maps/(?P<mapid>\d+)/download_package/download/$",
+        download_package_file_view,
+        name="download_package_file",
+    ),
     re_path(r"^resources/(?P<pk>\d+)/view/$", count_resource_view, name="count_resource_view"),
     # CMS — Highlighted Cases
     re_path(r"^cms/cases/$", HighlightedCaseListCreateView.as_view(), name="cms_cases"),

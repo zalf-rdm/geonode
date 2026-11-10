@@ -34,8 +34,17 @@ Every data collection goes through two review steps:
 | **Approve Data Collection** (thumbs-up) | User may approve, resource is a map, and it is not yet approved |
 | **Publish Data Collection** (bookmark) | User may publish, map is approved but not yet published |
 | **DataCite Metadata** (download) | DataCite integration is enabled and the map is published |
+| **Build / Rebuild download package** (archive) | User may publish and the map is published; shows the package state |
 
-The publish dialog lets the steward select which linked resources to include and which DOI prefix to use.
+The publish dialog lets the steward select which linked resources to include and which DOI prefix to use. Its **Build download package after publication** checkbox, **checked by default**, queues the download package once the publication has committed.
+
+### Download package
+
+After publication, a map's landing page offers **Download all (ZIP, size)**: one archive with every file of the collection that anonymous visitors may download, which after publication is exactly what the publication made public. The button appears only once the package exists.
+
+Publication queues the build automatically, unless the dialog's *Build download package after publication* checkbox is cleared. Whoever may **view** the map may download the package, and the package is a snapshot: after changing a published collection, rebuild it.
+
+> **Download packages have their own document: [`download_packages.md`](download_packages.md).** It covers the contents and layout of the archive, storage and the S3 handler, the activation switch, every `ZALF_DOWNLOAD_*` setting, all three management commands, the API endpoints, the admin pages, validation and troubleshooting.
 
 ---
 
@@ -45,18 +54,18 @@ Follow these steps to give users approve/publish rights:
 
 ### Step 1 — Create a data-steward group in GeoNode
 
-Create a **GeoNode Group** via the web UI (*People → Groups → Create Group*), for example titled *ZALF Data Stewards*.
+Create a **GeoNode Group** via the web UI (*People → Groups → Create Group*). The dev and test stacks use *BonaRes Data Stewards*, whose slug is `bonares_data_stewards`; the rest of this walkthrough uses that name.
 
-> ⚠️ **The slug is what counts.** GeoNode derives a URL slug from the title (e.g. `zalf_data_stewards` or `zalf-data-stewards`) and the underlying permission group is named after that slug. Check the group's page URL to see the exact slug — you will need it in step 2.
+> ⚠️ **The slug is what counts.** GeoNode derives a URL slug from the title (e.g. *BonaRes Data Stewards* → `bonares_data_stewards` or `bonares-data-stewards`) and the underlying permission group is named after that slug. Check the group's page URL to see the exact slug — you will need it in step 2.
 >
 > Creating a plain Django group in the Django admin is **not enough**: such groups have no member/manager roles, so nobody in them could publish.
 
 ### Step 2 — Reference the group in the DataCite accounts setting
 
-Add the group slug to the `groups` list of a DataCite account in the environment (e.g. `.devcontainer/.env` in development):
+Add the group slug to the `groups` list of a DataCite account in the environment (e.g. `.devcontainer/.env` in development; the dev stacks use `bonares_data_stewards`):
 
 ```
-ZALF_DATACITE_ACCOUNTS=[{"username": "TIB.EXAMPLE", "password": "...", "groups": ["zalf_data_stewards"]}]
+ZALF_DATACITE_ACCOUNTS=[{"username": "TIB.EXAMPLE", "password": "...", "groups": ["bonares_data_stewards"]}]
 ```
 
 Then **restart the Django service** — the list of allowed groups is computed once at startup.
@@ -108,6 +117,8 @@ ZALF_DATACITE_BASE_URL=https://api.test.datacite.org/      # test environment
 ZALF_DATACITE_ACCOUNTS=[{"username": "ORG.PREFIX", "password": "...", "groups": ["group-slug"]}]
 ```
 
+Download packages have their own block of settings, documented in [`download_packages.md`](download_packages.md#configuration): `ZALF_DOWNLOAD_PACKAGE_ENABLED` switches the feature on and is **off unless set**, and `ZALF_DOWNLOAD_S3_*` plus `ZALF_DOWNLOAD_PACKAGE_*` configure storage and building. They are optional — without a bucket, packages are stored locally.
+
 `PUBLISH_DATA_COLLECTION_ALLOWED_GROUPS` is derived automatically from all `groups` entries across `ZALF_DATACITE_ACCOUNTS` at Django startup.
 
 ### Permission model (backend)
@@ -127,6 +138,10 @@ Approve and publish are authorized **solely by the group-role gate** — data st
 | Approve | `can_approve_data_collection()` (member of an allowed group) |
 | Publish | `can_publish_data_collection()` (manager of an allowed group) |
 | Sync metadata (POST) | `base.change_resourcebase` on the map |
+| Build download package (POST) | `can_publish_data_collection()`; the map must be published |
+| Download package state (GET) / file | `base.view_resourcebase` on the map |
+
+Why the package is authorized by *view* and not *download* is explained in [`download_packages.md`](download_packages.md#authorization).
 
 ### Frontend flags
 
@@ -190,6 +205,12 @@ Publish a data collection with DOI registration.
 | 422 | Resource not approved, DOI prefix invalid/inaccessible, or DataCite API error |
 | 404 | Map or owner does not exist |
 
+#### GET / POST `/api/v2/maps/{mapid}/download_package/` and `…/download_package/download/`
+
+The download package's state, a (re)build, and the file itself. Documented with their payloads, statuses and the `enabled` flag in [`download_packages.md`](download_packages.md#api-endpoints).
+
+The publish endpoint accepts `"build_download_package": false` to skip the automatic build; the default is `true`.
+
 #### GET / POST `/api/v2/maps/{mapid}/sync_metadata/`
 
 GET returns a metadata diff between the map and each linked resource (`?resource_pk=` to limit). POST syncs metadata from the map to linked resources (optional body: `resource_pk`, `field_names`); requires `base.change_resourcebase` on the map.
@@ -215,7 +236,8 @@ Returns `{"prefixes": [...]}` — DOI prefixes available to the authenticated us
 ```
 geonode-mapstore-client/client/js/plugins/
   ApproveDataCollection.jsx   — Approve button + confirm dialog (gated on can_approve)
-  PublishDataCollection.jsx   — Publish button + resource checklist + DOI prefix selector (gated on can_publish)
+  PublishDataCollection.jsx   — Publish button + resource checklist + DOI prefix selector + "build download package"
+                                checkbox (gated on can_publish); on a published map: the download package button
   downloads/DataCiteDownload.jsx — Download DataCite XML button
 client/js/hooks/useDatacitePrefixes.js — reads the datacite flags from the page config
 ```
