@@ -138,7 +138,7 @@ class Command(BaseCommand):
             )
             for asset in dangling:
                 self.stdout.write(f"{'':>8}asset {asset.pk}: s3://{asset.bucket}/{asset.key}")
-            self.stdout.write(f"{'':>8}Delete them in the asset admin, which also removes the object.")
+            self.stdout.write(f"{'':>8}Delete them under Zalf > S3 assets, which removes the object too.")
         else:
             self.stdout.write("No dangling package assets")
 

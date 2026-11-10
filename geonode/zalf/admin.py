@@ -6,7 +6,15 @@ from django.urls import path
 
 from geonode.assets.admin import PrettyJSONWidget
 
-from .models import DownloadPackage, HighlightedCase, HomepageSection, SpotlightBanner, Topic, TrainingResource
+from .models import (
+    DownloadPackage,
+    HighlightedCase,
+    HomepageSection,
+    S3Asset,
+    SpotlightBanner,
+    Topic,
+    TrainingResource,
+)
 
 
 @admin.register(HighlightedCase)
@@ -181,3 +189,26 @@ class DownloadPackageAdmin(admin.ModelAdmin):
             return
         started = sum(request_build(package.map, user=request.user)[1] for package in queryset.select_related("map"))
         self.message_user(request, f"Queued {started} of {queryset.count()} builds; the others are already running.")
+
+
+@admin.register(S3Asset)
+class S3AssetAdmin(admin.ModelAdmin):
+    """
+    The stored package objects themselves (zalf-rdm/geonode#659).
+
+    GeoNode registers only LocalAsset, so without this an S3Asset could not be
+    inspected or removed through the admin at all -- which is where the download
+    package validation page sends an operator who has a dangling asset. Deleting
+    a row here removes the object from the bucket too, through the handler's
+    post_delete.
+    """
+
+    list_display = ("id", "title", "type", "bucket", "key", "size", "owner", "created")
+    list_display_links = ("id", "title")
+    list_filter = ("type", "bucket")
+    search_fields = ("key", "title")
+    # A row describes a stored object: it is written by a build, not by hand.
+    readonly_fields = ("bucket", "key", "size", "sha256", "created")
+
+    def has_add_permission(self, request):
+        return False

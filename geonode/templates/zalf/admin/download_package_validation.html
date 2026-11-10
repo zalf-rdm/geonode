@@ -136,7 +136,7 @@
       {% if dangling %}
         <h3>Package assets no row references</h3>
         <p class="note">A rebuild deletes the previous asset; a leftover here means that delete did not complete.
-        Removing the asset in the asset admin also removes its object.</p>
+        Removing the asset under <em>Zalf &rarr; S3 assets</em> also removes its object.</p>
         <ul>
           {% for asset in dangling %}
             <li class="where">asset {{ asset.pk }}: s3://{{ asset.bucket }}/{{ asset.key }}</li>
